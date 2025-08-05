@@ -472,284 +472,358 @@
         
 <!--LOGGING SCRIPT-->
     <script>
-        // PERSISTENT DATA STORAGE USING INDEXEDDB
-        class PersistentStorage {
-            constructor() {
-                this.dbName = 'NiagaraLoggingDB';
-                this.dbVersion = 1;
-                this.db = null;
-                this.initialized = false;
-            }
+ // FIXED PERSISTENT DATA STORAGE USING INDEXEDDB
+class PersistentStorage {
+    constructor() {
+        this.dbName = 'NiagaraLoggingDB';
+        this.dbVersion = 1;
+        this.db = null;
+        this.initialized = false;
+    }
 
-            async init() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(this.dbName, this.dbVersion);
-                    
-                    request.onerror = () => {
-                        console.error('Failed to open IndexedDB:', request.error);
-                        reject(request.error);
-                    };
-                    
-                    request.onsuccess = () => {
-                        this.db = request.result;
-                        this.initialized = true;
-                        console.log('✅ IndexedDB initialized successfully');
-                        resolve();
-                    };
-                    
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        
-                        // Create stores if they don't exist
-                        if (!db.objectStoreNames.contains('eventLogs')) {
-                            const eventStore = db.createObjectStore('eventLogs', { keyPath: 'id' });
-                            eventStore.createIndex('timestamp', 'timestamp', { unique: false });
-                            eventStore.createIndex('unit', 'unit', { unique: false });
-                        }
-                        
-                        if (!db.objectStoreNames.contains('unitStates')) {
-                            db.createObjectStore('unitStates', { keyPath: 'id' });
-                        }
-                        
-                        if (!db.objectStoreNames.contains('unitHistory')) {
-                            db.createObjectStore('unitHistory', { keyPath: 'id' });
-                        }
-                        
-                        if (!db.objectStoreNames.contains('systemConfig')) {
-                            db.createObjectStore('systemConfig', { keyPath: 'key' });
-                        }
-                        
-                        console.log('📦 IndexedDB structure created');
-                    };
-                });
-            }
-
-            async saveEventLogs(logs) {
-                if (!this.initialized) await this.init();
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+            
+            request.onerror = () => {
+                console.error('Failed to open IndexedDB:', request.error);
+                reject(request.error);
+            };
+            
+            request.onsuccess = () => {
+                this.db = request.result;
+                this.initialized = true;
+                console.log('✅ IndexedDB initialized successfully');
+                resolve();
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['eventLogs'], 'readwrite');
-                    const store = transaction.objectStore('eventLogs');
-                    
-                    transaction.oncomplete = () => {
-                        console.log(`💾 Saved ${logs.length} event logs to IndexedDB`);
-                        resolve();
-                    };
-                    
-                    transaction.onerror = () => {
-                        console.error('Failed to save event logs:', transaction.error);
-                        reject(transaction.error);
-                    };
-                    
-                    // Clear existing logs first
-                    const clearRequest = store.clear();
-                    clearRequest.onsuccess = () => {
-                        // Add all logs
-                        logs.forEach(log => {
-                            store.add(log);
-                        });
-                    };
-                });
-            }
-
-            async loadEventLogs() {
-                if (!this.initialized) await this.init();
+                // Create stores if they don't exist
+                if (!db.objectStoreNames.contains('eventLogs')) {
+                    const eventStore = db.createObjectStore('eventLogs', { keyPath: 'id' });
+                    eventStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    eventStore.createIndex('unit', 'unit', { unique: false });
+                }
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['eventLogs'], 'readonly');
-                    const store = transaction.objectStore('eventLogs');
-                    const request = store.getAll();
-                    
-                    request.onsuccess = () => {
-                        const logs = request.result.sort((a, b) => b.id - a.id); // Sort by ID descending
-                        console.log(`📖 Loaded ${logs.length} event logs from IndexedDB`);
-                        resolve(logs);
-                    };
-                    
-                    request.onerror = () => {
-                        console.error('Failed to load event logs:', request.error);
-                        reject(request.error);
-                    };
-                });
-            }
-
-            async saveUnitStates(states) {
-                if (!this.initialized) await this.init();
+                if (!db.objectStoreNames.contains('unitStates')) {
+                    db.createObjectStore('unitStates', { keyPath: 'id' });
+                }
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['unitStates'], 'readwrite');
-                    const store = transaction.objectStore('unitStates');
-                    
-                    transaction.oncomplete = () => {
-                        console.log(`💾 Saved ${Object.keys(states).length} unit states to IndexedDB`);
-                        resolve();
-                    };
-                    
-                    transaction.onerror = () => {
-                        console.error('Failed to save unit states:', transaction.error);
-                        reject(transaction.error);
-                    };
-                    
-                    const clearRequest = store.clear();
-                    clearRequest.onsuccess = () => {
-                        Object.entries(states).forEach(([unit, state]) => {
-                            store.add({ id: unit, state: state });
-                        });
-                    };
-                });
-            }
-
-            async loadUnitStates() {
-                if (!this.initialized) await this.init();
+                if (!db.objectStoreNames.contains('unitHistory')) {
+                    db.createObjectStore('unitHistory', { keyPath: 'id' });
+                }
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['unitStates'], 'readonly');
-                    const store = transaction.objectStore('unitStates');
-                    const request = store.getAll();
-                    
-                    request.onsuccess = () => {
-                        const states = {};
-                        request.result.forEach(item => {
-                            states[item.id] = item.state;
-                        });
-                        console.log(`📖 Loaded ${Object.keys(states).length} unit states from IndexedDB`);
-                        resolve(states);
-                    };
-                    
-                    request.onerror = () => {
-                        console.error('Failed to load unit states:', request.error);
-                        reject(request.error);
-                    };
-                });
-            }
-
-            async saveLastKnownStates(states) {
-                if (!this.initialized) await this.init();
+                if (!db.objectStoreNames.contains('systemConfig')) {
+                    db.createObjectStore('systemConfig', { keyPath: 'key' });
+                }
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['systemConfig'], 'readwrite');
-                    const store = transaction.objectStore('systemConfig');
-                    
-                    transaction.oncomplete = () => {
-                        console.log(`💾 Saved ${Object.keys(states).length} last known states to IndexedDB`);
-                        resolve();
-                    };
-                    
-                    transaction.onerror = () => {
-                        console.error('Failed to save last known states:', transaction.error);
-                        reject(transaction.error);
-                    };
-                    
-                    store.put({
-                        key: 'lastKnownStates',
-                        value: states,
+                console.log('📦 IndexedDB structure created');
+            };
+        });
+    }
+
+    async saveEventLogs(logs) {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['eventLogs'], 'readwrite');
+            const store = transaction.objectStore('eventLogs');
+            
+            transaction.oncomplete = () => {
+                console.log(`💾 Saved ${logs.length} event logs to IndexedDB`);
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                const error = transaction.error || event.target.error || new Error('Transaction failed');
+                console.error('Failed to save event logs:', error);
+                reject(error);
+            };
+            
+            // Clear existing logs first and wait for completion
+            const clearRequest = store.clear();
+            clearRequest.onsuccess = () => {
+                // Use put instead of add to handle potential duplicates
+                try {
+                    logs.forEach((log, index) => {
+                        // Ensure each log has a unique ID
+                        const logWithId = { ...log, id: log.id || (Date.now() + index) };
+                        const putRequest = store.put(logWithId);
+                        
+                        putRequest.onerror = (event) => {
+                            console.error(`Failed to save log ${index}:`, event.target.error);
+                        };
+                    });
+                } catch (error) {
+                    console.error('Error in saveEventLogs forEach:', error);
+                    reject(error);
+                }
+            };
+            
+            clearRequest.onerror = (event) => {
+                const error = clearRequest.error || event.target.error || new Error('Clear operation failed');
+                console.error('Failed to clear event logs:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async loadEventLogs() {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['eventLogs'], 'readonly');
+            const store = transaction.objectStore('eventLogs');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const logs = request.result.sort((a, b) => b.id - a.id); // Sort by ID descending
+                console.log(`📖 Loaded ${logs.length} event logs from IndexedDB`);
+                resolve(logs);
+            };
+            
+            request.onerror = (event) => {
+                const error = request.error || event.target.error || new Error('Load operation failed');
+                console.error('Failed to load event logs:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async saveUnitStates(states) {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['unitStates'], 'readwrite');
+            const store = transaction.objectStore('unitStates');
+            
+            transaction.oncomplete = () => {
+                console.log(`💾 Saved ${Object.keys(states).length} unit states to IndexedDB`);
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                const error = transaction.error || event.target.error || new Error('Transaction failed');
+                console.error('Failed to save unit states:', error);
+                reject(error);
+            };
+            
+            const clearRequest = store.clear();
+            clearRequest.onsuccess = () => {
+                try {
+                    Object.entries(states).forEach(([unit, state]) => {
+                        const putRequest = store.put({ id: unit, state: state });
+                        putRequest.onerror = (event) => {
+                            console.error(`Failed to save state for ${unit}:`, event.target.error);
+                        };
+                    });
+                } catch (error) {
+                    console.error('Error in saveUnitStates forEach:', error);
+                    reject(error);
+                }
+            };
+            
+            clearRequest.onerror = (event) => {
+                const error = clearRequest.error || event.target.error || new Error('Clear operation failed');
+                console.error('Failed to clear unit states:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async loadUnitStates() {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['unitStates'], 'readonly');
+            const store = transaction.objectStore('unitStates');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const states = {};
+                request.result.forEach(item => {
+                    states[item.id] = item.state;
+                });
+                console.log(`📖 Loaded ${Object.keys(states).length} unit states from IndexedDB`);
+                resolve(states);
+            };
+            
+            request.onerror = (event) => {
+                const error = request.error || event.target.error || new Error('Load operation failed');
+                console.error('Failed to load unit states:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async saveLastKnownStates(states) {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['systemConfig'], 'readwrite');
+            const store = transaction.objectStore('systemConfig');
+            
+            transaction.oncomplete = () => {
+                console.log(`💾 Saved ${Object.keys(states).length} last known states to IndexedDB`);
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                const error = transaction.error || event.target.error || new Error('Transaction failed');
+                console.error('Failed to save last known states:', error);
+                reject(error);
+            };
+            
+            const putRequest = store.put({
+                key: 'lastKnownStates',
+                value: states,
+                timestamp: new Date().toISOString()
+            });
+            
+            putRequest.onerror = (event) => {
+                const error = putRequest.error || event.target.error || new Error('Put operation failed');
+                console.error('Failed to put last known states:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async loadLastKnownStates() {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['systemConfig'], 'readonly');
+            const store = transaction.objectStore('systemConfig');
+            const request = store.get('lastKnownStates');
+            
+            request.onsuccess = () => {
+                const result = request.result;
+                if (result && result.value) {
+                    console.log(`📖 Loaded ${Object.keys(result.value).length} last known states from IndexedDB`);
+                    resolve(result.value);
+                } else {
+                    console.log('📖 No saved last known states found');
+                    resolve({});
+                }
+            };
+            
+            request.onerror = (event) => {
+                const error = request.error || event.target.error || new Error('Load operation failed');
+                console.error('Failed to load last known states:', error);
+                reject(error);
+            };
+        });
+    }
+
+    async saveSystemConfig(config) {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['systemConfig'], 'readwrite');
+            const store = transaction.objectStore('systemConfig');
+            
+            transaction.oncomplete = () => {
+                console.log('💾 Saved system configuration to IndexedDB');
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                const error = transaction.error || event.target.error || new Error('Transaction failed');
+                console.error('Failed to save system config:', error);
+                reject(error);
+            };
+            
+            try {
+                Object.entries(config).forEach(([key, value]) => {
+                    const putRequest = store.put({
+                        key: key,
+                        value: value,
                         timestamp: new Date().toISOString()
                     });
+                    
+                    putRequest.onerror = (event) => {
+                        console.error(`Failed to save config ${key}:`, event.target.error);
+                    };
                 });
+            } catch (error) {
+                console.error('Error in saveSystemConfig forEach:', error);
+                reject(error);
             }
+        });
+    }
 
-            async loadLastKnownStates() {
-                if (!this.initialized) await this.init();
-                
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['systemConfig'], 'readonly');
-                    const store = transaction.objectStore('systemConfig');
-                    const request = store.get('lastKnownStates');
-                    
-                    request.onsuccess = () => {
-                        const result = request.result;
-                        if (result && result.value) {
-                            console.log(`📖 Loaded ${Object.keys(result.value).length} last known states from IndexedDB`);
-                            resolve(result.value);
-                        } else {
-                            console.log('📖 No saved last known states found');
-                            resolve({});
-                        }
-                    };
-                    
-                    request.onerror = () => {
-                        console.error('Failed to load last known states:', request.error);
-                        reject(request.error);
-                    };
+    async loadSystemConfig() {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['systemConfig'], 'readonly');
+            const store = transaction.objectStore('systemConfig');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const config = {};
+                request.result.forEach(item => {
+                    if (item.key !== 'lastKnownStates') { // Skip this as it's handled separately
+                        config[item.key] = item.value;
+                    }
                 });
-            }
+                console.log('📖 Loaded system configuration from IndexedDB');
+                resolve(config);
+            };
+            
+            request.onerror = (event) => {
+                const error = request.error || event.target.error || new Error('Load operation failed');
+                console.error('Failed to load system config:', error);
+                reject(error);
+            };
+        });
+    }
 
-            async saveSystemConfig(config) {
-                if (!this.initialized) await this.init();
-                
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['systemConfig'], 'readwrite');
-                    const store = transaction.objectStore('systemConfig');
-                    
-                    transaction.oncomplete = () => {
-                        console.log('💾 Saved system configuration to IndexedDB');
-                        resolve();
+    async clearAllData() {
+        if (!this.initialized) await this.init();
+        
+        return new Promise((resolve, reject) => {
+            const stores = ['eventLogs', 'unitStates', 'unitHistory', 'systemConfig'];
+            const transaction = this.db.transaction(stores, 'readwrite');
+            
+            transaction.oncomplete = () => {
+                console.log('🗑️ Cleared all persistent data from IndexedDB');
+                resolve();
+            };
+            
+            transaction.onerror = (event) => {
+                const error = transaction.error || event.target.error || new Error('Transaction failed');
+                console.error('Failed to clear data:', error);
+                reject(error);
+            };
+            
+            try {
+                stores.forEach(storeName => {
+                    const clearRequest = transaction.objectStore(storeName).clear();
+                    clearRequest.onerror = (event) => {
+                        console.error(`Failed to clear store ${storeName}:`, event.target.error);
                     };
-                    
-                    transaction.onerror = () => {
-                        console.error('Failed to save system config:', transaction.error);
-                        reject(transaction.error);
-                    };
-                    
-                    Object.entries(config).forEach(([key, value]) => {
-                        store.put({
-                            key: key,
-                            value: value,
-                            timestamp: new Date().toISOString()
-                        });
-                    });
                 });
+            } catch (error) {
+                console.error('Error in clearAllData forEach:', error);
+                reject(error);
             }
+        });
+    }
+}
 
-            async loadSystemConfig() {
-                if (!this.initialized) await this.init();
-                
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction(['systemConfig'], 'readonly');
-                    const store = transaction.objectStore('systemConfig');
-                    const request = store.getAll();
-                    
-                    request.onsuccess = () => {
-                        const config = {};
-                        request.result.forEach(item => {
-                            if (item.key !== 'lastKnownStates') { // Skip this as it's handled separately
-                                config[item.key] = item.value;
-                            }
-                        });
-                        console.log('📖 Loaded system configuration from IndexedDB');
-                        resolve(config);
-                    };
-                    
-                    request.onerror = () => {
-                        console.error('Failed to load system config:', request.error);
-                        reject(request.error);
-                    };
-                });
-            }
 
-            async clearAllData() {
-                if (!this.initialized) await this.init();
-                
-                return new Promise((resolve, reject) => {
-                    const stores = ['eventLogs', 'unitStates', 'unitHistory', 'systemConfig'];
-                    const transaction = this.db.transaction(stores, 'readwrite');
-                    
-                    transaction.oncomplete = () => {
-                        console.log('🗑️ Cleared all persistent data from IndexedDB');
-                        resolve();
-                    };
-                    
-                    transaction.onerror = () => {
-                        console.error('Failed to clear data:', transaction.error);
-                        reject(transaction.error);
-                    };
-                    
-                    stores.forEach(storeName => {
-                        transaction.objectStore(storeName).clear();
-                    });
-                });
-            }
-        }
+
+
+
+
+
+
+
+
+
 
         // Initialize persistent storage
         const persistentStorage = new PersistentStorage();
@@ -1266,56 +1340,384 @@
             };
         }
 
-        require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!baja:Status', 'baja!alarm:AlarmSourceExt', 'baja!baja:StatusBoolean'], function (baja, types) {
-            'use strict';
-            
-            function createPoint(idSuffix, unit, pointName, label = null) {
-                return {
-                    id: `point${idSuffix}`,
-                    path: `station:|slot:/Drivers/BcpBacnetNetwork/${unit}/points/${pointName}`,
-                    systemName: label || `${unit}_${pointName}`,
-                    unit: unit,
-                    pointName: pointName
-                };
+// FIXED INITIALIZATION ORDER - Define UI functions first, then load data
+
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!baja:Status', 'baja!alarm:AlarmSourceExt', 'baja!baja:StatusBoolean'], function (baja, types) {
+    'use strict';
+    
+    // DEFINE ALL UI FUNCTIONS FIRST (before any data loading)
+    
+    // Time tracking function
+    function updateDateTime() {
+        const now = new Date();
+        const options = {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZoneName: 'short'
+        };
+        const formatted = now.toLocaleString('en-US', options).replace(',', '');
+        document.getElementById('currentDateTime').textContent = formatted;
+    }
+    
+    // Function to get formatted timestamp for data points
+    function getFormattedTimestamp() {
+        const now = new Date();
+        const options = {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZoneName: 'short'
+        };
+        return now.toLocaleString('en-US', options).replace(',', '');
+    }
+    
+    
+    
+    
+    function updateMonitoringStatus() {
+        const statusElement = document.getElementById('monitoringStatus');
+        if (statusElement) {
+            if (monitoringActive) {
+                statusElement.textContent = 'MONITORING ACTIVE';
+                statusElement.className = 'monitoring-status monitoring-active';
+            } else {
+                statusElement.textContent = 'MONITORING STOPPED';
+                statusElement.className = 'monitoring-status monitoring-inactive';
             }
+        }
+    }
+    
+    // Function to update event logs display
+    function updateEventLogs() {
+        const logsContainer = document.getElementById('eventLogs');
+        
+        // Check if element exists
+        if (!logsContainer) {
+            console.warn('Event logs container not found - UI may not be ready yet');
+            return;
+        }
+        
+        // Clear existing logs
+        logsContainer.innerHTML = '';
+        
+        // Show recent logs (limit to 4 for performance)
+        const recentLogs = eventLogs.slice(0, 4);
+        
+        // Add event logs
+        recentLogs.forEach((log, index) => {
+            const logElement = document.createElement('div');
+            logElement.className = 'bubbleSP';
+            
+            const statusClass = log.value ? 'status-ok' : 'status-error';
+            const statusText = log.value ? 'ON' : 'OFF';
+            const statusIcon = log.value ? '🔵': '⚪';
+            
+            const changeIcon = log.isStateChange ? '🔄 ' : '';
+            
+            logElement.innerHTML = `
+                <div id="status-point${log.id}" class="point-status status-display ${statusClass}">
+                    <div class="status-title">${changeIcon}${statusIcon} ${log.displayName || log.systemName} - ${statusText}</div>
+                    <div class="status-details">
+                        <p><strong>Timestamp:</strong> ${log.timestamp}</p>
+                        <p><strong>Status:</strong> ${log.details}</p>
+                        <p><strong>Value:</strong> ${log.value ? 'TRUE' : 'FALSE'}</p>
+                    </div>
+                </div>
+            `;
+            
+            logsContainer.appendChild(logElement);
+        });
+        
+        // Show message if there are more logs
+        if (eventLogs.length > 4) {
+            const moreElement = document.createElement('div');
+            moreElement.className = 'bubbleSP';
+            moreElement.innerHTML = `
+                <div class="point-status status-display">
+                    <div class="status-title">... and ${eventLogs.length - 4} older entries</div>
+                    <div class="status-details">
+                        <p>Use Export Logs to view all ${eventLogs.length} entries</p>
+                    </div>
+                </div>
+            `;
+            logsContainer.appendChild(moreElement);
+        }
+        
+        // Add message if no logs
+        if (eventLogs.length === 0) {
+            logsContainer.innerHTML = `
+                <div class="bubbleSP">
+                    <div class="point-status status-display">
+                        <div class="status-title">No state changes recorded</div>
+                        <div class="status-details">
+                            <p>System is monitoring points for state changes...</p>
+                            <p>Logs will only appear when values change from TRUE ↔ FALSE</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        updateOverallStatus();
+    }
+    
+    // Function to update the overall system status summary
+    function updateOverallStatus() {
+        var statusElement = document.getElementById('system-status');
+        if (!statusElement) {
+            console.warn('System status element not found - UI may not be ready yet');
+            return;
+        }
+        
+        // Remove loading message
+        statusElement.innerHTML = '';
+        
+        // Check if we need to add the overall summary
+        var summaryElement = document.getElementById('overall-summary');
+        if (!summaryElement) {
+            summaryElement = document.createElement('div');
+            summaryElement.id = 'overall-summary';
+            summaryElement.className = 'overall-summary';
+            statusElement.appendChild(summaryElement);
+        }
+        
+        // Add save status indicator
+        var saveStatusElement = document.getElementById('save-status');
+        if (!saveStatusElement) {
+            saveStatusElement = document.createElement('div');
+            saveStatusElement.id = 'save-status';
+            saveStatusElement.style.cssText = `
+                margin-top: 10px;
+                padding: 8px 12px;
+                background: #f0f0f0;
+                border-radius: 4px;
+                font-size: 12px;
+                color: #666;
+            `;
+            statusElement.appendChild(saveStatusElement);
+        }
+        
+        // Count active points from last known states
+        window.activeCount1 = 0;
+        window.totalPoints1 = monitorPoints.length;
+        
+        // Count how many are active based on last known states
+        Object.values(lastKnownStates).forEach(function(state) {
+            if (state === true) {
+                activeCount1++;
+            }
+        });
+        
+        var overallClass = activeCount1 > 0 ? 'status-ok' : 'status-error';
+        var overallTitle = activeCount1 > 0 ? 
+            `<span class="status-indicator"></span>🔵 ${activeCount1} SYSTEM${activeCount1 > 1 ? 'S' : ''} ACTIVE` : 
+            '<span class="status-indicator"></span>⚪ ALL SYSTEMS INACTIVE';
+        
+        const monitoringStatusText = monitoringActive ? '🟢 ACTIVE' : '🔴 STOPPED';
+        const monitoredCount = Object.keys(lastKnownStates).length;
+        
+        summaryElement.className = `overall-summary status-display ${overallClass}`;
+        summaryElement.innerHTML = `
+            <div class="status-title">${overallTitle}</div>
+            <div class="status-details">
+                <p><strong>Monitoring Status:</strong> ${monitoringStatusText}</p>
+                <p><strong>True Points Count:</strong> ${activeCount1} of ${monitoredCount} monitored points</p>
+                <p><strong>Total Logged Points:</strong> ${eventLogs.length}</p>
+                <p><strong>Last Updated:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>Global Units:</strong> ${GlobalData.getAllUnits().length} units accessible</p>
+            </div>
+        `;
+        
+        // Update save status
+        saveStatusElement.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="lastSaveTime">Auto-save active</span>
+                <button onclick="saveData()" style="padding: 4px 8px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px; cursor: pointer;">Manual Save</button>
+            </div>
+        `;
+    }
 
-            // List of points per unit
-            const pointDefs1 = [
-                // AIR HANDLING UNITS
-                { unit: 'AHU_1', points: ['AHUAlarm', 'OccupiedCmd', 'AutoStop', 'MorningWarmupOutput', 'SF_S', 'OCC_S'] },
-                { unit: 'AHU_2', points: ['AHUAlarm', 'OccupiedCmd', 'AutoStop', 'MorningWarmupOutput', 'SF_S', 'OCC_S'] },
-                
-                // VAV UNITS
-                { unit: 'VAV_0_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_0_2', points: ['UnitStatus', 'RoomOccupancy'] },
-                { unit: 'VAV_0_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_0_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_0_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                
-                { unit: 'VAV_1_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_6', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_1_7', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                
-                { unit: 'VAV_2_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_6', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_7', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_2_8', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                
-                { unit: 'VAV_3_1', points: ['UnitStatus', 'RoomOccupancy'] },
-                { unit: 'VAV_3_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_3_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-                { unit: 'VAV_3_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
-            ];
+    // MODIFIED LOAD DATA FUNCTION with better error handling
+    async function loadAllDataFromPersistentStorage() {
+        try {
+            console.log('📖 Loading data from persistent storage...');
+            
+            // Load event logs
+            try {
+                const savedLogs = await persistentStorage.loadEventLogs();
+                if (savedLogs && savedLogs.length > 0) {
+                    eventLogs = savedLogs;
+                    console.log(`✅ Restored ${eventLogs.length} event logs`);
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to load event logs, starting fresh:', error.message);
+            }
+            
+            // Load unit states
+            try {
+                const savedUnitStates = await persistentStorage.loadUnitStates();
+                if (savedUnitStates && Object.keys(savedUnitStates).length > 0) {
+                    GlobalData.unitStates = savedUnitStates;
+                    console.log(`✅ Restored ${Object.keys(savedUnitStates).length} unit states`);
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to load unit states, starting fresh:', error.message);
+            }
+            
+            // Load last known states
+            try {
+                const savedLastKnown = await persistentStorage.loadLastKnownStates();
+                if (savedLastKnown && Object.keys(savedLastKnown).length > 0) {
+                    lastKnownStates = savedLastKnown;
+                    console.log(`✅ Restored ${Object.keys(savedLastKnown).length} last known states`);
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to load last known states, starting fresh:', error.message);
+            }
+            
+            // Load system configuration
+            try {
+                const savedConfig = await persistentStorage.loadSystemConfig();
+                if (savedConfig) {
+                    if (savedConfig.logCounter) logCounter = savedConfig.logCounter;
+                    if (savedConfig.monitoringActive !== undefined) monitoringActive = savedConfig.monitoringActive;
+                    if (savedConfig.startTime) startTime = new Date(savedConfig.startTime);
+                    console.log('✅ Restored system configuration');
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to load system config, using defaults:', error.message);
+            }
+            
+            // Update UI - these functions are now defined above
+            updateEventLogs();
+            updateMonitoringStatus();
+            updateLastSaveTime();
+            
+            console.log('🎉 Data loading completed (with any recoverable errors handled)');
+            
+            // Show restoration notification only if we actually restored data
+            const totalRestored = eventLogs.length + Object.keys(lastKnownStates).length;
+            if (totalRestored > 0) {
+                showNotification('Data Restored', `Restored ${eventLogs.length} logs and ${Object.keys(lastKnownStates).length} states from previous session`, 'success');
+            }
+            
+        } catch (error) {
+            console.error('❌ Critical error during data loading:', error);
+            showNotification('Load Failed', 'Could not restore previous session data', 'error');
+            
+            // Initialize with empty state to prevent further errors
+            eventLogs = [];
+            lastKnownStates = {};
+            updateEventLogs();
+            updateMonitoringStatus();
+        }
+    }
 
-            // Build monitorPoints dynamically
+    // INITIALIZATION SEQUENCE - Now properly ordered
+    async function initializeSystem() {
+        console.log('🚀 Initializing Niagara logging system...');
+        
+        try {
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                await new Promise(resolve => {
+                    document.addEventListener('DOMContentLoaded', resolve);
+                });
+            }
+            
+            // Initialize the display first
+            updateDateTime();
+            updateMonitoringStatus();
+            
+            // Now load saved data (UI functions are available)
+            await loadAllDataFromPersistentStorage();
+            
+            // Start auto-save
+            startAutoSave();
+            
+            // Set up periodic monitoring (every 10 seconds)
+            setInterval(() => {
+                if (monitoringActive) {
+                    monitorAllPoints();
+                }
+            }, 10000);
+
+            // Update date/time every second
+            setInterval(updateDateTime, 1000);
+            
+            console.log('🎯 Niagara logging system with persistent storage initialized');
+            console.log('💾 Auto-save runs every 30 seconds');
+            console.log('🔄 Monitoring cycle runs every 10 seconds');
+            console.log('📱 Data persists across page refresh/browser restart');
+            console.log('📊 CSV export available via exportLogs() function');
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize system:', error);
+            showNotification('Initialization Error', 'System started with limited functionality', 'error');
+            
+            // Basic fallback initialization
+            updateDateTime();
+            updateMonitoringStatus();
+            updateEventLogs();
+            startAutoSave();
+        }
+    }
+
+    // CREATE POINT DEFINITION AND SETUP (this stays the same)
+    function createPoint(idSuffix, unit, pointName, label = null) {
+        return {
+            id: `point${idSuffix}`,
+            path: `station:|slot:/Drivers/BcpBacnetNetwork/${unit}/points/${pointName}`,
+            systemName: label || `${unit}_${pointName}`,
+            unit: unit,
+            pointName: pointName
+        };
+    }
+
+    // List of points per unit (this stays the same)
+    const pointDefs1 = [
+        // AIR HANDLING UNITS
+        { unit: 'AHU_1', points: ['AHUAlarm', 'OccupiedCmd', 'AutoStop', 'MorningWarmupOutput', 'SF_S', 'OCC_S'] },
+        { unit: 'AHU_2', points: ['AHUAlarm', 'OccupiedCmd', 'AutoStop', 'MorningWarmupOutput', 'SF_S', 'OCC_S'] },
+        
+        // VAV UNITS
+        { unit: 'VAV_0_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_0_2', points: ['UnitStatus', 'RoomOccupancy'] },
+        { unit: 'VAV_0_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_0_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_0_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        
+        { unit: 'VAV_1_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_6', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_1_7', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        
+        { unit: 'VAV_2_1', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_5', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_6', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_7', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_2_8', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        
+        { unit: 'VAV_3_1', points: ['UnitStatus', 'RoomOccupancy'] },
+        { unit: 'VAV_3_2', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_3_3', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+        { unit: 'VAV_3_4', points: ['UnitStatus', 'RoomOccupancy', 'Reheat1'] },
+    ];
+
+      // Build monitorPoints dynamically
             monitorPoints = []; // Reset the global array
             let idCounter = 1;
 
@@ -1683,131 +2085,14 @@
                 
                 updateOverallStatus();
             }
-            
-            // Function to update the overall system status summary
-            function updateOverallStatus() {
-                var statusElement = document.getElementById('system-status');
-                if (!statusElement) {
-                    console.error('Status element not found');
-                    return;
-                }
-                
-                // Remove loading message
-                statusElement.innerHTML = '';
-                
-                // Check if we need to add the overall summary
-                var summaryElement = document.getElementById('overall-summary');
-                if (!summaryElement) {
-                    summaryElement = document.createElement('div');
-                    summaryElement.id = 'overall-summary';
-                    summaryElement.className = 'overall-summary';
-                    statusElement.appendChild(summaryElement);
-                }
-                
-                // Add save status indicator
-                var saveStatusElement = document.getElementById('save-status');
-                if (!saveStatusElement) {
-                    saveStatusElement = document.createElement('div');
-                    saveStatusElement.id = 'save-status';
-                    saveStatusElement.style.cssText = `
-                        margin-top: 10px;
-                        padding: 8px 12px;
-                        background: #f0f0f0;
-                        border-radius: 4px;
-                        font-size: 12px;
-                        color: #666;
-                    `;
-                    statusElement.appendChild(saveStatusElement);
-                }
-                
-                // Count active points from last known states
-                window.activeCount1 = 0;
-                window.totalPoints1 = monitorPoints.length;
-                
-                // Count how many are active based on last known states
-                Object.values(lastKnownStates).forEach(function(state) {
-                    if (state === true) {
-                        activeCount1++;
-                    }
-                });
-                
-                var overallClass = activeCount1 > 0 ? 'status-ok' : 'status-error';
-                var overallTitle = activeCount1 > 0 ? 
-                    `<span class="status-indicator"></span>🔵 ${activeCount1} SYSTEM${activeCount1 > 1 ? 'S' : ''} ACTIVE` : 
-                    '<span class="status-indicator"></span>⚪ ALL SYSTEMS INACTIVE';
-                
-                const monitoringStatusText = monitoringActive ? '🟢 ACTIVE' : '🔴 STOPPED';
-                const monitoredCount = Object.keys(lastKnownStates).length;
-                
-                summaryElement.className = `overall-summary status-display ${overallClass}`;
-                summaryElement.innerHTML = `
-                    <div class="status-title">${overallTitle}</div>
-                    <div class="status-details">
-                        <p><strong>Monitoring Status:</strong> ${monitoringStatusText}</p>
-                        <p><strong>True Points Count:</strong> ${activeCount1} of ${monitoredCount} monitored points</p>
-                        <p><strong>Total Logged Points:</strong> ${eventLogs.length}</p>
-                        <p><strong>Last Updated:</strong> ${new Date().toLocaleString()}</p>
-                        <p><strong>Global Units:</strong> ${GlobalData.getAllUnits().length} units accessible</p>
-                    </div>
-                `;
-                
-                // Update save status
-                saveStatusElement.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span id="lastSaveTime">Auto-save active</span>
-                        <button onclick="saveData()" style="padding: 4px 8px; font-size: 11px; border: 1px solid #ccc; background: white; border-radius: 3px; cursor: pointer;">Manual Save</button>
-                    </div>
-                `;
-            }
 
-            // INITIALIZATION SEQUENCE
-            async function initializeSystem() {
-                console.log('🚀 Initializing Niagara logging system...');
-                
-                try {
-                    // Load saved data first
-                    await loadAllDataFromPersistentStorage();
-                    
-                    // Start auto-save
-                    startAutoSave();
-                    
-                    // Set up periodic monitoring (every 10 seconds)
-                    setInterval(() => {
-                        if (monitoringActive) {
-                            monitorAllPoints();
-                        }
-                    }, 10000);
-
-                    // Update date/time every second
-                    setInterval(updateDateTime, 1000);
-                    
-                    // Initialize the display
-                    updateDateTime();
-                    updateMonitoringStatus();
-                    updateEventLogs();
-                    
-                    console.log('🎯 Niagara logging system with persistent storage initialized');
-                    console.log('💾 Auto-save runs every 30 seconds');
-                    console.log('🔄 Monitoring cycle runs every 10 seconds');
-                    console.log('📱 Data persists across page refresh/browser restart');
-                    console.log('📊 CSV export available via exportLogs() function');
-                    
-                } catch (error) {
-                    console.error('❌ Failed to initialize system:', error);
-                    showNotification('Initialization Error', 'Failed to load previous session data', 'error');
-                    
-                    // Continue with fresh state
-                    startAutoSave();
-                    updateDateTime();
-                    updateMonitoringStatus();
-                    updateEventLogs();
-                }
-            }
-            
-            // Start the initialization
-            initializeSystem();
-        });
-
+    // NOW START THE INITIALIZATION (all functions are defined)
+    initializeSystem();
+    
+    // ALL OTHER FUNCTIONS (monitoring, data processing, etc.) go here...
+    // [Include all your other existing functions like updateGlobalData, addDataPoint, etc.]
+    
+});
 
 
 
