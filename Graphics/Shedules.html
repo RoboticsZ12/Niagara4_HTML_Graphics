@@ -1,1 +1,1736 @@
 
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-size: 11px;
+        }
+        
+        .schedule-container {
+            background: white;
+            border: 1px solid #ccc;
+            max-width: auto;
+            margin: 0 auto;
+        }
+        
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            border-collapse: collapse;
+            width: auto;
+        }
+        
+        .day-header {
+            background-color: #e8e8e8;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #999;
+            font-size: 11px;
+            position: relative;
+        }
+        
+        .day-header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .day-name {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        .day-status {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .time-label {
+            background-color: #e8e8e8;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: normal;
+            border: 1px solid #999;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .time-slot {
+            background-color: white;
+            border: 1px solid #999;
+            height: 100px;
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+        }
+        
+        .time-slot:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .time-slot.active {
+            background-color: #4CAF50;
+        }
+        
+        .controls-panel {
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-top: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 11px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .control-label {
+            font-weight: bold;
+            min-width: 70px;
+        }
+        
+        .time-input {
+            width: 60px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            font-size: 11px;
+        }
+        
+        .time-display {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 2px 4px;
+            font-size: 11px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .output-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid #666;
+        }
+        
+        .status-null {
+            background-color: white;
+        }
+        
+        .status-true {
+            background-color: #4CAF50;
+        }
+        
+        .status-false {
+            background-color: white;
+        }
+        
+        .button-panel {
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ccc;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .niagara-btn {
+            padding: 4px 8px;
+            border: 1px solid #999;
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0);
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .niagara-btn:hover {
+            background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+        }
+        
+        .niagara-btn:active {
+            background: linear-gradient(to bottom, #d0d0d0, #e8e8e8);
+        }
+        
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+            background-color: #666;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .btn-weekly { background-color: #4CAF50; }
+        .btn-special { background-color: #FF9800; }
+        .btn-properties { background-color: #2196F3; }
+        .btn-summary { background-color: #9C27B0; }
+        .btn-save { background-color: #4CAF50; }
+        .btn-refresh { background-color: #607D8B; }
+        
+        .spacer {
+            flex-grow: 1;
+        }
+        
+        .niagara-status {
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #e9ecef;
+            border: 1px solid #ccc;
+            font-size: 10px;
+        }
+
+        .back-button {
+            cursor: pointer;
+            color: #0066cc;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+  
+  
+   <div class="schedule-container">
+        <div class="schedule-grid" id="scheduleGrid">
+            <!-- Grid will be populated by JavaScript -->
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-group">
+                <span class="control-label">Event Start</span>
+                <input type="time" class="time-input" id="eventStart" value="10:37" readonly>
+                <span class="time-display" id="eventStartDisplay">AM</span>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Event Finish</span>
+                <input type="time" class="time-input" id="eventFinish" value="10:37" readonly>
+                <span class="time-display" id="eventFinishDisplay">AM</span>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Event Output</span>
+                <div class="output-indicator">
+                    <div class="status-circle status-null" id="outputIndicator"></div>
+                    <span>null</span>
+                    <div class="status-circle status-true"></div>
+                    <span id="outputValue">true</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-panel">
+            <button class="niagara-btn" id="weeklyScheduleBtn">
+                <span class="btn-icon btn-weekly"></span>
+                Weekly Schedule
+            </button>
+            
+            <button class="niagara-btn" id="summaryBtn">
+                <span class="btn-icon btn-summary"></span>
+                Summary
+            </button>
+            
+            <div class="spacer"></div>
+            
+            <button class="niagara-btn" id="saveBtn">
+                <span class="btn-icon btn-save"></span>
+                Save
+            </button>
+            
+            <button class="niagara-btn" id="refreshBtn">
+                <span class="btn-icon btn-refresh"></span>
+                Refresh
+            </button>
+        </div>
+        
+        <div class="niagara-status" id="niagaraStatus">
+      <div class="back-button" onclick="history.back()">
+        ← Back
+      </div>
+      </div>
+
+    </div>
+
+
+
+<!--NIAGARA INTEGRATION-->
+<script>
+    require(['baja!', 'baja!baja:Boolean', 'baja!control:BooleanWritable', 'baja!baja:Status', 'baja!baja:Boolean', 'baja!control:Override'], function (baja, BooleanWritableType, Status, BooleanType, Override) {
+        'use strict';
+        
+        // Global variables
+        var daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        var timeSlots = [
+            { time: '12:00 AM', hour: 0 }, { time: '3:00 AM', hour: 3 }, { time: '6:00 AM', hour: 6 }, { time: '9:00 AM', hour: 9 },
+            { time: '12:00 PM', hour: 12 }, { time: '3:00 PM', hour: 15 }, { time: '6:00 PM', hour: 18 }, { time: '9:00 PM', hour: 21 }
+        ];
+        
+        var scheduleData = {
+            events: [],
+            currentOutput: false
+        };
+        
+        // Schedule data and persistence
+        class ScheduleManager {
+            constructor() {
+                this.scheduleKey = 'murphy_schedule_state';
+                this.scheduleData = this.loadScheduleData();
+                this.timeSlots = [
+                    '12:00 AM', '1:00 AM', '2:00 AM', '3:00 AM', '4:00 AM', '5:00 AM',
+                    '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM',
+                    '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
+                    '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM'
+                ];
+                this.days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                this.init();
+            }
+
+            loadScheduleData() {
+                try {
+                    const saved = localStorage.getItem(this.scheduleKey);
+                    return saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    console.warn('Failed to load schedule data from localStorage:', e);
+                    return {};
+                }
+            }
+
+            saveScheduleData() {
+                try {
+                    localStorage.setItem(this.scheduleKey, JSON.stringify(this.scheduleData));
+                } catch (e) {
+                    console.warn('Failed to save schedule data to localStorage:', e);
+                }
+            }
+
+            init() {
+                this.createScheduleGrid();
+                this.restoreScheduleState();
+                this.attachEventListeners();
+            }
+
+            createScheduleGrid() {
+                const grid = document.getElementById('scheduleGrid');
+                
+                // Create header row
+                const emptyHeader = document.createElement('div');
+                emptyHeader.className = 'day-header';
+                grid.appendChild(emptyHeader);
+
+                // Create day headers
+                this.days.forEach(day => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'day-header';
+                    dayHeader.innerHTML = `
+                        <div class="day-header-content">
+                            <div class="day-name">${day}</div>
+                            <div class="day-status">Off</div>
+                        </div>
+                    `;
+                    grid.appendChild(dayHeader);
+                });
+
+                // Create time slots
+                this.timeSlots.forEach((time, timeIndex) => {
+                    // Time label
+                    const timeLabel = document.createElement('div');
+                    timeLabel.className = 'time-label';
+                    timeLabel.textContent = time;
+                    grid.appendChild(timeLabel);
+
+                    // Time slots for each day
+                    this.days.forEach((day, dayIndex) => {
+                        const timeSlot = document.createElement('div');
+                        timeSlot.className = 'time-slot';
+                        timeSlot.dataset.day = dayIndex;
+                        timeSlot.dataset.time = timeIndex;
+                        timeSlot.dataset.id = `${dayIndex}-${timeIndex}`;
+                        
+                        timeSlot.addEventListener('click', (e) => {
+                            this.toggleTimeSlot(e.target);
+                        });
+                        
+                        grid.appendChild(timeSlot);
+                    });
+                });
+            }
+
+            toggleTimeSlot(slot) {
+                const slotId = slot.dataset.id;
+                const isActive = slot.classList.contains('active');
+                
+                if (isActive) {
+                    slot.classList.remove('active');
+                    delete this.scheduleData[slotId];
+                } else {
+                    slot.classList.add('active');
+                    this.scheduleData[slotId] = true;
+                }
+                
+                this.saveScheduleData();
+                this.updateDayStatus();
+            }
+
+            restoreScheduleState() {
+                Object.keys(this.scheduleData).forEach(slotId => {
+                    const slot = document.querySelector(`[data-id="${slotId}"]`);
+                    if (slot && this.scheduleData[slotId]) {
+                        slot.classList.add('active');
+                    }
+                });
+                this.updateDayStatus();
+            }
+
+            updateDayStatus() {
+                this.days.forEach((day, dayIndex) => {
+                    const dayHeader = document.querySelector(`.day-header:nth-child(${dayIndex + 2}) .day-status`);
+                    if (dayHeader) {
+                        const hasActiveSlots = Object.keys(this.scheduleData).some(slotId => {
+                            const [slotDay] = slotId.split('-');
+                            return parseInt(slotDay) === dayIndex && this.scheduleData[slotId];
+                        });
+                        dayHeader.textContent = hasActiveSlots ? 'On' : 'Off';
+                    }
+                });
+            }
+
+            clearSchedule() {
+                this.scheduleData = {};
+                this.saveScheduleData();
+                document.querySelectorAll('.time-slot.active').forEach(slot => {
+                    slot.classList.remove('active');
+                });
+                this.updateDayStatus();
+            }
+
+            attachEventListeners() {
+                // Save button
+                document.getElementById('saveBtn').addEventListener('click', () => {
+                    this.saveScheduleData();
+                    this.showStatus('Schedule saved successfully!');
+                });
+
+                // Refresh button
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    location.reload();
+                });
+
+                // Weekly Schedule button
+                document.getElementById('weeklyScheduleBtn').addEventListener('click', () => {
+                    this.showStatus('Weekly schedule view active');
+                });
+
+                // Summary button
+                document.getElementById('summaryBtn').addEventListener('click', () => {
+                    this.showSummary();
+                });
+            }
+
+            showStatus(message) {
+                const statusDiv = document.getElementById('niagaraStatus');
+                const originalContent = statusDiv.innerHTML;
+                statusDiv.innerHTML = `<div style="color: #4CAF50;">${message}</div>`;
+                setTimeout(() => {
+                    statusDiv.innerHTML = originalContent;
+                }, 3000);
+            }
+
+            showSummary() {
+                const activeSlots = Object.keys(this.scheduleData).filter(key => this.scheduleData[key]);
+                const summary = `Active time slots: ${activeSlots.length}`;
+                this.showStatus(summary);
+            }
+        }
+
+        // Initialize the schedule manager when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ScheduleManager();
+        });
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        var booleanWritablePoint = {
+        path: 'station:|slot:/Home/Scheduling/BooleanWritable', // Change this to your BooleanWritable path
+        ref: null,
+        lastValue: null
+    };
+     // Connect to the Niagara BooleanWritable point
+    function connectToBooleanWritable() {
+        try {
+            console.log('Attempting to connect to BooleanWritable point:', booleanWritablePoint.path);
+            baja.Ord.make(booleanWritablePoint.path).get()
+                .then(function (point) {
+                    if (!point) {
+                        console.error('BooleanWritable point is null or undefined');
+                        return;
+                    }
+                    
+                    booleanWritablePoint.ref = point;
+                    console.log('Successfully connected to BooleanWritable point:', booleanWritablePoint.path);
+                    console.log('Point object:', point);
+                    console.log('Point type:', point.getType ? point.getType().toString() : 'Unknown');
+
+// Get initial value
+                    try {
+                        var initialValue = point.get('out');
+                        var actualValue = extractBooleanValue(initialValue);
+                        
+                        booleanWritablePoint.lastValue = actualValue;
+                        console.log('Initial BooleanWritable out value (raw):', initialValue);
+                        console.log('Initial BooleanWritable out value (actual):', actualValue);
+                    } catch (getError) {
+                        console.error('Error getting initial value:', getError);
+                    }
+                    
+                    // IMMEDIATELY apply schedule override after connection
+                    setTimeout(function() {
+                        console.log('Applying schedule override immediately after connection...');
+                        checkCurrentTimeSchedule();
+                    }, 500);
+                })
+                .catch(function (error) {
+                    console.error('Error connecting to BooleanWritable point:', error);
+                    console.error('Make sure the point path is correct:', booleanWritablePoint.path);
+                });
+        } catch (error) {
+            console.error('Error setting up BooleanWritable connection:', error);
+        }
+    }
+        
+        
+        
+              // Helper function to extract boolean value from various Niagara types
+    function extractBooleanValue(value) {
+        if (value === null || value === undefined) {
+            return false;
+        }
+        
+        // If it's already a boolean
+        if (typeof value === 'boolean') {
+            return value;
+        }
+        
+        // If it's a Niagara Status object
+        if (value && typeof value.getValue === 'function') {
+            return extractBooleanValue(value.getValue());
+        }
+        
+        // If it's a Niagara Boolean object
+        if (value && typeof value.booleanValue === 'function') {
+            return value.booleanValue();
+        }
+        
+        // If it's a function, call it
+        if (typeof value === 'function') {
+            return extractBooleanValue(value());
+        }
+        
+        // Convert to boolean
+        return Boolean(value);
+    }
+    
+    // Check if current time falls within any scheduled event
+    function checkCurrentTimeSchedule() {
+        var now = new Date();
+        var currentDay = now.getDay();
+        var currentHour = now.getHours();
+        var currentMinute = now.getMinutes();
+        var currentTimeInHours = currentHour + (currentMinute / 60);
+        
+        // Check if current time falls within any scheduled event
+        var isInScheduledTime = scheduleData.events.some(function(event) {
+            if (event.day !== currentDay) {
+                return false;
+            }
+            
+            // Check if current time falls within the event's time range
+            return currentTimeInHours >= event.startHour && currentTimeInHours < event.endHour;
+        });
+        
+        // Update the output value
+        scheduleData.currentOutput = isInScheduledTime;
+        
+        // Log to console
+        console.log('Current time:', now.toLocaleString());
+        console.log('Current day (' + daysOfWeek[currentDay] + ') at ' + currentHour + ':' + currentMinute.toString().padStart(2, '0'));
+        console.log('Current time in hours:', currentTimeInHours.toFixed(2));
+        console.log('Is in scheduled time:', isInScheduledTime);
+        console.log('Setting BooleanWritable override to:', isInScheduledTime);
+        
+        // Only write to Niagara point if connection is established
+        if (booleanWritablePoint.ref) {
+            applyScheduleOverride(isInScheduledTime);
+        } else {
+            console.warn('BooleanWritable point not connected - skipping override');
+        }
+        
+        // Update UI
+        updateOutputDisplay();
+    }
+    
+    // Apply override based on schedule state
+    function applyScheduleOverride(shouldBeActive) {
+        if (!booleanWritablePoint.ref) {
+            console.error('BooleanWritable point not connected - cannot apply override');
+            return false;
+        }
+        
+        console.log('Applying schedule override - shouldBeActive:', shouldBeActive);
+        
+        try {
+            if (shouldBeActive) {
+                // Force ACTIVE (ON) when in scheduled time
+                performActiveOverride(booleanWritablePoint.ref);
+            } else {
+                // Force INACTIVE (OFF) when not in scheduled time
+                performInactiveOverride(booleanWritablePoint.ref);
+            }
+            return true;
+        } catch (error) {
+            console.error('Error applying schedule override:', error);
+            return false;
+        }
+    }
+    
+    // Function to force point ACTIVE (ON) - using override logic
+    function performActiveOverride(point) {
+        console.log('Performing ACTIVE override for schedule...');
+        
+        try {
+            let overrideParam = baja.$("control:Override");
+            
+            // Invoke the 'active' slot
+            point.invoke({ 
+                slot: 'active', 
+                value: overrideParam 
+            })
+            .then(function() {
+                console.log('ACTIVE override successful');
+                verifyOverride(point);
+            })
+            .catch(function(error) {
+                console.error('ACTIVE override failed:', error);
+            });
+        } catch (error) {
+            console.error('Error creating ACTIVE override:', error);
+        }
+    }
+    
+    // Function to force point INACTIVE (OFF) - using override logic
+    function performInactiveOverride(point) {
+        console.log('Performing INACTIVE override for schedule...');
+        
+        try {
+            let overrideParam = baja.$("control:Override");
+            
+            // Invoke the 'inactive' slot
+            point.invoke({ 
+                slot: 'inactive', 
+                value: overrideParam 
+            })
+            .then(function() {
+                console.log('INACTIVE override successful');
+                verifyOverride(point);
+            })
+            .catch(function(error) {
+                console.error('INACTIVE override failed:', error);
+            });
+        } catch (error) {
+            console.error('Error creating INACTIVE override:', error);
+        }
+    }
+    
+    // Function to release override (return to AUTO)
+    function releaseToAuto(point) {
+        console.log('Releasing to AUTO...');
+        
+        // Invoke the 'auto' slot (no parameters needed)
+        point.invoke({ slot: 'auto' })
+        .then(function() {
+            console.log('Released to AUTO successfully');
+            verifyOverride(point);
+        })
+        .catch(function(error) {
+            console.error('Release to AUTO failed:', error);
+        });
+    }
+    
+    // Verify the override operation
+    function verifyOverride(point) {
+        setTimeout(function() {
+            try {
+                var outValue = point.get('out');
+                var actualOutValue = extractBooleanValue(outValue);
+                
+                console.log('BooleanWritable out slot now reads (raw):', outValue);
+                console.log('BooleanWritable out slot now reads (actual):', actualOutValue);
+        
+        
+        
+          // Check override status if available
+                try {
+                    var overrideStatus = point.getSlot('overrideStatus');
+                    if (overrideStatus) {
+                        console.log('Override status:', overrideStatus.getValue());
+                    }
+                } catch (overrideError) {
+                    console.log('Could not read override status:', overrideError);
+                }
+                
+            } catch (readError) {
+                console.error('Error reading back value:', readError);
+            }
+        }, 100);
+    }
+    
+    // Update output display in UI
+    function updateOutputDisplay() {
+        var outputElement = document.getElementById('outputValue');
+        if (outputElement) {
+            outputElement.textContent = scheduleData.currentOutput ? 'true' : 'false';
+        }
+        
+        var indicator = document.getElementById('outputIndicator');
+        if (indicator) {
+            indicator.className = scheduleData.currentOutput ? 
+                'status-indicator status-true' : 
+                'status-indicator status-false';
+        }
+    }
+    
+    // Save schedule data to localStorage
+    function saveScheduleData() {
+        try {
+            localStorage.setItem('schedule_data', JSON.stringify(scheduleData));
+            console.log('Schedule data saved to localStorage');
+        } catch (error) {
+            console.error('Error saving schedule data:', error);
+        }
+    }
+    
+    // Load schedule data from localStorage
+    function loadScheduleData() {
+        try {
+            var saved = localStorage.getItem('schedule_data');
+            if (saved) {
+                scheduleData = JSON.parse(saved);
+                console.log('Schedule data loaded from localStorage');
+                return true;
+            }
+        } catch (error) {
+            console.error('Error loading schedule data:', error);
+        }
+        return false;
+    }
+    
+    // Initialize the schedule grid
+    function initializeScheduleGrid() {
+        const grid = document.getElementById('scheduleGrid');
+        if (!grid) {
+            console.error('Schedule grid element not found');
+            return;
+        }
+        
+        grid.innerHTML = ''; // Clear existing content
+        
+        // Create header row
+        const emptyHeader = document.createElement('div');
+        emptyHeader.className = 'day-header';
+        grid.appendChild(emptyHeader);
+        
+        // Day headers
+        daysOfWeek.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'day-header';
+            dayHeader.innerHTML = `
+                <div class="day-header-content">
+                    <div class="day-name">${day}</div>
+                    <div class="day-status">false</div>
+                </div>
+            `;
+            grid.appendChild(dayHeader);
+        });
+        
+        // Create time slots
+        timeSlots.forEach(slot => {
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time-label';
+            timeLabel.textContent = slot.time;
+            grid.appendChild(timeLabel);
+            
+            daysOfWeek.forEach((day, dayIndex) => {
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'time-slot';
+                timeSlot.dataset.day = dayIndex;
+                timeSlot.dataset.hour = slot.hour;
+                timeSlot.addEventListener('mousedown', handleSlotMouseDown);
+                grid.appendChild(timeSlot);
+            });
+        });
+    }
+    
+    // Handle mouse down on time slot
+    function handleSlotMouseDown(e) {
+        e.preventDefault();
+        const slot = e.target;
+        const day = parseInt(slot.dataset.day);
+        const hour = parseInt(slot.dataset.hour);
+        
+        // Check if clicking on existing event
+        const existingEvent = scheduleData.events.find(event => 
+            event.day === day && hour >= event.startHour && hour < event.endHour
+        );
+        
+        if (existingEvent) {
+            // Remove existing event
+            scheduleData.events = scheduleData.events.filter(e => e.id !== existingEvent.id);
+        } else {
+            // Start creating new event
+            startCreating(slot, day, hour);
+        }
+        
+        updateScheduleDisplay();
+        updateEventControls();
+        updateDayHeaders();
+        
+        // Auto-save schedule data after changes
+        setTimeout(saveScheduleData, 100);
+        
+        // Check current time schedule after changes
+        setTimeout(checkCurrentTimeSchedule, 200);
+    }
+    
+    // Start creating new event
+    function startCreating(startSlot, day, startHour) {
+        const newEvent = {
+            id: Date.now(),
+            day: day,
+            startHour: startHour,
+            endHour: startHour + 3,
+            active: true
+        };
+        
+        scheduleData.events.push(newEvent);
+        
+        let isCreating = true;
+        
+        function handleMouseMove(e) {
+            if (!isCreating) return;
+            
+            const hoveredSlot = document.elementFromPoint(e.clientX, e.clientY);
+            if (hoveredSlot && hoveredSlot.classList.contains('time-slot')) {
+                const hoveredDay = parseInt(hoveredSlot.dataset.day);
+                const hoveredHour = parseInt(hoveredSlot.dataset.hour);
+                
+                if (hoveredDay === day && hoveredHour >= startHour) {
+                    newEvent.endHour = hoveredHour + 3;
+                    updateScheduleDisplay();
+                }
+            }
+        }
+        
+        
+         function handleMouseUp() {
+            isCreating = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            updateEventControls();
+            updateDayHeaders();
+            
+            // Auto-save schedule data after event creation
+            setTimeout(saveScheduleData, 100);
+            
+            // Check current time schedule after event creation
+            setTimeout(checkCurrentTimeSchedule, 200);
+        }
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    // Update schedule display
+    function updateScheduleDisplay() {
+        // Clear active classes
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.classList.remove('active');
+        });
+        
+        // Add events (green lines)
+        scheduleData.events.forEach(event => {
+            for (let hour = event.startHour; hour < event.endHour; hour += 3) {
+                const slot = document.querySelector(`[data-day="${event.day}"][data-hour="${hour}"]`);
+                if (slot) {
+                    slot.classList.add('active');
+                }
+            }
+        });
+    }
+    
+    // Update day headers to show if current time is in schedule
+    function updateDayHeaders() {
+        const dayHeaders = document.querySelectorAll('.day-status');
+        var now = new Date();
+        var currentDay = now.getDay();
+        var currentHour = now.getHours();
+        var currentMinute = now.getMinutes();
+        var currentTimeInHours = currentHour + (currentMinute / 60);
+        
+        dayHeaders.forEach((header, index) => {
+            if (index === currentDay) {
+                // For current day, show if current time is in schedule
+                const isInSchedule = scheduleData.events.some(event => 
+                    event.day === index && 
+                    currentTimeInHours >= event.startHour && 
+                    currentTimeInHours < event.endHour
+                );
+                header.textContent = isInSchedule ? 'true' : 'false';
+                header.style.fontWeight = 'bold';
+                header.style.color = isInSchedule ? '#4CAF50' : '#f44336';
+            } else {
+                // For other days, show if they have any events
+                const hasEvents = scheduleData.events.some(event => event.day === index);
+                header.textContent = hasEvents ? 'true' : 'false';
+                header.style.fontWeight = 'normal';
+                header.style.color = hasEvents ? '#666' : '#999';
+            }
+        });
+    }
+    
+    // Update event controls
+    function updateEventControls() {
+        const hasEvents = scheduleData.events.length > 0;
+        
+        const eventStartEl = document.getElementById('eventStart');
+        const eventFinishEl = document.getElementById('eventFinish');
+        const eventStartDisplayEl = document.getElementById('eventStartDisplay');
+        const eventFinishDisplayEl = document.getElementById('eventFinishDisplay');
+        
+        if (hasEvents && eventStartEl && eventFinishEl) {
+            const event = scheduleData.events[0];
+            const startHour = event.startHour > 12 ? event.startHour - 12 : event.startHour;
+            const endHour = event.endHour > 12 ? event.endHour - 12 : event.endHour;
+            const startAmPm = event.startHour >= 12 ? 'PM' : 'AM';
+            const endAmPm = event.endHour >= 12 ? 'PM' : 'AM';
+            
+            const startTime = String(startHour === 0 ? 12 : startHour).padStart(2, '0') + ':00';
+            const endTime = String(endHour === 0 ? 12 : endHour).padStart(2, '0') + ':00';
+            
+            eventStartEl.value = startTime;
+            eventFinishEl.value = endTime;
+            if (eventStartDisplayEl) eventStartDisplayEl.textContent = startAmPm;
+            if (eventFinishDisplayEl) eventFinishDisplayEl.textContent = endAmPm;
+        } else if (eventStartEl && eventFinishEl) {
+            eventStartEl.value = '10:37';
+            eventFinishEl.value = '10:37';
+            if (eventStartDisplayEl) eventStartDisplayEl.textContent = 'AM';
+            if (eventFinishDisplayEl) eventFinishDisplayEl.textContent = 'AM';
+        }
+    }
+    
+    // Add current time indicator with red line
+    function updateCurrentTimeIndicator() {
+        // Remove existing indicators
+        document.querySelectorAll('.current-time-indicator').forEach(function(element) {
+            element.remove();
+        });
+        
+        // Remove existing current time slot highlighting
+        document.querySelectorAll('.current-time-slot').forEach(function(element) {
+            element.classList.remove('current-time-slot');
+        });
+        
+        var now = new Date();
+        var currentDay = now.getDay();
+        var currentHour = now.getHours();
+        var currentMinute = now.getMinutes();
+        
+        // Highlight current day column
+        const dayHeaders = document.querySelectorAll('.day-header');
+        dayHeaders.forEach((header, index) => {
+            header.classList.remove('current-day');
+            if (index - 1 === currentDay) { // -1 because first header is empty
+                header.classList.add('current-day');
+            }
+        });
+        
+        // Find current time slot
+        var currentTimeSlot = null;
+        for (var i = 0; i < timeSlots.length; i++) {
+            var slot = timeSlots[i];
+            var nextSlot = timeSlots[i + 1];
+            
+            if (nextSlot) {
+                if (currentHour >= slot.hour && currentHour < nextSlot.hour) {
+                    currentTimeSlot = document.querySelector('[data-day="' + currentDay + '"][data-hour="' + slot.hour + '"]');
+                    break;
+                }
+            } else {
+                // Last slot covers until end of day
+                if (currentHour >= slot.hour) {
+                    currentTimeSlot = document.querySelector('[data-day="' + currentDay + '"][data-hour="' + slot.hour + '"]');
+                    break;
+                }
+            }
+        }
+        
+        // Add red line indicator for current time
+        if (currentTimeSlot) {
+            var indicator = document.createElement('div');
+            indicator.className = 'current-time-indicator';
+            indicator.style.position = 'absolute';
+            indicator.style.left = '0';
+            indicator.style.right = '0';
+            indicator.style.height = '3px';
+            indicator.style.backgroundColor = '#ff4444';
+            indicator.style.zIndex = '20';
+            indicator.style.boxShadow = '0 0 5px rgba(255, 68, 68, 0.5)';
+            indicator.style.borderRadius = '1px';
+            
+            // Calculate position within the time slot based on current time
+            var slotStartHour = parseInt(currentTimeSlot.dataset.hour);
+            var slotEndHour = slotStartHour + 3;
+            var currentTimeInHours = currentHour + (currentMinute / 60);
+            var progressInSlot = (currentTimeInHours - slotStartHour) / 3;
+            
+            // Clamp progress between 0 and 1
+            progressInSlot = Math.max(0, Math.min(1, progressInSlot));
+            
+            indicator.style.top = (progressInSlot * 100) + '%';
+            
+            // Make sure the slot is positioned relatively
+            currentTimeSlot.style.position = 'relative';
+            currentTimeSlot.appendChild(indicator);
+            
+            // Also highlight the current time slot
+            currentTimeSlot.classList.add('current-time-slot');
+            
+            // Log current time info
+            console.log('Current time indicator updated:', {
+                day: daysOfWeek[currentDay],
+                hour: currentHour,
+                minute: currentMinute,
+                slot: slotStartHour + ':00 - ' + slotEndHour + ':00',
+                progress: Math.round(progressInSlot * 100) + '%'
+            });
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  // Event listeners
+function setupEventListeners() {
+    var saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+            saveScheduleData();
+            checkCurrentTimeSchedule();
+            alert('Schedule saved and BooleanWritable override applied!');
+        });
+    }
+
+    var refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function () {
+            location.reload();
+        });
+    }
+
+    var weeklyScheduleBtn = document.getElementById('weeklyScheduleBtn');
+    if (weeklyScheduleBtn) {
+        weeklyScheduleBtn.addEventListener('click', function () {
+            checkCurrentTimeSchedule();
+            alert('Weekly Schedule view active - BooleanWritable override applied!');
+        });
+    }
+
+    var summaryBtn = document.getElementById('summaryBtn');
+    if (summaryBtn) {
+        summaryBtn.addEventListener('click', function () {
+            var now = new Date();
+            var currentDay = now.getDay();
+            var currentDayName = daysOfWeek[currentDay];
+            var currentHour = now.getHours();
+            var currentMinute = now.getMinutes();
+            var currentTimeInHours = currentHour + (currentMinute / 60);
+
+            // Check if current time falls within any scheduled event
+            var isInScheduledTime = scheduleData.events.some(function (event) {
+                if (event.day !== currentDay) {
+                    return false;
+                }
+
+                // Check if current time falls within the event's time range
+                return currentTimeInHours >= event.startHour && currentTimeInHours < event.endHour;
+            });
+
+            // Update the output value
+            scheduleData.currentOutput = isInScheduledTime;
+
+            // Log to console
+            console.log('Current time:', now.toLocaleString());
+            console.log('Current day (' + daysOfWeek[currentDay] + ') at ' + currentHour + ':' + currentMinute.toString().padStart(2, '0'));
+            console.log('Current time in hours:', currentTimeInHours.toFixed(2));
+            console.log('Is in scheduled time:', isInScheduledTime);
+            console.log('Setting BooleanWritable override to:', isInScheduledTime);
+
+            // Only write to Niagara point if connection is established
+            if (booleanWritablePoint.ref) {
+                applyScheduleOverride(isInScheduledTime);
+            } else {
+                console.warn('BooleanWritable point not connected - skipping override');
+            }
+
+            // Update UI
+            updateOutputDisplay();
+        }); // ✅ Closes summaryBtn click listener
+    } // ✅ Closes if (summaryBtn)
+} // ✅ Closes setupEventListeners function
+
+    
+    // Apply override based on schedule state
+    function applyScheduleOverride(shouldBeActive) {
+        if (!booleanWritablePoint.ref) {
+            console.error('BooleanWritable point not connected - cannot apply override');
+            return false;
+        }
+        
+        console.log('Applying schedule override - shouldBeActive:', shouldBeActive);
+        
+        try {
+            if (shouldBeActive) {
+                // Force ACTIVE (ON) when in scheduled time
+                performActiveOverride(booleanWritablePoint.ref);
+            } else {
+                // Force INACTIVE (OFF) when not in scheduled time
+                performInactiveOverride(booleanWritablePoint.ref);
+            }
+            return true;
+        } catch (error) {
+            console.error('Error applying schedule override:', error);
+            return false;
+        }
+    }
+    
+    // Function to force point ACTIVE (ON) - using override logic
+    function performActiveOverride(point) {
+        console.log('Performing ACTIVE override for schedule...');
+        
+        try {
+            let overrideParam = baja.$("control:Override");
+            
+            // Invoke the 'active' slot
+            point.invoke({ 
+                slot: 'active', 
+                value: overrideParam 
+            })
+            .then(function() {
+                console.log('ACTIVE override successful');
+                verifyOverride(point);
+            })
+            .catch(function(error) {
+                console.error('ACTIVE override failed:', error);
+            });
+        } catch (error) {
+            console.error('Error creating ACTIVE override:', error);
+        }
+    }
+    
+    // Function to force point INACTIVE (OFF) - using override logic
+    function performInactiveOverride(point) {
+        console.log('Performing INACTIVE override for schedule...');
+        
+        try {
+            let overrideParam = baja.$("control:Override");
+            
+            // Invoke the 'inactive' slot
+            point.invoke({ 
+                slot: 'inactive', 
+                value: overrideParam 
+            })
+            .then(function() {
+                console.log('INACTIVE override successful');
+                verifyOverride(point);
+            })
+            .catch(function(error) {
+                console.error('INACTIVE override failed:', error);
+            });
+        } catch (error) {
+            console.error('Error creating INACTIVE override:', error);
+        }
+    }
+    
+    // Function to release override (return to AUTO)
+    function releaseToAuto(point) {
+        console.log('Releasing to AUTO...');
+        
+        // Invoke the 'auto' slot (no parameters needed)
+        point.invoke({ slot: 'auto' })
+        .then(function() {
+            console.log('Released to AUTO successfully');
+            verifyOverride(point);
+        })
+        .catch(function(error) {
+            console.error('Release to AUTO failed:', error);
+        });
+    }
+    
+    // Verify the override operation
+    function verifyOverride(point) {
+        setTimeout(function() {
+            try {
+                var outValue = point.get('out');
+                var actualOutValue = extractBooleanValue(outValue);
+                
+                console.log('BooleanWritable out slot now reads (raw):', outValue);
+                console.log('BooleanWritable out slot now reads (actual):', actualOutValue);
+        
+        
+        
+          // Check override status if available
+                try {
+                    var overrideStatus = point.getSlot('overrideStatus');
+                    if (overrideStatus) {
+                        console.log('Override status:', overrideStatus.getValue());
+                    }
+                } catch (overrideError) {
+                    console.log('Could not read override status:', overrideError);
+                }
+                
+            } catch (readError) {
+                console.error('Error reading back value:', readError);
+            }
+        }, 100);
+    }
+    
+    // Update output display in UI
+    function updateOutputDisplay() {
+        var outputElement = document.getElementById('outputValue');
+        if (outputElement) {
+            outputElement.textContent = scheduleData.currentOutput ? 'true' : 'false';
+        }
+        
+        var indicator = document.getElementById('outputIndicator');
+        if (indicator) {
+            indicator.className = scheduleData.currentOutput ? 
+                'status-indicator status-true' : 
+                'status-indicator status-false';
+        }
+    }
+    
+    // Initialize the schedule grid
+    function initializeScheduleGrid() {
+        const grid = document.getElementById('scheduleGrid');
+        if (!grid) {
+            console.error('Schedule grid element not found');
+            return;
+        }
+        
+        grid.innerHTML = ''; // Clear existing content
+        
+        // Create header row
+        const emptyHeader = document.createElement('div');
+        emptyHeader.className = 'day-header';
+        grid.appendChild(emptyHeader);
+        
+        // Day headers
+        daysOfWeek.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'day-header';
+            dayHeader.innerHTML = `
+                <div class="day-header-content">
+                    <div class="day-name">${day}</div>
+                    <div class="day-status">false</div>
+                </div>
+            `;
+            grid.appendChild(dayHeader);
+        });
+        
+        // Create time slots
+        timeSlots.forEach(slot => {
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time-label';
+            timeLabel.textContent = slot.time;
+            grid.appendChild(timeLabel);
+            
+            daysOfWeek.forEach((day, dayIndex) => {
+                const timeSlot = document.createElement('div');
+                timeSlot.className = 'time-slot';
+                timeSlot.dataset.day = dayIndex;
+                timeSlot.dataset.hour = slot.hour;
+                timeSlot.addEventListener('mousedown', handleSlotMouseDown);
+                grid.appendChild(timeSlot);
+            });
+        });
+    }
+    
+    // Handle mouse down on time slot
+    function handleSlotMouseDown(e) {
+        e.preventDefault();
+        const slot = e.target;
+        const day = parseInt(slot.dataset.day);
+        const hour = parseInt(slot.dataset.hour);
+        
+        // Check if clicking on existing event
+        const existingEvent = scheduleData.events.find(event => 
+            event.day === day && hour >= event.startHour && hour < event.endHour
+        );
+        
+        if (existingEvent) {
+            // Remove existing event
+            scheduleData.events = scheduleData.events.filter(e => e.id !== existingEvent.id);
+        } else {
+            // Start creating new event
+            startCreating(slot, day, hour);
+        }
+        
+        updateScheduleDisplay();
+        updateEventControls();
+        updateDayHeaders();
+        
+        // Auto-save schedule data after changes
+        setTimeout(saveScheduleData, 100);
+        
+        // Check current time schedule after changes
+        setTimeout(checkCurrentTimeSchedule, 200);
+    }
+    
+    // Start creating new event
+    function startCreating(startSlot, day, startHour) {
+        const newEvent = {
+            id: Date.now(),
+            day: day,
+            startHour: startHour,
+            endHour: startHour + 3,
+            active: true
+        };
+        
+        scheduleData.events.push(newEvent);
+        
+        let isCreating = true;
+        
+        function handleMouseMove(e) {
+            if (!isCreating) return;
+            
+            const hoveredSlot = document.elementFromPoint(e.clientX, e.clientY);
+            if (hoveredSlot && hoveredSlot.classList.contains('time-slot')) {
+                const hoveredDay = parseInt(hoveredSlot.dataset.day);
+                const hoveredHour = parseInt(hoveredSlot.dataset.hour);
+                
+                if (hoveredDay === day && hoveredHour >= startHour) {
+                    newEvent.endHour = hoveredHour + 3;
+                    updateScheduleDisplay();
+                }
+            }
+        }
+        
+        
+         function handleMouseUp() {
+            isCreating = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            updateEventControls();
+            updateDayHeaders();
+            
+            // Auto-save schedule data after event creation
+            setTimeout(saveScheduleData, 100);
+            
+            // Check current time schedule after event creation
+            setTimeout(checkCurrentTimeSchedule, 200);
+        }
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    // Update schedule display
+    function updateScheduleDisplay() {
+        // Clear active classes
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.classList.remove('active');
+        });
+        
+        // Add events (green lines)
+        scheduleData.events.forEach(event => {
+            for (let hour = event.startHour; hour < event.endHour; hour += 3) {
+                const slot = document.querySelector(`[data-day="${event.day}"][data-hour="${hour}"]`);
+                if (slot) {
+                    slot.classList.add('active');
+                }
+            }
+        });
+    }
+    
+    // Update day headers to show if current time is in schedule
+    function updateDayHeaders() {
+        const dayHeaders = document.querySelectorAll('.day-status');
+        var now = new Date();
+        var currentDay = now.getDay();
+        var currentHour = now.getHours();
+        var currentMinute = now.getMinutes();
+        var currentTimeInHours = currentHour + (currentMinute / 60);
+        
+        dayHeaders.forEach((header, index) => {
+            if (index === currentDay) {
+                // For current day, show if current time is in schedule
+                const isInSchedule = scheduleData.events.some(event => 
+                    event.day === index && 
+                    currentTimeInHours >= event.startHour && 
+                    currentTimeInHours < event.endHour
+                );
+                header.textContent = isInSchedule ? 'AHU ON' : 'AHU OFF';
+                header.style.fontWeight = 'bold';
+                header.style.color = isInSchedule ? '#4CAF50' : '#f44336';
+            } else {
+                // For other days, show if they have any events
+                const hasEvents = scheduleData.events.some(event => event.day === index);
+                header.textContent = hasEvents ? 'AHU ON' : 'AHU OFF';
+                header.style.fontWeight = 'normal';
+                header.style.color = hasEvents ? '#666' : '#999';
+            }
+        });
+    }
+    
+    // Update event controls
+    function updateEventControls() {
+        const hasEvents = scheduleData.events.length > 0;
+        
+        const eventStartEl = document.getElementById('eventStart');
+        const eventFinishEl = document.getElementById('eventFinish');
+        const eventStartDisplayEl = document.getElementById('eventStartDisplay');
+        const eventFinishDisplayEl = document.getElementById('eventFinishDisplay');
+        
+        if (hasEvents && eventStartEl && eventFinishEl) {
+            const event = scheduleData.events[0];
+            const startHour = event.startHour > 12 ? event.startHour - 12 : event.startHour;
+            const endHour = event.endHour > 12 ? event.endHour - 12 : event.endHour;
+            const startAmPm = event.startHour >= 12 ? 'PM' : 'AM';
+            const endAmPm = event.endHour >= 12 ? 'PM' : 'AM';
+            
+            const startTime = String(startHour === 0 ? 12 : startHour).padStart(2, '0') + ':00';
+            const endTime = String(endHour === 0 ? 12 : endHour).padStart(2, '0') + ':00';
+            
+            eventStartEl.value = startTime;
+            eventFinishEl.value = endTime;
+            if (eventStartDisplayEl) eventStartDisplayEl.textContent = startAmPm;
+            if (eventFinishDisplayEl) eventFinishDisplayEl.textContent = endAmPm;
+        } else if (eventStartEl && eventFinishEl) {
+            eventStartEl.value = '10:37';
+            eventFinishEl.value = '10:37';
+            if (eventStartDisplayEl) eventStartDisplayEl.textContent = 'AM';
+            if (eventFinishDisplayEl) eventFinishDisplayEl.textContent = 'AM';
+        }
+    }
+    
+    // Add current time indicator with red line
+    function updateCurrentTimeIndicator() {
+        // Remove existing indicators
+        document.querySelectorAll('.current-time-indicator').forEach(function(element) {
+            element.remove();
+        });
+        
+        // Remove existing current time slot highlighting
+        document.querySelectorAll('.current-time-slot').forEach(function(element) {
+            element.classList.remove('current-time-slot');
+        });
+        
+        var now = new Date();
+        var currentDay = now.getDay();
+        var currentHour = now.getHours();
+        var currentMinute = now.getMinutes();
+        
+        // Highlight current day column
+        const dayHeaders = document.querySelectorAll('.day-header');
+        dayHeaders.forEach((header, index) => {
+            header.classList.remove('current-day');
+            if (index - 1 === currentDay) { // -1 because first header is empty
+                header.classList.add('current-day');
+            }
+        });
+        
+        // Find current time slot
+        var currentTimeSlot = null;
+        for (var i = 0; i < timeSlots.length; i++) {
+            var slot = timeSlots[i];
+            var nextSlot = timeSlots[i + 1];
+            
+            if (nextSlot) {
+                if (currentHour >= slot.hour && currentHour < nextSlot.hour) {
+                    currentTimeSlot = document.querySelector('[data-day="' + currentDay + '"][data-hour="' + slot.hour + '"]');
+                    break;
+                }
+            } else {
+                // Last slot covers until end of day
+                if (currentHour >= slot.hour) {
+                    currentTimeSlot = document.querySelector('[data-day="' + currentDay + '"][data-hour="' + slot.hour + '"]');
+                    break;
+                }
+            }
+        }
+        
+        // Add red line indicator for current time
+        if (currentTimeSlot) {
+            var indicator = document.createElement('div');
+            indicator.className = 'current-time-indicator';
+            indicator.style.position = 'absolute';
+            indicator.style.left = '0';
+            indicator.style.right = '0';
+            indicator.style.height = '3px';
+            indicator.style.backgroundColor = '#ff4444';
+            indicator.style.zIndex = '20';
+            indicator.style.boxShadow = '0 0 5px rgba(255, 68, 68, 0.5)';
+            indicator.style.borderRadius = '1px';
+            
+            // Calculate position within the time slot based on current time
+            var slotStartHour = parseInt(currentTimeSlot.dataset.hour);
+            var slotEndHour = slotStartHour + 3;
+            var currentTimeInHours = currentHour + (currentMinute / 60);
+            var progressInSlot = (currentTimeInHours - slotStartHour) / 3;
+            
+            // Clamp progress between 0 and 1
+            progressInSlot = Math.max(0, Math.min(1, progressInSlot));
+            
+            indicator.style.top = (progressInSlot * 100) + '%';
+            
+            // Make sure the slot is positioned relatively
+            currentTimeSlot.style.position = 'relative';
+            currentTimeSlot.appendChild(indicator);
+            
+            // Also highlight the current time slot
+            currentTimeSlot.classList.add('current-time-slot');
+            
+            // Log current time info
+            console.log('Current time indicator updated:', {
+                day: daysOfWeek[currentDay],
+                hour: currentHour,
+                minute: currentMinute,
+                slot: slotStartHour + ':00 - ' + slotEndHour + ':00',
+                progress: Math.round(progressInSlot * 100) + '%'
+            });
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // Event listeners
+    function setupEventListeners() {
+        var saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveScheduleData();
+                checkCurrentTimeSchedule();
+                alert('Schedule saved and BooleanWritable override applied!');
+            });
+        }
+        
+        var refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                location.reload();
+            });
+        }
+        
+        var weeklyScheduleBtn = document.getElementById('weeklyScheduleBtn');
+        if (weeklyScheduleBtn) {
+            weeklyScheduleBtn.addEventListener('click', function() {
+                checkCurrentTimeSchedule();
+                alert('Weekly Schedule view active - BooleanWritable override applied!');
+            });
+        }
+        
+        var summaryBtn = document.getElementById('summaryBtn');
+        if (summaryBtn) {
+            summaryBtn.addEventListener('click', function() {
+                var now = new Date();
+                var currentDay = now.getDay();
+                var currentDayName = daysOfWeek[currentDay];
+                var currentHour = now.getHours();
+                var currentMinute = now.getMinutes();
+                var currentTimeInHours = currentHour + (currentMinute / 60);
+                
+                var isInScheduledTime = scheduleData.events.some(function(event) {
+                    return event.day === currentDay && 
+                           currentTimeInHours >= event.startHour && 
+                           currentTimeInHours < event.endHour;
+                });
+                
+                const activeDays = [...new Set(scheduleData.events.map(e => daysOfWeek[e.day]))];
+                const summary = `Schedule Summary:\n- Total Events: ${scheduleData.events.length}\n- Current Day: ${currentDayName}\n- Current Time: ${currentHour}:${currentMinute.toString().padStart(2, '0')}\n- In Scheduled Time: ${isInScheduledTime}\n- Active Days: ${activeDays.join(', ') || 'None'}`;
+                alert(summary);
+            });
+        }
+        
+        // Add Release to Auto button functionality
+        var releaseBtn = document.getElementById('releaseBtn');
+        if (releaseBtn) {
+            releaseBtn.addEventListener('click', function() {
+                if (booleanWritablePoint.ref) {
+                    releaseToAuto(booleanWritablePoint.ref);
+                    alert('BooleanWritable released to AUTO mode!');
+                } else {
+                    alert('BooleanWritable point not connected');
+                }
+            });
+        }
+        
+        // Add event listener for page unload to save data
+        window.addEventListener('beforeunload', function() {
+            saveScheduleData();
+        });
+        
+        // Add event listener for visibility change to save data
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                saveScheduleData();
+            }
+        });
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // Initialize the application
+  // Initialize the application - FIXED VERSION
+function initialize() {
+    console.log('Initializing Niagara BooleanWritable integration with Override support and persistence...');
+    
+    // Initialize the grid first
+    initializeScheduleGrid();
+    
+    // Load saved schedule data and update display
+    const dataLoaded = loadScheduleData();
+    if (dataLoaded) {
+        console.log('Loaded existing schedule data with', scheduleData.events.length, 'events');
+        
+        // CRITICAL: Update the visual display after loading data
+        setTimeout(function() {
+            updateScheduleDisplay();
+            updateEventControls();
+            updateDayHeaders();
+            updateCurrentTimeIndicator();
+            console.log('Visual display updated after loading schedule data');
+        }, 100);
+    } else {
+        // If no data loaded, still update the display
+        updateScheduleDisplay();
+        updateEventControls();
+        updateDayHeaders();
+        updateCurrentTimeIndicator();
+    }
+    
+    // Connect to Niagara after display is set up
+    connectToBooleanWritable();
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Set up periodic checking (every minute)
+    setInterval(function() {
+        checkCurrentTimeSchedule();
+        updateCurrentTimeIndicator();
+        updateDayHeaders();
+    }, 60000);
+    
+    // Set up periodic saving (every 5 minutes)
+    setInterval(function() {
+        saveScheduleData();
+    }, 300000);
+    
+    // CRITICAL: Apply schedule immediately after initialization
+    setTimeout(function() {
+        console.log('Applying schedule override after full initialization...');
+        checkCurrentTimeSchedule();
+    }, 1500);
+}
+    
+    // Start the application
+    initialize();
+    
+    // Expose functions globally for debugging
+    window.checkCurrentTimeSchedule = checkCurrentTimeSchedule;
+    window.scheduleData = scheduleData;
+    window.booleanWritablePoint = booleanWritablePoint;
+    window.applyScheduleOverride = applyScheduleOverride;
+    window.performActiveOverride = performActiveOverride;
+    window.performInactiveOverride = performInactiveOverride;
+    window.releaseToAuto = releaseToAuto;
+    window.extractBooleanValue = extractBooleanValue;
+    
+    });
+
+    </script>
+
+
+
+
+</body>
+</html>
