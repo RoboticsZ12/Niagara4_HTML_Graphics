@@ -1065,11 +1065,23 @@ class PersistentStorage {
     ];
 
     // Sort data by Unit, then Point Name, then Timestamp (optional)
+    // data.sort((a, b) => {
+    //     if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
+    //     if (a.pointName !== b.pointName) return a.pointName.localeCompare(b.pointName);
+    //     return new Date(a.timestamp) - new Date(b.timestamp); // optional
+    // });
+    
     data.sort((a, b) => {
-        if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
-        if (a.pointName !== b.pointName) return a.pointName.localeCompare(b.pointName);
-        return new Date(a.timestamp) - new Date(b.timestamp); // optional
-    });
+    const unitA = String(a.unit);
+    const unitB = String(b.unit);
+    const pointA = String(a.pointName);
+    const pointB = String(b.pointName);
+
+    if (unitA !== unitB) return unitA.localeCompare(unitB);
+    if (pointA !== pointB) return pointA.localeCompare(pointB);
+    return new Date(a.timestamp) - new Date(b.timestamp); // optional
+});
+
 
     const csvRows = [headers.join(',')];
     let previousUnit = null;
