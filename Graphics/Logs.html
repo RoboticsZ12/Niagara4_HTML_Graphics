@@ -416,11 +416,14 @@
             
             <div id="monitoringStatus" class="monitoring-status monitoring-active">MONITORING ACTIVE</div>
             
+            
             <!-- Graph Viewer Section -->
             <div id="graphViewer" class="graph-viewer">
                 <div class="graph-title">📊 System Data Visualization</div>
                 
                 <div class="graph-controls">
+                  
+                  <!--POINTS-->
                     <select id="unitSelector" class="unit-selector" onchange="updatePointSelector()">
                         <option value="">Select Unit...</option>
                     </select>
@@ -429,14 +432,31 @@
                         <option value="">Select Point...</option>
                     </select>
                     
-                    <select id="timeRangeSelector" class="time-range-selector" onchange="updateGraph()">
-                        <option value="60">Last Hour</option>
-                        <option value="360">Last 6 Hours</option>
-                        <option value="1440">Last 24 Hours</option>
-                        <option value="all">All Data</option>
-                    </select>
                     
-                    <button class="btn btn-secondary" onclick="toggleGraphViewer()">← Back to Logs</button>
+                    <!--<select id="timeRangeSelector" class="time-range-selector" onchange="updateGraph()">-->
+                    <!--    <option value="60">Last Hour</option>-->
+                    <!--    <option value="360">Last 6 Hours</option>-->
+                    <!--    <option value="1440">Last 24 Hours</option>-->
+                    <!--    <option value="all">All Data</option>-->
+                    <!--</select>-->
+                    
+                    <div class="control-group">
+    <label for="timeRangeSelector" class="control-label">Time Range:    </label>
+
+    <select id="timeRangeSelector" class="unit-selector" onchange="updateGraph()">
+        <option value="all">All Data (Selected Date)</option>
+        <option value="60">Last Hour (of Selected Date)</option>
+        <option value="180">Last 3 Hours (of Selected Date)</option>
+        <option value="360">Last 6 Hours (of Selected Date)</option>
+        <option value="720">Last 12 Hours (of Selected Date)</option>
+    </select>
+</div>
+                    
+                <div class="control-group">
+                    <label for="numeric-input" class="control-label">Select Date:</label>
+                    <input type="date" id="numeric-input" class="unit-selector" title="Select date to filter data">
+                </div>
+                <button class="btn btn-secondary" onclick="toggleGraphViewer()">← Back to Logs</button>
                 </div>
                 
                 <div class="graph-container">
@@ -888,6 +908,8 @@ class PersistentStorage {
         let logCounter = 0;
         let monitoringActive = true;
         let startTime = new Date();
+        let selectedDate = null;
+
         
         // Store last known states to detect changes
         let lastKnownStates = {};
@@ -1013,39 +1035,6 @@ class PersistentStorage {
             }
         }
 
-        // CSV EXPORT FUNCTION
-        // function convertToCSV(data) {
-        //     if (!data || data.length === 0) return '';
-            
-        //     // Define CSV headers
-        //     const headers = [
-        //         'Log ID',
-        //         'Timestamp', 
-        //         'Unit',
-        //         'Point Name',
-        //         'Display Name',
-        //         'Value',
-        //         'State Change',
-        //         'Details'
-        //     ];
-            
-        //     // Convert data to CSV rows
-        //     const csvRows = [
-        //         headers.join(','), // Header row
-        //         ...data.map(log => [
-        //             log.id || '',
-        //             `"${log.timestamp || ''}"`,
-        //             log.unit || '',
-        //             log.pointName || '',
-        //             `"${log.displayName || log.systemName || ''}"`,
-        //             log.value ? 'TRUE' : 'FALSE',
-        //             log.isStateChange ? 'YES' : 'NO',
-        //             `"${log.details || ''}"`
-        //         ].join(','))
-        //     ];
-            
-        //     return csvRows.join('\n');
-        // }
         
         
         
@@ -1054,11 +1043,12 @@ class PersistentStorage {
 
     // Define CSV headers
     const headers = [
-        'Log ID',
-        'Timestamp',
+        // 'Log ID',
         'Unit',
+        'Timestamp',
+        // 'Unit',
         'Point Name',
-        'Display Name',
+        // 'Display Name',
         'Value',
         // 'State Change',
         // 'Details'
@@ -1093,11 +1083,12 @@ class PersistentStorage {
         }
 
         const row = [
-            log.id || '',
-            `"${log.timestamp || ''}"`,
             log.unit || '',
+            // log.id || '',
+            `"${log.timestamp || ''}"`,
+            // log.unit || '',
             log.pointName || '',
-            `"${log.displayName || log.systemName || ''}"`,
+            // `"${log.displayName || log.systemName || ''}"`,
             log.value ? 'TRUE' : 'FALSE',
             // log.isStateChange ? 'YES' : 'NO',
             // `"${log.details || ''}"`
@@ -2115,52 +2106,791 @@ require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja
 
 
 
-        // Graph Viewer Functions
-        function initializeGraphViewer() {
-            populateUnitSelector();
+
+
+// Enhanced Graph Viewer Functions with Date Filtering
+function initializeGraphViewer() {
+    populateUnitSelector();
+    initializeDateFilter();
+}
+
+// Initialize date filter functionality
+// Add event listener to date input for immediate refresh
+function initializeDateFilter() {
+    const dateInput = document.getElementById('numeric-input');
+    if (dateInput) {
+        // Set default date to today
+        const today = new Date();
+        const todayString = today.getFullYear() + '-' + 
+                           String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                           String(today.getDate()).padStart(2, '0');
+        dateInput.value = todayString;
+        dateInput.type = 'date';
+        
+        console.log(`📅 Date input initialized with: ${todayString}`);
+        
+        // Add event listener for date changes
+        dateInput.addEventListener('change', function() {
+            console.log(`📅 Date changed to: ${dateInput.value}`);
+            forceRefreshGraph(); // Use force refresh instead of just update
+        });
+    }
+}
+
+
+
+// Get selected date with more robust parsing
+function getSelectedDate() {
+    const dateInput = document.getElementById('numeric-input');
+    if (!dateInput || !dateInput.value) {
+        console.log('❌ No date input found or no value selected');
+        return null;
+    }
+    
+    // Parse the date input value (should be in YYYY-MM-DD format)
+    const inputValue = dateInput.value;
+    console.log(`📅 Raw date input value: "${inputValue}"`);
+    
+    // Create date object from input
+    const selectedDate = new Date(inputValue + 'T00:00:00.000'); // Add time to avoid timezone issues
+    
+    // Create start and end of day in local time
+    const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+    
+    console.log(`📅 Parsed date: ${selectedDate}`);
+    console.log(`🌅 Start of day: ${startOfDay}`);
+    console.log(`🌙 End of day: ${endOfDay}`);
+    
+    return {
+        dateObject: selectedDate,
+        dateString: inputValue, // YYYY-MM-DD
+        startOfDay: startOfDay,
+        endOfDay: endOfDay
+    };
+}
+
+// COMPLETELY REWRITTEN - More aggressive date filtering
+function getFilteredEventLogsByDate(unit = null, point = null) {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) {
+        console.log('⚠️ No date selected, returning empty array');
+        return []; // Return empty array instead of all data
+    }
+    
+    console.log(`🔍 Filtering eventLogs for date: ${selectedDate.dateString}`);
+    console.log(`📊 Total eventLogs to filter: ${eventLogs.length}`);
+    
+    // Filter with detailed logging
+    const filtered = eventLogs.filter((log, index) => {
+        // Parse the log timestamp
+        const logTimestamp = new Date(log.timestamp);
+        
+        // Check if timestamp is valid
+        if (isNaN(logTimestamp.getTime())) {
+            console.log(`⚠️ Invalid timestamp at index ${index}: "${log.timestamp}"`);
+            return false;
         }
+        
+        // Get just the date part for comparison (ignore time)
+        const logDateString = logTimestamp.getFullYear() + '-' + 
+                             String(logTimestamp.getMonth() + 1).padStart(2, '0') + '-' + 
+                             String(logTimestamp.getDate()).padStart(2, '0');
+        
+        const selectedDateString = selectedDate.dateString;
+        
+        // Date match check
+        const matchesDate = logDateString === selectedDateString;
+        
+        // Unit match check
+        const matchesUnit = !unit || log.unit === unit;
+        
+        // Point match check  
+        const matchesPoint = !point || log.pointName === point;
+        
+        const shouldInclude = matchesDate && matchesUnit && matchesPoint;
+        
+        // Debug logging for first few entries or matches
+        if (index < 5 || shouldInclude) {
+            console.log(`📋 Index ${index}: ${log.timestamp} (${logDateString}) - Date Match: ${matchesDate}, Unit: ${matchesUnit}, Point: ${matchesPoint}, Include: ${shouldInclude}`);
+        }
+        
+        return shouldInclude;
+    });
+    
+    console.log(`✅ Found ${filtered.length} matching logs for ${selectedDate.dateString}`);
+    
+    // Log the actual timestamps we found
+    if (filtered.length > 0) {
+        console.log('🕐 Matching timestamps:');
+        filtered.forEach((log, i) => {
+            console.log(`  ${i + 1}. ${log.timestamp} - ${log.unit} - ${log.pointName} - ${log.value}`);
+        });
+    } else {
+        console.log('❌ No matching data found for the selected criteria');
+    }
+    
+    return filtered;
+}
 
-        function populateUnitSelector() {
-            const unitSelector = document.getElementById('unitSelector');
-            if (!unitSelector) return;
 
-            // Clear existing options
-            unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+// Enhanced populateUnitSelector with better logging
+function populateUnitSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    if (!unitSelector) return;
 
-            // Add units from GlobalData
-            const units = GlobalData.getAllUnits();
-            units.forEach(unit => {
+    console.log('🏢 Populating unit selector...');
+
+    // Clear existing options
+    unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+
+    // Get unique units from filtered eventLogs by selected date
+    const filteredLogs = getFilteredEventLogsByDate();
+    console.log(`📊 Units available for selected date: filtering from ${filteredLogs.length} logs`);
+    
+    const uniqueUnits = [...new Set(filteredLogs.map(log => log.unit))].filter(unit => unit).sort();
+    console.log(`🏢 Unique units found: ${uniqueUnits.length}`, uniqueUnits);
+    
+    uniqueUnits.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit;
+        unitSelector.appendChild(option);
+    });
+
+    // Update data availability indicator
+    updateDataAvailabilityIndicator(filteredLogs.length);
+}
+
+
+
+function updatePointSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    
+    // Clear existing options
+    pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+    if (selectedUnit) {
+        // Get unique points for the selected unit from filtered eventLogs by date
+        const filteredLogs = getFilteredEventLogsByDate(selectedUnit);
+        const uniquePoints = [...new Set(filteredLogs.map(log => log.pointName))].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
                 const option = document.createElement('option');
-                option.value = unit;
-                option.textContent = unit;
-                unitSelector.appendChild(option);
-            });
-        }
-
-        function updatePointSelector() {
-            const unitSelector = document.getElementById('unitSelector');
-            const pointSelector = document.getElementById('pointSelector');
-            
-            if (!unitSelector || !pointSelector) return;
-
-            const selectedUnit = unitSelector.value;
-            
-            // Clear existing options
-            pointSelector.innerHTML = '<option value="">Select Point...</option>';
-
-            if (selectedUnit && GlobalData.unitMetadata[selectedUnit]) {
-                const points = GlobalData.unitMetadata[selectedUnit].points;
-                points.forEach(point => {
-                    const option = document.createElement('option');
-                    option.value = point;
-                    option.textContent = point;
-                    pointSelector.appendChild(option);
-                });
+                option.value = point;
+                option.textContent = point;
+                pointSelector.appendChild(option);
             }
+        });
+    }
 
-            // Clear the graph when unit changes
-            clearGraph();
+    // Clear the graph when unit changes
+    clearGraph();
+}
+
+function updateGraph() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    const timeRangeSelector = document.getElementById('timeRangeSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    const selectedPoint = pointSelector.value;
+    const timeRange = timeRangeSelector ? timeRangeSelector.value : 'all';
+
+    if (!selectedUnit || !selectedPoint) {
+        clearGraph();
+        return;
+    }
+
+    drawGraph(selectedUnit, selectedPoint, timeRange);
+}
+
+
+// function drawGraph(unitName, pointName, timeRange) {
+//     console.log(`🎨 Starting drawGraph for ${unitName} - ${pointName} with timeRange: ${timeRange}`);
+    
+//     const canvas = document.getElementById('graphCanvas');
+//     const noDataMessage = document.getElementById('noDataMessage');
+//     const graphLegend = document.getElementById('graphLegend');
+//     const graphStats = document.getElementById('graphStats');
+    
+//     if (!canvas) {
+//         console.log('❌ Canvas not found');
+//         return;
+//     }
+
+//     const selectedDate = getSelectedDate();
+//     if (!selectedDate) {
+//         console.log('❌ No date selected');
+//         clearGraph();
+//         return;
+//     }
+
+//     const ctx = canvas.getContext('2d');
+    
+//     // Set canvas size
+//     canvas.width = canvas.offsetWidth;
+//     canvas.height = canvas.offsetHeight;
+
+//     // STEP 1: Get data for selected date only
+//     let filteredData = getFilteredEventLogsByDate(unitName, pointName);
+//     console.log(`📊 After date filtering: ${filteredData.length} points for ${selectedDate.dateString}`);
+    
+//     // STEP 2: Apply time range filter within the selected date (if not 'all')
+//     if (timeRange !== 'all' && !timeRange.includes('All Data') && timeRange !== undefined) {
+//         const minutesBack = parseInt(timeRange);
+//         if (!isNaN(minutesBack)) {
+//             // Calculate cutoff time from the END of the selected day
+//             const cutoffTime = new Date(selectedDate.endOfDay.getTime() - (minutesBack * 60 * 1000));
+//             console.log(`⏰ Applying time filter: last ${minutesBack} minutes from ${cutoffTime}`);
+            
+//             const beforeTimeFilter = filteredData.length;
+//             filteredData = filteredData.filter(log => {
+//                 const logTime = new Date(log.timestamp);
+//                 return logTime >= cutoffTime;
+//             });
+//             console.log(`⏰ After time filtering: ${filteredData.length} points (was ${beforeTimeFilter})`);
+//         }
+//     }
+
+//     // Convert to graph format
+//     filteredData = filteredData.map(log => ({
+//         timestamp: new Date(log.timestamp),
+//         timestampString: log.timestamp,
+//         value: log.value,
+//         changed: log.isStateChange || false,
+//         pointName: log.pointName
+//     }));
+
+//     // Sort by timestamp
+//     filteredData.sort((a, b) => a.timestamp - b.timestamp);
+
+//     console.log(`📈 Final data points for graph: ${filteredData.length}`);
+
+//     // Show no data message if empty
+//     if (filteredData.length === 0) {
+//         const dateStr = selectedDate.dateString;
+//         noDataMessage.textContent = `No data found for ${unitName} - ${pointName} on ${dateStr}`;
+//         noDataMessage.style.display = 'block';
+//         canvas.style.display = 'none';
+//         graphLegend.innerHTML = '';
+//         graphStats.innerHTML = '';
+//         console.log('❌ No data to display');
+//         return;
+//     }
+
+//     // Show the graph
+//     noDataMessage.style.display = 'none';
+//     canvas.style.display = 'block';
+
+//     // Clear canvas
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+//     // Graph dimensions
+//     const padding = 60;
+//     const graphWidth = canvas.width - (padding * 2);
+//     const graphHeight = canvas.height - (padding * 2);
+
+//     // Draw background
+//     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#ffffff';
+//     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+//     // Draw grid
+//     drawGrid(ctx, padding, graphWidth, graphHeight);
+
+//     // Draw axes (this will now show the full selected day)
+//     drawAxesWithDate(ctx, padding, graphWidth, graphHeight, filteredData);
+
+//     // Draw data line (this will now position data within the full day)
+//     drawDataLine(ctx, padding, graphWidth, graphHeight, filteredData);
+
+//     // Update legend and stats
+//     updateGraphLegend(unitName, pointName, filteredData);
+//     updateGraphStats(filteredData);
+    
+//     console.log(`✅ Graph completed for ${selectedDate.dateString}`);
+// }
+
+
+
+// Updated drawGraph function to use the fixed drawAxesWithDate
+function drawGraph(unitName, pointName, timeRange) {
+    console.log(`🎨 Starting drawGraph for ${unitName} - ${pointName} with timeRange: ${timeRange}`);
+    
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (!canvas) {
+        console.log('❌ Canvas not found');
+        return;
+    }
+
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) {
+        console.log('❌ No date selected');
+        clearGraph();
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    // STEP 1: Get data for selected date only
+    let filteredData = getFilteredEventLogsByDate(unitName, pointName);
+    console.log(`📊 After date filtering: ${filteredData.length} points for ${selectedDate.dateString}`);
+    
+    // STEP 2: Apply time range filter within the selected date (if not 'all')
+    if (timeRange !== 'all' && !timeRange.includes('All Data') && timeRange !== undefined) {
+        const minutesBack = parseInt(timeRange);
+        if (!isNaN(minutesBack)) {
+            // Calculate cutoff time from the END of the selected day
+            const cutoffTime = new Date(selectedDate.endOfDay.getTime() - (minutesBack * 60 * 1000));
+            console.log(`⏰ Applying time filter: last ${minutesBack} minutes from ${cutoffTime}`);
+            
+            const beforeTimeFilter = filteredData.length;
+            filteredData = filteredData.filter(log => {
+                const logTime = new Date(log.timestamp);
+                return logTime >= cutoffTime;
+            });
+            console.log(`⏰ After time filtering: ${filteredData.length} points (was ${beforeTimeFilter})`);
         }
+    }
+
+    // Convert to graph format
+    filteredData = filteredData.map(log => ({
+        timestamp: new Date(log.timestamp),
+        timestampString: log.timestamp,
+        value: log.value,
+        changed: log.isStateChange || false,
+        pointName: log.pointName
+    }));
+
+    // Sort by timestamp
+    filteredData.sort((a, b) => a.timestamp - b.timestamp);
+
+    console.log(`📈 Final data points for graph: ${filteredData.length}`);
+
+    // Show no data message if empty
+    if (filteredData.length === 0) {
+        const dateStr = selectedDate.dateString;
+        noDataMessage.textContent = `No data found for ${unitName} - ${pointName} on ${dateStr}`;
+        noDataMessage.style.display = 'block';
+        canvas.style.display = 'none';
+        graphLegend.innerHTML = '';
+        graphStats.innerHTML = '';
+        console.log('❌ No data to display');
+        return;
+    }
+
+    // Show the graph
+    noDataMessage.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Graph dimensions
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    const graphHeight = canvas.height - (padding * 2);
+
+    // Draw background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid
+    drawGrid(ctx, padding, graphWidth, graphHeight);
+
+    // Draw axes using the FIXED function
+    drawAxesWithDate(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Draw data line using the FIXED function
+    drawDataLine(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Update legend and stats
+    updateGraphLegend(unitName, pointName, filteredData);
+    updateGraphStats(filteredData);
+    
+    console.log(`✅ Graph completed for ${selectedDate.dateString}`);
+}
+
+
+
+
+
+// function drawAxesWithDate(ctx, padding, width, height, data) {
+//     const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#000000';
+//     ctx.strokeStyle = textColor;
+//     ctx.lineWidth = 2;
+//     ctx.font = '12px Segoe UI, sans-serif';
+//     ctx.fillStyle = textColor;
+
+//     // Draw axes
+//     ctx.beginPath();
+//     ctx.moveTo(padding, padding);
+//     ctx.lineTo(padding, padding + height);
+//     ctx.lineTo(padding + width, padding + height);
+//     ctx.stroke();
+
+//     // Y-axis labels (TRUE/FALSE)
+//     ctx.textAlign = 'right';
+//     ctx.textBaseline = 'middle';
+//     ctx.fillText('TRUE', padding - 10, padding + height * 0.25);
+//     ctx.fillText('FALSE', padding - 10, padding + height * 0.75);
+
+//     // FIXED: X-axis labels with logical time intervals
+//     const selectedDate = getSelectedDate();
+//     if (selectedDate) {
+//         ctx.textAlign = 'center';
+//         ctx.textBaseline = 'top';
+        
+//         // Use the full selected day range for X-axis
+//         const startTime = selectedDate.startOfDay;
+//         const endTime = selectedDate.endOfDay;
+        
+//         // SOLUTION 1: Use logical 4-hour intervals instead of equal divisions
+//         const timeLabels = [
+//             // new Date(startTime.getTime()), // 12:00 AM
+//             // new Date(startTime.getTime() + 4 * 60 * 60 * 1000), // 4:00 AM
+//             // new Date(startTime.getTime() + 8 * 60 * 60 * 1000), // 8:00 AM
+//             // new Date(startTime.getTime() + 12 * 60 * 60 * 1000), // 12:00 PM
+//             // new Date(startTime.getTime() + 16 * 60 * 60 * 1000), // 4:00 PM
+//             // new Date(startTime.getTime() + 20 * 60 * 60 * 1000), // 8:00 PM
+//         ];
+        
+//         timeLabels.forEach((timePoint, i) => {
+//             const x = padding + (width * i / 5); // Still divide visual space equally
+//             const timeStr = timePoint.toLocaleTimeString('en-US', { 
+//                 hour: 'numeric', // Use 'numeric' instead of '2-digit' for cleaner look
+//                 minute: '2-digit',
+//                 hour12: true
+//             });
+//             ctx.fillText(timeStr, x, padding + height + 10);
+//         });
+        
+//         // Add date label at bottom center
+//         ctx.font = 'bold 14px Segoe UI, sans-serif';
+//         const dateStr = selectedDate.dateObject.toLocaleDateString('en-US', {
+//             weekday: 'long',
+//             year: 'numeric',
+//             month: 'long',
+//             day: 'numeric'
+//         });
+//         ctx.fillText(dateStr, padding + width / 2, padding + height + 35);
+//     }
+
+//     // Axis titles
+//     ctx.textAlign = 'center';
+//     ctx.textBaseline = 'middle';
+//     ctx.font = 'bold 14px Segoe UI, sans-serif';
+    
+//     // Y-axis title
+//     ctx.save();
+//     ctx.translate(20, padding + height / 2);
+//     ctx.rotate(-Math.PI / 2);
+//     ctx.fillText('Point Value', 0, 0);
+//     ctx.restore();
+    
+//     // X-axis title
+//     ctx.fillText('Time', padding + width / 2, padding + height + 55);
+// }
+
+
+// Fixed drawAxesWithDate function
+function drawAxesWithDate(ctx, padding, width, height, data) {
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || '#000000';
+    ctx.strokeStyle = textColor;
+    ctx.lineWidth = 2;
+    ctx.font = '12px Segoe UI, sans-serif';
+    ctx.fillStyle = textColor;
+
+    // Draw axes
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, padding + height);
+    ctx.lineTo(padding + width, padding + height);
+    ctx.stroke();
+
+    // Y-axis labels (TRUE/FALSE)
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TRUE', padding - 10, padding + height * 0.25);
+    ctx.fillText('FALSE', padding - 10, padding + height * 0.75);
+
+    // X-axis labels - FIXED VERSION
+    const selectedDate = getSelectedDate();
+    if (selectedDate && data && data.length > 0) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        
+        // Use FULL DAY for the timespan
+        const dayStartTime = selectedDate.startOfDay.getTime();
+        const dayEndTime = selectedDate.endOfDay.getTime();
+        const dayTimeSpan = dayEndTime - dayStartTime;
+        
+        console.log(`📊 Day range: ${selectedDate.startOfDay.toLocaleString()} to ${selectedDate.endOfDay.toLocaleString()}`);
+        
+        // Create proper chronological time labels throughout the day
+        const timeLabels = [];
+        
+        // Start at midnight and create logical time intervals
+        const startOfSelectedDay = selectedDate.startOfDay;
+        
+        // Option 1: Every 4 hours - 12AM, 4AM, 8AM, 12PM, 4PM, 8PM
+        // const hourIntervals = [0, 4, 8, 12, 16, 20];
+        
+        // Option 2: Key times throughout the day - 12AM, 6AM, 12PM, 6PM, 11:59PM
+        const hourIntervals = [0, 6, 12, 17, 22]; // 23.98 ≈ 11:59 PM
+        
+        // Option 3: Business day focused - 12AM, 8AM, 12PM, 4PM, 8PM
+        // const hourIntervals = [0, 8, 12, 16, 20];
+        
+        hourIntervals.forEach(hour => {
+            const timePoint = new Date(startOfSelectedDay.getFullYear(), 
+                                    startOfSelectedDay.getMonth(), 
+                                    startOfSelectedDay.getDate(), 
+                                    Math.floor(hour), 
+                                    (hour % 1) * 60, 0, 0); // Handle decimal hours for minutes
+            timeLabels.push(timePoint);
+        });
+        
+        console.log(`📊 Time labels:`, timeLabels.map(t => t.toLocaleTimeString()));
+        
+        // Draw the time labels
+        timeLabels.forEach((timePoint, i) => {
+            const x = padding + (width * i / 4); // Evenly space across width
+            
+            const timeStr = timePoint.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            
+            ctx.fillText(timeStr, x, padding + height + 10);
+            console.log(`📍 Label ${i}: ${timeStr} at x=${Math.round(x)}`);
+        });
+        
+        // Add date label at bottom center
+        ctx.font = 'bold 14px Segoe UI, sans-serif';
+        const dateStr = selectedDate.dateObject.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        ctx.fillText(dateStr, padding + width / 2, padding + height + 35);
+    }
+
+    // Axis titles
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    
+    // Y-axis title
+    ctx.save();
+    ctx.translate(20, padding + height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Point Value', 0, 0);
+    ctx.restore();
+    
+    // X-axis title
+    ctx.fillText('Time', padding + width / 2, padding + height + 55);
+}
+
+
+// Add data availability indicator
+function updateDataAvailabilityIndicator(dataCount) {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    // Create or update indicator element
+    let indicator = document.getElementById('dataAvailabilityIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'dataAvailabilityIndicator';
+        indicator.style.cssText = `
+            margin: 10px 0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        `;
+        
+        const unitSelector = document.getElementById('unitSelector');
+        if (unitSelector && unitSelector.parentNode) {
+            unitSelector.parentNode.insertBefore(indicator, unitSelector.nextSibling);
+        }
+    }
+    
+    const dateStr = selectedDate.dateObject.toLocaleDateString('en-US');
+    if (dataCount === 0) {
+        indicator.textContent = `No data available for ${dateStr}`;
+        indicator.style.backgroundColor = '#ffebee';
+        indicator.style.color = '#c62828';
+        indicator.style.border = '1px solid #ef5350';
+    } else {
+        indicator.textContent = `${dataCount} data points found for ${dateStr}`;
+        indicator.style.backgroundColor = '#e8f5e8';
+        indicator.style.color = '#2e7d32';
+        indicator.style.border = '1px solid #4caf50';
+    }
+}
+
+// Enhanced CSV export with date filtering
+function exportGraphData() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    const selectedDate = getSelectedDate();
+    
+    if (!unitSelector || !pointSelector) {
+        alert('Please select a unit and point first');
+        return;
+    }
+
+    const selectedUnit = unitSelector.value;
+    const selectedPoint = pointSelector.value;
+
+    if (!selectedUnit || !selectedPoint) {
+        alert('Please select both a unit and point to export');
+        return;
+    }
+
+    const filteredData = getFilteredEventLogsByDate(selectedUnit, selectedPoint);
+
+    if (filteredData.length === 0) {
+        const dateStr = selectedDate ? selectedDate.dateString : 'selected date';
+        alert(`No data available for the selected point on ${dateStr}`);
+        return;
+    }
+
+    // Create CSV content with date info
+    const dateStr = selectedDate ? selectedDate.dateString : 'All_Dates';
+    let csvContent = 'Timestamp,Value,Changed,Unit,Point\n';
+    filteredData.forEach(log => {
+        csvContent += `"${log.timestamp}",${log.value ? 'TRUE' : 'FALSE'},${log.isStateChange ? 'YES' : 'NO'},"${selectedUnit}","${selectedPoint}"\n`;
+    });
+
+    // Download CSV with date in filename
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Graph_Data_${selectedUnit}_${selectedPoint}_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    console.log(`📊 Exported ${filteredData.length} data points for ${dateStr}`);
+}
+
+// Update the toggle graph viewer function to initialize date filtering
+function toggleGraphViewer() {
+    const graphViewer = document.getElementById('graphViewer');
+    const mainView = document.getElementById('mainView');
+    
+    if (!graphViewer || !mainView) return;
+
+    graphViewerActive = !graphViewerActive;
+
+    if (graphViewerActive) {
+        graphViewer.classList.add('active');
+        mainView.classList.add('hidden');
+        
+        // Initialize graph viewer data with date filtering
+        initializeGraphViewer(); // This now includes date filter initialization
+        clearGraph();
+        addExportButton();
+        
+        // Update button text
+        const button = document.querySelector('.controls button[onclick="toggleGraphViewer()"]');
+        if (button) button.innerHTML = '← Back to Logs';
+    } else {
+        graphViewer.classList.remove('active');
+        mainView.classList.remove('hidden');
+        
+        // Update button text
+        const button = document.querySelector('.controls button[onclick="toggleGraphViewer()"]');
+        if (button) button.innerHTML = '📊 View Graphs';
+    }
+}
+
+// Console logging for debugging
+console.log('📅 Date-filtered graphing functionality loaded!');
+console.log('🔍 Select a date to filter graph data');
+console.log('📊 Unit and point selectors will update based on selected date');
+
+
+        
+function populateUnitSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    if (!unitSelector) return;
+
+    // Clear existing options
+    unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+
+    // MODIFIED: Get unique units from eventLogs instead of GlobalData
+    const uniqueUnits = [...new Set(eventLogs.map(log => log.unit))].sort();
+    
+    uniqueUnits.forEach(unit => {
+        if (unit) { // Make sure unit is not empty or undefined
+            const option = document.createElement('option');
+            option.value = unit;
+            option.textContent = unit;
+            unitSelector.appendChild(option);
+        }
+    });
+}
+        
+      
+        
+        function updatePointSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    
+    // Clear existing options
+    pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+    if (selectedUnit) {
+        // MODIFIED: Get unique points for the selected unit from eventLogs
+        const uniquePoints = [...new Set(
+            eventLogs
+                .filter(log => log.unit === selectedUnit)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) { // Make sure point is not empty or undefined
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector.appendChild(option);
+            }
+        });
+    }
+
+    // Clear the graph when unit changes
+    clearGraph();
+}
+        
 
         function updateGraph() {
             const unitSelector = document.getElementById('unitSelector');
@@ -2181,69 +2911,114 @@ require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja
             drawGraph(selectedUnit, selectedPoint, timeRange);
         }
 
+        
         function drawGraph(unitName, pointName, timeRange) {
-            const canvas = document.getElementById('graphCanvas');
-            const noDataMessage = document.getElementById('noDataMessage');
-            const graphLegend = document.getElementById('graphLegend');
-            const graphStats = document.getElementById('graphStats');
-            
-            if (!canvas) return;
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (!canvas) return;
 
-            const ctx = canvas.getContext('2d');
-            
-            // Set canvas size
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-            // Get historical data
-            const unitHistory = GlobalData.getUnitHistory(unitName);
+    // MODIFIED: Use eventLogs instead of unitHistory to get all persistent data
+    let filteredData = eventLogs.filter(log => 
+        log.unit === unitName && log.pointName === pointName
+    );
+    
+    // Apply time filter
+    if (timeRange !== 'all') {
+        const minutesBack = parseInt(timeRange);
+        const cutoffTime = new Date(Date.now() - (minutesBack * 60 * 1000));
+        filteredData = filteredData.filter(log => 
+            new Date(log.timestamp) >= cutoffTime
+        );
+    }
+
+    // Convert eventLogs format to the expected graph data format
+    filteredData = filteredData.map(log => ({
+        timestamp: new Date(log.timestamp),
+        timestampString: log.timestamp,
+        value: log.value,
+        changed: log.isStateChange || false,
+        pointName: log.pointName
+    }));
+
+    // Sort by timestamp to ensure proper order
+    filteredData.sort((a, b) => a.timestamp - b.timestamp);
+
+    if (filteredData.length === 0) {
+        noDataMessage.style.display = 'block';
+        canvas.style.display = 'none';
+        graphLegend.innerHTML = '';
+        graphStats.innerHTML = '';
+        return;
+    }
+
+    noDataMessage.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Graph dimensions
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    const graphHeight = canvas.height - (padding * 2);
+
+    // Draw background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim();
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid
+    drawGrid(ctx, padding, graphWidth, graphHeight);
+
+    // Draw axes
+    drawAxes(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Draw data line
+    drawDataLine(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Update legend and stats
+    updateGraphLegend(unitName, pointName, filteredData);
+    updateGraphStats(filteredData);
+}
+        
+        
+        // Add this function to manually trigger a complete refresh
+function forceRefreshGraph() {
+    console.log('🔄 Force refreshing graph...');
+    
+    // Clear current selections to force a complete rebuild
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (unitSelector && pointSelector) {
+        const selectedUnit = unitSelector.value;
+        const selectedPoint = pointSelector.value;
+        
+        // Rebuild unit selector with current date filter
+        populateUnitSelector();
+        
+        // Restore selections if they still exist for this date
+        if (selectedUnit) {
+            unitSelector.value = selectedUnit;
+            updatePointSelector();
             
-            // Filter data for the selected point and time range
-            let filteredData = unitHistory.filter(entry => entry.pointName === pointName);
-            
-            // Apply time filter
-            if (timeRange !== 'all') {
-                const minutesBack = parseInt(timeRange);
-                const cutoffTime = new Date(Date.now() - (minutesBack * 60 * 1000));
-                filteredData = filteredData.filter(entry => entry.timestamp >= cutoffTime);
+            if (selectedPoint) {
+                pointSelector.value = selectedPoint;
+                updateGraph();
             }
-
-            if (filteredData.length === 0) {
-                noDataMessage.style.display = 'block';
-                canvas.style.display = 'none';
-                graphLegend.innerHTML = '';
-                graphStats.innerHTML = '';
-                return;
-            }
-
-            noDataMessage.style.display = 'none';
-            canvas.style.display = 'block';
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Graph dimensions
-            const padding = 60;
-            const graphWidth = canvas.width - (padding * 2);
-            const graphHeight = canvas.height - (padding * 2);
-
-            // Draw background
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim();
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw grid
-            drawGrid(ctx, padding, graphWidth, graphHeight);
-
-            // Draw axes
-            drawAxes(ctx, padding, graphWidth, graphHeight, filteredData);
-
-            // Draw data line
-            drawDataLine(ctx, padding, graphWidth, graphHeight, filteredData);
-
-            // Update legend and stats
-            updateGraphLegend(unitName, pointName, filteredData);
-            updateGraphStats(filteredData);
         }
+    }
+}
+
+        
 
         function drawGrid(ctx, padding, width, height) {
             ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
@@ -2271,112 +3046,303 @@ require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja
             ctx.setLineDash([]);
         }
 
-        function drawAxes(ctx, padding, width, height, data) {
-            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
-            ctx.lineWidth = 2;
-            ctx.font = '12px Segoe UI';
-            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+        // function drawAxes(ctx, padding, width, height, data) {
+        //     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+        //     ctx.lineWidth = 2;
+        //     ctx.font = '12px Segoe UI';
+        //     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
 
-            // Draw axes
-            ctx.beginPath();
-            ctx.moveTo(padding, padding);
-            ctx.lineTo(padding, padding + height);
-            ctx.lineTo(padding + width, padding + height);
-            ctx.stroke();
+        //     // Draw axes
+        //     ctx.beginPath();
+        //     ctx.moveTo(padding, padding);
+        //     ctx.lineTo(padding, padding + height);
+        //     ctx.lineTo(padding + width, padding + height);
+        //     ctx.stroke();
 
-            // Y-axis labels (TRUE/FALSE)
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('TRUE', padding - 10, padding + height * 0.25);
-            ctx.fillText('FALSE', padding - 10, padding + height * 0.75);
+        //     // Y-axis labels (TRUE/FALSE)
+        //     ctx.textAlign = 'right';
+        //     ctx.textBaseline = 'middle';
+        //     ctx.fillText('TRUE', padding - 10, padding + height * 0.25);
+        //     ctx.fillText('FALSE', padding - 10, padding + height * 0.75);
 
-            // X-axis labels (time)
-            if (data.length > 0) {
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
+        //     // X-axis labels (time)
+        //     if (data.length > 0) {
+        //         ctx.textAlign = 'center';
+        //         ctx.textBaseline = 'top';
                 
-                const startTime = data[0].timestamp;
-                const endTime = data[data.length - 1].timestamp;
+        //         const startTime = data[0].timestamp;
+        //         const endTime = data[data.length - 1].timestamp;
                 
-                // Show 5 time labels
-                for (let i = 0; i <= 4; i++) {
-                    const timePoint = new Date(startTime.getTime() + (endTime.getTime() - startTime.getTime()) * i / 4);
-                    const x = padding + (width * i / 4);
-                    const timeStr = timePoint.toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
-                    ctx.fillText(timeStr, x, padding + height + 10);
-                }
-            }
+        //         // Show 5 time labels
+        //         for (let i = 0; i <= 4; i++) {
+        //             const timePoint = new Date(startTime.getTime() + (endTime.getTime() - startTime.getTime()) * i / 4);
+        //             const x = padding + (width * i / 4);
+        //             const timeStr = timePoint.toLocaleTimeString('en-US', { 
+        //                 hour: '2-digit', 
+        //                 minute: '2-digit' 
+        //             });
+        //             ctx.fillText(timeStr, x, padding + height + 10);
+        //         }
+        //     }
 
-            // Axis titles
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = 'bold 14px Segoe UI';
+        //     // Axis titles
+        //     ctx.textAlign = 'center';
+        //     ctx.textBaseline = 'middle';
+        //     ctx.font = 'bold 14px Segoe UI';
             
-            // Y-axis title
-            ctx.save();
-            ctx.translate(20, padding + height / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillText('Point Value', 0, 0);
-            ctx.restore();
+        //     // Y-axis title
+        //     ctx.save();
+        //     ctx.translate(20, padding + height / 2);
+        //     ctx.rotate(-Math.PI / 2);
+        //     ctx.fillText('Point Value', 0, 0);
+        //     ctx.restore();
             
-            // X-axis title
-            ctx.fillText('Time', padding + width / 2, padding + height + 40);
-        }
+        //     // X-axis title
+        //     ctx.fillText('Time', padding + width / 2, padding + height + 40);
+        // }
+        
 
-        function drawDataLine(ctx, padding, width, height, data) {
-            if (data.length < 2) return;
+function drawGraph(unitName, pointName, timeRange) {
+    console.log(`🎨 Starting drawGraph for ${unitName} - ${pointName} with timeRange: ${timeRange}`);
+    
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (!canvas) {
+        console.log('❌ Canvas not found');
+        return;
+    }
 
-            const startTime = data[0].timestamp.getTime();
-            const endTime = data[data.length - 1].timestamp.getTime();
-            const timeRange = endTime - startTime || 1;
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) {
+        console.log('❌ No date selected');
+        clearGraph();
+        return;
+    }
 
-            // Draw step line
-            ctx.strokeStyle = '#3498db';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
 
-            ctx.beginPath();
+    // STEP 1: Get data for selected date only
+    let filteredData = getFilteredEventLogsByDate(unitName, pointName);
+    console.log(`📊 After date filtering: ${filteredData.length} points for ${selectedDate.dateString}`);
+    
+    // STEP 2: Apply time range filter within the selected date (if not 'all')
+    if (timeRange !== 'all' && !timeRange.includes('All Data') && timeRange !== undefined) {
+        const minutesBack = parseInt(timeRange);
+        if (!isNaN(minutesBack)) {
+            // Calculate cutoff time from the END of the selected day
+            const cutoffTime = new Date(selectedDate.endOfDay.getTime() - (minutesBack * 60 * 1000));
+            console.log(`⏰ Applying time filter: last ${minutesBack} minutes from ${cutoffTime}`);
             
-            for (let i = 0; i < data.length; i++) {
-                const entry = data[i];
-                const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
-                const y = padding + (entry.value ? height * 0.25 : height * 0.75);
-
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    // Create step line (horizontal then vertical)
-                    const prevY = padding + (data[i-1].value ? height * 0.25 : height * 0.75);
-                    ctx.lineTo(x, prevY); // Horizontal line
-                    ctx.lineTo(x, y); // Vertical line
-                }
-            }
-            
-            ctx.stroke();
-
-            // Draw data points
-            ctx.fillStyle = '#2c3e50';
-            data.forEach(entry => {
-                const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
-                const y = padding + (entry.value ? height * 0.25 : height * 0.75);
-                
-                ctx.beginPath();
-                ctx.arc(x, y, entry.changed ? 6 : 4, 0, 2 * Math.PI);
-                ctx.fillStyle = entry.changed ? '#e74c3c' : '#3498db';
-                ctx.fill();
-                
-                // Highlight state changes
-                if (entry.changed) {
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
+            const beforeTimeFilter = filteredData.length;
+            filteredData = filteredData.filter(log => {
+                const logTime = new Date(log.timestamp);
+                return logTime >= cutoffTime;
             });
+            console.log(`⏰ After time filtering: ${filteredData.length} points (was ${beforeTimeFilter})`);
         }
+    }
+
+    // Convert to graph format
+    filteredData = filteredData.map(log => ({
+        timestamp: new Date(log.timestamp),
+        timestampString: log.timestamp,
+        value: log.value,
+        changed: log.isStateChange || false,
+        pointName: log.pointName
+    }));
+
+    // Sort by timestamp
+    filteredData.sort((a, b) => a.timestamp - b.timestamp);
+
+    console.log(`📈 Final data points for graph: ${filteredData.length}`);
+
+    // Show no data message if empty
+    if (filteredData.length === 0) {
+        const dateStr = selectedDate.dateString;
+        noDataMessage.textContent = `No data found for ${unitName} - ${pointName} on ${dateStr}`;
+        noDataMessage.style.display = 'block';
+        canvas.style.display = 'none';
+        graphLegend.innerHTML = '';
+        graphStats.innerHTML = '';
+        console.log('❌ No data to display');
+        return;
+    }
+
+    // Show the graph
+    noDataMessage.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Graph dimensions
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    const graphHeight = canvas.height - (padding * 2);
+
+    // Draw background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid
+    drawGrid(ctx, padding, graphWidth, graphHeight);
+
+    // CRITICAL FIX: Use drawAxesWithDate instead of drawAxes
+    drawAxesWithDate(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Draw data line using the FIXED function
+    drawDataLine(ctx, padding, graphWidth, graphHeight, filteredData);
+
+    // Update legend and stats
+    updateGraphLegend(unitName, pointName, filteredData);
+    updateGraphStats(filteredData);
+    
+    console.log(`✅ Graph completed for ${selectedDate.dateString}`);
+}
+        
+        
+//         function drawDataLine(ctx, padding, width, height, data) {
+//     if (data.length === 0) return;
+
+//     const selectedDate = getSelectedDate();
+//     if (!selectedDate) return;
+
+//     // CRITICAL FIX: Use the full selected day range for X-axis positioning, not data range
+//     const startTime = selectedDate.startOfDay.getTime();
+//     const endTime = selectedDate.endOfDay.getTime();
+//     const timeRange = endTime - startTime;
+
+//     console.log(`📊 Drawing data line with day range: ${new Date(startTime)} to ${new Date(endTime)}`);
+//     console.log(`📊 Data points to plot: ${data.length}`);
+
+//     // Draw step line
+//     ctx.strokeStyle = '#3498db';
+//     ctx.lineWidth = 3;
+//     ctx.lineCap = 'round';
+//     ctx.lineJoin = 'round';
+
+//     ctx.beginPath();
+    
+//     for (let i = 0; i < data.length; i++) {
+//         const entry = data[i];
+        
+//         // Position X based on the FULL DAY range, not the data range
+//         const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
+//         const y = padding + (entry.value ? height * 0.25 : height * 0.75);
+
+//         if (i === 0) {
+//             ctx.moveTo(x, y);
+//         } else {
+//             // Create step line (horizontal then vertical)
+//             const prevY = padding + (data[i-1].value ? height * 0.25 : height * 0.75);
+//             ctx.lineTo(x, prevY); // Horizontal line
+//             ctx.lineTo(x, y); // Vertical line
+//         }
+        
+//         console.log(`📍 Point ${i}: ${entry.timestamp.toLocaleTimeString()} at x=${Math.round(x)}, y=${Math.round(y)}`);
+//     }
+    
+//     ctx.stroke();
+
+//     // Draw data points using the same X positioning
+//     data.forEach((entry, index) => {
+//         const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
+//         const y = padding + (entry.value ? height * 0.25 : height * 0.75);
+        
+//         ctx.beginPath();
+//         ctx.arc(x, y, entry.changed ? 6 : 4, 0, 2 * Math.PI);
+//         ctx.fillStyle = entry.changed ? '#e74c3c' : '#3498db';
+//         ctx.fill();
+        
+//         // Highlight state changes
+//         if (entry.changed) {
+//             ctx.strokeStyle = '#fff';
+//             ctx.lineWidth = 2;
+//             ctx.stroke();
+//         }
+//     });
+// }
+
+// Fixed drawDataLine function with proper bounds checking
+function drawDataLine(ctx, padding, width, height, data) {
+    if (data.length === 0) return;
+
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+
+    // Use the full selected day range for X-axis positioning
+    const startTime = selectedDate.startOfDay.getTime();
+    const endTime = selectedDate.endOfDay.getTime();
+    const timeRange = endTime - startTime;
+
+    console.log(`📊 Drawing data line with day range: ${new Date(startTime)} to ${new Date(endTime)}`);
+    console.log(`📊 Data points to plot: ${data.length}`);
+
+    // Draw step line
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    
+    let hasValidPoints = false;
+    
+    for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
+        
+        // Position X based on the FULL DAY range
+        const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
+        const y = padding + (entry.value ? height * 0.25 : height * 0.75);
+
+        // Only plot points that are within the visible area
+        if (x >= padding && x <= padding + width) {
+            if (!hasValidPoints) {
+                ctx.moveTo(x, y);
+                hasValidPoints = true;
+            } else {
+                // Create step line (horizontal then vertical)
+                const prevY = padding + (data[i-1].value ? height * 0.25 : height * 0.75);
+                ctx.lineTo(x, prevY); // Horizontal line
+                ctx.lineTo(x, y); // Vertical line
+            }
+            
+            console.log(`📍 Point ${i}: ${entry.timestamp.toLocaleTimeString()} at x=${Math.round(x)}, y=${Math.round(y)}`);
+        }
+    }
+    
+    if (hasValidPoints) {
+        ctx.stroke();
+    }
+
+    // Draw data points using the same X positioning
+    data.forEach((entry, index) => {
+        const x = padding + (width * (entry.timestamp.getTime() - startTime) / timeRange);
+        const y = padding + (entry.value ? height * 0.25 : height * 0.75);
+        
+        // Only draw points within visible area
+        if (x >= padding && x <= padding + width) {
+            ctx.beginPath();
+            ctx.arc(x, y, entry.changed ? 6 : 4, 0, 2 * Math.PI);
+            ctx.fillStyle = entry.changed ? '#e74c3c' : '#3498db';
+            ctx.fill();
+            
+            // Highlight state changes
+            if (entry.changed) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+    });
+}
 
         function updateGraphLegend(unitName, pointName, data) {
             const graphLegend = document.getElementById('graphLegend');
@@ -2535,50 +3501,7 @@ require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja
             }
         });
 
-        // Export graph data function
-        window.exportGraphData = function() {
-            const unitSelector = document.getElementById('unitSelector');
-            const pointSelector = document.getElementById('pointSelector');
-            
-            if (!unitSelector || !pointSelector) {
-                alert('Please select a unit and point first');
-                return;
-            }
-
-            const selectedUnit = unitSelector.value;
-            const selectedPoint = pointSelector.value;
-
-            if (!selectedUnit || !selectedPoint) {
-                alert('Please select both a unit and point to export');
-                return;
-            }
-
-            const unitHistory = GlobalData.getUnitHistory(selectedUnit);
-            const filteredData = unitHistory.filter(entry => entry.pointName === selectedPoint);
-
-            if (filteredData.length === 0) {
-                alert('No data available for the selected point');
-                return;
-            }
-
-            // Create CSV content
-            let csvContent = 'Timestamp,Value,Changed,Unit,Point\n';
-            filteredData.forEach(entry => {
-                csvContent += `"${entry.timestampString}",${entry.value ? 'TRUE' : 'FALSE'},${entry.changed ? 'YES' : 'NO'},"${selectedUnit}","${selectedPoint}"\n`;
-            });
-
-            // Download CSV
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Graph_Data_${selectedUnit}_${selectedPoint}_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        };
-
+   
         // Add export button to graph controls when graph viewer is initialized
         function addExportButton() {
             const graphControls = document.querySelector('.graph-controls');
