@@ -910,8 +910,243 @@ box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 .config-icon {
 font-size: 16px;
 }
+      .config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
 
-</style>
+        .config-modal.hidden {
+            display: none;
+        }
+
+        .config-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .config-form h2 {
+            color: #333;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .config-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .config-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .config-btn.primary:hover {
+            background: #5a67d8;
+        }
+
+        .config-btn.secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .config-btn.secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .main-content {
+            position: relative;
+            min-height: 80vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-reopen-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .config-reopen-btn:hover {
+            background: #5a67d8;
+        }
+
+        .ahu-status-section {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            margin-top: 60px;
+        }
+
+        .status-bubbles-grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .bubble {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 100px;
+        }
+
+        .bubble:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .bubble a {
+            text-decoration: none;
+            color: inherit;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bubble p {
+            margin: 0;
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .point-name {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-value {
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+
+        .data-value.status-on {
+            color: #38a169;
+        }
+
+        .data-value.status-off {
+            color: #e53e3e;
+        }
+
+        .data-value.override-active {
+            color: #8b5cf6;
+        }
+
+        .loading {
+            color: #718096;
+            font-style: italic;
+        }
+
+        .error {
+            color: #e53e3e;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header h1 {
+            color: #2d3748;
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .dashboard-header .ahu-name {
+            color: #667eea;
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
 
@@ -943,7 +1178,7 @@ font-size: 16px;
   </div>
 </div>
   
-  <!-- CONTENT BODY  -->
+<!-- CONTENT BODY  -->
 <div class="main-content">
 
 <!-- Configuration Button (Top Right) -->
@@ -951,76 +1186,22 @@ font-size: 16px;
   <span class="config-icon">⚙️</span>
   Config
 </button>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <h1>AHU Monitoring Dashboard</h1>
+    <div id="ahuNameDisplay" class="ahu-name"></div>
+</div>
   
-<!-- ON GRAPHIC POINTS -->
+<!-- Dynamic Status Bubbles Container -->
 <div class="ahu-status-section">
-
-<!-- Grid container for bubbles -->
-<div class="status-bubbles-grid">
-
-<!--///////////////////////////////////////////////////////////////////////////////////////////////////-->
-
-<!-- Fan Status Bubble -->
-<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 55%; top: 18%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>Fan Status: <span id="Fan-Stat" class="data-value status-on">Loading...</span></p>
-    </a>
-</div>
-
-<!-- Damper Bubble -->
-<div class="bubble" style="width: 15%; height: 5%; position: absolute; left: 25%; top: 75%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>Damper Position: <span id="DPR-cmd" class="data-value status-on">Loading...</span></p>
-    </a>
-</div>
-
-<!-- Discharge Air Temperature Bubble -->
-<div class="bubble" style="width: 18%; height: 5%; position: absolute; left: 58%; top: 75%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>Discharge Air TMP: <span id="DA-T" class="data-value status-on">Loading...</span> °F</p>
-    </a>
-</div>
-
-<!-- Discharge STATIC-->
-<div class="bubble" style="width: 15%; height: 12%; position: absolute; left: 7.5%; top: 34%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>Discharge Static: <span id="Static" class="data-value status-on">Loading...</span></p>
-    </a>
-</div>
-
-<!--AHU ALARM-->
-<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 9%; top: 2%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>AHU Alarm: <span id="AHU-ALARM" class="data-value status-on">Loading...</span></p>
-    </a>
-</div>
-
- <!--Outside Air Temperature Bubble -->
-<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 9%; top: 18%; z-index: 5;">
-    <a href="../Logs.html">
-        <p>OutsideAir: <span id="OA-T" class="data-value status-on">Loading...</span> °F</p>
-    </a>
-</div>
-
-<!--///////////////////////////////////////////////////////////////////////////////////////////////////-->
-</div>
+    <div id="statusBubblesGrid" class="status-bubbles-grid">
+        <!-- Bubbles will be dynamically generated here -->
+    </div>
 </div>   
   
-  </div>   
-  <!--end content-main-->
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+</div>   
+
 <!-- Configuration and AHU Data Monitoring Script -->
 <script>
 // Configuration management
@@ -1035,6 +1216,65 @@ const headerNameInput = document.getElementById('headerName');
 const saveConfigBtn = document.getElementById('saveConfig');
 const resetConfigBtn = document.getElementById('resetConfig');
 const configButton = document.getElementById('configButton');
+const ahuNameDisplay = document.getElementById('ahuNameDisplay');
+const statusBubblesGrid = document.getElementById('statusBubblesGrid');
+
+// Data point configuration with display names
+const dataPointsConfig = {
+    AHUALARM: {
+        pointName: 'AHUAlarm',
+        displayName: 'AHU Alarm',
+        specialHandling: 'alarm' // Special case: OFF is good (green), ON is bad (red)
+    },
+    DischargeStatic: {
+        pointName: 'DischargeAirStatic',
+        displayName: 'Discharge Static',
+        unit: 'in. WC'
+    },
+    OutsideAir: {
+        pointName: 'OutsideAirTempShare',
+        displayName: 'Outside Air Temp',
+        unit: '°F'
+    },
+    FanStat: {
+        pointName: 'SF_S',
+        displayName: 'Fan Status'
+    },
+    DischargeAirTMP: {
+        pointName: 'DischargeAirTemp',
+        displayName: 'Discharge Air Temp',
+        unit: '°F'
+    },
+    OccupancyCMD: {
+        pointName: 'OccupiedCmd',
+        displayName: 'Occupancy Command'
+    },
+    Fan_CMD: {
+        pointName: 'DischargeAirSPOutput',
+        displayName: 'Fan Command',
+        unit: '%'
+    },
+    Damper_CMD: {
+        pointName: 'DischargeAirStaticSPOutput',
+        displayName: 'Damper Position',
+        unit: '%'
+    },
+    DASPMAX: {
+        pointName: 'DischargeAirSPMax',
+        displayName: 'DA SP Max',
+        unit: '°F'
+    },
+    DischargeStaticSP: {
+        pointName: 'DischargeStaticSP',
+        displayName: 'Static SP',
+        unit: 'in. WC'
+    },
+    DischargeAirTMPSP: {
+        pointName: 'DischargeAirSP',
+        displayName: 'DA Temp SP',
+        unit: '°F'
+    }
+};
 
 // Initialize configuration on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -1049,8 +1289,12 @@ document.addEventListener('DOMContentLoaded', function() {
         basePathInput.value = savedBasePath;
         headerNameInput.value = savedHeaderName;
         
+        // Update AHU name display
+        ahuNameDisplay.textContent = savedHeaderName;
+        
         // Hide modal and start monitoring
         configModal.classList.add('hidden');
+        createDynamicBubbles();
         startMonitoring();
     } else {
         // Show configuration modal
@@ -1080,8 +1324,12 @@ saveConfigBtn.addEventListener('click', function() {
     sessionStorage.setItem('userBasePath', basePath);
     sessionStorage.setItem('userHeaderName', headerName);
     
-    // Hide modal and start monitoring
+    // Update AHU name display
+    ahuNameDisplay.textContent = headerName;
+    
+    // Hide modal, create bubbles, and start monitoring
     configModal.classList.add('hidden');
+    createDynamicBubbles();
     startMonitoring();
 });
 
@@ -1101,6 +1349,52 @@ configButton.addEventListener('click', function() {
     // Show modal
     configModal.classList.remove('hidden');
 });
+
+// Function to create dynamic bubbles based on dataPointsConfig
+function createDynamicBubbles() {
+    // Clear existing bubbles
+    statusBubblesGrid.innerHTML = '';
+    
+    // Create a bubble for each data point
+    Object.keys(dataPointsConfig).forEach(pointId => {
+        const config = dataPointsConfig[pointId];
+        
+        // Create bubble element
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        // Create link wrapper (for consistency with original design)
+        const link = document.createElement('a');
+        link.href = '../Logs.html';
+        
+        // Create point name label
+        const pointLabel = document.createElement('div');
+        pointLabel.className = 'point-name';
+        pointLabel.textContent = config.displayName;
+        
+        // Create value display
+        const valueSpan = document.createElement('span');
+        valueSpan.id = pointId;
+        valueSpan.className = 'data-value loading';
+        valueSpan.textContent = 'Loading...';
+        
+        // Create main text with unit if specified
+        const mainText = document.createElement('p');
+        if (config.unit) {
+            mainText.innerHTML = `<span class="data-value" id="${pointId}">${valueSpan.outerHTML}</span> ${config.unit}`;
+        } else {
+            mainText.appendChild(valueSpan);
+        }
+        
+        // Assemble the bubble
+        link.appendChild(pointLabel);
+        link.appendChild(mainText);
+        bubble.appendChild(link);
+        
+        // Add bubble to grid
+        statusBubblesGrid.appendChild(bubble);
+    });
+}
 
 // Function to generate AHU path with user configuration
 function ahuPath(pointName) {
@@ -1129,36 +1423,14 @@ function startMonitoring() {
         console.log('Using base path:', userBasePath);
         console.log('Using header name:', userHeaderName);
 
-        // Point names from NIAGARA
-        const dataPoints = {
-            AHUALARM: ahuPath('AHUAlarm'),
-            DischargeStatic: ahuPath('DischargeAirStatic'),
-            OutsideAir: ahuPath('OutsideAirTempShare'),
-            FanStat: ahuPath('SF_S'),
-            DischargeAirTMP: ahuPath('DischargeAirTemp'),
-            OccupancyCMD: ahuPath('OccupiedCmd'),
-            Fan_CMD: ahuPath('DischargeAirSPOutput'),
-            Damper_CMD: ahuPath('DischargeAirStaticSPOutput'),
-            DASPMAX: ahuPath('DischargeAirSPMax'),
-            DischargeStaticSP: ahuPath('DischargeStaticSP'),
-            DischargeAirTMPSP: ahuPath('DischargeAirSP'),
-        };
+        // Generate dataPoints object from configuration
+        const dataPoints = {};
+        Object.keys(dataPointsConfig).forEach(pointId => {
+            const config = dataPointsConfig[pointId];
+            dataPoints[pointId] = ahuPath(config.pointName);
+        });
 
-        // HTML ELEMENTS FROM ID DEFINITION
-        const elements = {
-            OutsideAir: document.getElementById('OA-T'),
-            FanStat: document.getElementById('Fan-Stat'),
-            DischargeAirTMPSP: document.getElementById('DAT-SP'),
-            DischargeAirTMP: document.getElementById('DA-T'),
-            OccupancyCMD: document.getElementById('Occ-Cmd'),
-            Damper_CMD: document.getElementById('DPR-cmd'),
-            PHVLV: document.getElementById('PH-VLV'),
-            CLGVLV: document.getElementById('CLG-VLV'),
-            DischargeStaticSP: document.getElementById('Static-SP'),
-            DischargeStatic: document.getElementById('Static'),
-            AHUALARM: document.getElementById('AHU-ALARM'),
-            DASPMAX: document.getElementById('DASP-MAX'),
-        };
+        console.log('Generated data points:', dataPoints);
 
         // Create subscriber for data changes
         const subscriber = new baja.Subscriber();
@@ -1167,45 +1439,35 @@ function startMonitoring() {
         subscriber.attach('changed', function(prop) {
             if (prop.getName() === 'out') {
                 const pointInfo = this.userData;
-                if (pointInfo && elements[pointInfo.elementId]) {
+                const pointElement = document.getElementById(pointInfo.elementId);
+                
+                if (pointInfo && pointElement) {
                     const out = this.getOut();
                     const displayValue = out.getValueDisplay();
                     const value = out.getValue();
-                    // Check if point is in override mode
                     const isOverridden = this.getStatus().isOverridden();
+                    const config = dataPointsConfig[pointInfo.elementId];
 
-                    // Update the text element if it exists
-                    if (elements[pointInfo.elementId] && elements[pointInfo.elementId].tagName !== 'IMG') {
-                        elements[pointInfo.elementId].textContent = displayValue;
-
-                        // Handle override detection for all points
-                        const statusElement = elements[pointInfo.elementId];
-
-                        if (isOverridden) {
-                            // Point is overridden - show purple
-                            statusElement.className = 'data-value override-active';
-                            statusElement.style.color = '#8B5CF6'; // Purple color
-                            statusElement.textContent = `${displayValue} (Override)`;
-                        } else if (pointInfo.elementId === 'AHUALARM') {
-                            //SPECIAL CASE FOR AHUALARM AND OCCUPIED. THESE WILL BE GREEN WHEN FALSE
-                            if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
-                                statusElement.className = 'data-value status-off'; // Alarm active = red
-                                statusElement.style.color = ''; // Reset to default
-                                statusElement.textContent = displayValue;
-                            } else {
-                                statusElement.className = 'data-value status-on'; // No alarm = green
-                                statusElement.style.color = ''; // Reset to default
-                                statusElement.textContent = displayValue;
-                            }
-                        } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
-                            statusElement.className = 'data-value status-on';
-                            statusElement.style.color = ''; // Reset to default
-                            statusElement.textContent = displayValue;
+                    // Update the element
+                    if (isOverridden) {
+                        // Point is overridden - show purple
+                        pointElement.className = 'data-value override-active';
+                        pointElement.textContent = `${displayValue} (Override)`;
+                    } else if (config && config.specialHandling === 'alarm') {
+                        // Special handling for alarm points - OFF is good (green), ON is bad (red)
+                        if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                            pointElement.className = 'data-value status-off'; // Alarm active = red
+                            pointElement.textContent = displayValue;
                         } else {
-                            statusElement.className = 'data-value status-off';
-                            statusElement.style.color = ''; // Reset to default
-                            statusElement.textContent = displayValue;
+                            pointElement.className = 'data-value status-on'; // No alarm = green
+                            pointElement.textContent = displayValue;
                         }
+                    } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                        pointElement.className = 'data-value status-on';
+                        pointElement.textContent = displayValue;
+                    } else {
+                        pointElement.className = 'data-value status-off';
+                        pointElement.textContent = displayValue;
                     }
                 }
             }
@@ -1225,54 +1487,46 @@ function startMonitoring() {
                     const displayValue = out.getValueDisplay();
                     const value = out.getValue();
                     const isOverridden = point.getStatus().isOverridden();
+                    const pointElement = document.getElementById(elementId);
+                    const config = dataPointsConfig[elementId];
 
-                    // Update text elements
-                    if (elements[elementId] && elements[elementId].tagName !== 'IMG') {
-                        elements[elementId].textContent = displayValue;
-
-                        // Handle override detection for all points
-                        const statusElement = elements[elementId];
-
+                    if (pointElement) {
                         if (isOverridden) {
                             // Point is overridden - show purple
-                            statusElement.className = 'data-value override-on';
-                            statusElement.style.color = '#8B5CF6'; // Purple color
-                            statusElement.textContent = `${displayValue} (Override)`;
-                        } else if (elementId === 'AHUALARM') {
-                            // Special handling for AHUALARM - OFF is good (green), ON is bad (red)
+                            pointElement.className = 'data-value override-active';
+                            pointElement.textContent = `${displayValue} (Override)`;
+                        } else if (config && config.specialHandling === 'alarm') {
+                            // Special handling for alarm points - OFF is good (green), ON is bad (red)
                             if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
-                                statusElement.className = 'data-value status-off'; // Alarm active = red
-                                statusElement.style.color = ''; // Reset to default
-                                statusElement.textContent = displayValue;
+                                pointElement.className = 'data-value status-off'; // Alarm active = red
+                                pointElement.textContent = displayValue;
                             } else {
-                                statusElement.className = 'data-value status-on'; // No alarm = green
-                                statusElement.style.color = ''; // Reset to default
-                                statusElement.textContent = displayValue;
+                                pointElement.className = 'data-value status-on'; // No alarm = green
+                                pointElement.textContent = displayValue;
                             }
                         } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
-                            statusElement.className = 'data-value status-on';
-                            statusElement.style.color = ''; // Reset to default
-                            statusElement.textContent = displayValue;
+                            pointElement.className = 'data-value status-on';
+                            pointElement.textContent = displayValue;
                         } else {
-                            statusElement.className = 'data-value status-off';
-                            statusElement.style.color = ''; // Reset to default
-                            statusElement.textContent = displayValue;
+                            pointElement.className = 'data-value status-off';
+                            pointElement.textContent = displayValue;
                         }
                     }
                 })
                 .catch(error => {
                     console.error(`Failed to connect to ${elementId}:`, error);
-                    if (elements[elementId] && elements[elementId].tagName !== 'IMG') {
-                        elements[elementId].textContent = 'Error';
-                        elements[elementId].style.color = '#ff6b6b';
+                    const pointElement = document.getElementById(elementId);
+                    if (pointElement) {
+                        pointElement.textContent = 'Error';
+                        pointElement.className = 'data-value error';
                     }
                 });
         }
 
         // Subscribe to all data points dynamically
-        for (const [pointName, pointOrd] of Object.entries(dataPoints)) {
-            subscribeToPoint(pointOrd, pointName);
-        }
+        Object.keys(dataPoints).forEach(pointId => {
+            subscribeToPoint(dataPoints[pointId], pointId);
+        });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
