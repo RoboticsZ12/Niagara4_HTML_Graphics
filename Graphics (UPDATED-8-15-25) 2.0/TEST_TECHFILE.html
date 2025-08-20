@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+body {
+font-family: Arial, sans-serif;
+background-color: #2a2a2a;
+color: white;
+height: 100vh;
+display: flex;
+flex-direction: column;
+overflow: auto;
+}
+
+/* Configuration Modal Styles */
+.config-modal {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0, 0, 0, 0.8);
+display: flex;
+justify-content: center;
+align-items: center;
+z-index: 10000;
+}
+
+.config-modal.hidden {
+display: none;
+}
+
+.config-form {
+background-color: #1a1a1a;
+border: 2px solid #444;
+border-radius: 10px;
+padding: 30px;
+width: 90%;
+max-width: 500px;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.config-form h2 {
+color: #fff;
+margin-bottom: 20px;
+text-align: center;
+font-size: 24px;
+}
+
+.form-group {
+margin-bottom: 20px;
+}
+
+.form-group label {
+display: block;
+color: #ccc;
+font-size: 14px;
+margin-bottom: 8px;
+font-weight: bold;
+}
+
+.form-group input {
+width: 100%;
+padding: 12px;
+background-color: #333;
+border: 1px solid #555;
+border-radius: 5px;
+color: white;
+font-size: 14px;
+}
+
+.form-group input:focus {
+outline: none;
+border-color: #4CAF50;
+background-color: #404040;
+}
+
+.form-group .help-text {
+font-size: 12px;
+color: #888;
+margin-top: 5px;
+font-style: italic;
+}
+
+.form-buttons {
+display: flex;
+gap: 15px;
+justify-content: center;
+margin-top: 25px;
+}
+
+.config-btn {
+padding: 12px 24px;
+border: none;
+border-radius: 5px;
+font-size: 16px;
+font-weight: bold;
+cursor: pointer;
+transition: all 0.3s ease;
+}
+
+.config-btn.primary {
+background-color: #4CAF50;
+color: white;
+}
+
+.config-btn.primary:hover {
+background-color: #45a049;
+}
+
+.config-btn.secondary {
+background-color: #666;
+color: white;
+}
+
+.config-btn.secondary:hover {
+background-color: #777;
+}
+
+.top-bar {
+background-color: #1a1a1a;
+padding: 5px;
+display: flex;
+align-items: center;
+border: 2px solid #444;
+position: relative;
+justify-content: space-between;
+}        
+
+.weather-cam {
+background-color: #666;
+width: 120px;
+height: 60px;
+border: 2px solid #888;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 12px;
+}
+
+.admin-greeting {
+background-color: #000;
+width: 120px;
+height: 60px;
+border: 2px solid #888;
+padding: 10px 15px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.admin-icon {
+width: 20px;
+height: 20px;
+background-color: #fff;
+border-radius: 50%;
+}
+
+.weather-info {
+background-color: #333;
+border: 2px solid #888;
+padding: 8px 12px;
+font-size: 12px;
+}
+
+.weather-info div {
+margin-bottom: 2px;
+}
+
+.nav-icons {
+display: flex;
+gap: 10px;
+}
+
+.nav-icon {
+width: 40px;
+height: 40px;
+background-color: #555;
+border: 2px solid #888;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+position: relative;
+}
+
+.nav-icon:hover {
+background-color: #666;
+}
+
+.nav-icon::before {
+content: '';
+width: 20px;
+height: 20px;
+background-color: #fff;
+}
+
+.home-icon::before {
+clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.grid-icon::before {
+background-image: 
+linear-gradient(to right, #fff 0%, #fff 30%, transparent 30%, transparent 70%, #fff 70%, #fff 100%),
+linear-gradient(to bottom, #fff 0%, #fff 30%, transparent 30%, transparent 70%, #fff 70%, #fff 100%);
+}
+
+.user-icon::before {
+border-radius: 50%;
+background-color: #fff;
+}
+
+.chart-icon::before {
+background-image: linear-gradient(45deg, transparent 40%, #fff 40%, #fff 60%, transparent 60%);
+}
+
+.calendar-icon::before {
+background-color: #fff;
+border-radius: 2px;
+}
+
+.main-content {
+flex: 1;
+background: linear-gradient(to right,#010f35, #175f80,#266c79, #12707d);
+position: relative;
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 20px;
+}
+
+.controls-by {
+position: absolute;
+bottom: 50px;
+right: 40px;
+text-align: right;
+font-size: 40px;
+color: #ccc;
+}
+
+.murphy-logo-main {
+font-size: 40px;
+font-weight: bold;
+color: #000;
+margin-top: 5px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+
+.murphy-m-logo {
+width: 40px;
+height: 40px;
+background-color: #4CAF50;
+display: flex;
+align-items: center;
+justify-content: center;
+color: white;
+font-weight: bold;
+font-size: 18px;
+border: 2px solid #4CAF50;
+}
+
+.bottom-bar {
+background-color: #1a1a1a;
+padding: 15px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+border: 2px solid #444;
+/*position: relative;*/
+}
+
+.back-button {
+background-color: #FFA500;
+border: 2px solid #888;
+padding: 10px 28px;
+color: #000;
+font-weight: bold;
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 5px;
+font-size: 20px;
+/*position: absolute;*/
+}
+
+.back-button:hover {
+background-color: #FFB500;
+}
+
+.murphy-logo-bottom {
+background-color: #fff;
+color: #000;
+padding: 10px 20px;
+font-weight: bold;
+font-size: 30px;
+border: 2px solid #4CAF50;
+display: flex;
+align-items: center;
+gap: 10px;
+margin: center;
+}
+
+.murphy-m-logo-bottom {
+width: 40px;
+height: 40px;
+background-color: #4CAF50;
+display: flex;
+align-items: center;
+justify-content: center;
+color: white;
+font-weight: bold;
+font-size: 20px;
+border: 2px solid #4CAF50;
+}
+
+.date-time {
+background-color: #f0f0f0;
+color: #000;
+padding: 10px 15px;
+border: 2px solid #888;
+text-align: center;
+font-size: 20px;
+/*position: relative;*/
+}
+
+.logout-btn {
+position: absolute;
+bottom: 20px;
+left: 20px;
+background-color: #333;
+border: 2px solid #888;
+color: white;
+padding: 8px 15px;
+cursor: pointer;
+font-size: 18px;
+}
+
+.logout-btn:hover {
+background-color: #444;
+}
+
+.TopBar {
+display: flex;
+flex-direction: row;
+width: 100%;
+max-width: 1200px;
+height: 100%;
+justify-content: right;
+gap: 10px;
+padding: 10px;
+}
+
+.nav-images {
+display: flex;
+justify-content: flex-start;
+align-items: center;
+gap: 5px;
+margin-left: auto;
+}
+
+/* AHU Monitoring Styles - FIXED */
+.ahu-container {
+/*display: flex;*/
+flex-direction: column;
+width: 100%;
+max-width: 1200px;
+height: auto;
+justify-content: center;
+gap: 40px;
+padding: 20px;
+position: relative; /* ADD THIS LINE */
+}
+.ahu-title {
+position: absolute;
+top: 20px;
+left: 50%;
+transform: translateX(-50%);
+color: #ffffff;
+font-weight: bold;
+font-size: 2.5rem;
+margin: 0;
+}
+
+.ahu-image-section {
+flex: 0 0 auto;
+display: flex;
+justify-content: center;
+align-items: center;
+min-height: 200px;
+}
+
+/* FIXED: Better layout for status section */
+.ahu-status-section {
+display: flex;
+flex-direction: column;
+width: 100%;
+gap: 20px;
+}
+
+.ahu-status-section h2 {
+position: absolute;
+color: #b6b6b6;
+font-size: 1.5rem;
+margin: 0 20px 0px -950px;
+text-align: center;
+}
+
+.override-buttons {
+display: flex;
+gap: 10px;
+margin-top: 10px;
+}
+
+.override-controls {
+margin-top: 10px;
+}
+
+.control-label {
+color: #cbd5e0;
+font-size: 14px;
+font-weight: 500;
+}
+
+.control-dropdown {
+background-color: #2d3748;
+border: 1px solid #4a5568;
+border-radius: 6px;
+padding: 8px 12px;
+color: #ffffff;
+font-size: 14px;
+min-width: 100px;
+cursor: pointer;
+overflow-y: auto;        /* allow scrolling */
+}
+
+.control-dropdown:hover {
+background-color: #4a5568;
+}
+
+.control-dropdown:focus {
+outline: none;
+border-color: #63b3ed;
+}
+
+/* FIXED: Grid layout for bubbles */
+.status-bubbles-grid {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 15px;
+width: 100%;
+}
+
+.status-bubbles-gridSP {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 20px;
+width: 100%%;
+box-sizing: border-box;
+}
+
+.bubbleSP {
+width: 100%;              /* Take up available grid/cell space */
+max-width: 100%;
+box-sizing: border-box;
+background: #2d3748;
+color: white;
+border-radius: 30px;      /* Match your bubble shape */
+padding: 15px 20px;       /* Match bubble padding */
+font-family: Arial, sans-serif;
+box-shadow: 0 10px 8px rgba(0,0,0,0.4);
+cursor: pointer;
+display: flex;
+flex-direction: column;
+justify-content: center;
+border: 2px solid rgba(2, 245, 253, 0.904);
+}
+
+.bubbleSP1 {
+width: 100%;              /* Take up available grid/cell space */
+max-width: 100%;
+box-sizing: border-box;
+background: #2d3748;
+border: 2px solid rgba(2, 245, 253, 0.904);
+border-radius: 30px;
+padding: 15px 20px;
+backdrop-filter: blur(5px);
+box-shadow: 0 10px 8px rgba(255, 0, 0, 0.2);
+text-align: center;
+min-height: 60px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* FIXED: Better bubble styling */
+.bubble {
+background-color: rgba(201, 25, 93, 0.1);
+border: 2px solid rgba(2, 245, 253, 0.904);
+border-radius: 30px;
+padding: 15px 20px;
+backdrop-filter: blur(5px);
+box-shadow: 0 10px 8px rgba(255, 0, 0, 0.2);
+text-align: center;
+min-height: 60px;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bubblebox {
+background: #2d3748;
+color: white;
+border-radius: 12px;
+padding: 20px;
+width: 400px;
+font-family: Arial, sans-serif;
+box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.bubble:hover {
+transform: translateY(-2px);
+box-shadow: 0 12px 12px rgba(255, 0, 0, 0.3);
+}
+
+.bubble p {
+color: #ffffff;
+margin: 0;
+font-size: 16px;
+font-weight: 500;
+}
+
+.data-value {
+font-weight: bold;
+font-size: 18px;
+}
+
+.status-off {
+color: #ff6b6b;
+}
+
+.status-on {
+color: #51cf66;
+}
+
+.override-on {
+color: #4a0575;
+}
+
+/* Override Control Panel Styles */
+.override-bubble {
+background: linear-gradient(145deg, #4a5568, #2d3748);
+border: 2px solid #718096;
+border-radius: 12px;
+padding: 20px;
+min-height: 200px;
+display: flex;
+flex-direction: column;
+gap: 15px;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+position: relative;
+}
+
+.override-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+}
+
+.override-title {
+color: #ffffff;
+font-size: 18px;
+font-weight: bold;
+margin: 0;
+}
+
+.override-status {
+color: #48bb78;
+font-size: 16px;
+font-weight: 600;
+}
+
+.override-status.active {
+color: #f56565;
+}
+
+.control-group {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 10px;
+}
+
+.override-buttons {
+display: flex;
+gap: 10px;
+margin-top: 10px;
+}
+
+.override-btn {
+flex: 1;
+padding: 10px 16px;
+border: none;
+border-radius: 6px;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+
+.override-btn.override {
+background-color: #4a0575;
+color: white;
+}
+
+.override-btn.override:hover {
+background-color: #240637;
+}
+
+.override-btn.override.active {
+background-color: #3d065f;
+box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.override-btn.release {
+background-color: #827c7c;
+color: white;
+}
+
+.override-btn.release:hover {
+background-color: rgb(67, 66, 66);
+}
+
+.override-btn.release.active {
+background-color: #3e3c3c;
+box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.override-btn:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
+
+.status-override {
+color: #b794f4 
+font-weight: bold;
+}
+
+.status-override::after {
+content: " (Overridden)";
+font-style: italic;
+font-size: 0.9em;
+}
+
+/* Toggle Switch Styles */
+.toggle-container {
+position: absolute;
+top: 20px;
+right: 20px;
+z-index: 1000;
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.toggle-label {
+color: rgba(255, 255, 255, 0.9);
+font-size: 14px;
+font-weight: 500;
+transition: color 0.3s ease;
+}
+
+.light-mode .toggle-label {
+color: rgba(0, 0, 0, 0.7);
+}
+
+.toggle-switch {
+position: relative;
+width: 60px;
+height: 30px;
+background: rgba(255, 255, 255, 0.2);
+border-radius: 25px;
+cursor: pointer;
+transition: all 0.3s ease;
+backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.toggle-switch:hover {
+background: rgba(255, 255, 255, 0.3);
+transform: scale(1.05);
+}
+
+.toggle-slider {
+position: absolute;
+top: 3px;
+left: 3px;
+width: 24px;
+height: 24px;
+background: white;
+border-radius: 50%;
+transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active .toggle-slider {
+transform: translateX(30px);
+background: #fbbf24;
+}
+
+.light-mode .toggle-switch {
+background: rgba(0, 0, 0, 0.1);
+border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Light mode styles */
+body.light-mode .main-content {
+background: linear-gradient(to right,#b3b7be, #8d8f93, #767d86, #616b7b);
+}
+
+.hamburger-menu {
+position: absolute;
+left: 10px;
+top: 50%;
+transform: translateY(-50%);
+width: 40px;
+height: 40px;
+background-color: #333;
+border: 2px solid #888;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 4px;
+z-index: 1001;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover {
+background-color: #444;
+}
+
+.hamburger-line {
+width: 20px;
+height: 2px;
+background-color: white;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+opacity: 0;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Side Panel Styles */
+.side-panel {
+position: fixed;
+top: 0;
+left: -300px;
+width: 300px;
+height: 100vh;
+background-color: #1a1a1a;
+border-right: 2px solid #444;
+transition: left 0.3s ease;
+z-index: 1000;
+padding: 80px 0 20px 0;
+box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.side-panel.active {
+left: 0;
+}
+
+.side-panel-header {
+padding: 20px;
+border-bottom: 1px solid #444;
+margin-bottom: 20px;
+}
+
+.side-panel-header h2 {
+color: #fff;
+font-size: 18px;
+margin-bottom: 5px;
+}
+
+.side-panel-header p {
+color: #ccc;
+font-size: 14px;
+}
+
+.ahu-dropdown {
+padding: 0 20px;
+}
+
+.ahu-dropdown-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 15px;
+background-color: #333;
+border: 1px solid #555;
+cursor: pointer;
+transition: background-color 0.3s ease;
+margin-bottom: 10px;
+}
+
+.ahu-dropdown-header:hover {
+background-color: #404040;
+}
+
+.ahu-dropdown-header h3 {
+color: #fff;
+font-size: 16px;
+}
+
+.dropdown-arrow {
+color: #ccc;
+font-size: 14px;
+transition: transform 0.3s ease;
+}
+
+.ahu-dropdown.active .dropdown-arrow {
+transform: rotate(180deg);
+}
+
+.ahu-dropdown-content {
+max-height: 0;
+overflow: auto;
+transition: max-height 0.3s ease;
+background-color: #2a2a2a;
+border: 1px solid #555;
+border-top: none;
+}
+
+.ahu-dropdown.active .ahu-dropdown-content {
+max-height: 200px;
+}
+
+.ahu-option {
+padding: 12px 20px;
+color: #ccc;
+cursor: pointer;
+transition: all 0.3s ease;
+border-bottom: 1px solid #444;
+}
+
+.ahu-option:last-child {
+border-bottom: none;
+}
+
+/* Configuration Reopen Button */
+.config-reopen-btn {
+position: absolute;
+top: 20px;
+right: 20px;
+background: linear-gradient(145deg, #4a5568, #2d3748);
+border: 2px solid #4CAF50;
+color: white;
+padding: 12px 20px;
+border-radius: 8px;
+cursor: pointer;
+font-size: 35px;
+font-weight: bold;
+display: flex;
+align-items: center;
+gap: 8px;
+transition: all 0.3s ease;
+z-index: 100;
+box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.config-reopen-btn:hover {
+background: linear-gradient(145deg, #5a6578, #3d4758);
+transform: translateY(-2px);
+box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+border-color: #5CBF60;
+}
+
+.config-reopen-btn:active {
+transform: translateY(0);
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.config-icon {
+font-size: 16px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Configuration Modal -->
+<div id="configModal" class="config-modal">
+  <div class="config-form">
+    <h2>AHU Configuration</h2>
+    <form id="configForm">
+      <div class="form-group">
+        <label for="basePath">Base Path Template:</label>
+        <input type="text" id="basePath" name="basePath" 
+               value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}" 
+               placeholder="Enter your base path template">
+        <div class="help-text">Use {headerName} for AHU name and {pointName} for data point placeholders</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="headerName">AHU Name (Header Name):</label>
+        <input type="text" id="headerName" name="headerName" 
+               placeholder="Enter AHU name (e.g., AHU-01)" required>
+        <div class="help-text">This will replace {headerName} in your path template</div>
+      </div>
+      
+      <div class="form-buttons">
+        <button type="button" id="saveConfig" class="config-btn primary">Start Monitoring</button>
+        <button type="button" id="resetConfig" class="config-btn secondary">Reset Defaults</button>
+      </div>
+    </form>
+  </div>
+</div>
+  
+  <!-- CONTENT BODY  -->
+<div class="main-content">
+
+<!-- Configuration Button (Top Right) -->
+<button id="configButton" class="config-reopen-btn" title="Reconfigure AHU Settings">
+  <span class="config-icon">⚙️</span>
+  Config
+</button>
+  
+<!-- ON GRAPHIC POINTS -->
+<div class="ahu-status-section">
+
+<!-- Grid container for bubbles -->
+<div class="status-bubbles-grid">
+
+<!--///////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+<!-- Fan Status Bubble -->
+<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 55%; top: 18%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>Fan Status: <span id="Fan-Stat" class="data-value status-on">Loading...</span></p>
+    </a>
+</div>
+
+<!-- Damper Bubble -->
+<div class="bubble" style="width: 15%; height: 5%; position: absolute; left: 25%; top: 75%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>Damper Position: <span id="DPR-cmd" class="data-value status-on">Loading...</span></p>
+    </a>
+</div>
+
+<!-- Discharge Air Temperature Bubble -->
+<div class="bubble" style="width: 18%; height: 5%; position: absolute; left: 58%; top: 75%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>Discharge Air TMP: <span id="DA-T" class="data-value status-on">Loading...</span> °F</p>
+    </a>
+</div>
+
+<!-- Discharge STATIC-->
+<div class="bubble" style="width: 15%; height: 12%; position: absolute; left: 7.5%; top: 34%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>Discharge Static: <span id="Static" class="data-value status-on">Loading...</span></p>
+    </a>
+</div>
+
+<!--AHU ALARM-->
+<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 9%; top: 2%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>AHU Alarm: <span id="AHU-ALARM" class="data-value status-on">Loading...</span></p>
+    </a>
+</div>
+
+ <!--Outside Air Temperature Bubble -->
+<div class="bubble" style="width: 12%; height: 5%; position: absolute; left: 9%; top: 18%; z-index: 5;">
+    <a href="../Logs.html">
+        <p>OutsideAir: <span id="OA-T" class="data-value status-on">Loading...</span> °F</p>
+    </a>
+</div>
+
+<!--///////////////////////////////////////////////////////////////////////////////////////////////////-->
+</div>
+</div>   
+  
+  </div>   
+  <!--end content-main-->
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+<!-- Configuration and AHU Data Monitoring Script -->
+<script>
+// Configuration management
+let userBasePath = '';
+let userHeaderName = '';
+
+// DOM elements for configuration
+const configModal = document.getElementById('configModal');
+const configForm = document.getElementById('configForm');
+const basePathInput = document.getElementById('basePath');
+const headerNameInput = document.getElementById('headerName');
+const saveConfigBtn = document.getElementById('saveConfig');
+const resetConfigBtn = document.getElementById('resetConfig');
+const configButton = document.getElementById('configButton');
+
+// Initialize configuration on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved configuration if exists
+    const savedBasePath = sessionStorage.getItem('userBasePath');
+    const savedHeaderName = sessionStorage.getItem('userHeaderName');
+    
+    if (savedBasePath && savedHeaderName) {
+        // Use saved configuration
+        userBasePath = savedBasePath;
+        userHeaderName = savedHeaderName;
+        basePathInput.value = savedBasePath;
+        headerNameInput.value = savedHeaderName;
+        
+        // Hide modal and start monitoring
+        configModal.classList.add('hidden');
+        startMonitoring();
+    } else {
+        // Show configuration modal
+        configModal.classList.remove('hidden');
+    }
+});
+
+// Configuration event handlers
+saveConfigBtn.addEventListener('click', function() {
+    const basePath = basePathInput.value.trim();
+    const headerName = headerNameInput.value.trim();
+    
+    if (!basePath || !headerName) {
+        alert('Please fill in both fields');
+        return;
+    }
+    
+    // Validate that basePath contains required placeholders
+    if (!basePath.includes('{headerName}') || !basePath.includes('{pointName}')) {
+        alert('Base path must contain {headerName} and {pointName} placeholders');
+        return;
+    }
+    
+    // Save configuration
+    userBasePath = basePath;
+    userHeaderName = headerName;
+    sessionStorage.setItem('userBasePath', basePath);
+    sessionStorage.setItem('userHeaderName', headerName);
+    
+    // Hide modal and start monitoring
+    configModal.classList.add('hidden');
+    startMonitoring();
+});
+
+resetConfigBtn.addEventListener('click', function() {
+    basePathInput.value = 'station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}';
+    headerNameInput.value = '';
+    sessionStorage.removeItem('userBasePath');
+    sessionStorage.removeItem('userHeaderName');
+});
+
+// Configuration button event handler
+configButton.addEventListener('click', function() {
+    // Populate current values
+    basePathInput.value = userBasePath || 'station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}';
+    headerNameInput.value = userHeaderName || '';
+    
+    // Show modal
+    configModal.classList.remove('hidden');
+});
+
+// Function to generate AHU path with user configuration
+function ahuPath(pointName) {
+    console.log('=== ahuPath() called ===');
+    console.log('Input pointName:', pointName);
+    console.log('User base path:', userBasePath);
+    console.log('User header name:', userHeaderName);
+    
+    // Create the final path using user inputs
+    const finalPath = userBasePath
+        .replace('{headerName}', userHeaderName)
+        .replace('{pointName}', pointName);
+    
+    console.log('Final generated path:', finalPath);
+    console.log('========================');
+    
+    return finalPath;
+}
+
+// Start monitoring function
+function startMonitoring() {
+    require(['baja!'], function (baja) {
+        'use strict';
+        
+        console.log('=== STARTING MONITORING ===');
+        console.log('Using base path:', userBasePath);
+        console.log('Using header name:', userHeaderName);
+
+        // Point names from NIAGARA
+        const dataPoints = {
+            AHUALARM: ahuPath('AHUAlarm'),
+            DischargeStatic: ahuPath('DischargeAirStatic'),
+            OutsideAir: ahuPath('OutsideAirTempShare'),
+            FanStat: ahuPath('SF_S'),
+            DischargeAirTMP: ahuPath('DischargeAirTemp'),
+            OccupancyCMD: ahuPath('OccupiedCmd'),
+            Fan_CMD: ahuPath('DischargeAirSPOutput'),
+            Damper_CMD: ahuPath('DischargeAirStaticSPOutput'),
+            DASPMAX: ahuPath('DischargeAirSPMax'),
+            DischargeStaticSP: ahuPath('DischargeStaticSP'),
+            DischargeAirTMPSP: ahuPath('DischargeAirSP'),
+        };
+
+        // HTML ELEMENTS FROM ID DEFINITION
+        const elements = {
+            OutsideAir: document.getElementById('OA-T'),
+            FanStat: document.getElementById('Fan-Stat'),
+            DischargeAirTMPSP: document.getElementById('DAT-SP'),
+            DischargeAirTMP: document.getElementById('DA-T'),
+            OccupancyCMD: document.getElementById('Occ-Cmd'),
+            Damper_CMD: document.getElementById('DPR-cmd'),
+            PHVLV: document.getElementById('PH-VLV'),
+            CLGVLV: document.getElementById('CLG-VLV'),
+            DischargeStaticSP: document.getElementById('Static-SP'),
+            DischargeStatic: document.getElementById('Static'),
+            AHUALARM: document.getElementById('AHU-ALARM'),
+            DASPMAX: document.getElementById('DASP-MAX'),
+        };
+
+        // Create subscriber for data changes
+        const subscriber = new baja.Subscriber();
+
+        // Subscriber event handler
+        subscriber.attach('changed', function(prop) {
+            if (prop.getName() === 'out') {
+                const pointInfo = this.userData;
+                if (pointInfo && elements[pointInfo.elementId]) {
+                    const out = this.getOut();
+                    const displayValue = out.getValueDisplay();
+                    const value = out.getValue();
+                    // Check if point is in override mode
+                    const isOverridden = this.getStatus().isOverridden();
+
+                    // Update the text element if it exists
+                    if (elements[pointInfo.elementId] && elements[pointInfo.elementId].tagName !== 'IMG') {
+                        elements[pointInfo.elementId].textContent = displayValue;
+
+                        // Handle override detection for all points
+                        const statusElement = elements[pointInfo.elementId];
+
+                        if (isOverridden) {
+                            // Point is overridden - show purple
+                            statusElement.className = 'data-value override-active';
+                            statusElement.style.color = '#8B5CF6'; // Purple color
+                            statusElement.textContent = `${displayValue} (Override)`;
+                        } else if (pointInfo.elementId === 'AHUALARM') {
+                            //SPECIAL CASE FOR AHUALARM AND OCCUPIED. THESE WILL BE GREEN WHEN FALSE
+                            if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                                statusElement.className = 'data-value status-off'; // Alarm active = red
+                                statusElement.style.color = ''; // Reset to default
+                                statusElement.textContent = displayValue;
+                            } else {
+                                statusElement.className = 'data-value status-on'; // No alarm = green
+                                statusElement.style.color = ''; // Reset to default
+                                statusElement.textContent = displayValue;
+                            }
+                        } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                            statusElement.className = 'data-value status-on';
+                            statusElement.style.color = ''; // Reset to default
+                            statusElement.textContent = displayValue;
+                        } else {
+                            statusElement.className = 'data-value status-off';
+                            statusElement.style.color = ''; // Reset to default
+                            statusElement.textContent = displayValue;
+                        }
+                    }
+                }
+            }
+        });
+
+        // Function to subscribe to a point
+        function subscribeToPoint(pointOrd, elementId) {
+            baja.Ord.make(pointOrd).get({ subscriber: subscriber })
+                .then(point => {
+                    console.log(`Successfully connected to ${elementId}`);
+
+                    // Store reference for the subscriber callback
+                    point.userData = { elementId: elementId };
+
+                    // Initial update
+                    const out = point.getOut();
+                    const displayValue = out.getValueDisplay();
+                    const value = out.getValue();
+                    const isOverridden = point.getStatus().isOverridden();
+
+                    // Update text elements
+                    if (elements[elementId] && elements[elementId].tagName !== 'IMG') {
+                        elements[elementId].textContent = displayValue;
+
+                        // Handle override detection for all points
+                        const statusElement = elements[elementId];
+
+                        if (isOverridden) {
+                            // Point is overridden - show purple
+                            statusElement.className = 'data-value override-on';
+                            statusElement.style.color = '#8B5CF6'; // Purple color
+                            statusElement.textContent = `${displayValue} (Override)`;
+                        } else if (elementId === 'AHUALARM') {
+                            // Special handling for AHUALARM - OFF is good (green), ON is bad (red)
+                            if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                                statusElement.className = 'data-value status-off'; // Alarm active = red
+                                statusElement.style.color = ''; // Reset to default
+                                statusElement.textContent = displayValue;
+                            } else {
+                                statusElement.className = 'data-value status-on'; // No alarm = green
+                                statusElement.style.color = ''; // Reset to default
+                                statusElement.textContent = displayValue;
+                            }
+                        } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                            statusElement.className = 'data-value status-on';
+                            statusElement.style.color = ''; // Reset to default
+                            statusElement.textContent = displayValue;
+                        } else {
+                            statusElement.className = 'data-value status-off';
+                            statusElement.style.color = ''; // Reset to default
+                            statusElement.textContent = displayValue;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`Failed to connect to ${elementId}:`, error);
+                    if (elements[elementId] && elements[elementId].tagName !== 'IMG') {
+                        elements[elementId].textContent = 'Error';
+                        elements[elementId].style.color = '#ff6b6b';
+                    }
+                });
+        }
+
+        // Subscribe to all data points dynamically
+        for (const [pointName, pointOrd] of Object.entries(dataPoints)) {
+            subscribeToPoint(pointOrd, pointName);
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (subscriber) {
+                subscriber.unsubscribeAll();
+            }
+        });
+
+    });
+}
+
+// Allow reconfiguration by clicking on modal background
+configModal.addEventListener('click', function(e) {
+    if (e.target === configModal) {
+        // Don't close modal on background click to prevent accidental closure
+        return;
+    }
+});
+
+// Optional: Allow ESC key to close modal
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !configModal.classList.contains('hidden')) {
+        configModal.classList.add('hidden');
+    }
+});
+
+</script>
+
+</body>
+</html>
