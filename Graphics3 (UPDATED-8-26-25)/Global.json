@@ -1,0 +1,3799 @@
+{
+  "globalVariables": {
+    "VAV_0_2": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.329Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_2/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:02.321Z"
+    },
+    "VAV_0_1": {
+  "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/{pointName}",
+  "points": [
+    {
+      "name": "ActFlow",
+      "id": "Air-Flow",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/ActFlow",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:52:25.478Z"
+    },
+    {
+      "name": "ActFlowSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/ActFlowSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:52:37.594Z"
+    },
+    {
+      "name": "EffectSpaceTemp",
+      "id": "Space-Temp",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/EffectSpaceTemp",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:53:12.694Z"
+    },
+    {
+      "name": "ActCoolSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/ActCoolSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:53:49.422Z"
+    },
+    {
+      "name": "ActHeatSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/ActHeatSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:00.329Z"
+    },
+    {
+      "name": "UnoccCoolSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/UnoccCoolSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:12.773Z"
+    },
+    {
+      "name": "UnoccHeatSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/UnoccHeatSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:27.432Z"
+    },
+    {
+      "name": "OccCoolSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/OccCoolSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:35.994Z"
+    },
+    {
+      "name": "OccHeatSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/OccHeatSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:45.814Z"
+    },
+    {
+      "name": "EffectSP",
+      "id": "SP-Numeric",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/EffectSP",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:54:56.632Z"
+    },
+    {
+      "name": "UnitStatus",
+      "id": "SP-Boolean",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/UnitStatus",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:55:09.190Z"
+    },
+    {
+      "name": "Reheat1",
+      "id": "SP-Boolean",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/Reheat1",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:55:42.612Z"
+    },
+    {
+      "name": "OccupancyStatus",
+      "id": "Occupancy",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/OccupancyStatus",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:55:59.158Z"
+    },
+    {
+      "name": "HVACModeStatus",
+      "id": "Mode",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/HVACModeStatus",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:56:26.373Z"
+    },
+    {
+      "name": "SpaceTemp",
+      "id": "N/A",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/SpaceTemp",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:56:37.415Z"
+    },
+    {
+      "name": "DischargeTemp",
+      "id": "DA-T",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/DischargeTemp",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:56:53.414Z"
+    },
+    {
+      "name": "DamperPosition",
+      "id": "DPR-Pos",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/DamperPosition",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:57:04.021Z"
+    },
+    {
+      "name": "DamperCommand",
+      "id": "DPR-cmd",
+      "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_1/points/DamperCommand",
+      "status": "connected",
+      "log": "yes",
+      "dateAdded": "2025-08-26T16:57:15.124Z"
+    }
+  ],
+  "dateCreated": "2025-08-26T16:47:02.321Z"
+},
+
+    "VAV_0_3": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_3/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:02.321Z"
+    },
+    "VAV_0_4": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_4/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:02.321Z"
+    },
+    "VAV_0_5": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_0_5/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:02.321Z"
+    },
+    "VAV_1_1": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_1/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_2": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_2/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_3": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_3/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_4": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_4/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_5": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_5/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_6": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_6/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_1_7": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_1_7/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:14.488Z"
+    },
+    "VAV_2_1": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_1/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_2": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_2/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_3": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.694Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_3/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_4": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_4/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_5": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_5/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_6": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_6/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_7": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_7/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_2_8": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_2_8/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:27.666Z"
+    },
+    "VAV_3_1": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_1/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:34.646Z"
+    },
+    "VAV_3_2": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_2/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:34.646Z"
+    },
+    "VAV_3_3": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_3/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:34.646Z"
+    },
+    "VAV_3_4": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/{pointName}",
+      "points": [
+        {
+          "name": "ActFlow",
+          "id": "Air-Flow",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/ActFlow",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:25.478Z"
+        },
+        {
+          "name": "ActFlowSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/ActFlowSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:52:37.594Z"
+        },
+        {
+          "name": "EffectSpaceTemp",
+          "id": "Space-Temp",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/EffectSpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:12.695Z"
+        },
+        {
+          "name": "ActCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/ActCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:53:49.422Z"
+        },
+        {
+          "name": "ActHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/ActHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:00.330Z"
+        },
+        {
+          "name": "UnoccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/UnoccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:12.773Z"
+        },
+        {
+          "name": "UnoccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/UnoccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:27.432Z"
+        },
+        {
+          "name": "OccCoolSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/OccCoolSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:35.994Z"
+        },
+        {
+          "name": "OccHeatSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/OccHeatSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:45.814Z"
+        },
+        {
+          "name": "EffectSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/EffectSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:54:56.632Z"
+        },
+        {
+          "name": "UnitStatus",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/UnitStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:09.190Z"
+        },
+        {
+          "name": "Reheat1",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/Reheat1",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:42.612Z"
+        },
+        {
+          "name": "OccupancyStatus",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/OccupancyStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:55:59.158Z"
+        },
+        {
+          "name": "HVACModeStatus",
+          "id": "Mode",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/HVACModeStatus",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:26.373Z"
+        },
+        {
+          "name": "SpaceTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/SpaceTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:37.415Z"
+        },
+        {
+          "name": "DischargeTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/DischargeTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:56:53.414Z"
+        },
+        {
+          "name": "DamperPosition",
+          "id": "DPR-Pos",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/DamperPosition",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:04.021Z"
+        },
+        {
+          "name": "DamperCommand",
+          "id": "DPR-cmd",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/VAV_3_4/points/DamperCommand",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:57:15.124Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:34.646Z"
+    },
+    "AHU_1": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/{pointName}",
+      "points": [
+        {
+          "name": "AverageZoneTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/AverageZoneTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:21.167Z"
+        },
+        {
+          "name": "OutsideAirTempShare",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/OutsideAirTempShare",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:35.252Z"
+        },
+        {
+          "name": "DischargeAirSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/DischargeAirSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:58.568Z"
+        },
+        {
+          "name": "OccupiedCmd",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/OccupiedCmd",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:21.786Z"
+        },
+        {
+          "name": "DischargeAirTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/DischargeAirTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:38.130Z"
+        },
+        {
+          "name": "AHUAlarm",
+          "id": "AHU-ALARM",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/AHUAlarm",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:54.586Z"
+        },
+        {
+          "name": "DischargeAirStatic",
+          "id": "Static",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/DischargeAirStatic",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:50:09.654Z"
+        },
+        {
+          "name": "DischargeAirSPOutput",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/DischargeAirSPOutput",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:07.592Z"
+        },
+        {
+          "name": "DischargeAirStaticSPOuput",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/DischargeAirStaticSPOuput",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:31.476Z"
+        },
+        {
+          "name": "OCC_S",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/OCC_S",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:42.774Z"
+        },
+        {
+          "name": "SF_S",
+          "id": "Fan-Stat",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_1/points/SF_S",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:55.902Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:42.698Z"
+    },
+    "AHU_2": {
+      "basePath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/{pointName}",
+      "points": [
+        {
+          "name": "AverageZoneTemp",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/AverageZoneTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:21.167Z"
+        },
+        {
+          "name": "OutsideAirTempShare",
+          "id": "N/A",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/OutsideAirTempShare",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:35.252Z"
+        },
+        {
+          "name": "DischargeAirSP",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/DischargeAirSP",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:48:58.568Z"
+        },
+        {
+          "name": "OccupiedCmd",
+          "id": "SP-Boolean",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/OccupiedCmd",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:21.786Z"
+        },
+        {
+          "name": "DischargeAirTemp",
+          "id": "DA-T",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/DischargeAirTemp",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:38.130Z"
+        },
+        {
+          "name": "AHUAlarm",
+          "id": "AHU-ALARM",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/AHUAlarm",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:49:54.586Z"
+        },
+        {
+          "name": "DischargeAirStatic",
+          "id": "Static",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/DischargeAirStatic",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:50:09.654Z"
+        },
+        {
+          "name": "DischargeAirSPOutput",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/DischargeAirSPOutput",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:07.592Z"
+        },
+        {
+          "name": "DischargeAirStaticSPOuput",
+          "id": "SP-Numeric",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/DischargeAirStaticSPOuput",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:31.476Z"
+        },
+        {
+          "name": "OCC_S",
+          "id": "Occupancy",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/OCC_S",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:42.774Z"
+        },
+        {
+          "name": "SF_S",
+          "id": "Fan-Stat",
+          "fullPath": "station:|slot:/Drivers/BcpBacnetNetwork/AHU_2/points/SF_S",
+          "status": "connected",
+          "log": "yes",
+          "dateAdded": "2025-08-26T16:51:55.902Z"
+        }
+      ],
+      "dateCreated": "2025-08-26T16:47:42.698Z"
+    }
+  },
+  "metadata": {
+    "version": "1.0",
+    "lastModified": "2025-08-26T16:57:25.021Z",
+    "totalDevices": 25,
+    "totalPoints": 436
+  }
+}

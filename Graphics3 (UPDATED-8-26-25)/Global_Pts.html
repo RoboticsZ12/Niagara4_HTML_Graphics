@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Global Variables Manager</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Configuration Modal */
+        .config-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .config-form {
+            background: rgb(7, 74, 101);
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .config-form h2 {
+            color: #ffffff;
+            margin-bottom: 25px;
+            font-size: 28px;
+            text-align: center;
+            border-bottom: 3px solid #00ff11;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #fafafa;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #66ea71;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #000000;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .device-selection-section, .point-addition-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .device-selection-section h3, .point-addition-section h3 {
+            color: #00ff11;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .device-selector-row, .point-input-row {
+            display: grid;
+            gap: 15px;
+            align-items: end;
+            margin-bottom: 15px;
+        }
+
+        .device-selector-row {
+            grid-template-columns: 1fr 150px auto;
+        }
+
+        .point-input-row {
+            grid-template-columns: 1fr auto auto;
+        }
+
+        .device-name-field, .device-count-field, .device-selector-field, .point-input-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .config-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .config-btn:active {
+            transform: translateY(0);
+        }
+
+        .config-btn.primary {
+            background: linear-gradient(135deg, #354f36,#2aa132, #00ff11);
+            color: white;
+        }
+
+        .config-btn.secondary {
+            background: linear-gradient(135deg, #a9b1a9,#8b958b, #343634);
+            color: #ffffff;
+        }
+
+        .config-btn.success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .config-btn.danger {
+            background: linear-gradient(135deg, #464343,#d54a4a, #ef2c2c);
+            color: white;
+        }
+
+        .config-btn.warning {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+        }
+
+        .config-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .device-creation-preview {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .preview-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+
+        .preview-devices {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preview-device-tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .bulk-point-indicator {
+            background: #bee3f8;
+            border: 1px solid #90cdf4;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            color: #2b6cb0;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .selected-devices-count {
+            font-weight: 700;
+            color: #2b6cb0;
+        }
+
+        .connection-status {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .connection-status.testing {
+            background: #fef5e7;
+            color: #c05621;
+        }
+
+        .connection-status.connected {
+            background: #f0fff4;
+            color: #276749;
+        }
+
+        .connection-status.failed {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .device-points-list {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .device-header {
+            background: #667eea;
+            color: white;
+            padding: 12px 15px;
+            margin: -5px -5px 10px -5px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .point-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+
+        .point-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .point-name-display {
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .point-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .point-status.connected {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .point-status.error {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .remove-point-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-point-btn:hover {
+            background: #e53e3e;
+            transform: scale(1.05);
+        }
+
+        .json-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #f0fff4;
+            color: #276749;
+            border: 1px solid #9ae6b4;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
+        .message.warning {
+            background: #fef5e7;
+            color: #c05621;
+            border: 1px solid #f6e05e;
+        }
+
+        .message.info {
+            background: #bee3f8;
+            color: #2b6cb0;
+            border: 1px solid #90cdf4;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .config-reopen-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .config-reopen-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .welcome-message {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            margin-top: 40px;
+            color: white;
+            text-align: center;
+        }
+
+        .welcome-message h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-message p {
+            font-size: 18px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .device-selector-row, .point-input-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .json-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .config-form {
+                padding: 20px;
+                width: 95%;
+            }
+            
+            .welcome-message h1 {
+                font-size: 24px;
+            }
+            
+            .welcome-message p {
+                font-size: 16px;
+            }
+
+        }
+
+
+
+
+
+/* Add styles for the logging section */
+.logging-section {
+    margin: 15px 0;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-top: 2px;
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    font-weight: 500;
+    color: #2d3748;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.checkbox-group .help-text {
+    margin-left: 0;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #718096;
+    font-style: italic;
+    flex-basis: 100%;
+}
+
+/* Ensure proper spacing in point addition section */
+.point-addition-section > * {
+    margin-bottom: 15px;
+}
+
+.point-addition-section > *:last-child {
+    margin-bottom: 0;
+}
+
+
+
+.category-points {
+    display: none !important;
+}
+
+.hidden {
+    display: none;
+}
+
+.point-input-field label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.point-input-field select,
+.point-input-field input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.point-input-field select:disabled {
+    background-color: #f5f5f5;
+    color: #666;
+    cursor: not-allowed;
+}
+
+/*.help-text {*/
+/*    font-size: 12px;*/
+/*    color: #666;*/
+/*    font-style: italic;*/
+/*    margin-top: -10px;*/
+/*    margin-bottom: 15px;*/
+/*}*/
+    </style>
+</head>
+<body>
+
+<!-- Configuration Modal -->
+<div id="configModal" class="config-modal">
+    <div class="config-form">
+        <h2>Graphics Points</h2>
+        <form id="configForm">
+            <div class="form-group">
+                <label for="basePath">Ord File Path:</label>
+                <input type="text" id="basePath" name="basePath" 
+                       value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}" 
+                       placeholder="Enter your base path template">
+                <!-- <div class="help-text">Use {headerName} for device name and {pointName} for data point placeholders</div> -->
+            </div>
+            
+            <!-- Device Selection Section -->
+            <div class="device-selection-section">
+                <h3 style="color: #333; margin-bottom: 15px;">Create Units</h3>
+                
+                <div class="device-selector-row">
+                    <div class="device-name-field">
+                        <label for="newDeviceName">Unit Declaration:</label>
+                        <input type="text" id="newDeviceName" name="newDeviceName" 
+                               placeholder="Enter Unit name (e.g., AHU_1, VAV_0_1)" />
+                        <div class="help-text">For numbered sequences use underscores, _X. X = unit number (e.g., AHU_1)</div>
+                    </div>
+                    <div class="device-count-field">
+                        <label for="deviceCount">How Many Units:</label>
+                        <input type="number" id="deviceCount" name="deviceCount" 
+                               min="1" max="120" value="1" 
+                               placeholder="1" />
+                        <div class="help-text">Number of sequential units</div>
+                    </div>
+                    <button type="button" id="createDeviceBtn" class="config-btn success new-device-btn">Create Device(s)</button>
+                </div>
+                
+                <div id="deviceCreationPreview" class="device-creation-preview hidden">
+                    <div class="preview-title">Devices to be created:</div>
+                    <div id="previewDevicesList" class="preview-devices"></div>
+                </div>
+                
+                <div class="device-selector-row">
+                    <div class="device-selector-field">
+                        <label for="deviceSelector">Select Device for Individual Point Assigning:</label>
+                        <select id="deviceSelector" name="deviceSelector">
+                            <option value="">-- Select a device --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="deviceMessage" class="message hidden"></div>
+            </div>
+
+            <!-- Point Addition Section -->
+            <div class="point-addition-section">
+                <h3 style="color: #333; margin-bottom: 15px;">Add Data Points</h3>
+                
+                <div id="bulkPointIndicator" class="bulk-point-indicator hidden">
+                    Adding point to <span id="selectedDevicesCount" class="selected-devices-count">0</span> selected devices
+                </div>
+
+                <!-- Logging Checkbox Section -->
+                <div class="logging-section">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableLogging" name="enableLogging" />
+                        <label for="enableLogging">Enable Logging for Points</label>
+                        <div class="help-text">Check for Logging</div>
+                    </div>
+                </div>
+                
+                
+                
+<!---->
+              <div class="point-input-row">
+    <div class="point-input-field">
+        <label for="pointName">Point Name:</label>
+        <input type="text" id="pointName" name="pointName" 
+               placeholder="Enter point name (e.g., DischargeAirTemp)" />
+        <div id="connectionStatus" class="connection-status hidden"></div>
+        
+        <label for="equipmentCategory">Equipment Category:</label>
+        <select id="equipmentCategory">
+            <option value="">Select Category</option>
+            <option value="ahu-rtu">AHU/RTU</option>
+            <option value="vav">VAVs</option>
+            <option value="chiller">Chillers</option>
+            <option value="tower">Towers</option>
+        </select>
+        
+        <label for="pointId">Point ID:</label>
+        <select id="pointId" disabled>
+            <option value="N/A">Select category first</option>
+        </select>
+        
+        <!-- Hidden dropdowns for each category -->
+        <select id="ahuRtuPoints" class="category-points hidden">
+            <option value="N/A" selected>N/A</option>
+            <option value="SP-Numeric">SP Numeric</option>
+            <option value="SP-Boolean">SP Boolean</option>
+            <option value="Fan-Stat">Fan Stat</option>
+            <option value="DA-T">Discharge Air Temp</option>
+            <option value="DPR-cmd">Damper Position</option>
+            <option value="Static">Discharge Static</option>
+            <option value="AHU-ALARM">AHU Alarm</option>
+            <option value="OA-T">Outside Air</option>
+            <option value="Occupancy">Occupancy Status</option>
+        </select>
+        
+        <select id="vavPoints" class="category-points hidden">
+            <option value="N/A" selected>N/A</option>
+            <option value="SP-Numeric">SP Numeric</option>
+            <option value="SP-Boolean">SP Boolean</option>
+            <option value="DPR-cmd">Damper CMD</option>
+            <option value="DPR-Pos">Damper Pos</option>
+            <option value="Reheat1">Reheat Stat</option>
+            <option value="Air-Flow">Air Flow</option>
+            <option value="Occupancy">Occupancy</option>
+            <option value="Space-Temp">Space Temp</option>
+            <option value="DA-T">Discharge Air TMP</option>
+            <option value="Mode">System Mode</option>
+            <option value="HVACModeStatus">System Status (ON/OFF)</option>
+            <option value="Space-Temp">Space Temp</option>
+   </select>
+        
+        <select id="chillerPoints" class="category-points hidden">
+            <option value="N/A" selected>N/A</option>
+            <option value="SP-Numeric">SP Numeric</option>
+            <option value="SP-Boolean">SP Boolean</option>
+            <!-- Add your chiller-specific points here -->
+        </select>
+        
+        <select id="towerPoints" class="category-points hidden">
+            <option value="N/A" selected>N/A</option>
+            <option value="SP-Numeric">SP Numeric</option>
+            <option value="SP-Boolean">SP Boolean</option>
+            <!-- Add your tower-specific points here -->
+        </select>
+        
+        <div class="help-text">Keep as N/A if not on list.</div>
+    </div>
+    <button type="button" id="testPointBtn" class="config-btn secondary">Test Connection</button>
+    <button type="button" id="savePointBtn" class="config-btn success" disabled>Save Point</button>
+</div>
+
+<!---->
+
+
+                <div id="pointMessage" class="message hidden"></div>
+            </div>
+
+            <!-- Current Configuration Display -->
+            <div class="form-group">
+                <label>Current Graphics Points Configuration:</label>
+                <div id="globalVarsList" class="device-points-list">
+                    <div style="text-align: center; color: #718096; font-style: italic;">No devices configured yet</div>
+                </div>
+            </div>
+            
+            <!-- JSON Management Actions -->
+            <div class="json-actions">
+                <button type="button" id="downloadJsonBtn" class="config-btn primary">Download JSON</button>
+                <button type="button" id="loadJsonBtn" class="config-btn secondary">Load JSON</button>
+                <button type="button" id="clearAllBtn" class="config-btn danger">Clear All</button>
+                <!--<button type="button" id="closeConfigBtn" class="config-btn warning">Close</button>-->
+            </div>
+            <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
+        </form>
+    </div>
+</div>
+
+<!-- Main Content -->
+<!--<div class="main-content">-->
+    <!-- Configuration Button -->
+<!--    <button id="configButton" class="config-reopen-btn" title="Open Graphics Points Manager">-->
+<!--        <span>⚙️</span> Graphics Points Configuration-->
+<!--    </button>-->
+
+    <!-- Welcome Message -->
+<!--    <div class="welcome-message">-->
+<!--        <h1>Graphics Points Configuration</h1>-->
+<!--        <p>Configure your graphics points for BACnet network integration. Create devices, add data points, and manage your system configuration with an intuitive interface.</p>-->
+<!--    </div>-->
+<!--</div>-->
+
+
+
+
+<script>
+// JavaScript to handle category selection and populate Point ID dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('equipmentCategory');
+    const pointIdSelect = document.getElementById('pointId');
+    
+    // Category point mappings
+    const categoryPoints = {
+        'ahu-rtu': document.getElementById('ahuRtuPoints'),
+        'vav': document.getElementById('vavPoints'),
+        'chiller': document.getElementById('chillerPoints'),
+        'tower': document.getElementById('towerPoints')
+    };
+    
+    categorySelect.addEventListener('change', function() {
+        const selectedCategory = this.value;
+        
+        // Clear and reset Point ID dropdown
+        pointIdSelect.innerHTML = '<option value="N/A">N/A</option>';
+        
+        if (selectedCategory && categoryPoints[selectedCategory]) {
+            // Enable Point ID dropdown
+            pointIdSelect.disabled = false;
+            
+            // Copy options from the selected category
+            const categoryOptions = categoryPoints[selectedCategory].getElementsByTagName('option');
+            
+            for (let i = 0; i < categoryOptions.length; i++) {
+                const option = categoryOptions[i].cloneNode(true);
+                pointIdSelect.appendChild(option);
+            }
+        } else {
+            // Disable Point ID dropdown if no category selected
+            pointIdSelect.disabled = true;
+            pointIdSelect.innerHTML = '<option value="N/A">Select category first</option>';
+        }
+    });
+});
+</script>
+
+
+
+<script>
+// Global Variables JSON Structure
+let globalVariablesConfig = {
+    globalVariables: {},
+    metadata: {
+        version: "1.0",
+        lastModified: new Date().toISOString(),
+        totalDevices: 0,
+        totalPoints: 0
+    }
+};
+
+let currentDevice = null;
+let lastTestedPoint = null;
+let selectedDevices = []; // For bulk operations
+
+// DOM Elements
+const configModal = document.getElementById('configModal');
+const configButton = document.getElementById('configButton');
+const deviceSelector = document.getElementById('deviceSelector');
+const newDeviceName = document.getElementById('newDeviceName');
+const deviceCount = document.getElementById('deviceCount');
+const createDeviceBtn = document.getElementById('createDeviceBtn');
+const deviceCreationPreview = document.getElementById('deviceCreationPreview');
+const previewDevicesList = document.getElementById('previewDevicesList');
+const pointNameInput = document.getElementById('pointName');
+const testPointBtn = document.getElementById('testPointBtn');
+const savePointBtn = document.getElementById('savePointBtn');
+const globalVarsList = document.getElementById('globalVarsList');
+const connectionStatus = document.getElementById('connectionStatus');
+const deviceMessage = document.getElementById('deviceMessage');
+const pointMessage = document.getElementById('pointMessage');
+const basePathInput = document.getElementById('basePath');
+const bulkPointIndicator = document.getElementById('bulkPointIndicator');
+const selectedDevicesCount = document.getElementById('selectedDevicesCount');
+const enableLoggingCheckbox = document.getElementById('enableLogging'); // New logging checkbox
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Graphics Points Configuration - Initializing...');
+    
+    updateDeviceSelector();
+    updateGlobalVarsDisplay();
+    
+    // Show config modal on first load if no devices exist
+    if (Object.keys(globalVariablesConfig.globalVariables).length === 0) {
+        configModal.classList.remove('hidden');
+        showDeviceMessage('Welcome! Create your first device to get started.', 'info');
+    } else {
+        // Start with main view
+        configModal.classList.add('hidden');
+        console.log(`Loaded ${globalVariablesConfig.metadata.totalDevices} devices with ${globalVariablesConfig.metadata.totalPoints} total points`);
+    }
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !configModal.classList.contains('hidden')) {
+            configModal.classList.add('hidden');
+        }
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            downloadJSON();
+        }
+        if (e.ctrlKey && e.key === 'o') {
+            e.preventDefault();
+            document.getElementById('jsonFileInput').click();
+        }
+    });
+    
+    console.log('Graphics Points Configuration - Ready!');
+});
+
+// // Event Listeners
+// configButton.addEventListener('click', () => {
+//     configModal.classList.remove('hidden');
+// });
+
+// document.getElementById('closeConfigBtn').addEventListener('click', () => {
+//     configModal.classList.add('hidden');
+// });
+
+// Device creation preview
+newDeviceName.addEventListener('input', updateDevicePreview);
+deviceCount.addEventListener('input', updateDevicePreview);
+
+createDeviceBtn.addEventListener('click', createNewDevices);
+deviceSelector.addEventListener('change', selectDevice);
+testPointBtn.addEventListener('click', testPointConnection);
+savePointBtn.addEventListener('click', savePoint);
+document.getElementById('downloadJsonBtn').addEventListener('click', downloadJSON);
+document.getElementById('loadJsonBtn').addEventListener('click', () => {
+    document.getElementById('jsonFileInput').click();
+});
+document.getElementById('jsonFileInput').addEventListener('change', loadJSON);
+document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+
+// Functions
+function updateDevicePreview() {
+    const deviceName = newDeviceName.value.trim();
+    const count = parseInt(deviceCount.value) || 1;
+    
+    if (!deviceName || count < 1) {
+        deviceCreationPreview.classList.add('hidden');
+        return;
+    }
+    
+    const deviceNames = generateDeviceNames(deviceName, count);
+    
+    if (deviceNames.length > 0) {
+        previewDevicesList.innerHTML = deviceNames
+            .map(name => `<span class="preview-device-tag">${name}</span>`)
+            .join('');
+        deviceCreationPreview.classList.remove('hidden');
+    } else {
+        deviceCreationPreview.classList.add('hidden');
+    }
+}
+
+function generateDeviceNames(baseName, count) {
+    const deviceNames = [];
+    
+    if (count === 1) {
+        deviceNames.push(baseName);
+        return deviceNames;
+    }
+    
+    // Extract the numeric part from the end of the device name
+    const match = baseName.match(/^(.+?)(\d+)$/);
+    
+    if (match) {
+        // Device name has a number at the end (e.g., "AHU_1")
+        const prefix = match[1]; // "AHU_"
+        const startNumber = parseInt(match[2]); // 1
+        
+        for (let i = 0; i < count; i++) {
+            deviceNames.push(`${prefix}${startNumber + i}`);
+        }
+    } else {
+        // Device name doesn't have a number, append sequential numbers
+        for (let i = 1; i <= count; i++) {
+            if (i === 1) {
+                deviceNames.push(baseName); // First one keeps original name
+            } else {
+                deviceNames.push(`${baseName}_${i}`);
+            }
+        }
+    }
+    
+    return deviceNames;
+}
+
+function createNewDevices() {
+    const deviceName = newDeviceName.value.trim();
+    const count = parseInt(deviceCount.value) || 1;
+    
+    if (!deviceName) {
+        showDeviceMessage('Please enter a device name', 'error');
+        return;
+    }
+    
+    if (count < 1 || count > 120) {
+        showDeviceMessage('Device count must be between 1 and 120', 'error');
+        return;
+    }
+    
+    const deviceNames = generateDeviceNames(deviceName, count);
+    const existingDevices = [];
+    const newDevices = [];
+    
+    // Check for existing devices
+    deviceNames.forEach(name => {
+        if (globalVariablesConfig.globalVariables[name]) {
+            existingDevices.push(name);
+        } else {
+            newDevices.push(name);
+        }
+    });
+    
+    if (existingDevices.length > 0) {
+        showDeviceMessage(`Some devices already exist: ${existingDevices.join(', ')}. Only new devices will be created.`, 'warning');
+    }
+    
+    if (newDevices.length === 0) {
+        showDeviceMessage('All specified devices already exist', 'error');
+        return;
+    }
+    
+    // Create new devices
+    newDevices.forEach(name => {
+        globalVariablesConfig.globalVariables[name] = {
+            basePath: basePathInput.value.replace('{headerName}', name),
+            points: [],
+            dateCreated: new Date().toISOString()
+        };
+    });
+    
+    // Set selected devices for bulk operations
+    selectedDevices = newDevices;
+    updateBulkPointIndicator();
+    
+    updateMetadata();
+    saveToLocalStorage();
+    updateDeviceSelector();
+    updateGlobalVarsDisplay();
+    
+    // Clear form
+    newDeviceName.value = '';
+    deviceCount.value = '1';
+    deviceCreationPreview.classList.add('hidden');
+    
+    if (newDevices.length === 1) {
+        currentDevice = newDevices[0];
+        deviceSelector.value = currentDevice;
+        showDeviceMessage(`Device "${newDevices[0]}" created successfully!`, 'success');
+    } else {
+        showDeviceMessage(`${newDevices.length} devices created successfully: ${newDevices.join(', ')}`, 'success');
+    }
+}
+
+function selectDevice() {
+    const selectedDevice = deviceSelector.value;
+    if (selectedDevice) {
+        currentDevice = selectedDevice;
+        selectedDevices = [selectedDevice]; // Always put single device in array
+        updateBulkPointIndicator();
+        showDeviceMessage(`Selected device: ${selectedDevice}`, 'info');
+        console.log('Device selected:', selectedDevice);
+        console.log('Selected devices array:', selectedDevices);
+        // Clear any previous point test results
+        resetPointTesting();
+    } else {
+        currentDevice = null;
+        selectedDevices = [];
+        updateBulkPointIndicator();
+        console.log('No device selected');
+    }
+}
+
+function updateBulkPointIndicator() {
+    if (selectedDevices.length > 1) {
+        selectedDevicesCount.textContent = selectedDevices.length;
+        bulkPointIndicator.classList.remove('hidden');
+    } else {
+        bulkPointIndicator.classList.add('hidden');
+    }
+}
+
+function testPointConnection() {
+    if (selectedDevices.length === 0) {
+        showPointMessage('Please select or create a device first', 'error');
+        return;
+    }
+    
+    const pointName = pointNameInput.value.trim();
+    if (!pointName) {
+        showPointMessage('Please enter a point name', 'error');
+        return;
+    }
+    
+    if (!validatePointName(pointName)) {
+        showPointMessage('Point name must start with a letter and contain only letters, numbers, and underscores', 'error');
+        return;
+    }
+    
+    // Show testing status
+    connectionStatus.textContent = 'Testing connection...';
+    connectionStatus.className = 'connection-status testing';
+    connectionStatus.classList.remove('hidden');
+    testPointBtn.disabled = true;
+    
+    // Simulate connection test with more realistic timing
+    const testDuration = 1000 + Math.random() * 2000; // 1-3 seconds
+    
+    setTimeout(() => {
+        const isConnected = Math.random() > 0.25; // 75% success rate
+        
+        if (isConnected) {
+            connectionStatus.textContent = 'Connected ✓';
+            connectionStatus.className = 'connection-status connected';
+            
+            const deviceList = selectedDevices.length > 1 ? 
+                `${selectedDevices.length} devices (${selectedDevices[0]}, ...)` : 
+                selectedDevices[0];
+            
+            showPointMessage(`Successfully connected to ${deviceList}/${pointName}`, 'success');
+            savePointBtn.disabled = false;
+            lastTestedPoint = {
+                name: pointName,
+                status: 'connected',
+                dateAdded: new Date().toISOString()
+            };
+        } else {
+            connectionStatus.textContent = 'Connection Failed ✗';
+            connectionStatus.className = 'connection-status failed';
+            showPointMessage(`Failed to connect to ${pointName}. Check point name and path.`, 'error');
+            savePointBtn.disabled = true;
+            lastTestedPoint = null;
+        }
+        
+        testPointBtn.disabled = false;
+    }, testDuration);
+}
+
+function savePoint() {
+    if (!lastTestedPoint || selectedDevices.length === 0) {
+        showPointMessage('Please test the connection first', 'error');
+        return;
+    }
+    
+    const pointName = lastTestedPoint.name;
+    const pointId = document.getElementById('pointId').value;
+    const isLoggingEnabled = enableLoggingCheckbox.checked; // Get logging checkbox state
+    const devicesWithExistingPoint = [];
+    const devicesForNewPoint = [];
+    
+    selectedDevices.forEach(deviceName => {
+        const deviceConfig = globalVariablesConfig.globalVariables[deviceName];
+        const existingPoint = deviceConfig.points.find(p => p.name === pointName);
+        
+        if (existingPoint) {
+            devicesWithExistingPoint.push(deviceName);
+        } else {
+            devicesForNewPoint.push(deviceName);
+        }
+    });
+    
+    devicesForNewPoint.forEach(deviceName => {
+        const deviceConfig = globalVariablesConfig.globalVariables[deviceName];
+        const pointData = {
+            name: pointName,
+            id: pointId,
+            fullPath: basePathInput.value
+                .replace('{headerName}', deviceName)
+                .replace('{pointName}', pointName),
+            status: lastTestedPoint.status,
+            log: isLoggingEnabled ? "yes" : "no", // Add logging field based on checkbox
+            dateAdded: new Date().toISOString()
+        };
+        deviceConfig.points.push(pointData);
+    });
+    
+    if (devicesForNewPoint.length > 0) {
+        updateMetadata();
+        saveToLocalStorage();
+        updateGlobalVarsDisplay();
+    }
+    
+    if (devicesWithExistingPoint.length > 0) {
+        showPointMessage(`Point "${pointName}" already exists in: ${devicesWithExistingPoint.join(', ')}`, 'warning');
+    }
+    
+    if (devicesForNewPoint.length === 1) {
+        showPointMessage(`Point "${pointName}" saved to ${devicesForNewPoint[0]}`, 'success');
+    } else if (devicesForNewPoint.length > 1) {
+        showPointMessage(`Point "${pointName}" saved to ${devicesForNewPoint.length} devices: ${devicesForNewPoint.join(', ')}`, 'success');
+    }
+    
+    if (devicesForNewPoint.length === 0 && devicesWithExistingPoint.length > 0) {
+        showPointMessage('No new points were added - all selected devices already have this point', 'info');
+    }
+    
+    pointNameInput.value = '';
+    document.getElementById('pointId').value = "N/A";
+    resetPointTesting();
+}
+
+function resetPointTesting() {
+    connectionStatus.classList.add('hidden');
+    savePointBtn.disabled = true;
+    lastTestedPoint = null;
+}
+
+function removePoint(deviceName, pointName) {
+    const deviceConfig = globalVariablesConfig.globalVariables[deviceName];
+    deviceConfig.points = deviceConfig.points.filter(p => p.name !== pointName);
+    
+    updateMetadata();
+    saveToLocalStorage();
+    updateGlobalVarsDisplay();
+    
+    showPointMessage(`Point "${pointName}" removed from ${deviceName}`, 'info');
+}
+
+function updateDeviceSelector() {
+    const devices = Object.keys(globalVariablesConfig.globalVariables).sort();
+    deviceSelector.innerHTML = '<option value="">-- Select devices (hold Ctrl/Cmd for multiple) --</option>';
+    
+    // Enable multiple selection
+    deviceSelector.multiple = true;
+    deviceSelector.size = Math.min(devices.length + 1, 8); // Show up to 8 options at once
+    
+    devices.forEach(deviceName => {
+        const option = document.createElement('option');
+        option.value = deviceName;
+        option.textContent = deviceName;
+        deviceSelector.appendChild(option);
+    });
+    
+    // Update the change event listener to handle multiple selections
+    deviceSelector.removeEventListener('change', selectDevice); // Remove old listener
+    deviceSelector.addEventListener('change', function() {
+        const selectedOptions = Array.from(deviceSelector.selectedOptions);
+        selectedDevices = selectedOptions.map(option => option.value).filter(value => value !== '');
+        
+        if (selectedDevices.length === 1) {
+            currentDevice = selectedDevices[0];
+            showDeviceMessage(`Selected device: ${selectedDevices[0]}`, 'info');
+        } else if (selectedDevices.length > 1) {
+            currentDevice = null; // Clear single device when multiple selected
+            showDeviceMessage(`Selected ${selectedDevices.length} devices: ${selectedDevices.join(', ')}`, 'info');
+        } else {
+            currentDevice = null;
+            selectedDevices = [];
+            showDeviceMessage('No devices selected', 'info');
+        }
+        
+        updateBulkPointIndicator();
+        resetPointTesting();
+        
+        console.log('Selected devices:', selectedDevices);
+    });
+}
+
+function updateGlobalVarsDisplay() {
+    const devices = Object.keys(globalVariablesConfig.globalVariables).sort();
+    
+    console.log('Updating display for devices:', devices);
+    console.log('Full configuration:', globalVariablesConfig.globalVariables);
+    
+    if (devices.length === 0) {
+        globalVarsList.innerHTML = '<div style="text-align: center; color: #718096; font-style: italic;">No devices configured yet</div>';
+        return;
+    }
+    
+    let html = '';
+    devices.forEach(deviceName => {
+        const deviceConfig = globalVariablesConfig.globalVariables[deviceName];
+        console.log(`Device ${deviceName} has ${deviceConfig.points.length} points:`, deviceConfig.points);
+        
+        html += `
+            <div class="device-header">
+                ${deviceName} (${deviceConfig.points.length} points)
+                <button class="remove-point-btn" onclick="removeDevice('${deviceName}')" style="float: right; margin-top: -2px;">Remove Device</button>
+            </div>
+        `;
+        
+        if (deviceConfig.points.length === 0) {
+            html += '<div style="padding: 10px; color: #718096; font-style: italic;">No points added yet</div>';
+        } else {
+            deviceConfig.points.forEach(point => {
+                const logStatus = point.log ? `(log: ${point.log})` : ''; // Display log status if available
+                html += `
+                    <div class="point-item">
+                        <div class="point-info">
+                            <div class="point-name-display">${point.name} ${logStatus}</div>
+                            <div class="point-status ${point.status}">${point.status}</div>
+                        </div>
+                        <button class="remove-point-btn" onclick="removePoint('${deviceName}', '${point.name}')">Remove</button>
+                    </div>
+                `;
+            });
+        }
+    });
+    
+    globalVarsList.innerHTML = html;
+}
+
+function removeDevice(deviceName) {
+    if (confirm(`Are you sure you want to remove device "${deviceName}" and all its points?`)) {
+        delete globalVariablesConfig.globalVariables[deviceName];
+        
+        // Update selected devices if the removed device was selected
+        selectedDevices = selectedDevices.filter(name => name !== deviceName);
+        if (currentDevice === deviceName) {
+            currentDevice = null;
+            deviceSelector.value = '';
+        }
+        
+        updateBulkPointIndicator();
+        updateMetadata();
+        saveToLocalStorage();
+        updateDeviceSelector();
+        updateGlobalVarsDisplay();
+        
+        showDeviceMessage(`Device "${deviceName}" removed successfully`, 'info');
+    }
+}
+
+function updateMetadata() {
+    const devices = Object.keys(globalVariablesConfig.globalVariables);
+    let totalPoints = 0;
+    
+    devices.forEach(deviceName => {
+        totalPoints += globalVariablesConfig.globalVariables[deviceName].points.length;
+    });
+    
+    globalVariablesConfig.metadata = {
+        version: "1.0",
+        lastModified: new Date().toISOString(),
+        totalDevices: devices.length,
+        totalPoints: totalPoints
+    };
+}
+
+function saveToLocalStorage() {
+    // Save to memory and prepare for file operations
+    const configStr = JSON.stringify(globalVariablesConfig, null, 2);
+    console.log('Graphics Points Config Updated:', configStr);
+    
+    // Auto-save functionality - create downloadable backup
+    createAutoBackup();
+}
+
+function downloadJSON() {
+    updateMetadata();
+    const timestamp = new Date().toISOString().split('T')[0];
+    const configStr = JSON.stringify(globalVariablesConfig, null, 2);
+    const blob = new Blob([configStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Global_${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showDeviceMessage(`Configuration exported as graphics_points_${timestamp}.json`, 'success');
+}
+
+function createAutoBackup() {
+    // Create automatic backup when significant changes are made
+    const backupData = {
+        ...globalVariablesConfig,
+        backupInfo: {
+            type: "auto-backup",
+            timestamp: new Date().toISOString(),
+            trigger: "configuration_change"
+        }
+    };
+    
+    // Store in memory for potential recovery
+    window.lastBackup = backupData;
+    console.log('Auto-backup created:', new Date().toLocaleTimeString());
+}
+
+function loadJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const loadedConfig = JSON.parse(e.target.result);
+            
+            // Validate the loaded JSON structure
+            if (loadedConfig.globalVariables && loadedConfig.metadata) {
+                // Create backup before loading new config
+                if (Object.keys(globalVariablesConfig.globalVariables).length > 0) {
+                    window.previousConfig = { ...globalVariablesConfig };
+                    console.log('Previous configuration backed up before loading new JSON');
+                }
+                
+                globalVariablesConfig = loadedConfig;
+                updateDeviceSelector();
+                updateGlobalVarsDisplay();
+                currentDevice = null;
+                selectedDevices = [];
+                deviceSelector.value = '';
+                updateBulkPointIndicator();
+                resetPointTesting();
+                
+                showDeviceMessage(`JSON loaded: ${loadedConfig.metadata.totalDevices} devices, ${loadedConfig.metadata.totalPoints} points`, 'success');
+            } else {
+                throw new Error('Invalid JSON structure - missing globalVariables or metadata');
+            }
+        } catch (error) {
+            showDeviceMessage('Error loading JSON: ' + error.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+    
+    // Clear the file input for next use
+    event.target.value = '';
+}
+
+function clearAllData() {
+    if (confirm('Are you sure you want to clear all graphics points data? This cannot be undone.')) {
+        globalVariablesConfig = {
+            globalVariables: {},
+            metadata: {
+                version: "1.0",
+                lastModified: new Date().toISOString(),
+                totalDevices: 0,
+                totalPoints: 0
+            }
+        };
+        
+        currentDevice = null;
+        selectedDevices = [];
+        updateDeviceSelector();
+        updateGlobalVarsDisplay();
+        updateBulkPointIndicator();
+        resetPointTesting();
+        
+        showDeviceMessage('All data cleared successfully', 'info');
+    }
+}
+
+function showDeviceMessage(message, type) {
+    deviceMessage.textContent = message;
+    deviceMessage.className = `message ${type}`;
+    deviceMessage.classList.remove('hidden');
+    
+    setTimeout(() => {
+        deviceMessage.classList.add('hidden');
+    }, 5000);
+}
+
+function showPointMessage(message, type) {
+    pointMessage.textContent = message;
+    pointMessage.className = `message ${type}`;
+    pointMessage.classList.remove('hidden');
+    
+    setTimeout(() => {
+        pointMessage.classList.add('hidden');
+    }, 5000);
+}
+
+function exportDeviceConfig(deviceName) {
+    const deviceConfig = {
+        device: deviceName,
+        configuration: globalVariablesConfig.globalVariables[deviceName],
+        exportDate: new Date().toISOString()
+    };
+    
+    const configStr = JSON.stringify(deviceConfig, null, 2);
+    const blob = new Blob([configStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${deviceName}_config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function validatePointName(pointName) {
+    // Basic validation for point names
+    const validPattern = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+    return validPattern.test(pointName);
+}
+
+// Bulk operations helper functions
+function selectMultipleDevices(deviceNames) {
+    selectedDevices = deviceNames;
+    updateBulkPointIndicator();
+}
+
+function addPointToBulkDevices(pointName) {
+    if (selectedDevices.length === 0) return false;
+    
+    const isLoggingEnabled = enableLoggingCheckbox.checked; // Get current logging state
+    let successCount = 0;
+    selectedDevices.forEach(deviceName => {
+        const deviceConfig = globalVariablesConfig.globalVariables[deviceName];
+        if (deviceConfig && !deviceConfig.points.find(p => p.name === pointName)) {
+            const pointData = {
+                name: pointName,
+                fullPath: basePathInput.value
+                    .replace('{headerName}', deviceName)
+                    .replace('{pointName}', pointName),
+                status: 'connected',
+                log: isLoggingEnabled ? "yes" : "no", // Add logging field for bulk operations too
+                dateAdded: new Date().toISOString()
+            };
+            deviceConfig.points.push(pointData);
+            successCount++;
+        }
+    });
+    
+    if (successCount > 0) {
+        updateMetadata();
+        saveToLocalStorage();
+        updateGlobalVarsDisplay();
+        return true;
+    }
+    
+    return false;
+}
+
+// Enhanced preview with device numbering logic
+function getDeviceNumberingInfo(baseName) {
+    const match = baseName.match(/^(.+?)(\d+)$/);
+    
+    if (match) {
+        return {
+            prefix: match[1],
+            startNumber: parseInt(match[2]),
+            hasNumber: true
+        };
+    }
+    
+    return {
+        prefix: baseName,
+        startNumber: 1,
+        hasNumber: false
+    };
+}
+
+// Keyboard shortcuts for bulk operations
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'a' && !configModal.classList.contains('hidden')) {
+        e.preventDefault();
+        // Select all devices
+        const allDevices = Object.keys(globalVariablesConfig.globalVariables);
+        if (allDevices.length > 0) {
+            selectedDevices = allDevices;
+            updateBulkPointIndicator();
+            showDeviceMessage(`Selected all ${allDevices.length} devices for bulk operations`, 'info');
+        }
+    }
+});
+
+// Export individual device configurations
+function bulkExportDevices() {
+    if (selectedDevices.length === 0) {
+        showDeviceMessage('No devices selected for export', 'error');
+        return;
+    }
+    
+    selectedDevices.forEach(deviceName => {
+        exportDeviceConfig(deviceName);
+    });
+    
+    showDeviceMessage(`Exported configurations for ${selectedDevices.length} devices`, 'success');
+}
+
+console.log('Graphics Points Configuration - Loaded successfully');
+</script>
+
+</body>
+</html>

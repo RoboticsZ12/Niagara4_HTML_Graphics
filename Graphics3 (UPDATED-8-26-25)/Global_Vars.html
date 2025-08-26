@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+.main-content {
+    /* Use min-height instead of flex for full coverage */
+    min-height: 100vh;
+    background: linear-gradient(to right,#010f35, #175f80,#266c79, #12707d);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box; /* Include padding in height calculation */
+}
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background: linear-gradient(to right,#010f35, #175f80,#266c79, #12707d);
+}
+.config-container {
+background: linear-gradient(to right,#000000, #6b6b6b,#a8a8a8, #6b6b6b, #000000);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: absolute;
+    width: 65%;
+    height: auto;
+ left: 18%;
+}
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+}
+h2 {
+    color: #333;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 5px;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-section {
+    background: rgba(255, 255, 255, 0.9);
+    font-weight: bold;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+}
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 20px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    background: white;
+}
+
+.vav-group {
+    background: rgba(0, 123, 255, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    border-left: 4px solid #007bff;
+}
+.vav-group h4 {
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+.inline-inputs {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+.inline-inputs > div {
+    flex: 1;
+}
+.preview-section {
+    background: rgba(0, 123, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+.preview-section h3 {
+    color: #333;
+    margin-top: 0;
+}
+.preview-content {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    font-family: monospace;
+    color: #333;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 5px;
+}
+button:hover {
+    background-color: #0056b3;
+}
+.add-btn {
+    background-color: #28a745;
+}
+.add-btn:hover {
+    background-color: #1e7e34;
+}
+.remove-btn {
+    background-color: #dc3545;
+}
+.remove-btn:hover {
+    background-color: #c82333;
+}
+.save-btn {
+    background-color: #28a745;
+    width: 100%;
+    padding: 15px;
+    font-size: 18px;
+    margin-top: 20px;
+}
+.save-btn:hover {
+    background-color: #1e7e34;
+}
+.test-btn {
+    background-color: #17a2b8;
+}
+.test-btn:hover {
+    background-color: #117a8b;
+}
+.clear-btn {
+    background-color: #dc3545;
+    width: 100%;
+}
+.clear-btn:hover {
+    background-color: #c82333;
+}
+.import-btn {
+    background-color: #ffc107;
+    color: #212529;
+    width: 48%;
+}
+.import-btn:hover {
+    background-color: #e0a800;
+}
+.export-btn {
+    background-color: #6f42c1;
+    width: 48%;
+}
+.export-btn:hover {
+    background-color: #5a32a3;
+}
+.file-buttons {
+    display: flex;
+    gap: 2%;
+    margin-bottom: 10px;
+}
+.status {
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
+.status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.debug-info {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    padding: 15px;
+    border-radius: 5px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+.equipment-preview {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    color: #333;
+    font-family: monospace;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+    <div class="config-container">
+        <h1>🔧 System Configuration Manager</h1>
+        
+        <!-- JSON Import/Export Section -->
+        <div class="form-section">
+            <h2>📄 Configuration File Management</h2>
+            <div class="file-buttons">
+                <button type="button" class="export-btn" onclick="exportConfiguration()">📤 Export to JSON</button>
+                <button type="button" class="import-btn" onclick="document.getElementById('jsonFileInput').click()">📥 Import JSON</button>
+            </div>
+            <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importConfiguration(this)">
+            <!--<div class="form-group">-->
+                <!--<label>Current Configuration Status:</label>-->
+                <!--<div id="configStatus" class="equipment-preview">No configuration loaded</div>-->
+            <!--</div>-->
+        </div>
+        
+        <!-- Base File Path Configuration -->
+        <div class="form-section">
+            <h2>📁 Base File Path Configuration</h2>
+            <div class="form-group">
+                <label for="baseFilePath">Base File Path Template:</label>
+                <input type="text" id="baseFilePath" value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}" placeholder="Enter your base file path template">
+            </div>
+        </div>
+
+
+        <div class="form-section">
+<h3>User Management</h3>
+<div id="userList"></div>
+<button type="button" onclick="addUser()">➕ Add User</button>
+        </div>
+
+
+        <!-- VAV Configuration Section -->
+        <div class="form-section">
+            <h2>🌀 VAV Configuration</h2>
+            <div id="vavGroups">
+                <!-- VAV groups will be dynamically added here -->
+            </div>
+            <button type="button" class="add-btn" onclick="addVavGroup()">➕ Add VAV Group</button>
+        </div>
+
+        <div class="form-section">
+  <h2>
+    <img src="/file/Graphics2/Air-Systems_Color.svg" alt="AHU Icon" style="width:40px; height:40px; vertical-align:middle; margin-right:6px;">
+    AHU Configuration
+  </h2>
+  <div class="form-group">
+    <label for="ahuCount">Number of AHUs:</label>
+    <input type="number" id="ahuCount" min="0" max="50" value="2" onchange="updateAhuList()">
+  </div>
+  <div id="ahuList">
+    <!-- AHU list will be dynamically generated -->
+  </div>
+</div>
+
+<!--RTUS-->
+        <div class="form-section">
+  <h2>
+    <img src="/file/Graphics2/Water-Systems_Color.svg" alt="RTU Icon" style="width:40px; height:40px; vertical-align:middle; margin-right:6px;">
+    RTU Configuration
+  </h2>
+  <div class="form-group">
+    <label for="rtuCount">Number of RTUs:</label>
+    <input type="number" id="rtuCount" min="0" max="50" value="2" onchange="updateRtuList()">
+  </div>
+  <div id="rtuList">
+    <!-- RTU list will be dynamically generated -->
+  </div>
+</div>
+
+<!--Chillers-->
+        <div class="form-section">
+    <h2> ❄️ Chiller Configuration</h2>
+  <div class="form-group">
+    <label for="ChillerCount">Number of Chillers:</label>
+    <input type="number" id="ChillerCount" min="0" max="50" value="2" onchange="updateChillerList()">
+  </div>
+  <div id="ChillerList">
+    <!-- Chiller list will be dynamically generated -->
+  </div>
+</div>
+
+<!--Cooling Towers-->
+        <div class="form-section">
+    <h2> ❄️ Cooling Tower Configuration</h2>
+  <div class="form-group">
+    <label for="TowerCount">Number of Towers:</label>
+    <input type="number" id="TowerCount" min="0" max="50" value="2" onchange="updateTowerList()">
+  </div>
+  <div id="TowerList">
+    <!-- tower list will be dynamically generated -->
+  </div>
+</div>
+
+        <!-- Fluid Cooler Configuration Section -->
+        <div class="form-section">
+            <h2> 💧 Fluid Cooler Configuration</h2>
+            <div class="form-group">
+                <label for="fcCount">Number of Fluid Coolers:</label>
+                <input type="number" id="fcCount" min="0" max="10" value="1" onchange="updateFcList()">
+            </div>
+            <div id="fcList">
+                <!-- Fluid Cooler list will be dynamically generated -->
+            </div>
+        </div>
+
+        <button type="button" class="save-btn" onclick="saveConfiguration()">💾 Save & Export Configuration</button>
+        <button type="button" class="clear-btn" onclick="clearConfiguration()">🗑️ Clear Configuration</button>
+        
+        <div id="status"></div>
+        <div id="debugInfo" class="debug-info" style="display:none;"></div>
+    </div>
+
+
+
+
+
+
+
+<script>
+
+// Global configuration storage
+let globalConfig = {
+    baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+    VAVs: [
+        { group: 0, count: 5 },
+        { group: 1, count: 7 },
+        { group: 2, count: 8 },
+        { group: 3, count: 4 }
+    ],
+    AHUs: ["AHU_1", "AHU_2"],
+    RTUs: ["RTU_1", "RTU_2"],
+    Chillers: ["Chiller_1", "Chiller_2"],
+    Towers: ["Tower_1", "Tower_2"],
+    FluidCooler: ["Fluid_Cooler_1"],
+    Users: [] // <-- now will include {name, role, password}
+};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateTowerList();
+    updateChillerList();
+    initializeUsers(); // init users block
+    updateConfigStatus();
+});
+
+// ---------------- USERS MANAGEMENT ----------------
+function initializeUsers() {
+    const container = document.getElementById('userList');
+    container.innerHTML = '';
+
+    if (globalConfig.Users && globalConfig.Users.length > 0) {
+        globalConfig.Users.forEach((user, index) => {
+            addUserElement(user.name, user.role, user.password || "", index);
+        });
+    }
+}
+
+function addUser() {
+    if (!globalConfig.Users) {
+        globalConfig.Users = [];
+    }
+
+    globalConfig.Users.push({ name: "NewUser", role: "technician", password: "" });
+    addUserElement("NewUser", "technician", "", globalConfig.Users.length - 1);
+    updateConfigStatus();
+}
+
+function addUserElement(name, role, password, index) {
+    const container = document.getElementById('userList');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'user-entry';
+    userDiv.innerHTML = `
+        <div class="inline-inputs">
+            <div>
+                <label>User Name:</label>
+                <input type="text" value="${name}" onchange="updateUser(${index}, 'name', this.value)">
+            </div>
+            <div>
+                <label>Role:</label>
+                <select onchange="updateUser(${index}, 'role', this.value)">
+                    <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                    <option value="technician" ${role === 'technician' ? 'selected' : ''}>Technician</option>
+                    <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+                    <option value="engineer" ${role === 'engineer' ? 'selected' : ''}>Engineer</option>
+                </select>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" value="${password}" onchange="updateUser(${index}, 'password', this.value)">
+            </div>
+            <div style="flex:0;">
+                <button type="button" class="remove-btn" onclick="removeUser(${index})" style="margin-top:20px;">🗑️ Remove</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(userDiv);
+}
+
+function updateUser(index, property, value) {
+    globalConfig.Users[index][property] = value;
+    updateConfigStatus();
+}
+
+function removeUser(index) {
+    globalConfig.Users.splice(index, 1);
+    initializeUsers();
+    updateConfigStatus();
+}
+
+// Load configuration (now just sets defaults, no localStorage)
+function loadConfiguration() {
+    // Set form fields based on current config
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    
+    if (globalConfig.AHUs) {
+        document.getElementById('ahuCount').value = globalConfig.AHUs.length;
+    }
+    if (globalConfig.RTUs) {
+        document.getElementById('rtuCount').value = globalConfig.RTUs.length;
+    }
+    if (globalConfig.FluidCooler) {
+        document.getElementById('fcCount').value = globalConfig.FluidCooler.length;
+    }
+    if (globalConfig.Chillers) {
+        document.getElementById('ChillerCount').value = globalConfig.Chillers.length;
+    }
+    if (globalConfig.Towers) {
+        document.getElementById('TowerCount').value = globalConfig.Towers.length;
+    }
+}
+
+// Export configuration to JSON file
+function exportConfiguration() {
+    // Update config with current form values
+    globalConfig.baseFilePath = document.getElementById('baseFilePath').value;
+    
+    // Create JSON string with proper formatting
+    const configJSON = JSON.stringify(globalConfig, null, 2);
+    
+    // Create downloadable file
+    const blob = new Blob([configJSON], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create temporary download link
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'HomeConfig.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showStatus('Configuration exported successfully to system-config.json!', 'success');
+    updateConfigStatus();
+}
+
+// Import configuration from JSON file
+function importConfiguration(input) {
+    const file = input.files[0];
+    if (!file) {
+        showStatus('No file selected!', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedConfig = JSON.parse(e.target.result);
+            
+            // Validate the imported configuration
+            if (!importedConfig.baseFilePath) {
+                throw new Error('Invalid configuration: missing baseFilePath');
+            }
+            
+            // Update global config
+            globalConfig = { ...globalConfig, ...importedConfig };
+            
+            // Update all form fields
+            document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+            document.getElementById('ahuCount').value = globalConfig.AHUs ? globalConfig.AHUs.length : 0;
+            document.getElementById('rtuCount').value = globalConfig.RTUs ? globalConfig.RTUs.length : 0;
+            document.getElementById('fcCount').value = globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0;
+            document.getElementById('ChillerCount').value = globalConfig.Chillers ? globalConfig.Chillers.length : 0;
+            document.getElementById('TowerCount').value = globalConfig.Towers ? globalConfig.Towers.length : 0;
+            
+            // Refresh all displays
+            initializeVavGroups();
+            updateAhuList();
+            updateRtuList();
+            updateFcList();
+            updateChillerList();
+            updateTowerList();
+            updateConfigStatus();
+            
+            showStatus('Configuration imported successfully!', 'success');
+            
+        } catch (error) {
+            showStatus('Error importing configuration: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    // Clear the input so the same file can be selected again
+    input.value = '';
+}
+
+// Update configuration status display (unchanged except showing Users count)
+function updateConfigStatus() {
+    const statusDiv = document.getElementById('configStatus');
+    const timestamp = new Date().toLocaleString();
+    
+    const summary = `
+Configuration loaded at: ${timestamp}
+- Base Path: ${globalConfig.baseFilePath}
+- VAV Groups: ${globalConfig.VAVs ? globalConfig.VAVs.length : 0}
+- AHUs: ${globalConfig.AHUs ? globalConfig.AHUs.length : 0}
+- RTUs: ${globalConfig.RTUs ? globalConfig.RTUs.length : 0}
+- Chillers: ${globalConfig.Chillers ? globalConfig.Chillers.length : 0}
+- Towers: ${globalConfig.Towers ? globalConfig.Towers.length : 0}
+- Fluid Coolers: ${globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0}
+- Users: ${globalConfig.Users ? globalConfig.Users.length : 0}
+    `.trim();
+    
+    statusDiv.textContent = summary;
+}
+
+// VAV Group Management
+function initializeVavGroups() {
+    const container = document.getElementById('vavGroups');
+    container.innerHTML = '';
+    
+    if (globalConfig.VAVs && globalConfig.VAVs.length > 0) {
+        globalConfig.VAVs.forEach((vav, index) => {
+            addVavGroupElement(vav.group, vav.count, index);
+        });
+    }
+}
+
+function addVavGroup() {
+    if (!globalConfig.VAVs) {
+        globalConfig.VAVs = [];
+    }
+    
+    const newGroup = globalConfig.VAVs.length;
+    globalConfig.VAVs.push({ group: newGroup, count: 1 });
+    addVavGroupElement(newGroup, 1, globalConfig.VAVs.length - 1);
+    updateConfigStatus();
+}
+
+function addVavGroupElement(groupNum, count, index) {
+    const container = document.getElementById('vavGroups');
+    const vavDiv = document.createElement('div');
+    vavDiv.className = 'vav-group';
+    vavDiv.innerHTML = `
+        <h4>VAV Group ${groupNum}</h4>
+        <div class="inline-inputs">
+            <div>
+                <label>Group Number:</label>
+                <input type="number" min="0" max="99" value="${groupNum}" onchange="updateVavGroup(${index}, 'group', this.value)">
+            </div>
+            <div>
+                <label>Number of Units:</label>
+                <input type="number" min="1" max="50" value="${count}" onchange="updateVavGroup(${index}, 'count', this.value)">
+            </div>
+            <div style="flex: 0;">
+                <button type="button" class="remove-btn" onclick="removeVavGroup(${index})" style="margin-top: 20px;">🗑️ Remove</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(vavDiv);
+}
+
+function updateVavGroup(index, property, value) {
+    globalConfig.VAVs[index][property] = parseInt(value);
+    updateConfigStatus();
+}
+
+function removeVavGroup(index) {
+    globalConfig.VAVs.splice(index, 1);
+    initializeVavGroups();
+    updateConfigStatus();
+}
+
+// Equipment Management Functions
+function updateAhuList() {
+    const count = parseInt(document.getElementById('ahuCount').value) || 0;
+    const container = document.getElementById('ahuList');
+    
+    globalConfig.AHUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.AHUs.push(`AHU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.AHUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateRtuList() {
+    const count = parseInt(document.getElementById('rtuCount').value) || 0;
+    const container = document.getElementById('rtuList');
+    
+    globalConfig.RTUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.RTUs.push(`RTU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.RTUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateChillerList() {
+    const count = parseInt(document.getElementById('ChillerCount').value) || 0;
+    const container = document.getElementById('ChillerList');
+    
+    globalConfig.Chillers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Chillers.push(`Chiller_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Chillers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateTowerList() {
+    const count = parseInt(document.getElementById('TowerCount').value) || 0;
+    const container = document.getElementById('TowerList');
+    
+    globalConfig.Towers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Towers.push(`Tower_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Towers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateFcList() {
+    const count = parseInt(document.getElementById('fcCount').value) || 0;
+    const container = document.getElementById('fcList');
+    
+    globalConfig.FluidCooler = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.FluidCooler.push(`Fluid_Cooler_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.FluidCooler.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+// Save configuration (now exports to JSON)
+function saveConfiguration() {
+    const userInput = document.getElementById('baseFilePath').value.trim();
+    
+    if (!userInput) {
+        showStatus('Please enter a valid file path template!', 'error');
+        return;
+    }
+    
+    if (!userInput.includes('{headerName}') || !userInput.includes('{pointName}')) {
+        showStatus('Template must include {headerName} and {pointName} placeholders!', 'error');
+        return;
+    }
+    
+    // Update global config with current base path
+    globalConfig.baseFilePath = userInput;
+    
+    // Export the configuration
+    exportConfiguration();
+}
+
+// Clear configuration
+function clearConfiguration() {
+    // Reset to defaults
+    globalConfig = {
+        baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+        VAVs: [],
+        AHUs: [],
+        RTUs: [],
+        Chillers: [],
+        Towers: [],
+        FluidCooler: []
+    };
+    
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    document.getElementById('ahuCount').value = 0;
+    document.getElementById('rtuCount').value = 0;
+    document.getElementById('fcCount').value = 0;
+    document.getElementById('ChillerCount').value = 0;
+    document.getElementById('TowerCount').value = 0;
+    
+    // Reinitialize displays
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateChillerList();
+    updateTowerList();
+    updateConfigStatus();
+    
+    showStatus('Configuration cleared!', 'success');
+}
+
+// Utility function for path generation (maintained for compatibility)
+function ahuPathTest(pointName, headerName) {
+    let template = globalConfig.baseFilePath;
+
+    if (!headerName) {
+        const fullFilename = window.location.pathname.split('/').pop();
+        headerName = fullFilename.replace('.html', '');
+    }
+
+    return template
+        .replace('{headerName}', headerName)
+        .replace('{pointName}', pointName);
+}
+
+// Status display function
+function showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type}`;
+    setTimeout(() => {
+        status.textContent = '';
+        status.className = 'status';
+    }, 3000);
+}
+
+// Global functions to get configuration (for use by other pages)
+function getGlobalConfig() {
+    return globalConfig;
+}
+
+function getVAVConfig() {
+    return globalConfig.VAVs;
+}
+
+function getAHUConfig() {
+    return globalConfig.AHUs;
+}
+
+function getRTUConfig() {
+    return globalConfig.RTUs;
+}
+
+function getChillerConfig() {
+    return globalConfig.Chillers;
+}
+
+function getTowerConfig() {
+    return globalConfig.Towers;
+}
+
+function getFluidCoolerConfig() {
+    return globalConfig.FluidCooler;
+}
+
+function getBaseFilePath() {
+    return globalConfig.baseFilePath;
+}
+
+// Auto-update on base path change
+document.getElementById('baseFilePath').addEventListener('change', function() {
+    globalConfig.baseFilePath = this.value;
+    updateConfigStatus();
+});
+
+// Function to load configuration from JSON file (for other HTML files to use)
+function loadConfigFromJSON(jsonData) {
+    try {
+        if (typeof jsonData === 'string') {
+            globalConfig = JSON.parse(jsonData);
+        } else {
+            globalConfig = jsonData;
+        }
+        return globalConfig;
+    } catch (error) {
+        console.error('Error loading JSON configuration:', error);
+        return null;
+    }
+}
+</script>
+
+</body>
+</html>

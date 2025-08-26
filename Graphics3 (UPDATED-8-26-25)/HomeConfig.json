@@ -1,0 +1,53 @@
+{
+  "baseFilePath": "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+  "VAVs": [
+    {
+      "group": 0,
+      "count": 5
+    },
+    {
+      "group": 1,
+      "count": 7
+    },
+    {
+      "group": 2,
+      "count": 8
+    },
+    {
+      "group": 3,
+      "count": 4
+    }
+  ],
+  "AHUs": [
+    "AHU_1",
+    "AHU_2"
+  ],
+  "RTUs": [
+    "RTU_1"
+  ],
+  "Chillers": [
+    "Chiller_1"
+  ],
+  "Towers": [
+    "Tower_1"
+  ],
+  "FluidCooler": [
+  ],
+  "Users": [
+    {
+      "name": "murphy",
+      "role": "admin",
+      "password": "mUrp#yt3Am"
+    },
+    {
+      "name": "Murphy",
+      "role": "technician",
+      "password": " ••••••••••"
+    },
+    {
+      "name": "ZGeorgian",
+      "role": "admin",
+      "password": " ••••••••••"
+    }
+  ]
+}
