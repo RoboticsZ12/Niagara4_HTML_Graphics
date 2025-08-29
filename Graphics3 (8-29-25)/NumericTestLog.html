@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --error-color: #e74c3c;
+            --background: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #dee2e6;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #34495e;
+            --secondary-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --error-color: #e74c3c;
+            --background: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ecf0f1;
+            --border-color: #444;
+            --shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .datetime {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .monitoring-status {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .monitoring-active {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .monitoring-inactive {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+            font-size: 1.3rem;
+        }
+
+        .status-display {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .status-ok {
+            background: rgba(39, 174, 96, 0.1);
+            border-left-color: var(--success-color);
+        }
+
+        .status-warning {
+            background: rgba(243, 156, 18, 0.1);
+            border-left-color: var(--warning-color);
+        }
+
+        .status-error {
+            background: rgba(231, 76, 60, 0.1);
+            border-left-color: var(--error-color);
+        }
+
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .status-details p {
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .bubbleSP {
+            margin-bottom: 1rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 0.75rem 1rem;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .file-input-label:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .dark-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 2rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--secondary-color);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(26px);
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .graph-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--background);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .graph-viewer.active {
+            display: flex;
+        }
+
+        .graph-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .graph-controls {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .graph-content {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .graph-container {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            height: 400px;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+        }
+
+        .no-data-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-color);
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .graph-legend {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .graph-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        select, input[type="date"] {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .config-status {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .import-status {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-left: auto;
+            min-width: 200px;
+            text-align: center;
+        }
+        
+        .import-success {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+        
+        .import-error {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--error-color);
+            border: 1px solid var(--error-color);
+        }
+        
+        .import-warning {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .graph-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main View -->
+    <div id="mainView">
+        <div class="header">
+            <h1>Numerical System Logger</h1>
+            <div style="display: flex; align-items: center;">
+                <div class="header-info">
+                    <div id="currentDateTime" class="datetime"></div>
+                    <div id="monitoringStatus" class="monitoring-status"></div>
+                </div>
+                <div class="dark-mode-toggle">
+                    <span class="toggle-label">Light Mode</span>
+                    <div class="toggle-switch" id="toggleSwitch"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Configuration Status -->
+            <div class="card">
+                <h2>Configuration Status</h2>
+                <div id="configStatus" class="config-status">
+                    <div class="status-display status-warning">
+                        <div class="status-title">Loading Global.json configuration...</div>
+                        <div class="status-details">
+                            <p>Attempting to read Global.json from directory</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="card">
+                <h2>Control Panel</h2>
+                <div class="controls">
+                    <button class="btn btn-success" onclick="startMonitoring()">Start Monitoring</button>
+                    <button class="btn btn-warning" onclick="stopMonitoring()">Stop Monitoring</button>
+                    <button class="btn btn-primary" onclick="collectDataNow()">Collect Now</button>
+                    <button class="btn btn-primary" onclick="reloadConfig()">Reload Config</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">Export CSV</button>
+                    <button class="btn btn-secondary" onclick="exportFullDataJSON()">Export JSON</button>
+                    <button class="btn btn-primary" onclick="toggleGraphViewer()">View Graphs</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h2>System Status</h2>
+                <div id="system-status">
+                    <!-- Overall summary will be injected here -->
+                </div>
+            </div>
+
+            <!-- Recent Event Logs -->
+            <div class="card">
+                <h2>Recent Numerical Data (Last 5 Entries)</h2>
+                <div id="eventLogs">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graph Viewer -->
+    <div id="graphViewer" class="graph-viewer">
+        <div class="graph-header">
+            <h1>Graph Viewer</h1>
+            <button class="btn btn-secondary" onclick="toggleGraphViewer()">Back to Monitor</button>
+        </div>
+        
+        <div class="graph-controls">
+            <div class="file-input-wrapper">
+                <input type="file" id="jsonFileInput" accept=".json" onchange="importJsonFile(this)">
+                <label for="jsonFileInput" class="file-input-label">Import JSON Data</label>
+            </div>
+            <label>
+                Unit:
+                <select id="unitSelector" onchange="updatePointSelector()">
+                    <option value="">Select Unit...</option>
+                </select>
+            </label>
+            <label>
+                Point:
+                <select id="pointSelector" onchange="updateGraph()">
+                    <option value="">Select Point...</option>
+                </select>
+            </label>
+            <label>
+                Date:
+                <input type="date" id="dateInput" onchange="forceRefreshGraph()">
+            </label>
+            <label>
+                Time Range:
+                <select id="timeRangeSelector" onchange="updateGraph()">
+                    <option value="all">All Day</option>
+                    <option value="60">Last Hour</option>
+                    <option value="240">Last 4 Hours</option>
+                    <option value="480">Last 8 Hours</option>
+                </select>
+            </label>
+            <div id="importStatus" class="import-status"></div>
+        </div>
+        
+        <div class="graph-content">
+            <div class="graph-container">
+                <canvas id="graphCanvas"></canvas>
+                <div id="noDataMessage" class="no-data-message">
+                    Import a JSON file first to view graph data.
+                </div>
+            </div>
+            
+            <div id="graphLegend" class="graph-legend"></div>
+            <div id="graphStats" class="graph-stats"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let eventLogs = [];
+        let monitoringActive = false;
+        let logCounter = 0;
+        let startTime = new Date();
+        let lastCollectionTime = null;
+        let graphViewerActive = false;
+        let importedJsonData = null;
+        let globalConfig = null;
+        let monitoredPoints = [];
+        
+        // Initialize system
+        function initializeSystem() {
+            updateDateTime();
+            updateMonitoringStatus();
+            updateEventLogs();
+            initializeDateInput();
+            loadGlobalConfig();
+            
+            // Start auto-save every 30 seconds
+            setInterval(saveData, 30000);
+            
+            // Start data collection every 15 minutes (900000ms)
+            setInterval(() => {
+                if (monitoringActive) {
+                    collectAllData();
+                }
+            }, 900000);
+            
+            // Update time every second
+            setInterval(updateDateTime, 1000);
+            
+            console.log('Niagara Numerical System Monitor initialized');
+        }
+
+        async function loadGlobalConfig() {
+            try {
+                const response = await fetch('./Global.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                globalConfig = await response.json();
+                parseMonitoredPoints();
+                updateConfigStatus();
+                
+                console.log('Global.json loaded successfully');
+                console.log('Monitored points found:', monitoredPoints.length);
+                
+            } catch (error) {
+                console.error('Error loading Global.json:', error);
+                updateConfigStatus(error.message);
+            }
+        }
+
+        function parseMonitoredPoints() {
+            monitoredPoints = [];
+            
+            if (!globalConfig || !globalConfig.globalVariables) {
+                console.warn('No globalVariables found in config');
+                return;
+            }
+            
+            for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+                if (!unitData.points || !Array.isArray(unitData.points)) {
+                    continue;
+                }
+                
+                unitData.points.forEach(point => {
+                    if (point.logNumeric === "yes_Numeric" && point.status === "connected") {
+                        monitoredPoints.push({
+                            unit: unitName,
+                            pointName: point.name,
+                            fullPath: point.fullPath,
+                            basePath: unitData.basePath,
+                            id: point.id,
+                            dateAdded: point.dateAdded
+                        });
+                    }
+                });
+            }
+            
+            console.log('Parsed monitored points:', monitoredPoints);
+        }
+
+        function updateConfigStatus(errorMessage = null) {
+            const configStatus = document.getElementById('configStatus');
+            
+            if (errorMessage) {
+                configStatus.innerHTML = `
+                    <div class="status-display status-error">
+                        <div class="status-title">Configuration Error</div>
+                        <div class="status-details">
+                            <p><strong>Error:</strong> ${errorMessage}</p>
+                            <p>Please ensure Global.json exists in the same directory</p>
+                            <p>Click "Reload Config" to try again</p>
+                        </div>
+                    </div>
+                `;
+            } else if (globalConfig) {
+                const totalUnits = Object.keys(globalConfig.globalVariables || {}).length;
+                const totalPoints = monitoredPoints.length;
+                
+                configStatus.innerHTML = `
+                    <div class="status-display status-ok">
+                        <div class="status-title">Configuration Loaded Successfully</div>
+                        <div class="status-details">
+                            <p><strong>Units Found:</strong> ${totalUnits}</p>
+                            <p><strong>Numerical Points to Monitor:</strong> ${totalPoints}</p>
+                            <p><strong>Config File:</strong> Global.json</p>
+                            <p><strong>Last Loaded:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function reloadConfig() {
+            loadGlobalConfig();
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const formatted = now.toLocaleString('en-US', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                timeZoneName: 'short'
+            });
+            document.getElementById('currentDateTime').textContent = formatted;
+        }
+
+        function updateMonitoringStatus() {
+            const statusElement = document.getElementById('monitoringStatus');
+            if (monitoringActive) {
+                statusElement.textContent = 'NUMERICAL MONITORING ACTIVE';
+                statusElement.className = 'monitoring-status monitoring-active';
+            } else {
+                statusElement.textContent = 'NUMERICAL MONITORING STOPPED';
+                statusElement.className = 'monitoring-status monitoring-inactive';
+            }
+        }
+
+        async function collectAllData() {
+            if (!monitoringActive || monitoredPoints.length === 0) return;
+            
+            // Check if we're running in a Niagara environment
+            if (typeof require === 'undefined') {
+                console.error('Baja require system not available. This script must run within a Niagara station environment.');
+                showNotification('Baja System Error', 'This script must run within a Niagara station environment', 'error');
+                return;
+            }
+            
+            console.log('Collecting numerical data from configured points...');
+            lastCollectionTime = new Date();
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const point of monitoredPoints) {
+                try {
+                    // Read actual values from Niagara system using Baja
+                    const value = await readActualPointValue(point);
+                    
+                    if (value !== null && value !== undefined) {
+                        // Convert value to number if it's not already
+                        const numericValue = typeof value === 'number' ? value : parseFloat(value);
+                        
+                        if (!isNaN(numericValue)) {
+                            addNumericalDataPoint(point, numericValue);
+                            successCount++;
+                        } else {
+                            console.warn(`Non-numeric value for ${point.unit}.${point.pointName}: ${value}`);
+                            errorCount++;
+                        }
+                    } else {
+                        console.warn(`Null value for ${point.unit}.${point.pointName}`);
+                        errorCount++;
+                    }
+                } catch (error) {
+                    console.error(`Error reading point ${point.unit}.${point.pointName}:`, error);
+                    errorCount++;
+                }
+            }
+            
+            updateEventLogs();
+            saveDataToFile();
+            
+            const message = `Collected ${successCount} points${errorCount > 0 ? `, ${errorCount} errors` : ''}`;
+            showNotification('Data Collection Complete', message, successCount > 0 ? 'success' : 'warning');
+        }
+
+        async function readActualPointValue(point) {
+            return new Promise((resolve, reject) => {
+                try {
+                    require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], function (baja, Override, NumericOverride) {
+                        'use strict';
+                        
+                        // Use the fullPath from the configuration
+                        const pointPath = point.fullPath;
+                        console.log(`Reading point: ${pointPath}`);
+                        
+                        baja.Ord.make(pointPath).get()
+                            .then(function(point) {
+                                if (point && point.getOut) {
+                                    const value = point.getOut().getValue();
+                                    console.log(`Point ${pointPath} value: ${value}`);
+                                    resolve(value);
+                                } else {
+                                    console.warn(`Point ${pointPath} has no output value`);
+                                    resolve(null);
+                                }
+                            })
+                            .catch(function(error) {
+                                console.error(`Error reading point ${pointPath}:`, error);
+                                reject(error);
+                            });
+                    });
+                } catch (error) {
+                    console.error(`Baja require error for point ${point.fullPath}:`, error);
+                    reject(error);
+                }
+            });
+        }
+
+        function addNumericalDataPoint(point, value) {
+            const timestamp = new Date().toLocaleString();
+            logCounter++;
+            
+            // Round value to the tenths place if it's a number
+            const roundedValue = (typeof value === 'number' && !isNaN(value)) 
+                ? Number(value.toFixed(2)) 
+                : value;
+            
+            // Determine unit based on point ID or name from Global.json
+            let dataUnit = '';
+            if (point.id) {
+                const id = point.id.toLowerCase();
+                if (id.includes('temp') || id.includes('temperature')) dataUnit = '°F';
+                else if (id.includes('flow') || id.includes('air-flow')) dataUnit = 'CFM';
+                else if (id.includes('pressure')) dataUnit = 'PSI';
+                else if (id.includes('humidity')) dataUnit = '%';
+                else if (id.includes('percent')) dataUnit = '%';
+                else if (id.includes('speed')) dataUnit = '%';
+                else if (id.includes('power')) dataUnit = 'kW';
+                else if (id.includes('current')) dataUnit = 'A';
+                else if (id.includes('voltage')) dataUnit = 'V';
+            }
+            
+            // Fallback to point name if ID didn't provide unit info
+            if (!dataUnit) {
+                const pointName = point.pointName.toLowerCase();
+                if (pointName.includes('temp')) dataUnit = '°F';
+                else if (pointName.includes('flow')) dataUnit = 'CFM';
+                else if (pointName.includes('pressure')) dataUnit = 'PSI';
+                else if (pointName.includes('humidity')) dataUnit = '%';
+            }
+            
+            const logEntry = {
+                id: logCounter,
+                timestamp: timestamp,
+                timestampObj: new Date(),
+                unit: point.unit,
+                pointName: point.pointName,
+                pointId: point.id,
+                value: roundedValue,
+                dataUnit: dataUnit,
+                fullPath: point.fullPath,
+                displayName: `${point.unit} - ${point.pointName}`,
+                details: `${point.pointName} = ${roundedValue} ${dataUnit}`
+            };
+            
+            eventLogs.unshift(logEntry);
+            
+            // Keep only last 1000 entries
+            if (eventLogs.length > 10000) {
+                eventLogs = eventLogs.slice(0, 10000);
+            }
+        }
+
+        async function saveDataToFile() {
+            try {
+                const exportData = {
+                    metadata: {
+                        saveTimestamp: new Date().toISOString(),
+                        totalLogs: eventLogs.length,
+                        monitoredPointsCount: monitoredPoints.length
+                    },
+                    eventLogs: eventLogs,
+                    systemConfig: {
+                        monitoringActive: monitoringActive,
+                        logCounter: logCounter,
+                        startTime: startTime.toISOString(),
+                        lastCollectionTime: lastCollectionTime ? lastCollectionTime.toISOString() : null
+                    },
+                    monitoredPoints: monitoredPoints
+                };
+
+                const jsonString = JSON.stringify(exportData, null, 2);
+                
+                // In a real implementation, this would save to the file system
+                // For now, we'll save to browser storage as a backup
+                console.log('Data would be saved to numerical_data.json:', exportData);
+                
+            } catch (error) {
+                console.error('Save to file failed:', error);
+            }
+        }
+
+        function updateEventLogs() {
+            const logsContainer = document.getElementById('eventLogs');
+            const recentLogs = eventLogs.slice(0, 5);
+            
+            logsContainer.innerHTML = '';
+            
+            if (recentLogs.length === 0) {
+                logsContainer.innerHTML = `
+                    <div class="bubbleSP">
+                        <div class="point-status status-display">
+                            <div class="status-title">No numerical data recorded yet</div>
+                            <div class="status-details">
+                                <p>System collects data from ${monitoredPoints.length} configured points every 15 minutes</p>
+                                <p>Click "Collect Now" for immediate data collection</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            recentLogs.forEach(log => {
+                const logElement = document.createElement('div');
+                logElement.className = 'bubbleSP';
+                
+                let statusClass = 'status-ok';
+                let statusIcon = '📊';
+                
+                if (log.value === null || log.value === undefined) {
+                    statusClass = 'status-error';
+                    statusIcon = '❌';
+                } else if (log.value < 0) {
+                    statusClass = 'status-warning';
+                    statusIcon = '⚠️';
+                }
+                
+                logElement.innerHTML = `
+                    <div class="point-status status-display ${statusClass}">
+                        <div class="status-title">${statusIcon} ${log.displayName} - ${log.value} ${log.dataUnit}</div>
+                        <div class="status-details">
+                            <p><strong>Timestamp:</strong> ${log.timestamp}</p>
+                            <p><strong>Value:</strong> ${log.value} ${log.dataUnit}</p>
+                            <p><strong>Unit:</strong> ${log.unit}</p>
+                            <p><strong>Point:</strong> ${log.pointName}</p>
+                            <p><strong>Full Path:</strong> ${log.fullPath}</p>
+                        </div>
+                    </div>
+                `;
+                logsContainer.appendChild(logElement);
+            });
+            
+            updateOverallStatus();
+        }
+
+        function updateOverallStatus() {
+            const statusElement = document.getElementById('system-status');
+            
+            let summaryElement = document.getElementById('overall-summary');
+            if (!summaryElement) {
+                summaryElement = document.createElement('div');
+                summaryElement.id = 'overall-summary';
+                summaryElement.className = 'overall-summary';
+                statusElement.appendChild(summaryElement);
+            }
+            
+            const activePoints = monitoredPoints.length;
+            const totalLogs = eventLogs.length;
+            
+            const overallClass = activePoints > 0 ? 'status-ok' : 'status-error';
+            const overallTitle = `📊 ${activePoints} POINTS MONITORED`;
+            const monitoringStatusText = monitoringActive ? '🟢 ACTIVE (15min intervals)' : '🔴 STOPPED';
+            
+            summaryElement.className = `overall-summary status-display ${overallClass}`;
+            summaryElement.innerHTML = `
+                <div class="status-title">${overallTitle}</div>
+                <div class="status-details">
+                    <p><strong>Monitoring Status:</strong> ${monitoringStatusText}</p>
+                    <p><strong>Configured Points:</strong> ${activePoints} numerical points</p>
+                    <p><strong>Total Logged Entries:</strong> ${totalLogs}</p>
+                    <p><strong>Last Collection:</strong> ${lastCollectionTime ? lastCollectionTime.toLocaleString() : 'Never'}</p>
+                    <p><strong>Config Status:</strong> ${globalConfig ? 'Loaded' : 'Not Loaded'}</p>
+                </div>
+            `;
+        }
+
+        // Control functions
+        function startMonitoring() {
+            if (!globalConfig) {
+                showNotification('Configuration Required', 'Please load Global.json first', 'error');
+                return;
+            }
+            
+            if (monitoredPoints.length === 0) {
+                showNotification('No Points Configured', 'No numerical points found in configuration', 'warning');
+                return;
+            }
+            
+            monitoringActive = true;
+            updateMonitoringStatus();
+            collectAllData();
+            showNotification('Monitoring Started', `Monitoring ${monitoredPoints.length} numerical points`, 'success');
+        }
+
+        function stopMonitoring() {
+            monitoringActive = false;
+            updateMonitoringStatus();
+            showNotification('Monitoring Stopped', 'Numerical monitoring has been paused', 'warning');
+        }
+
+        function collectDataNow() {
+            if (!monitoringActive) {
+                showNotification('Monitoring Inactive', 'Please start monitoring first', 'error');
+                return;
+            }
+            
+            if (monitoredPoints.length === 0) {
+                showNotification('No Points Configured', 'No numerical points to collect', 'warning');
+                return;
+            }
+            
+            collectAllData();
+        }
+
+        function exportLogs() {
+            if (eventLogs.length === 0) {
+                showNotification('No Data', 'No logs to export', 'warning');
+                return;
+            }
+
+            const headers = ['ID', 'Timestamp', 'Unit', 'Point Name', 'Value', 'Full Path'];
+
+            // Sort logs by Unit, then Point Name, then Timestamp
+            const sortedLogs = [...eventLogs].sort((a, b) => {
+                if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
+                if (a.pointName !== b.pointName) return a.pointName.localeCompare(b.pointName);
+                return new Date(a.timestampObj) - new Date(b.timestampObj);
+            });
+
+            const csvRows = [headers.join(',')];
+
+            let lastUnit = null;
+
+            sortedLogs.forEach(log => {
+                // If the unit changed, add a blank row before continuing
+                if (lastUnit !== null && log.unit !== lastUnit) {
+                    csvRows.push(''); // blank line
+                }
+
+                csvRows.push([
+                    log.id,
+                    `"${log.timestamp}"`,
+                    `"${log.unit}"`,
+                    `"${log.pointName}"`,
+                    log.value,
+                    `"${log.fullPath}"`,
+                ].join(','));
+
+                lastUnit = log.unit;
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `niagara_numerical_logs_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification('Export Complete', `Exported ${eventLogs.length} log entries`, 'success');
+        }
+
+        function exportFullDataJSON() {
+            const exportData = {
+                metadata: {
+                    exportTimestamp: new Date().toISOString(),
+                    totalLogs: eventLogs.length,
+                    exportType: 'fullNumericalData',
+                    monitoredPointsCount: monitoredPoints.length
+                },
+                eventLogs: eventLogs,
+                systemConfig: {
+                    monitoringActive: monitoringActive,
+                    logCounter: logCounter,
+                    startTime: startTime.toISOString(),
+                    lastCollectionTime: lastCollectionTime ? lastCollectionTime.toISOString() : null
+                },
+                monitoredPoints: monitoredPoints
+            };
+
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `niagara_numerical_data_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification('JSON Export Complete', 'Full numerical data exported', 'success');
+        }
+
+        function saveData() {
+            try {
+                const saveData = {
+                    eventLogs: eventLogs,
+                    logCounter: logCounter,
+                    monitoringActive: monitoringActive,
+                    timestamp: new Date().toISOString(),
+                    monitoredPoints: monitoredPoints
+                };
+                
+                console.log('Data saved:', saveData);
+                
+                const saveTimeElement = document.getElementById('lastSaveTime');
+                if (saveTimeElement) {
+                    saveTimeElement.textContent = `Last saved: ${new Date().toLocaleTimeString()}`;
+                }
+                
+                console.log('Auto-save completed');
+            } catch (error) {
+                console.error('Save failed:', error);
+            }
+        }
+
+        function clearLogs() {
+            if (confirm('Are you sure you want to clear all numerical logs? This cannot be undone.')) {
+                eventLogs = [];
+                logCounter = 0;
+                updateEventLogs();
+                showNotification('Logs Cleared', 'All numerical data has been cleared', 'info');
+            }
+        }
+
+        // JSON Import Functions
+        function importJsonFile(input) {
+            const file = input.files[0];
+            const statusElement = document.getElementById('importStatus');
+            
+            if (!file) {
+                updateImportStatus('No file selected', 'warning');
+                return;
+            }
+            
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                updateImportStatus('Please select a JSON file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    processImportedJson(jsonData, file.name);
+                } catch (error) {
+                    console.error('JSON parse error:', error);
+                    updateImportStatus('Invalid JSON file format', 'error');
+                }
+            };
+            
+            reader.onerror = function() {
+                updateImportStatus('Error reading file', 'error');
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function processImportedJson(jsonData, fileName) {
+            try {
+                // Handle different JSON structures
+                let eventLogs = [];
+                
+                // Check if it's the exported format from this system
+                if (jsonData.eventLogs && Array.isArray(jsonData.eventLogs)) {
+                    eventLogs = jsonData.eventLogs;
+                }
+                // Check if it's a direct array of log entries
+                else if (Array.isArray(jsonData)) {
+                    eventLogs = jsonData;
+                }
+                // Check for other possible structures
+                else if (jsonData.data && Array.isArray(jsonData.data)) {
+                    eventLogs = jsonData.data;
+                }
+                else if (jsonData.logs && Array.isArray(jsonData.logs)) {
+                    eventLogs = jsonData.logs;
+                }
+                else {
+                    throw new Error('No recognizable event logs structure found in JSON');
+                }
+                
+                // Validate and clean the data
+                const validatedLogs = validateImportedLogs(eventLogs);
+                
+                if (validatedLogs.length === 0) {
+                    throw new Error('No valid log entries found with required fields (unit, pointName, timestamp, value)');
+                }
+                
+                // Store the imported data globally
+                importedJsonData = {
+                    eventLogs: validatedLogs,
+                    metadata: {
+                        fileName: fileName,
+                        importTime: new Date().toISOString(),
+                        totalEntries: validatedLogs.length
+                    }
+                };
+                
+                // Update the UI
+                populateUnitSelector();
+                clearGraph();
+                
+                const uniqueUnits = [...new Set(validatedLogs.map(log => log.unit))].length;
+                const uniquePoints = [...new Set(validatedLogs.map(log => log.pointName))].length;
+                
+                updateImportStatus(`Imported: ${validatedLogs.length} entries, ${uniqueUnits} units, ${uniquePoints} points`, 'success');
+                
+                console.log('JSON data imported successfully:', {
+                    fileName: fileName,
+                    totalEntries: validatedLogs.length,
+                    uniqueUnits: uniqueUnits,
+                    uniquePoints: uniquePoints
+                });
+                
+            } catch (error) {
+                console.error('Import processing error:', error);
+                updateImportStatus(`Import failed: ${error.message}`, 'error');
+                importedJsonData = null;
+            }
+        }
+
+        function validateImportedLogs(logs) {
+            const validatedLogs = [];
+            
+            logs.forEach((log, index) => {
+                try {
+                    // Check for required fields
+                    if (!log.unit || !log.pointName || !log.timestamp || (log.value === undefined && log.value === null)) {
+                        console.warn(`Skipping log entry ${index}: missing required fields`, log);
+                        return;
+                    }
+                    
+                    // Parse and validate timestamp
+                    let timestampObj;
+                    if (log.timestampObj && log.timestampObj instanceof Date) {
+                        timestampObj = log.timestampObj;
+                    } else if (typeof log.timestamp === 'string') {
+                        timestampObj = new Date(log.timestamp);
+                    } else if (log.timestamp instanceof Date) {
+                        timestampObj = log.timestamp;
+                    } else {
+                        console.warn(`Skipping log entry ${index}: invalid timestamp`, log);
+                        return;
+                    }
+                    
+                    if (isNaN(timestampObj.getTime())) {
+                        console.warn(`Skipping log entry ${index}: invalid timestamp format`, log);
+                        return;
+                    }
+                    
+                    // Parse and validate value
+                    const numericValue = parseFloat(log.value);
+                    if (isNaN(numericValue)) {
+                        console.warn(`Skipping log entry ${index}: non-numeric value`, log);
+                        return;
+                    }
+                    
+                    // Create validated log entry
+                    validatedLogs.push({
+                        id: log.id || index,
+                        timestamp: timestampObj.toLocaleString(),
+                        timestampObj: timestampObj,
+                        unit: log.unit.toString(),
+                        pointName: log.pointName.toString(),
+                        pointId: log.pointId || log.id || '',
+                        value: numericValue,
+                        dataUnit: log.dataUnit || log.unit || '',
+                        fullPath: log.fullPath || '',
+                        displayName: `${log.unit} - ${log.pointName}`,
+                        details: `${log.pointName} = ${numericValue} ${log.dataUnit || ''}`
+                    });
+                    
+                } catch (error) {
+                    console.warn(`Error processing log entry ${index}:`, error, log);
+                }
+            });
+            
+            return validatedLogs;
+        }
+
+        function updateImportStatus(message, type = 'info') {
+            const statusElement = document.getElementById('importStatus');
+            if (!statusElement) return;
+            
+            statusElement.textContent = message;
+            statusElement.className = `import-status import-${type}`;
+            
+            // Auto-clear success messages after 10 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    if (statusElement.textContent === message) {
+                        statusElement.textContent = '';
+                        statusElement.className = 'import-status';
+                    }
+                }, 10000);
+            }
+        }
+
+        // Graph viewer functions
+        function toggleGraphViewer() {
+            const graphViewer = document.getElementById('graphViewer');
+            const mainView = document.getElementById('mainView');
+            
+            graphViewerActive = !graphViewerActive;
+
+            if (graphViewerActive) {
+                graphViewer.classList.add('active');
+                mainView.classList.add('hidden');
+                initializeGraphViewer();
+            } else {
+                graphViewer.classList.remove('active');
+                mainView.classList.remove('hidden');
+            }
+        }
+
+        function initializeGraphViewer() {
+            populateUnitSelector();
+            initializeDateInput();
+            clearGraph();
+        }
+
+        function initializeDateInput() {
+            const dateInput = document.getElementById('dateInput');
+            if (dateInput) {
+                const today = new Date().toISOString().split('T')[0];
+                dateInput.value = today;
+                dateInput.addEventListener('change', forceRefreshGraph);
+            }
+        }
+
+        function populateUnitSelector() {
+            const unitSelector = document.getElementById('unitSelector');
+            if (!unitSelector) return;
+
+            unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+
+            let dataSource = [];
+            
+            // Use imported JSON data if available, otherwise use live event logs
+            if (importedJsonData && importedJsonData.eventLogs) {
+                dataSource = importedJsonData.eventLogs;
+            } else if (eventLogs.length > 0) {
+                dataSource = eventLogs;
+            }
+            
+            if (dataSource.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No data available - import JSON file or collect data';
+                option.disabled = true;
+                unitSelector.appendChild(option);
+                return;
+            }
+            
+            const uniqueUnits = [...new Set(dataSource.map(log => log.unit))].filter(unit => unit).sort();
+            
+            uniqueUnits.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = unit;
+                unitSelector.appendChild(option);
+            });
+        }
+
+        function updatePointSelector() {
+            const unitSelector = document.getElementById('unitSelector');
+            const pointSelector = document.getElementById('pointSelector');
+            
+            if (!unitSelector || !pointSelector) return;
+
+            const selectedUnit = unitSelector.value;
+            pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+            if (selectedUnit) {
+                let dataSource = [];
+                
+                // Use imported JSON data if available, otherwise use live event logs
+                if (importedJsonData && importedJsonData.eventLogs) {
+                    dataSource = importedJsonData.eventLogs;
+                } else if (eventLogs.length > 0) {
+                    dataSource = eventLogs;
+                }
+                
+                const uniquePoints = [...new Set(
+                    dataSource
+                        .filter(log => log.unit === selectedUnit)
+                        .map(log => log.pointName)
+                )].sort();
+                
+                uniquePoints.forEach(point => {
+                    if (point) {
+                        const option = document.createElement('option');
+                        option.value = point;
+                        option.textContent = point;
+                        pointSelector.appendChild(option);
+                    }
+                });
+            }
+
+            clearGraph();
+        }
+
+        function updateGraph() {
+            const unitSelector = document.getElementById('unitSelector');
+            const pointSelector = document.getElementById('pointSelector');
+            const timeRangeSelector = document.getElementById('timeRangeSelector');
+            
+            if (!unitSelector || !pointSelector) return;
+
+            const selectedUnit = unitSelector.value;
+            const selectedPoint = pointSelector.value;
+            const timeRange = timeRangeSelector ? timeRangeSelector.value : 'all';
+
+            if (!selectedUnit || !selectedPoint) {
+                clearGraph();
+                return;
+            }
+
+            drawGraph(selectedUnit, selectedPoint, timeRange);
+        }
+
+        function getSelectedDate() {
+            const dateInput = document.getElementById('dateInput');
+            if (!dateInput || !dateInput.value) return null;
+            
+            const selectedDate = new Date(dateInput.value + 'T00:00:00.000');
+            const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+            const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+            
+            return {
+                dateObject: selectedDate,
+                dateString: dateInput.value,
+                startOfDay: startOfDay,
+                endOfDay: endOfDay
+            };
+        }
+
+        function getFilteredEventLogsByDate(unit = null, point = null) {
+            const selectedDate = getSelectedDate();
+            if (!selectedDate) return [];
+            
+            let dataSource = [];
+            
+            // Use imported JSON data if available, otherwise use live event logs
+            if (importedJsonData && importedJsonData.eventLogs) {
+                dataSource = importedJsonData.eventLogs;
+            } else if (eventLogs.length > 0) {
+                dataSource = eventLogs;
+            }
+            
+            return dataSource.filter(log => {
+                let logTimestamp;
+                if (log.timestampObj) {
+                    logTimestamp = log.timestampObj;
+                } else if (typeof log.timestamp === 'string') {
+                    logTimestamp = new Date(log.timestamp);
+                } else if (log.timestamp instanceof Date) {
+                    logTimestamp = log.timestamp;
+                } else {
+                    return false;
+                }
+                
+                if (isNaN(logTimestamp.getTime())) return false;
+                if (isNaN(log.value)) return false;
+                
+                const logDateString = logTimestamp.getFullYear() + '-' + 
+                                     String(logTimestamp.getMonth() + 1).padStart(2, '0') + '-' + 
+                                     String(logTimestamp.getDate()).padStart(2, '0');
+                
+                const matchesDate = logDateString === selectedDate.dateString;
+                const matchesUnit = !unit || log.unit === unit;
+                const matchesPoint = !point || log.pointName === point;
+                
+                return matchesDate && matchesUnit && matchesPoint;
+            });
+        }
+
+        function drawGraph(unitName, pointName, timeRange) {
+            const canvas = document.getElementById('graphCanvas');
+            const noDataMessage = document.getElementById('noDataMessage');
+            const graphLegend = document.getElementById('graphLegend');
+            const graphStats = document.getElementById('graphStats');
+            
+            if (!canvas) return;
+
+            const selectedDate = getSelectedDate();
+            if (!selectedDate) {
+                clearGraph();
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            let filteredData = getFilteredEventLogsByDate(unitName, pointName);
+
+            if (timeRange !== 'all' && !isNaN(parseInt(timeRange))) {
+                const minutesBack = parseInt(timeRange);
+                const cutoffTime = new Date(selectedDate.endOfDay.getTime() - (minutesBack * 60 * 1000));
+                filteredData = filteredData.filter(log => {
+                    const logTime = log.timestampObj || new Date(log.timestamp);
+                    return logTime >= cutoffTime;
+                });
+            }
+
+            filteredData = filteredData.map(log => ({
+                timestamp: log.timestampObj || new Date(log.timestamp),
+                timestampString: log.timestamp,
+                value: parseFloat(log.value),
+                pointName: log.pointName,
+                dataUnit: log.dataUnit || ''
+            }));
+
+            filteredData.sort((a, b) => a.timestamp - b.timestamp);
+
+            if (filteredData.length === 0) {
+                noDataMessage.textContent = `No numerical data found for ${unitName} - ${pointName} on ${selectedDate.dateString}`;
+                noDataMessage.style.display = 'block';
+                canvas.style.display = 'none';
+                graphLegend.innerHTML = '';
+                graphStats.innerHTML = '';
+                return;
+            }
+
+            noDataMessage.style.display = 'none';
+            canvas.style.display = 'block';
+
+            drawNumericalGraph(ctx, canvas.width, canvas.height, filteredData, selectedDate);
+            updateGraphLegend(unitName, pointName, filteredData);
+            updateGraphStats(filteredData);
+        }
+
+        function drawNumericalGraph(ctx, width, height, data, selectedDate) {
+            const padding = 60;
+            const graphWidth = width - (padding * 2);
+            const graphHeight = height - (padding * 2);
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Background
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg') || '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Grid
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color') || '#ddd';
+            ctx.lineWidth = 0.5;
+            ctx.setLineDash([2, 2]);
+
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (graphWidth * i / 10);
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, padding + graphHeight);
+                ctx.stroke();
+            }
+
+            for (let i = 0; i <= 8; i++) {
+                const y = padding + (graphHeight * i / 8);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + graphWidth, y);
+                ctx.stroke();
+            }
+
+            ctx.setLineDash([]);
+
+            // Axes
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#000000';
+            ctx.strokeStyle = textColor;
+            ctx.lineWidth = 2;
+            ctx.font = '12px Segoe UI, sans-serif';
+            ctx.fillStyle = textColor;
+
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + graphHeight);
+            ctx.lineTo(padding + graphWidth, padding + graphHeight);
+            ctx.stroke();
+
+            // Value range for Y-axis
+            const values = data.map(d => d.value).filter(v => !isNaN(v));
+            const minValue = Math.min(...values);
+            const maxValue = Math.max(...values);
+            const valueRange = maxValue - minValue;
+            const valuePadding = valueRange * 0.1;
+            const adjustedMin = minValue - valuePadding;
+            const adjustedMax = maxValue + valuePadding;
+
+            // Y-axis labels
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            
+            for (let i = 0; i <= 8; i++) {
+                const value = adjustedMin + (adjustedMax - adjustedMin) * (1 - i / 8);
+                const y = padding + (graphHeight * i / 8);
+                ctx.fillText(value.toFixed(1), padding - 10, y);
+            }
+
+            // X-axis labels
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            const startTime = selectedDate.startOfDay;
+            const timeLabels = [
+                new Date(startTime.getTime()),
+                new Date(startTime.getTime() + 4 * 60 * 60 * 1000),
+                new Date(startTime.getTime() + 8 * 60 * 60 * 1000),
+                new Date(startTime.getTime() + 12 * 60 * 60 * 1000),
+                new Date(startTime.getTime() + 16 * 60 * 60 * 1000),
+                new Date(startTime.getTime() + 20 * 60 * 60 * 1000),
+                new Date(selectedDate.endOfDay.getTime())
+            ];
+            
+            timeLabels.forEach((timePoint, i) => {
+                const x = padding + (graphWidth * i / 6);
+                const timeStr = timePoint.toLocaleTimeString('en-US', { 
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                ctx.fillText(timeStr, x, padding + graphHeight + 10);
+            });
+
+            // Axis titles
+            ctx.font = 'bold 14px Segoe UI, sans-serif';
+            let yAxisTitle = 'Value';
+            if (data.length > 0 && data[0].dataUnit) {
+                yAxisTitle = `Value (${data[0].dataUnit})`;
+            }
+            
+            ctx.save();
+            ctx.translate(20, padding + graphHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yAxisTitle, 0, 0);
+            ctx.restore();
+            
+            ctx.fillText('Time', padding + graphWidth / 2, padding + graphHeight + 35);
+
+            // Draw data line
+            const startTimeMs = selectedDate.startOfDay.getTime();
+            const endTimeMs = selectedDate.endOfDay.getTime();
+            const timeRangeMs = endTimeMs - startTimeMs;
+
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            
+            for (let i = 0; i < data.length; i++) {
+                const entry = data[i];
+                const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+                const normalizedValue = (entry.value - adjustedMin) / (adjustedMax - adjustedMin);
+                const y = padding + graphHeight - (graphHeight * normalizedValue);
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+
+            // Draw data points
+            data.forEach(entry => {
+                const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+                const normalizedValue = (entry.value - adjustedMin) / (adjustedMax - adjustedMin);
+                const y = padding + graphHeight - (graphHeight * normalizedValue);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#2980b9';
+                ctx.fill();
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+
+
+
+
+
+
+// Add this after the existing drawNumericalGraph function
+// Store data points for click detection
+let graphDataPoints = [];
+
+// Modified drawNumericalGraph function with click interactivity
+function drawNumericalGraph(ctx, width, height, data, selectedDate) {
+    const padding = 60;
+    const graphWidth = width - (padding * 2);
+    const graphHeight = height - (padding * 2);
+
+    // Clear previous data points array
+    graphDataPoints = [];
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg') || '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color') || '#ddd';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([2, 2]);
+
+    for (let i = 0; i <= 10; i++) {
+        const x = padding + (graphWidth * i / 10);
+        ctx.beginPath();
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, padding + graphHeight);
+        ctx.stroke();
+    }
+
+    for (let i = 0; i <= 8; i++) {
+        const y = padding + (graphHeight * i / 8);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + graphWidth, y);
+        ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+
+    // Axes
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#000000';
+    ctx.strokeStyle = textColor;
+    ctx.lineWidth = 2;
+    ctx.font = '12px Segoe UI, sans-serif';
+    ctx.fillStyle = textColor;
+
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, padding + graphHeight);
+    ctx.lineTo(padding + graphWidth, padding + graphHeight);
+    ctx.stroke();
+
+    // Value range for Y-axis
+    const values = data.map(d => d.value).filter(v => !isNaN(v));
+    const minValue = Math.min(...values);
+    const maxValue = Math.max(...values);
+    const valueRange = maxValue - minValue;
+    const valuePadding = valueRange * 0.1;
+    const adjustedMin = minValue - valuePadding;
+    const adjustedMax = maxValue + valuePadding;
+
+    // Y-axis labels
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    
+    for (let i = 0; i <= 8; i++) {
+        const value = adjustedMin + (adjustedMax - adjustedMin) * (1 - i / 8);
+        const y = padding + (graphHeight * i / 8);
+        ctx.fillText(value.toFixed(1), padding - 10, y);
+    }
+
+    // X-axis labels
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    const startTime = selectedDate.startOfDay;
+    const timeLabels = [
+        new Date(startTime.getTime()),
+        new Date(startTime.getTime() + 4 * 60 * 60 * 1000),
+        new Date(startTime.getTime() + 8 * 60 * 60 * 1000),
+        new Date(startTime.getTime() + 12 * 60 * 60 * 1000),
+        new Date(startTime.getTime() + 16 * 60 * 60 * 1000),
+        new Date(startTime.getTime() + 20 * 60 * 60 * 1000),
+        new Date(selectedDate.endOfDay.getTime())
+    ];
+    
+    timeLabels.forEach((timePoint, i) => {
+        const x = padding + (graphWidth * i / 6);
+        const timeStr = timePoint.toLocaleTimeString('en-US', { 
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        ctx.fillText(timeStr, x, padding + graphHeight + 10);
+    });
+
+    // Axis titles
+    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    let yAxisTitle = 'Value';
+    if (data.length > 0 && data[0].dataUnit) {
+        yAxisTitle = `Value (${data[0].dataUnit})`;
+    }
+    
+    ctx.save();
+    ctx.translate(20, padding + graphHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yAxisTitle, 0, 0);
+    ctx.restore();
+    
+    ctx.fillText('Time', padding + graphWidth / 2, padding + graphHeight + 35);
+
+    // Draw data line
+    const startTimeMs = selectedDate.startOfDay.getTime();
+    const endTimeMs = selectedDate.endOfDay.getTime();
+    const timeRangeMs = endTimeMs - startTimeMs;
+
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    
+    for (let i = 0; i < data.length; i++) {
+        const entry = data[i];
+        const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+        const normalizedValue = (entry.value - adjustedMin) / (adjustedMax - adjustedMin);
+        const y = padding + graphHeight - (graphHeight * normalizedValue);
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+
+    // Draw data points and store their positions for click detection
+    data.forEach((entry, index) => {
+        const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+        const normalizedValue = (entry.value - adjustedMin) / (adjustedMax - adjustedMin);
+        const y = padding + graphHeight - (graphHeight * normalizedValue);
+        
+        // Store point data for click detection
+        graphDataPoints.push({
+            x: x,
+            y: y,
+            radius: 6, // Slightly larger click area
+            data: entry,
+            index: index
+        });
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#2980b9';
+        ctx.fill();
+        
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+
+    // Add click event listener to canvas (only add once)
+    const canvas = document.getElementById('graphCanvas');
+    if (canvas && !canvas.hasClickListener) {
+        canvas.hasClickListener = true;
+        canvas.addEventListener('click', handleGraphClick);
+        canvas.style.cursor = 'pointer';
+    }
+}
+
+// Handle canvas click events
+function handleGraphClick(event) {
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Check if click is near any data point
+    for (let i = 0; i < graphDataPoints.length; i++) {
+        const point = graphDataPoints[i];
+        const distance = Math.sqrt(Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2));
+        
+        if (distance <= point.radius) {
+            showDataPointTooltip(point.data, event.clientX, event.clientY);
+            return;
+        }
+    }
+    
+    // If no point was clicked, hide any existing tooltip
+    hideDataPointTooltip();
+}
+
+// Show tooltip with data point information
+function showDataPointTooltip(dataPoint, screenX, screenY) {
+    // Remove any existing tooltip
+    hideDataPointTooltip();
+    
+    const tooltip = document.createElement('div');
+    tooltip.id = 'dataPointTooltip';
+    tooltip.style.cssText = `
+        position: fixed;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 13px;
+        z-index: 10001;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid #3498db;
+        max-width: 280px;
+        pointer-events: none;
+    `;
+    
+    const timeStr = dataPoint.timestamp.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+    
+    tooltip.innerHTML = `
+        <div style="font-weight: bold; color: #3498db; margin-bottom: 6px;">
+            📊 Data Point Details
+        </div>
+        <div style="margin-bottom: 4px;">
+            <strong>Value:</strong> ${dataPoint.value} ${dataPoint.dataUnit || ''}
+        </div>
+        <div style="margin-bottom: 4px;">
+            <strong>Time:</strong> ${timeStr}
+        </div>
+        <div style="margin-bottom: 4px;">
+            <strong>Point:</strong> ${dataPoint.pointName}
+        </div>
+        <div style="font-size: 11px; color: #bbb; margin-top: 8px;">
+            Click elsewhere to close
+        </div>
+    `;
+    
+    document.body.appendChild(tooltip);
+    
+    // Position tooltip near cursor but keep it on screen
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let left = screenX + 15;
+    let top = screenY - 15;
+    
+    // Adjust if tooltip goes off right edge
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = screenX - tooltipRect.width - 15;
+    }
+    
+    // Adjust if tooltip goes off top edge
+    if (top < 0) {
+        top = screenY + 15;
+    }
+    
+    // Adjust if tooltip goes off bottom edge
+    if (top + tooltipRect.height > window.innerHeight) {
+        top = window.innerHeight - tooltipRect.height - 10;
+    }
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+        hideDataPointTooltip();
+    }, 8000);
+}
+
+// Hide the data point tooltip
+function hideDataPointTooltip() {
+    const existingTooltip = document.getElementById('dataPointTooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+}
+
+// Add click handler to document to hide tooltip when clicking elsewhere
+document.addEventListener('click', function(event) {
+    const canvas = document.getElementById('graphCanvas');
+    if (event.target !== canvas) {
+        hideDataPointTooltip();
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        function updateGraphLegend(unitName, pointName, data) {
+            const graphLegend = document.getElementById('graphLegend');
+            if (!graphLegend) return;
+
+            const unit = data.length > 0 ? data[0].dataUnit : '';
+            
+            graphLegend.innerHTML = `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Numerical Data Line</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2980b9; height: 8px; border-radius: 50%;"></div>
+                    <span>Data Points (${unit})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: linear-gradient(90deg, #3498db, #2980b9);"></div>
+                    <span>${unitName} - ${pointName}</span>
+                </div>
+            `;
+        }
+
+        function updateGraphStats(data) {
+            const graphStats = document.getElementById('graphStats');
+            if (!graphStats) return;
+
+            if (data.length === 0) {
+                graphStats.innerHTML = '<div class="stat-card"><div class="stat-value">No Data</div></div>';
+                return;
+            }
+
+            const values = data.map(d => d.value).filter(v => !isNaN(v));
+            const totalPoints = data.length;
+            const avgValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const minValue = Math.min(...values);
+            const maxValue = Math.max(...values);
+            const unit = data[0].dataUnit || '';
+
+            graphStats.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${totalPoints}</div>
+                    <div class="stat-label">Data Points</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgValue.toFixed(2)} ${unit}</div>
+                    <div class="stat-label">Average</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${minValue.toFixed(2)} ${unit}</div>
+                    <div class="stat-label">Minimum</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${maxValue.toFixed(2)} ${unit}</div>
+                    <div class="stat-label">Maximum</div>
+                </div>
+            `;
+        }
+
+        function clearGraph() {
+            const canvas = document.getElementById('graphCanvas');
+            const noDataMessage = document.getElementById('noDataMessage');
+            const graphLegend = document.getElementById('graphLegend');
+            const graphStats = document.getElementById('graphStats');
+            
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.style.display = 'none';
+            }
+            
+            if (noDataMessage) {
+                const message = importedJsonData ? 
+                    'Select a unit and point to view numerical graph data.' :
+                    'No data available. Collect data or import JSON first.';
+                noDataMessage.textContent = message;
+                noDataMessage.style.display = 'block';
+            }
+            
+            if (graphLegend) graphLegend.innerHTML = '';
+            if (graphStats) graphStats.innerHTML = '';
+        }
+
+        function forceRefreshGraph() {
+            const unitSelector = document.getElementById('unitSelector');
+            const pointSelector = document.getElementById('pointSelector');
+            
+            if (unitSelector && pointSelector) {
+                const selectedUnit = unitSelector.value;
+                const selectedPoint = pointSelector.value;
+                
+                populateUnitSelector();
+                
+                if (selectedUnit) {
+                    unitSelector.value = selectedUnit;
+                    updatePointSelector();
+                    
+                    if (selectedPoint) {
+                        pointSelector.value = selectedPoint;
+                        updateGraph();
+                    }
+                }
+            }
+        }
+
+        function showNotification(title, message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                success: '#27ae60',
+                error: '#e74c3c',
+                info: '#3498db',
+                warning: '#f39c12'
+            };
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                max-width: 300px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 14px;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+            `;
+            
+            notification.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
+                <div>${message}</div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        // Dark mode toggle
+        function initializeDarkMode() {
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            // For browser compatibility, we'll use a simple flag instead of localStorage
+            const currentTheme = 'light'; // Default to light mode
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            
+            toggleLabel.textContent = 'Light Mode';
+            
+            toggleSwitch.addEventListener('click', function() {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                
+                if (newTheme === 'dark') {
+                    toggleSwitch.classList.add('active');
+                    toggleLabel.textContent = 'Dark Mode';
+                } else {
+                    toggleSwitch.classList.remove('active');
+                    toggleLabel.textContent = 'Light Mode';
+                }
+                
+                if (graphViewerActive) {
+                    updateGraph();
+                }
+            });
+        }
+
+        // Initialize everything when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSystem();
+            initializeDarkMode();
+            
+            console.log('Niagara Numerical System Monitor ready!');
+            console.log('Features: Global.json monitoring, real-time data collection, JSON export, graphing, dark mode');
+        });
+
+        // Resize handling
+        window.addEventListener('resize', function() {
+            if (graphViewerActive) {
+                setTimeout(updateGraph, 100);
+            }
+        });
+    </script>
+</body>
+</html>

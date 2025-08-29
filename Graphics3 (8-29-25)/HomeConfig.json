@@ -1,0 +1,58 @@
+{
+  "baseFilePath": "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+  "VAVs": [
+    {
+      "group": 0,
+      "count": 5
+    },
+    {
+      "group": 1,
+      "count": 7
+    },
+    {
+      "group": 2,
+      "count": 8
+    },
+    {
+      "group": 3,
+      "count": 4
+    }
+  ],
+  "JobBuilding": "Magic House",
+  "AHUs": [
+    "AHU_1",
+    "AHU_2"
+  ],
+  "RTUs": [
+    "RTU_1",
+    "RTU_2"
+  ],
+  "Chillers": [
+    "Chiller_1",
+    "Chiller_2"
+  ],
+  "Towers": [
+    "Tower_1",
+    "Tower_2"
+  ],
+  "FluidCooler": [
+    "Fluid_Cooler_1"
+  ],
+  "Users":  [
+    {
+      "name": "murphy",
+      "role": "admin",
+      "password": "mUrp#yt3Am"
+    },
+    {
+      "name": "Murphy",
+      "role": "technician",
+      "password": " ••••••••••"
+    },
+    {
+      "name": "ZGeorgian",
+      "role": "admin",
+      "password": " ••••••••••"
+    }
+  ]
+}
