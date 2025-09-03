@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+   :root {
+            --navy-dark: #0f1925;
+            --navy-main: #1e3a5f;
+            --navy-light: #2d4a6b;
+            --turquoise-dark: #0891b2;
+            --turquoise-main: #06b6d4;
+            --turquoise-light: #67e8f9;
+            --light-blue: #bae6fd;
+            --purple-accent: #8b5cf6;
+            --purple-light: #c4b5fd;
+            --white-soft: #f8fafc;
+            --gray-light: #e2e8f0;
+            --success-green: #10b981;
+            --error-red: #ef4444;
+        }
+
+        .main-content {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--navy-dark), var(--navy-main), var(--turquoise-dark), var(--turquoise-main));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--navy-dark), var(--navy-main), var(--turquoise-dark), var(--turquoise-main));
+            background-attachment: fixed;
+        }
+
+        .config-container {
+            background: linear-gradient(145deg, var(--white-soft), var(--gray-light));
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(15, 25, 37, 0.3);
+            margin-bottom: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: absolute;
+            width: 65%;
+            height: auto;
+            left: 18%;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            color: var(--navy-main);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f1925, #1e3a5f, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            background: linear-gradient(135deg, #1e3a5f, #2d4a6b, #0891b2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 3px solid var(--turquoise-main);
+            padding-bottom: 8px;
+            font-weight: 600;
+        }
+
+        h3, h4 {
+            color: var(--navy-light);
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(186, 230, 253, 0.1));
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--turquoise-main);
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--navy-main);
+        }
+
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--light-blue);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            background: var(--white-soft);
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: var(--turquoise-main);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+            transform: translateY(-1px);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--light-blue);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            background: var(--white-soft);
+            transition: all 0.3s ease;
+        }
+
+        .vav-group {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(186, 230, 253, 0.2));
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--turquoise-main);
+            border-right: 1px solid var(--turquoise-light);
+        }
+
+        .vav-group h4 {
+            color: var(--navy-main);
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .user-entry {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(196, 181, 253, 0.2));
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid var(--purple-accent);
+        }
+
+        .inline-inputs {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .inline-inputs > div {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .preview-section {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.05), rgba(186, 230, 253, 0.1));
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid var(--light-blue);
+        }
+
+        .preview-section h3 {
+            color: var(--navy-main);
+            margin-top: 0;
+        }
+
+        .preview-content {
+            background: var(--white-soft);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--navy-main);
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--light-blue);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--turquoise-main), var(--turquoise-dark));
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
+            background: linear-gradient(135deg, var(--turquoise-dark), var(--navy-main));
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, var(--success-green), #059669);
+        }
+
+        .add-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .remove-btn {
+            background: linear-gradient(135deg, var(--error-red), #dc2626);
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .remove-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, var(--success-green), #059669);
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            margin-top: 20px;
+            font-weight: 700;
+        }
+
+        .save-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .test-btn {
+            background: linear-gradient(135deg, var(--purple-accent), #7c3aed);
+        }
+
+        .test-btn:hover {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, var(--error-red), #dc2626);
+            width: 100%;
+        }
+
+        .clear-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .import-btn {
+            background: linear-gradient(135deg, var(--purple-accent), var(--purple-light));
+            color: white;
+            width: 48%;
+        }
+
+        .import-btn:hover {
+            background: linear-gradient(135deg, var(--purple-light), var(--purple-accent));
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, var(--navy-main), var(--navy-light));
+            width: 48%;
+        }
+
+        .export-btn:hover {
+            background: linear-gradient(135deg, var(--navy-light), var(--turquoise-dark));
+            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.3);
+        }
+
+        .file-buttons {
+            display: flex;
+            gap: 2%;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2));
+            color: #047857;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status.error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2));
+            color: #b91c1c;
+            border: 2px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .debug-info {
+            background: linear-gradient(135deg, var(--white-soft), var(--gray-light));
+            border: 2px solid var(--light-blue);
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .equipment-preview {
+            background: linear-gradient(135deg, var(--white-soft), var(--light-blue));
+            padding: 12px;
+            border-radius: 8px;
+            color: var(--navy-main);
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin-top: 10px;
+            border: 1px solid var(--turquoise-light);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--turquoise-main), var(--navy-main));
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, var(--navy-main), var(--turquoise-dark));
+        }
+
+        /* Animation for form sections */
+        .form-section {
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="config-container">
+    <h1>🔧 System Configuration Manager</h1>
+    
+    <!-- Job Site/Building Name Section -->
+    <div class="form-section">
+        <h2>🏢 Job Site Information</h2>
+        <div class="form-group">
+            <label for="jobBuilding">Job Site / Building Name:</label>
+            <input type="text" id="jobBuilding" placeholder="Enter job site or building name (e.g., 'Main Office Building', 'Manufacturing Plant A')" style="width: 100%; max-width: 500px;">
+        </div>
+    </div>
+    
+    <!-- JSON Import/Export Section -->
+    <div class="form-section">
+        <h2>📄 Configuration File Management</h2>
+        <div class="file-buttons">
+            <button type="button" class="export-btn" onclick="exportConfiguration()">📤 Export to JSON</button>
+            <button type="button" class="import-btn" onclick="document.getElementById('jsonFileInput').click()">📥 Import JSON</button>
+        </div>
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importConfiguration(this)">
+    </div>
+    
+    <!-- Base File Path Configuration -->
+    <div class="form-section">
+        <h2>📁 Base File Path Configuration</h2>
+        <div class="form-group">
+            <label for="baseFilePath">Base File Path Template:</label>
+            <input type="text" id="baseFilePath" value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}" placeholder="Enter your base file path template">
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>User Management</h3>
+        <div id="userList"></div>
+        <button type="button" onclick="addUser()">➕ Add User</button>
+    </div>
+
+    <!-- VAV Configuration Section -->
+    <div class="form-section">
+        <h2>🌀 VAV Configuration</h2>
+        <div id="vavGroups">
+            <!-- VAV floor input and groups will be dynamically added here -->
+        </div>
+    </div>
+
+    <div class="form-section">
+      <h2>
+        <img src="/file/Graphics2/Air-Systems_Color.svg" alt="AHU Icon" style="width:40px; height:40px; vertical-align:middle; margin-right:6px;">
+        AHU Configuration
+      </h2>
+      <div class="form-group">
+        <label for="ahuCount">Number of AHUs:</label>
+        <input type="number" id="ahuCount" min="0" max="50" value="2" onchange="updateAhuList()">
+      </div>
+      <div id="ahuList">
+        <!-- AHU list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--RTUS-->
+    <div class="form-section">
+      <h2>
+        <img src="/file/Graphics2/Water-Systems_Color.svg" alt="RTU Icon" style="width:40px; height:40px; vertical-align:middle; margin-right:6px;">
+        RTU Configuration
+      </h2>
+      <div class="form-group">
+        <label for="rtuCount">Number of RTUs:</label>
+        <input type="number" id="rtuCount" min="0" max="50" value="2" onchange="updateRtuList()">
+      </div>
+      <div id="rtuList">
+        <!-- RTU list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--Chillers-->
+    <div class="form-section">
+        <h2> ❄️ Chiller Configuration</h2>
+      <div class="form-group">
+        <label for="ChillerCount">Number of Chillers:</label>
+        <input type="number" id="ChillerCount" min="0" max="50" value="2" onchange="updateChillerList()">
+      </div>
+      <div id="ChillerList">
+        <!-- Chiller list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--Cooling Towers-->
+    <div class="form-section">
+        <h2> ❄️ Cooling Tower Configuration</h2>
+      <div class="form-group">
+        <label for="TowerCount">Number of Towers:</label>
+        <input type="number" id="TowerCount" min="0" max="50" value="2" onchange="updateTowerList()">
+      </div>
+      <div id="TowerList">
+        <!-- tower list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!-- Fluid Cooler Configuration Section -->
+    <div class="form-section">
+        <h2> 💧 Fluid Cooler Configuration</h2>
+        <div class="form-group">
+            <label for="fcCount">Number of Fluid Coolers:</label>
+            <input type="number" id="fcCount" min="0" max="10" value="1" onchange="updateFcList()">
+        </div>
+        <div id="fcList">
+            <!-- Fluid Cooler list will be dynamically generated -->
+        </div>
+    </div>
+
+    <button type="button" class="save-btn" onclick="saveConfiguration()">💾 Save & Export Configuration</button>
+    <button type="button" class="clear-btn" onclick="clearConfiguration()">🗑️ Clear Configuration</button>
+    
+    <div id="status"></div>
+    <div id="debugInfo" class="debug-info" style="display:none;"></div>
+</div>
+
+
+<script>
+// Global configuration storage
+let globalConfig = {
+    baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+    VAVs: [
+        { group: 0, count: 5 },
+        { group: 1, count: 7 },
+        { group: 2, count: 8 },
+        { group: 3, count: 4 }
+    ],
+    JobBuilding: [],
+    AHUs: ["AHU_1", "AHU_2"],
+    RTUs: ["RTU_1", "RTU_2"],
+    Chillers: ["Chiller_1", "Chiller_2"],
+    Towers: ["Tower_1", "Tower_2"],
+    FluidCooler: ["Fluid_Cooler_1"],
+    Users: []
+};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateTowerList();
+    updateChillerList();
+    initializeUsers();
+    updateConfigStatus();
+});
+
+// ---------------- USERS MANAGEMENT ----------------
+function initializeUsers() {
+    const container = document.getElementById('userList');
+    container.innerHTML = '';
+
+    if (globalConfig.Users && globalConfig.Users.length > 0) {
+        globalConfig.Users.forEach((user, index) => {
+            addUserElement(user.name, user.role, user.password || "", index);
+        });
+    }
+}
+
+function addUser() {
+    if (!globalConfig.Users) {
+        globalConfig.Users = [];
+    }
+
+    globalConfig.Users.push({ name: "NewUser", role: "technician", password: "" });
+    addUserElement("NewUser", "technician", "", globalConfig.Users.length - 1);
+    updateConfigStatus();
+}
+
+function addUserElement(name, role, password, index) {
+    const container = document.getElementById('userList');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'user-entry';
+    userDiv.innerHTML = `
+        <div class="inline-inputs">
+            <div>
+                <label>User Name:</label>
+                <input type="text" value="${name}" onchange="updateUser(${index}, 'name', this.value)">
+            </div>
+            <div>
+                <label>Role:</label>
+                <select onchange="updateUser(${index}, 'role', this.value)">
+                    <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                    <option value="technician" ${role === 'technician' ? 'selected' : ''}>Technician</option>
+                    <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+                    <option value="engineer" ${role === 'engineer' ? 'selected' : ''}>Engineer</option>
+                </select>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" value="${password}" onchange="updateUser(${index}, 'password', this.value)">
+            </div>
+            <div style="flex:0;">
+                <button type="button" class="remove-btn" onclick="removeUser(${index})" style="margin-top:20px;">🗑️ Remove</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(userDiv);
+}
+
+function updateUser(index, property, value) {
+    globalConfig.Users[index][property] = value;
+    updateConfigStatus();
+}
+
+function removeUser(index) {
+    globalConfig.Users.splice(index, 1);
+    initializeUsers();
+    updateConfigStatus();
+}
+
+// Load configuration
+function loadConfiguration() {
+    // Set form fields based on current config
+    document.getElementById('jobBuilding').value = globalConfig.JobBuilding || "";
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    
+    if (globalConfig.AHUs) {
+        document.getElementById('ahuCount').value = globalConfig.AHUs.length;
+    }
+    if (globalConfig.RTUs) {
+        document.getElementById('rtuCount').value = globalConfig.RTUs.length;
+    }
+    if (globalConfig.FluidCooler) {
+        document.getElementById('fcCount').value = globalConfig.FluidCooler.length;
+    }
+    if (globalConfig.Chillers) {
+        document.getElementById('ChillerCount').value = globalConfig.Chillers.length;
+    }
+    if (globalConfig.Towers) {
+        document.getElementById('TowerCount').value = globalConfig.Towers.length;
+    }
+}
+
+// Export configuration to JSON file
+function exportConfiguration() {
+    // Update config with current form values
+    globalConfig.JobBuilding = document.getElementById('jobBuilding').value.trim();
+    globalConfig.baseFilePath = document.getElementById('baseFilePath').value;
+    
+    // Create JSON string with proper formatting
+    const configJSON = JSON.stringify(globalConfig, null, 2);
+    
+    // Create downloadable file
+    const blob = new Blob([configJSON], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create temporary download link
+    const a = document.createElement('a');
+    a.href = url;
+    const jobName = globalConfig.JobBuilding ? globalConfig.JobBuilding.replace(/[^a-zA-Z0-9]/g, '_') : 'HomeConfig';
+    a.download = `${jobName}_Config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showStatus(`Configuration exported successfully to ${jobName}_Config.json!`, 'success');
+    updateConfigStatus();
+}
+
+// Import configuration from JSON file
+function importConfiguration(input) {
+    const file = input.files[0];
+    if (!file) {
+        showStatus('No file selected!', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedConfig = JSON.parse(e.target.result);
+            
+            // Validate the imported configuration
+            if (!importedConfig.baseFilePath) {
+                throw new Error('Invalid configuration: missing baseFilePath');
+            }
+            
+            // Update global config
+            globalConfig = { ...globalConfig, ...importedConfig };
+            
+            // Update all form fields
+            document.getElementById('jobBuilding').value = globalConfig.JobBuilding || "";
+            document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+            document.getElementById('ahuCount').value = globalConfig.AHUs ? globalConfig.AHUs.length : 0;
+            document.getElementById('rtuCount').value = globalConfig.RTUs ? globalConfig.RTUs.length : 0;
+            document.getElementById('fcCount').value = globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0;
+            document.getElementById('ChillerCount').value = globalConfig.Chillers ? globalConfig.Chillers.length : 0;
+            document.getElementById('TowerCount').value = globalConfig.Towers ? globalConfig.Towers.length : 0;
+            
+            // Refresh all displays
+            initializeVavGroups();
+            updateAhuList();
+            updateRtuList();
+            updateFcList();
+            updateChillerList();
+            updateTowerList();
+            initializeUsers();
+            updateConfigStatus();
+            
+            showStatus('Configuration imported successfully!', 'success');
+            
+        } catch (error) {
+            showStatus('Error importing configuration: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    input.value = '';
+}
+
+// Update configuration status display
+function updateConfigStatus() {
+    const statusDiv = document.getElementById('configStatus');
+    const timestamp = new Date().toLocaleString();
+    
+    const summary = `
+Configuration loaded at: ${timestamp}
+- Job/Building: ${globalConfig.JobBuilding || 'Not specified'}
+- Base Path: ${globalConfig.baseFilePath}
+- VAV Groups: ${globalConfig.VAVs ? globalConfig.VAVs.length : 0}
+- AHUs: ${globalConfig.AHUs ? globalConfig.AHUs.length : 0}
+- RTUs: ${globalConfig.RTUs ? globalConfig.RTUs.length : 0}
+- Chillers: ${globalConfig.Chillers ? globalConfig.Chillers.length : 0}
+- Towers: ${globalConfig.Towers ? globalConfig.Towers.length : 0}
+- Fluid Coolers: ${globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0}
+- Users: ${globalConfig.Users ? globalConfig.Users.length : 0}
+    `.trim();
+    
+    if (statusDiv) {
+        statusDiv.textContent = summary;
+    }
+}
+
+
+
+// VAV Group Management - Simple floor-based approach
+function initializeVavGroups() {
+    const container = document.getElementById('vavGroups');
+    container.innerHTML = '';
+    
+    // Always start with the floor count input
+    createVavFloorInput();
+    
+    // If there are existing VAVs, populate the fields
+    if (globalConfig.VAVs && globalConfig.VAVs.length > 0) {
+        const floorCount = globalConfig.VAVs.length;
+        document.getElementById('vavFloorCount').value = floorCount;
+        createVavUnitInputs(floorCount);
+    }
+}
+
+function createVavFloorInput() {
+    const container = document.getElementById('vavGroups');
+    const floorInputDiv = document.createElement('div');
+    floorInputDiv.innerHTML = `
+        <div>
+            <label><strong>Enter Number of Floors:</strong></label>
+            <input type="number" id="vavFloorCount" min="0" max="20" value="" 
+                   onchange="updateVavFloors(this.value)" 
+                   placeholder="How many floors?" 
+                   style="width: 100px; margin-left: 10px;">
+        </div>
+        <div id="vavUnitsContainer"></div>
+        <div id="vavPreview" class="equipment-preview" style="margin-top: 10px;"></div>
+    `;
+    container.appendChild(floorInputDiv);
+}
+
+function updateVavFloors(floorCount) {
+    const count = parseInt(floorCount) || 0;
+    
+    if (count === 0) {
+        // Clear everything if no floors
+        globalConfig.VAVs = [];
+        document.getElementById('vavUnitsContainer').innerHTML = '';
+        document.getElementById('vavPreview').innerHTML = '';
+        updateConfigStatus();
+        return;
+    }
+    
+    // Create VAV groups for each floor (using integers, not strings)
+    globalConfig.VAVs = [];
+    for (let i = 0; i < count; i++) {
+        globalConfig.VAVs.push({ group: i, count: 1 });
+    }
+    
+    createVavUnitInputs(count);
+    updateVavPreview();
+    updateConfigStatus();
+}
+
+function createVavUnitInputs(floorCount) {
+    const container = document.getElementById('vavUnitsContainer');
+    
+    if (floorCount === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div style="margin-top: 15px;"><strong>Number of VAVs on each floor:</strong></div>';
+    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 10px;">';
+    
+    for (let i = 0; i < floorCount; i++) {
+        const currentCount = globalConfig.VAVs[i] ? globalConfig.VAVs[i].count : 1;
+        html += `
+            <div>
+                <label>Floor ${i}:</label><br>
+                <input type="number" min="1" max="50" value="${currentCount}" 
+                       onchange="updateVavGroupCount(${i}, this.value)" 
+                       style="width: 60px;">
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function updateVavGroupCount(index, value) {
+    const count = parseInt(value) || 1;
+    if (globalConfig.VAVs[index]) {
+        globalConfig.VAVs[index].count = count;
+        updateVavPreview();
+        updateConfigStatus();
+    }
+}
+
+function updateVavPreview() {
+    const previewDiv = document.getElementById('vavPreview');
+    if (!globalConfig.VAVs || globalConfig.VAVs.length === 0) {
+        previewDiv.innerHTML = '';
+        return;
+    }
+    
+    const totalUnits = globalConfig.VAVs.reduce((sum, vav) => sum + vav.count, 0);
+    let details = globalConfig.VAVs.map(vav => `Floor ${vav.group}: ${vav.count} units`).join(', ');
+    
+    previewDiv.innerHTML = `<strong>VAV Summary:</strong> ${totalUnits} total units (${details})`;
+}
+
+// Equipment Management Functions
+function updateAhuList() {
+    const count = parseInt(document.getElementById('ahuCount').value) || 0;
+    const container = document.getElementById('ahuList');
+    
+    globalConfig.AHUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.AHUs.push(`AHU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.AHUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateRtuList() {
+    const count = parseInt(document.getElementById('rtuCount').value) || 0;
+    const container = document.getElementById('rtuList');
+    
+    globalConfig.RTUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.RTUs.push(`RTU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.RTUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateChillerList() {
+    const count = parseInt(document.getElementById('ChillerCount').value) || 0;
+    const container = document.getElementById('ChillerList');
+    
+    globalConfig.Chillers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Chillers.push(`Chiller_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Chillers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateTowerList() {
+    const count = parseInt(document.getElementById('TowerCount').value) || 0;
+    const container = document.getElementById('TowerList');
+    
+    globalConfig.Towers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Towers.push(`Tower_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Towers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateFcList() {
+    const count = parseInt(document.getElementById('fcCount').value) || 0;
+    const container = document.getElementById('fcList');
+    
+    globalConfig.FluidCooler = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.FluidCooler.push(`Fluid_Cooler_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.FluidCooler.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+// Save configuration
+function saveConfiguration() {
+    const userInput = document.getElementById('baseFilePath').value.trim();
+    const jobBuilding = document.getElementById('jobBuilding').value.trim();
+    
+    if (!userInput) {
+        showStatus('Please enter a valid file path template!', 'error');
+        return;
+    }
+    
+    if (!userInput.includes('{headerName}') || !userInput.includes('{pointName}')) {
+        showStatus('Template must include {headerName} and {pointName} placeholders!', 'error');
+        return;
+    }
+    
+    // Update global config with current values
+    globalConfig.JobBuilding = jobBuilding;
+    globalConfig.baseFilePath = userInput;
+    
+    // Export the configuration
+    exportConfiguration();
+}
+
+// Clear configuration
+function clearConfiguration() {
+    // Reset to defaults
+    globalConfig = {
+        JobBuilding: "",
+        baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+        VAVs: [],
+        AHUs: [],
+        RTUs: [],
+        Chillers: [],
+        Towers: [],
+        FluidCooler: [],
+        Users: []
+    };
+    
+    document.getElementById('jobBuilding').value = "";
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    document.getElementById('ahuCount').value = 0;
+    document.getElementById('rtuCount').value = 0;
+    document.getElementById('fcCount').value = 0;
+    document.getElementById('ChillerCount').value = 0;
+    document.getElementById('TowerCount').value = 0;
+    
+    // Reinitialize displays
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateChillerList();
+    updateTowerList();
+    initializeUsers();
+    updateConfigStatus();
+    
+    showStatus('Configuration cleared!', 'success');
+}
+
+// Status display function
+function showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type}`;
+    setTimeout(() => {
+        status.textContent = '';
+        status.className = 'status';
+    }, 3000);
+}
+
+// Global functions to get configuration (for use by other pages)
+function getGlobalConfig() {
+    return globalConfig;
+}
+
+function getJobBuilding() {
+    return globalConfig.JobBuilding;
+}
+
+function getVAVConfig() {
+    return globalConfig.VAVs;
+}
+
+function getAHUConfig() {
+    return globalConfig.AHUs;
+}
+
+function getRTUConfig() {
+    return globalConfig.RTUs;
+}
+
+function getChillerConfig() {
+    return globalConfig.Chillers;
+}
+
+function getTowerConfig() {
+    return globalConfig.Towers;
+}
+
+function getFluidCoolerConfig() {
+    return globalConfig.FluidCooler;
+}
+
+function getBaseFilePath() {
+    return globalConfig.baseFilePath;
+}
+
+// Auto-update on field changes
+document.addEventListener('DOMContentLoaded', function() {
+    const jobBuildingInput = document.getElementById('jobBuilding');
+    const baseFilePathInput = document.getElementById('baseFilePath');
+    
+    if (jobBuildingInput) {
+        jobBuildingInput.addEventListener('change', function() {
+            globalConfig.JobBuilding = this.value.trim();
+            updateConfigStatus();
+        });
+    }
+    
+    if (baseFilePathInput) {
+        baseFilePathInput.addEventListener('change', function() {
+            globalConfig.baseFilePath = this.value;
+            updateConfigStatus();
+        });
+    }
+});
+
+// Function to load configuration from JSON file (for other HTML files to use)
+function loadConfigFromJSON(jsonData) {
+    try {
+        if (typeof jsonData === 'string') {
+            globalConfig = JSON.parse(jsonData);
+        } else {
+            globalConfig = jsonData;
+        }
+        return globalConfig;
+    } catch (error) {
+        console.error('Error loading JSON configuration:', error);
+        return null;
+    }
+}
+</script>
+</body>
+</html>
