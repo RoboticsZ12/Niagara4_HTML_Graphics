@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .config-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+        
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="text"], input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .export-btn, .save-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        .import-btn {
+            background: #007bff;
+            color: white;
+        }
+        
+        .clear-btn, .remove-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .file-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .equipment-preview {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .user-entry {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .inline-inputs {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        
+        .inline-inputs > div {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        /* Image Drop Zone Styles */
+        .image-drop-zone {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        
+        .image-drop-zone:hover {
+            border-color: #0056b3;
+            background: #e6f2ff;
+        }
+        
+        .image-drop-zone.dragover {
+            border-color: #28a745;
+            background: #e8f5e8;
+        }
+        
+        .image-preview {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 5px;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .image-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .remove-image-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* Floor Plans Styles */
+        .floor-plan-item {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .floor-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .floor-plan-name-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .floor-plan-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 5px;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .floor-plan-info {
+            background: #e9ecef;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 8px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        
+        .floor-plans-summary {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            border-left: 4px solid #17a2b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="config-container">
+    <h1>🔧 System Configuration Manager</h1>
+    
+    <!-- Job Site/Building Name Section -->
+    <div class="form-section">
+        <h2>🏢 Job Site Information</h2>
+        <div class="form-group">
+            <label for="jobBuilding">Job Site / Building Name:</label>
+            <input type="text" id="jobBuilding" placeholder="Enter job site or building name (e.g., 'Main Office Building', 'Manufacturing Plant A')" style="width: 100%; max-width: 500px;">
+        </div>
+    </div>
+    
+    <!-- Background Image Section -->
+    <div class="form-section">
+        <h2>🖼️ Background Image Configuration</h2>
+        <div class="form-group">
+            <div id="imageDropZone" class="image-drop-zone">
+                <p>📁 Drop a PNG image here or click to select</p>
+                <p style="font-size: 12px; color: #666;">Supported formats: PNG only</p>
+            </div>
+            <input type="file" id="imageFileInput" accept=".png,image/png" style="display: none;">
+            <div id="imagePreviewContainer"></div>
+        </div>
+    </div>
+    
+    <!-- Floor Plans Section -->
+    <div class="form-section">
+        <h2>📋 Floor Plans Configuration</h2>
+        <p style="color: #666; margin-bottom: 15px;">Upload up to 10 floor plan images with custom names</p>
+        <div class="form-group">
+            <div id="floorPlansDropZone" class="image-drop-zone">
+                <p>📁 Drop PNG floor plan images here or click to select</p>
+                <p style="font-size: 12px; color: #666;">Supported formats: PNG only | Max: 10 files</p>
+            </div>
+            <input type="file" id="floorPlansFileInput" accept=".png,image/png" multiple style="display: none;">
+            <div id="floorPlansContainer"></div>
+
+        </div>
+    </div>
+    
+    <!-- JSON Import/Export Section -->
+    <div class="form-section">
+        <h2>📄 Configuration File Management</h2>
+        <div class="file-buttons">
+            <button type="button" class="export-btn" onclick="exportConfiguration()">📤 Export to JSON</button>
+            <button type="button" class="import-btn" onclick="document.getElementById('jsonFileInput').click()">📥 Import JSON</button>
+        </div>
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="importConfiguration(this)">
+    </div>
+    
+    <!-- Base File Path Configuration -->
+    <div class="form-section">
+        <h2>📁 Base File Path Configuration</h2>
+        <div class="form-group">
+            <label for="baseFilePath">Base File Path Template:</label>
+            <input type="text" id="baseFilePath" value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}" placeholder="Enter your base file path template">
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>User Management</h3>
+        <div id="userList"></div>
+        <button type="button" onclick="addUser()">➕ Add User</button>
+    </div>
+
+    <!-- VAV Configuration Section -->
+    <div class="form-section">
+        <h2>🌀 VAV Configuration</h2>
+        <div id="vavGroups">
+            <!-- VAV floor input and groups will be dynamically added here -->
+        </div>
+    </div>
+
+    <div class="form-section">
+      <h2>
+        🌬️ AHU Configuration
+      </h2>
+      <div class="form-group">
+        <label for="ahuCount">Number of AHUs:</label>
+        <input type="number" id="ahuCount" min="0" max="50" value="2" onchange="updateAhuList()">
+      </div>
+      <div id="ahuList">
+        <!-- AHU list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--RTUS-->
+    <div class="form-section">
+      <h2>
+        💨 RTU Configuration
+      </h2>
+      <div class="form-group">
+        <label for="rtuCount">Number of RTUs:</label>
+        <input type="number" id="rtuCount" min="0" max="50" value="2" onchange="updateRtuList()">
+      </div>
+      <div id="rtuList">
+        <!-- RTU list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--Chillers-->
+    <div class="form-section">
+        <h2> ❄️ Chiller Configuration</h2>
+      <div class="form-group">
+        <label for="ChillerCount">Number of Chillers:</label>
+        <input type="number" id="ChillerCount" min="0" max="50" value="2" onchange="updateChillerList()">
+      </div>
+      <div id="ChillerList">
+        <!-- Chiller list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!--Cooling Towers-->
+    <div class="form-section">
+        <h2> 🏗️ Cooling Tower Configuration</h2>
+      <div class="form-group">
+        <label for="TowerCount">Number of Towers:</label>
+        <input type="number" id="TowerCount" min="0" max="50" value="2" onchange="updateTowerList()">
+      </div>
+      <div id="TowerList">
+        <!-- tower list will be dynamically generated -->
+      </div>
+    </div>
+
+    <!-- Fluid Cooler Configuration Section -->
+    <div class="form-section">
+        <h2> 💧 Fluid Cooler Configuration</h2>
+        <div class="form-group">
+            <label for="fcCount">Number of Fluid Coolers:</label>
+            <input type="number" id="fcCount" min="0" max="10" value="1" onchange="updateFcList()">
+        </div>
+        <div id="fcList">
+            <!-- Fluid Cooler list will be dynamically generated -->
+        </div>
+    </div>
+
+    <button type="button" class="save-btn" onclick="saveConfiguration()">💾 Save & Export Configuration</button>
+    <button type="button" class="clear-btn" onclick="clearConfiguration()">🗑️ Clear Configuration</button>
+    
+    <div id="status"></div>
+    <div id="debugInfo" class="debug-info" style="display:none;"></div>
+</div>
+
+
+
+
+
+
+
+<script>
+let globalConfig = {
+    baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+    VAVs: [
+        { group: 0, count: 5 },
+        { group: 1, count: 7 },
+        { group: 2, count: 8 },
+        { group: 3, count: 4 }
+    ],
+    JobBuilding: [],
+    AHUs: ["AHU_1", "AHU_2"],
+    RTUs: ["RTU_1", "RTU_2"],
+    Chillers: ["Chiller_1", "Chiller_2"],
+    Towers: ["Tower_1", "Tower_2"],
+    FluidCooler: ["Fluid_Cooler_1"],
+    Users: [],
+    backgroundimage: null,
+    floorPlans: {},
+    floorNumber: null   
+};
+
+
+// Update floor number in globalConfig
+function updateFloorNumber() {
+    const floorInput = document.getElementById('floorNumber');
+    const value = parseInt(floorInput.value);
+    
+    if (!isNaN(value)) {
+        globalConfig.floorNumber = value;
+        updateConfigStatus();
+    }
+}
+
+
+
+// Floor Plans Management Functions - Add these to your script section
+
+function initializeFloorPlansDropZone() {
+    const dropZone = document.getElementById('floorPlansDropZone');
+    const fileInput = document.getElementById('floorPlansFileInput');
+    
+    if (!dropZone || !fileInput) {
+        console.error('Floor plans drop zone elements not found');
+        return;
+    }
+    
+    // Click to select files
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // File input change event
+    fileInput.addEventListener('change', (e) => {
+        handleFloorPlanFiles(e.target.files);
+    });
+    
+    // Drag and drop events
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFloorPlanFiles(files);
+        }
+    });
+    
+    // Display existing floor plans if present
+    if (globalConfig.floorPlans && Object.keys(globalConfig.floorPlans).length > 0) {
+        displayFloorPlans();
+    }
+}
+
+function handleFloorPlanFiles(files) {
+    if (!files || files.length === 0) {
+        showStatus('No files selected!', 'error');
+        return;
+    }
+    
+    // Check if adding these files would exceed the limit
+    const currentCount = globalConfig.floorPlans ? Object.keys(globalConfig.floorPlans).length : 0;
+    const maxFiles = 10;
+    
+    if (currentCount + files.length > maxFiles) {
+        showStatus(`Cannot add ${files.length} files. Maximum ${maxFiles} floor plans allowed (currently have ${currentCount}).`, 'error');
+        return;
+    }
+    
+    // Initialize floorPlans if not exists
+    if (!globalConfig.floorPlans) {
+        globalConfig.floorPlans = {};
+    }
+    
+    let processedCount = 0;
+    const totalFiles = files.length;
+    
+    Array.from(files).forEach((file, index) => {
+        // Validate file type
+        if (!file.type.startsWith('image/png')) {
+            showStatus(`"${file.name}" is not a PNG file and will be skipped.`, 'error');
+            processedCount++;
+            if (processedCount === totalFiles) {
+                displayFloorPlans();
+                updateConfigStatus();
+            }
+            return;
+        }
+        
+        // Check file size (limit to 5MB per file)
+        if (file.size > 5 * 1024 * 1024) {
+            showStatus(`"${file.name}" is too large (over 5MB) and will be skipped.`, 'error');
+            processedCount++;
+            if (processedCount === totalFiles) {
+                displayFloorPlans();
+                updateConfigStatus();
+            }
+            return;
+        }
+        
+        // Generate a default name from filename (remove extension)
+        const defaultName = file.name.replace(/\.[^/.]+$/, "");
+        
+        // Convert to base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64String = e.target.result;
+            
+            // Create a unique key to avoid overwrites
+            let planKey = defaultName;
+            let counter = 1;
+            while (globalConfig.floorPlans[planKey]) {
+                planKey = `${defaultName}_${counter}`;
+                counter++;
+            }
+            
+            // Store in global config with metadata
+            globalConfig.floorPlans[planKey] = {
+                name: planKey,
+                data: base64String,
+                originalFileName: file.name,
+                size: file.size
+            };
+            
+            processedCount++;
+            
+            // If this is the last file, update the display
+            if (processedCount === totalFiles) {
+                displayFloorPlans();
+                updateConfigStatus();
+                showStatus(`${Object.keys(globalConfig.floorPlans).length} floor plan(s) loaded successfully!`, 'success');
+            }
+        };
+        
+        reader.onerror = function() {
+            showStatus(`Error reading "${file.name}"!`, 'error');
+            processedCount++;
+            if (processedCount === totalFiles) {
+                displayFloorPlans();
+                updateConfigStatus();
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    });
+}
+
+function displayFloorPlans() {
+    const container = document.getElementById('floorPlansContainer');
+    
+    if (!globalConfig.floorPlans || Object.keys(globalConfig.floorPlans).length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    Object.entries(globalConfig.floorPlans).forEach(([key, planData]) => {
+        const floorNumValue = planData.FloorNUM !== undefined ? planData.FloorNUM : '';
+        html += `
+            <div class="floor-plan-item" data-key="${key}">
+                <div class="floor-plan-header">
+                    <input type="text" 
+                           class="floor-plan-name-input" 
+                           value="${planData.name}" 
+                           onchange="updateFloorPlanName('${key}', this.value)"
+                           placeholder="Enter floor plan name">
+                    <button class="remove-btn" onclick="removeFloorPlan('${key}')">🗑️ Remove</button>
+                </div>
+                <img src="${planData.data}" alt="${planData.name}" class="floor-plan-preview">
+                <div class="floor-plan-info">
+                    <strong>Original File:</strong> ${planData.originalFileName}<br>
+                    <strong>Size:</strong> ${formatFileSize(planData.size)}<br>
+                    <label>Floor Number:</label>
+                    <input type="number" min="0" value="${floorNumValue}" 
+                           onchange="updateFloorPlanFloorNum('${key}', this.value)" 
+                           style="width: 80px; margin-top: 5px;">
+                </div>
+            </div>
+        `;
+    });
+    
+    // Add summary
+    const count = Object.keys(globalConfig.floorPlans).length;
+    html += `
+        <div class="floor-plans-summary">
+            <strong>Floor Plans Summary:</strong> ${count}/10 floor plans loaded
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+
+function updateFloorPlanFloorNum(key, value) {
+    const num = parseInt(value);
+    if (!isNaN(num)) {
+        globalConfig.floorPlans[key].FloorNUM = num;
+        updateConfigStatus();
+        showStatus(`Floor number for "${globalConfig.floorPlans[key].name}" updated to ${num}`, 'success');
+    } else {
+        delete globalConfig.floorPlans[key].FloorNUM;
+        updateConfigStatus();
+        showStatus(`Floor number for "${globalConfig.floorPlans[key].name}" cleared`, 'error');
+    }
+}
+
+
+function updateFloorPlanName(key, newName) {
+    if (!newName.trim()) {
+        showStatus('Floor plan name cannot be empty!', 'error');
+        displayFloorPlans(); // Reset the display
+        return;
+    }
+    
+    // Check if the new name already exists (and it's not the same item)
+    const existingPlan = Object.entries(globalConfig.floorPlans).find(([k, v]) => v.name === newName.trim() && k !== key);
+    if (existingPlan) {
+        showStatus('A floor plan with this name already exists!', 'error');
+        displayFloorPlans(); // Reset the display
+        return;
+    }
+    
+    // Update the name
+    if (globalConfig.floorPlans[key]) {
+        globalConfig.floorPlans[key].name = newName.trim();
+        updateConfigStatus();
+        showStatus('Floor plan name updated!', 'success');
+    }
+}
+
+function removeFloorPlan(key) {
+    if (globalConfig.floorPlans && globalConfig.floorPlans[key]) {
+        const planName = globalConfig.floorPlans[key].name;
+        delete globalConfig.floorPlans[key];
+        displayFloorPlans();
+        updateConfigStatus();
+        showStatus(`Floor plan "${planName}" removed!`, 'success');
+    }
+}
+
+// Function to get floor plans (for use by other parts of the application)
+function getFloorPlans() {
+    return globalConfig.floorPlans || {};
+}
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
+    loadConfiguration();
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateTowerList();
+    updateChillerList();
+    initializeUsers();
+    
+    // Small delay to ensure DOM elements are ready
+    setTimeout(() => {
+        initializeImageDropZone();
+        initializeFloorPlansDropZone();
+    }, 100);
+    
+    updateConfigStatus();
+});
+
+// ---------------- IMAGE MANAGEMENT ----------------
+function initializeImageDropZone() {
+    const dropZone = document.getElementById('imageDropZone');
+    const fileInput = document.getElementById('imageFileInput');
+    
+    // Click to select file
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // File input change event
+    fileInput.addEventListener('change', (e) => {
+        handleImageFile(e.target.files[0]);
+    });
+    
+    // Drag and drop events
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleImageFile(files[0]);
+        }
+    });
+    
+    // Display existing image if present
+    if (globalConfig.backgroundimage) {
+        displayImagePreview(globalConfig.backgroundimage, 'Loaded from configuration');
+    }
+}
+
+function handleImageFile(file) {
+    if (!file) {
+        showStatus('No file selected!', 'error');
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/png')) {
+        showStatus('Please select a PNG image file only!', 'error');
+        return;
+    }
+    
+    // Check file size (optional - limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showStatus('Image file is too large! Please select an image smaller than 5MB.', 'error');
+        return;
+    }
+    
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64String = e.target.result;
+        
+        // Store in global config
+        globalConfig.backgroundimage = base64String;
+        
+        // Display preview
+        displayImagePreview(base64String, `${file.name} (${formatFileSize(file.size)})`);
+        
+        // Update status
+        showStatus(`Image "${file.name}" loaded successfully!`, 'success');
+        updateConfigStatus();
+    };
+    
+    reader.onerror = function() {
+        showStatus('Error reading image file!', 'error');
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function displayImagePreview(base64String, fileName) {
+    const previewContainer = document.getElementById('imagePreviewContainer');
+    
+    previewContainer.innerHTML = `
+        <div>
+            <img src="${base64String}" alt="Background Image Preview" class="image-preview">
+            <div class="image-info">
+                <strong>File:</strong> ${fileName}<br>
+                <strong>Base64 Size:</strong> ${formatFileSize(base64String.length)} characters
+            </div>
+            <button class="remove-image-btn" onclick="removeBackgroundImage()">🗑️ Remove Image</button>
+        </div>
+    `;
+}
+
+function removeBackgroundImage() {
+    globalConfig.backgroundimage = null;
+    document.getElementById('imagePreviewContainer').innerHTML = '';
+    showStatus('Background image removed!', 'success');
+    updateConfigStatus();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// ---------------- USERS MANAGEMENT ----------------
+function initializeUsers() {
+    const container = document.getElementById('userList');
+    container.innerHTML = '';
+
+    if (globalConfig.Users && globalConfig.Users.length > 0) {
+        globalConfig.Users.forEach((user, index) => {
+            addUserElement(user.name, user.role, user.password || "", index);
+        });
+    }
+}
+
+function addUser() {
+    if (!globalConfig.Users) {
+        globalConfig.Users = [];
+    }
+
+    globalConfig.Users.push({ name: "NewUser", role: "technician", password: "" });
+    addUserElement("NewUser", "technician", "", globalConfig.Users.length - 1);
+    updateConfigStatus();
+}
+
+function addUserElement(name, role, password, index) {
+    const container = document.getElementById('userList');
+    const userDiv = document.createElement('div');
+    userDiv.className = 'user-entry';
+    userDiv.innerHTML = `
+        <div class="inline-inputs">
+            <div>
+                <label>User Name:</label>
+                <input type="text" value="${name}" onchange="updateUser(${index}, 'name', this.value)">
+            </div>
+            <div>
+                <label>Role:</label>
+                <select onchange="updateUser(${index}, 'role', this.value)">
+                    <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                    <option value="technician" ${role === 'technician' ? 'selected' : ''}>Technician</option>
+                    <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+                    <option value="engineer" ${role === 'engineer' ? 'selected' : ''}>Engineer</option>
+                </select>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" value="${password}" onchange="updateUser(${index}, 'password', this.value)">
+            </div>
+            <div style="flex:0;">
+                <button type="button" class="remove-btn" onclick="removeUser(${index})" style="margin-top:20px;">🗑️ Remove</button>
+            </div>
+        </div>
+    `;
+    container.appendChild(userDiv);
+}
+
+function updateUser(index, property, value) {
+    globalConfig.Users[index][property] = value;
+    updateConfigStatus();
+}
+
+function removeUser(index) {
+    globalConfig.Users.splice(index, 1);
+    initializeUsers();
+    updateConfigStatus();
+}
+
+// Load configuration
+function loadConfiguration() {
+    // Set form fields based on current config
+    document.getElementById('jobBuilding').value = globalConfig.JobBuilding || "";
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    
+    if (globalConfig.AHUs) {
+        document.getElementById('ahuCount').value = globalConfig.AHUs.length;
+    }
+    if (globalConfig.RTUs) {
+        document.getElementById('rtuCount').value = globalConfig.RTUs.length;
+    }
+    if (globalConfig.FluidCooler) {
+        document.getElementById('fcCount').value = globalConfig.FluidCooler.length;
+    }
+    if (globalConfig.Chillers) {
+        document.getElementById('ChillerCount').value = globalConfig.Chillers.length;
+    }
+    if (globalConfig.Towers) {
+        document.getElementById('TowerCount').value = globalConfig.Towers.length;
+    }
+}
+
+// Export configuration to JSON file
+function exportConfiguration() {
+    // Update config with current form values
+    globalConfig.JobBuilding = document.getElementById('jobBuilding').value.trim();
+    globalConfig.baseFilePath = document.getElementById('baseFilePath').value;
+    
+    // Create JSON string with proper formatting
+    const configJSON = JSON.stringify(globalConfig, null, 2);
+    
+    // Create downloadable file
+    const blob = new Blob([configJSON], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create temporary download link
+    const a = document.createElement('a');
+    a.href = url;
+    const jobName = globalConfig.JobBuilding ? globalConfig.JobBuilding.replace(/[^a-zA-Z0-9]/g, '_') : 'HomeConfig';
+    a.download = `${jobName}_Config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    const imageStatus = globalConfig.backgroundimage ? ' (includes background image)' : ' (no background image)';
+    showStatus(`Configuration exported successfully to ${jobName}_Config.json${imageStatus}!`, 'success');
+    updateConfigStatus();
+}
+
+// Import configuration from JSON file
+function importConfiguration(input) {
+    const file = input.files[0];
+    if (!file) {
+        showStatus('No file selected!', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedConfig = JSON.parse(e.target.result);
+            
+            // Validate the imported configuration
+            if (!importedConfig.baseFilePath) {
+                throw new Error('Invalid configuration: missing baseFilePath');
+            }
+            
+            // Update global config
+            globalConfig = { ...globalConfig, ...importedConfig };
+            
+            // Update all form fields
+            document.getElementById('jobBuilding').value = globalConfig.JobBuilding || "";
+            document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+            document.getElementById('ahuCount').value = globalConfig.AHUs ? globalConfig.AHUs.length : 0;
+            document.getElementById('rtuCount').value = globalConfig.RTUs ? globalConfig.RTUs.length : 0;
+            document.getElementById('fcCount').value = globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0;
+            document.getElementById('ChillerCount').value = globalConfig.Chillers ? globalConfig.Chillers.length : 0;
+            document.getElementById('TowerCount').value = globalConfig.Towers ? globalConfig.Towers.length : 0;
+            
+            // Refresh all displays
+            initializeVavGroups();
+            updateAhuList();
+            updateRtuList();
+            updateFcList();
+            updateChillerList();
+            updateTowerList();
+            initializeUsers();
+            
+            // Display imported background image if present
+            const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+            if (globalConfig.backgroundimage) {
+                displayImagePreview(globalConfig.backgroundimage, 'Imported from JSON');
+            } else {
+                imagePreviewContainer.innerHTML = '';
+            }
+            
+            // Display imported floor plans if present
+            if (globalConfig.floorPlans && Object.keys(globalConfig.floorPlans).length > 0) {
+                displayFloorPlans();
+            }
+            
+            updateConfigStatus();
+            
+            const imageStatus = globalConfig.backgroundimage ? ' (with background image)' : '';
+            showStatus(`Configuration imported successfully${imageStatus}!`, 'success');
+            
+        } catch (error) {
+            showStatus('Error importing configuration: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    input.value = '';
+}
+
+// Update configuration status display
+function updateConfigStatus() {
+    const statusDiv = document.getElementById('configStatus');
+    const timestamp = new Date().toLocaleString();
+    
+    const imageStatus = globalConfig.backgroundimage ? 'Yes' : 'No';
+    const floorPlansCount = globalConfig.floorPlans ? Object.keys(globalConfig.floorPlans).length : 0;
+    
+    const summary = `
+Configuration loaded at: ${timestamp}
+- Job/Building: ${globalConfig.JobBuilding || 'Not specified'}
+- Base Path: ${globalConfig.baseFilePath}
+- VAV Groups: ${globalConfig.VAVs ? globalConfig.VAVs.length : 0}
+- AHUs: ${globalConfig.AHUs ? globalConfig.AHUs.length : 0}
+- RTUs: ${globalConfig.RTUs ? globalConfig.RTUs.length : 0}
+- Chillers: ${globalConfig.Chillers ? globalConfig.Chillers.length : 0}
+- Towers: ${globalConfig.Towers ? globalConfig.Towers.length : 0}
+- Fluid Coolers: ${globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0}
+- Users: ${globalConfig.Users ? globalConfig.Users.length : 0}
+- Background Image: ${imageStatus}
+- Floor Plans: ${floorPlansCount}/10
+    `.trim();
+    
+    if (statusDiv) {
+        statusDiv.textContent = summary;
+    }
+}
+
+
+
+// VAV Group Management - Simple floor-based approach
+function initializeVavGroups() {
+    const container = document.getElementById('vavGroups');
+    container.innerHTML = '';
+    
+    // Always start with the floor count input
+    createVavFloorInput();
+    
+    // If there are existing VAVs, populate the fields
+    if (globalConfig.VAVs && globalConfig.VAVs.length > 0) {
+        const floorCount = globalConfig.VAVs.length;
+        document.getElementById('vavFloorCount').value = floorCount;
+        createVavUnitInputs(floorCount);
+    }
+}
+
+function createVavFloorInput() {
+    const container = document.getElementById('vavGroups');
+    const floorInputDiv = document.createElement('div');
+    floorInputDiv.innerHTML = `
+        <div>
+            <label><strong>Enter Number of Floors:</strong></label>
+            <input type="number" id="vavFloorCount" min="0" max="20" value="" 
+                   onchange="updateVavFloors(this.value)" 
+                   placeholder="How many floors?" 
+                   style="width: 100px; margin-left: 10px;">
+        </div>
+        <div id="vavUnitsContainer"></div>
+        <div id="vavPreview" class="equipment-preview" style="margin-top: 10px;"></div>
+    `;
+    container.appendChild(floorInputDiv);
+}
+
+function updateVavFloors(floorCount) {
+    const count = parseInt(floorCount) || 0;
+    
+    if (count === 0) {
+        // Clear everything if no floors
+        globalConfig.VAVs = [];
+        document.getElementById('vavUnitsContainer').innerHTML = '';
+        document.getElementById('vavPreview').innerHTML = '';
+        updateConfigStatus();
+        return;
+    }
+    
+    // Create VAV groups for each floor (using integers, not strings)
+    globalConfig.VAVs = [];
+    for (let i = 0; i < count; i++) {
+        globalConfig.VAVs.push({ group: i, count: 1 });
+    }
+    
+    createVavUnitInputs(count);
+    updateVavPreview();
+    updateConfigStatus();
+}
+
+function createVavUnitInputs(floorCount) {
+    const container = document.getElementById('vavUnitsContainer');
+    
+    if (floorCount === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div style="margin-top: 15px;"><strong>Number of VAVs on each floor:</strong></div>';
+    html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 10px;">';
+    
+    for (let i = 0; i < floorCount; i++) {
+        const currentCount = globalConfig.VAVs[i] ? globalConfig.VAVs[i].count : 1;
+        html += `
+            <div>
+                <label>Floor ${i}:</label><br>
+                <input type="number" min="1" max="50" value="${currentCount}" 
+                       onchange="updateVavGroupCount(${i}, this.value)" 
+                       style="width: 60px;">
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function updateVavGroupCount(index, value) {
+    const count = parseInt(value) || 1;
+    if (globalConfig.VAVs[index]) {
+        globalConfig.VAVs[index].count = count;
+        updateVavPreview();
+        updateConfigStatus();
+    }
+}
+
+function updateVavPreview() {
+    const previewDiv = document.getElementById('vavPreview');
+    if (!globalConfig.VAVs || globalConfig.VAVs.length === 0) {
+        previewDiv.innerHTML = '';
+        return;
+    }
+    
+    const totalUnits = globalConfig.VAVs.reduce((sum, vav) => sum + vav.count, 0);
+    let details = globalConfig.VAVs.map(vav => `Floor ${vav.group}: ${vav.count} units`).join(', ');
+    
+    previewDiv.innerHTML = `<strong>VAV Summary:</strong> ${totalUnits} total units (${details})`;
+}
+
+// Equipment Management Functions
+function updateAhuList() {
+    const count = parseInt(document.getElementById('ahuCount').value) || 0;
+    const container = document.getElementById('ahuList');
+    
+    globalConfig.AHUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.AHUs.push(`AHU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.AHUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateRtuList() {
+    const count = parseInt(document.getElementById('rtuCount').value) || 0;
+    const container = document.getElementById('rtuList');
+    
+    globalConfig.RTUs = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.RTUs.push(`RTU_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.RTUs.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateChillerList() {
+    const count = parseInt(document.getElementById('ChillerCount').value) || 0;
+    const container = document.getElementById('ChillerList');
+    
+    globalConfig.Chillers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Chillers.push(`Chiller_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Chillers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateTowerList() {
+    const count = parseInt(document.getElementById('TowerCount').value) || 0;
+    const container = document.getElementById('TowerList');
+    
+    globalConfig.Towers = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.Towers.push(`Tower_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.Towers.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+function updateFcList() {
+    const count = parseInt(document.getElementById('fcCount').value) || 0;
+    const container = document.getElementById('fcList');
+    
+    globalConfig.FluidCooler = [];
+    for (let i = 1; i <= count; i++) {
+        globalConfig.FluidCooler.push(`Fluid_Cooler_${i}`);
+    }
+    
+    container.innerHTML = '';
+    if (count > 0) {
+        const preview = document.createElement('div');
+        preview.className = 'equipment-preview';
+        preview.textContent = globalConfig.FluidCooler.join(', ');
+        container.appendChild(preview);
+    }
+    updateConfigStatus();
+}
+
+// Save configuration
+function saveConfiguration() {
+    const userInput = document.getElementById('baseFilePath').value.trim();
+    const jobBuilding = document.getElementById('jobBuilding').value.trim();
+    
+    if (!userInput) {
+        showStatus('Please enter a valid file path template!', 'error');
+        return;
+    }
+    
+    if (!userInput.includes('{headerName}') || !userInput.includes('{pointName}')) {
+        showStatus('Template must include {headerName} and {pointName} placeholders!', 'error');
+        return;
+    }
+    
+    // Update global config with current values
+    globalConfig.JobBuilding = jobBuilding;
+    globalConfig.baseFilePath = userInput;
+    
+    // Export the configuration
+    exportConfiguration();
+}
+
+// Clear configuration
+function clearConfiguration() {
+    // Reset to defaults
+    globalConfig = {
+        JobBuilding: "",
+        baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+        VAVs: [],
+        AHUs: [],
+        RTUs: [],
+        Chillers: [],
+        Towers: [],
+        FluidCooler: [],
+        Users: [],
+        backgroundimage: null,
+        floorPlans: {}
+    };
+    
+    document.getElementById('jobBuilding').value = "";
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    document.getElementById('ahuCount').value = 0;
+    document.getElementById('rtuCount').value = 0;
+    document.getElementById('fcCount').value = 0;
+    document.getElementById('ChillerCount').value = 0;
+    document.getElementById('TowerCount').value = 0;
+    
+    // Clear image previews
+    document.getElementById('imagePreviewContainer').innerHTML = '';
+    document.getElementById('floorPlansContainer').innerHTML = '';
+    
+    // Reinitialize displays
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcList();
+    updateChillerList();
+    updateTowerList();
+    initializeUsers();
+    updateConfigStatus();
+    
+    showStatus('Configuration cleared!', 'success');
+}
+
+// Status display function
+function showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type}`;
+    setTimeout(() => {
+        status.textContent = '';
+        status.className = 'status';
+    }, 3000);
+}
+
+// Global functions to get configuration (for use by other pages)
+function getGlobalConfig() {
+    return globalConfig;
+}
+
+function getJobBuilding() {
+    return globalConfig.JobBuilding;
+}
+
+function getVAVConfig() {
+    return globalConfig.VAVs;
+}
+
+function getAHUConfig() {
+    return globalConfig.AHUs;
+}
+
+function getRTUConfig() {
+    return globalConfig.RTUs;
+}
+
+function getChillerConfig() {
+    return globalConfig.Chillers;
+}
+
+function getTowerConfig() {
+    return globalConfig.Towers;
+}
+
+function getFluidCoolerConfig() {
+    return globalConfig.FluidCooler;
+}
+
+function getBaseFilePath() {
+    return globalConfig.baseFilePath;
+}
+
+function getBackgroundImage() {
+    return globalConfig.backgroundimage;
+}
+
+// Auto-update on field changes
+document.addEventListener('DOMContentLoaded', function() {
+    const jobBuildingInput = document.getElementById('jobBuilding');
+    const baseFilePathInput = document.getElementById('baseFilePath');
+    
+    if (jobBuildingInput) {
+        jobBuildingInput.addEventListener('change', function() {
+            globalConfig.JobBuilding = this.value.trim();
+            updateConfigStatus();
+        });
+    }
+    
+    if (baseFilePathInput) {
+        baseFilePathInput.addEventListener('change', function() {
+            globalConfig.baseFilePath = this.value;
+            updateConfigStatus();
+        });
+    }
+});
+
+// Function to load configuration from JSON file (for other HTML files to use)
+function loadConfigFromJSON(jsonData) {
+    try {
+        if (typeof jsonData === 'string') {
+            globalConfig = JSON.parse(jsonData);
+        } else {
+            globalConfig = jsonData;
+        }
+        return globalConfig;
+    } catch (error) {
+        console.error('Error loading JSON configuration:', error);
+        return null;
+    }
+}
+</script>
+
+</body>
+</html>
