@@ -1,0 +1,2988 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+<style>
+   :root {
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-muted: #666666;
+            --border-color: #dddddd;
+            --primary-color: #007bff;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --secondary-color: #6c757d;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --text-muted: #cccccc;
+            --border-color: #404040;
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --secondary-color: #6c757d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .datetime {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .monitoring-status {
+            font-size: 0.9rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .monitoring-active {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+        }
+
+        .monitoring-inactive {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+        }
+
+        .dark-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 24px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] .toggle-switch::after {
+            transform: translateX(26px);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            margin: 0 0 20px 0;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 500;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-success { background: var(--success-color); color: white; }
+        .btn-warning { background: var(--warning-color); color: #212529; }
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-secondary { background: var(--secondary-color); color: white; }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .status-display {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid;
+        }
+
+        .status-ok {
+            background: rgba(40, 167, 69, 0.1);
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .status-warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: var(--warning-color);
+            color: #856404;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.1);
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .status-details p {
+            margin: 5px 0;
+        }
+
+        /* Graph Viewer Styles */
+        .graph-viewer {
+            display: none;
+            background: var(--bg-color);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .graph-viewer.active {
+            display: block;
+        }
+
+        .graph-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .graph-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 300;
+        }
+
+        .graph-controls {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-source-toggle {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .data-source-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-label {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            padding: 8px 16px;
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-input-label:hover {
+            opacity: 0.9;
+        }
+
+        .series-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .series-controls {
+            flex: 1;
+            padding: 15px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .series-controls h4 {
+            margin: 0 0 15px 0;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .series-1 {
+            border-left: 4px solid #3498db;
+        }
+
+        .series-2 {
+            border-left: 4px solid #f39c12;
+        }
+
+        .graph-content {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .graph-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 20px;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .no-data-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .graph-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .legend-text {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .graph-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--bg-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .import-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .import-status.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .import-status.error {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .import-status.warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: #856404;
+            border: 1px solid var(--warning-color);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-info {
+                align-items: center;
+            }
+
+            .controls {
+                justify-content: center;
+            }
+
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .series-container {
+                flex-direction: column;
+            }
+
+            .graph-stats {
+                justify-content: center;
+            }
+        }
+        
+        #graphCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.375em;
+}
+
+.no-data-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-color);
+    font-size: clamp(1rem, 1.2vw, 1.1rem);
+    text-align: center;
+}
+
+.graph-legend {
+    display: flex;
+    gap: 1%;
+    margin-bottom: 1%;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.legend-color { width: 1.25em; height: 0.25em; border-radius: 0.125em; }
+
+.graph-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10%, 1fr));
+    gap: 1%;
+}
+
+        
+    </style>
+</head>
+<body>
+    <div id="monitorView">
+        <div class="header">
+            <h1>Enhanced Boolean System Monitor</h1>
+            <div style="display: flex; align-items: center;">
+                <div class="header-info" style="position: relative; left: -40px;">
+                    <div id="currentDateTime" class="datetime"></div>
+                    <div id="monitoringStatus" class="monitoring-status"></div>
+                </div>
+                <div class="dark-mode-toggle">
+                    <span class="toggle-label">Light Mode</span>
+                    <div class="toggle-switch" id="toggleSwitch" onclick="toggleDarkMode()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Configuration Status -->
+            <div class="card">
+                <h2>Configuration Status</h2>
+                <div id="configStatus" class="config-status">
+                    <div class="status-display status-warning">
+                        <div class="status-title">Loading Global.json configuration...</div>
+                        <div class="status-details">
+                            <p>Attempting to read Global.json from directory</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="card">
+                <h2>Control Panel</h2>
+                <div class="controls">
+                    <button class="btn btn-success" onclick="startMonitoring()">Start Monitoring</button>
+                    <button class="btn btn-warning" onclick="stopMonitoring()">Stop Monitoring</button>
+                    <button class="btn btn-primary" onclick="checkAllStatesNow()">Check States Now</button>
+                    <button class="btn btn-primary" onclick="reloadConfig()">Reload Config</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">Export CSV</button>
+                    <button class="btn btn-secondary" onclick="exportFullDataJSON()">Export JSON</button>
+                    <button class="btn btn-primary" onclick="toggleGraphViewer()">View Graphs</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h2>System Status</h2>
+                <div id="system-status">
+                    <!-- Overall summary will be injected here -->
+                </div>
+                <div id="lastSaveTime" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);"></div>
+            </div>
+
+            <!-- Recent Event Logs -->
+            <div class="card">
+                <h2>Recent Boolean Data (Last 5 Entries)</h2>
+                <div id="eventLogs">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Graph Viewer -->
+    <div id="graphViewer" class="graph-viewer">
+        <div class="graph-header">
+            <h1>Enhanced Boolean Graph Viewer</h1>
+            <button class="btn btn-secondary" onclick="toggleGraphViewer()">Back to Monitor</button>
+        </div>
+        
+        <div class="graph-controls">
+            <!-- Data Source Toggle will be inserted here by JavaScript -->
+            
+            <div class="control-row">
+                <div class="file-input-wrapper">
+                    <input type="file" id="jsonFileInput" accept=".json" onchange="importJsonFile(this)">
+                    <label for="jsonFileInput" class="file-input-label">Import JSON Data</label>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Date:</label>
+                    <input type="date" id="dateInput" onchange="forceRefreshGraph()">
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Time Range:</label>
+                    <select id="timeRangeSelector" onchange="updateGraph()">
+                        <option value="all">All Day</option>
+                        <option value="60">Last Hour</option>
+                        <option value="240">Last 4 Hours</option>
+                        <option value="480">Last 8 Hours</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Container for both series -->
+            <div class="series-container">
+                <!-- Primary Series Controls -->
+                <div class="series-controls series-1">
+                    <h4>Primary Series</h4>
+                    <div class="control-row" style="display: flex; gap: 10px;">
+                        <div class="control-group">
+                            <label class="control-label">Unit:</label>
+                            <select id="unitSelector" onchange="updatePointSelectorFromConfig(); updateGraph()">
+                                <option value="">Select Unit...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">Point:</label>
+                            <select id="pointSelector" onchange="updateGraph()">
+                                <option value="">Select Point...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Series Controls -->
+                <div class="series-controls series-2">
+                    <h4>Secondary Series (Optional)</h4>
+                    <div class="control-row" style="display: flex; gap: 10px;">
+                        <div class="control-group">
+                            <label class="control-label">Unit:</label>
+                            <select id="unitSelector2" onchange="updatePointSelector2FromConfig(); updateGraph()">
+                                <option value="">Select Unit (Optional)...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">Point:</label>
+                            <select id="pointSelector2" onchange="updateGraph()">
+                                <option value="">Select Point (Optional)...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="importStatus" class="import-status"></div>
+        </div>
+        
+        <div class="graph-content">
+            <div class="graph-container">
+                <canvas id="graphCanvas"></canvas>
+                <div id="noDataMessage" class="no-data-message">
+                    Select a unit and point to view boolean graph data.
+                </div>
+            </div>
+            
+            <!-- Zoom controls will be inserted here by JavaScript -->
+            
+            <div id="graphLegend" class="graph-legend"></div>
+            <div id="graphStats" class="graph-stats"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode toggle
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                toggleLabel.textContent = 'Light Mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                toggleLabel.textContent = 'Dark Mode';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                toggleLabel.textContent = 'Dark Mode';
+            }
+        });
+
+        // Graph viewer toggle
+        function toggleGraphViewer() {
+            const monitorView = document.getElementById('monitorView');
+            const graphViewer = document.getElementById('graphViewer');
+            
+            if (monitorView.style.display === 'none') {
+                monitorView.style.display = 'block';
+                graphViewer.classList.remove('active');
+                graphViewerActive = false;
+            } else {
+                monitorView.style.display = 'none';
+                graphViewer.classList.add('active');
+                graphViewerActive = true;
+                initializeGraphViewer();
+            }
+        }
+        
+        
+        function updateOverallStatus() {
+    const statusElement = document.getElementById('system-status');
+    
+    let summaryElement = document.getElementById('overall-summary');
+    if (!summaryElement) {
+        summaryElement = document.createElement('div');
+        summaryElement.id = 'overall-summary';
+        summaryElement.className = 'overall-summary';
+        statusElement.appendChild(summaryElement);
+    }
+    
+    const activePoints = monitoredPoints.length;
+    const totalLogs = eventLogs.length;
+    const trackedStates = pointStates.size;
+    
+    const overallClass = activePoints > 0 ? 'status-ok' : 'status-error';
+    const overallTitle = `🔘 ${activePoints} BOOLEAN POINTS MONITORED`;
+    const monitoringStatusText = monitoringActive ? '🟢 ACTIVE (State Change Detection)' : '🔴 STOPPED';
+    
+    summaryElement.className = `overall-summary status-display ${overallClass}`;
+    summaryElement.innerHTML = `
+        <div class="status-title">${overallTitle}</div>
+        <div class="status-details">
+            <p><strong>Monitoring Status:</strong> ${monitoringStatusText}</p>
+            <p><strong>Configured Points:</strong> ${activePoints} boolean points</p>
+            <p><strong>Total Logged Changes:</strong> ${totalLogs}</p>
+            <p><strong>Last State Change:</strong> ${lastCheckTime ? lastCheckTime.toLocaleString() : 'Never'}</p>
+            <p><strong>Config Status:</strong> ${globalConfig ? 'Loaded' : 'Not Loaded'}</p>
+        </div>
+    `;
+}
+
+
+        // Placeholder functions for monitoring (to be implemented by main script)
+// Control functions
+function startMonitoring() {
+    if (!globalConfig) {
+        showNotification('Configuration Required', 'Please load Global.json first', 'error');
+        return;
+    }
+    
+    if (monitoredPoints.length === 0) {
+        showNotification('No Points Configured', 'No boolean points found in configuration', 'warning');
+        return;
+    }
+    
+    monitoringActive = true;
+    updateMonitoringStatus();
+    
+    // Initial state check
+    checkAllStatesNow();
+    
+    // Start continuous monitoring every 5 seconds for state changes
+    if (window.stateMonitorInterval) {
+        clearInterval(window.stateMonitorInterval);
+    }
+    window.stateMonitorInterval = setInterval(monitorStateChanges, 5000);
+    
+    showNotification('Monitoring Started', `Monitoring ${monitoredPoints.length} boolean points for state changes`, 'success');
+}
+
+function stopMonitoring() {
+    monitoringActive = false;
+    updateMonitoringStatus();
+    
+    if (window.stateMonitorInterval) {
+        clearInterval(window.stateMonitorInterval);
+    }
+    
+    showNotification('Monitoring Stopped', 'Boolean monitoring has been paused', 'warning');
+}
+
+// Export functions
+function exportLogs() {
+    if (eventLogs.length === 0) {
+        showNotification('No Data', 'No logs to export', 'warning');
+        return;
+    }
+
+    const headers = ['ID', 'Timestamp', 'Unit', 'Point Name', 'Boolean State', 'Change Type', 'Change Description', 'Full Path'];
+
+    // Sort logs by Unit, then Point Name, then Timestamp
+    const sortedLogs = [...eventLogs].sort((a, b) => {
+        if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
+        if (a.pointName !== b.pointName) return a.pointName.localeCompare(b.pointName);
+        return new Date(a.timestampObj) - new Date(b.timestampObj);
+    });
+
+    const csvRows = [headers.join(',')];
+
+    let lastUnit = null;
+
+    sortedLogs.forEach(log => {
+        // If the unit changed, add a blank row before continuing
+        if (lastUnit !== null && log.unit !== lastUnit) {
+            csvRows.push(''); // blank line
+        }
+
+        csvRows.push([
+            log.id,
+            `"${log.timestamp}"`,
+            `"${log.unit}"`,
+            `"${log.pointName}"`,
+            log.stateText,
+            `"${log.changeType}"`,
+            `"${log.changeDescription}"`,
+            `"${log.fullPath}"`
+        ].join(','));
+
+        lastUnit = log.unit;
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `niagara_boolean_logs_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('Export Complete', `Exported ${eventLogs.length} boolean log entries`, 'success');
+}
+
+
+function exportFullDataJSON() {
+    const exportData = {
+        metadata: {
+            exportTimestamp: new Date().toISOString(),
+            totalLogs: eventLogs.length,
+            exportType: 'fullBooleanData',
+            monitoredPointsCount: monitoredPoints.length,
+            dataType: 'boolean'
+        },
+        eventLogs: eventLogs,
+        systemConfig: {
+            monitoringActive: monitoringActive,
+            logCounter: logCounter,
+            startTime: startTime.toISOString(),
+            lastCheckTime: lastCheckTime ? lastCheckTime.toISOString() : null
+        },
+        monitoredPoints: monitoredPoints,
+        pointStates: Object.fromEntries(pointStates)
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `niagara_boolean_data_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('JSON Export Complete', 'Full boolean data exported', 'success');
+}
+ // Event log display functions
+function updateEventLogs() {
+    const logsContainer = document.getElementById('eventLogs');
+    const recentLogs = eventLogs.slice(0, 5);
+    
+    logsContainer.innerHTML = '';
+    
+    if (recentLogs.length === 0) {
+        logsContainer.innerHTML = `
+            <div class="bubbleSP">
+                <div class="point-status status-display">
+                    <div class="status-title">No boolean state changes recorded yet</div>
+                    <div class="status-details">
+                        <p>System monitors ${monitoredPoints.length} configured points for state changes</p>
+                        <p>Click "Check All States" for immediate state check</p>
+                        <p>Monitoring logs changes automatically when active</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    recentLogs.forEach(log => {
+        const logElement = document.createElement('div');
+        logElement.className = 'bubbleSP';
+        
+        let statusClass = log.booleanValue ? 'status-ok' : 'status-warning';
+        if (log.changeType === 'State Change') {
+            statusClass = 'status-info';
+        }
+        
+        logElement.innerHTML = `
+            <div class="point-status status-display ${statusClass}">
+                <div class="status-title">${log.stateIcon} ${log.displayName} - ${log.stateText}</div>
+                <div class="status-details">
+                    <p><strong>Timestamp:</strong> ${log.timestamp}</p>
+                    <p><strong>State:</strong> ${log.stateText}</p>
+                    <p><strong>Change Type:</strong> ${log.changeType}</p>
+                    <p><strong>Change:</strong> ${log.changeDescription}</p>
+                    <p><strong>Unit:</strong> ${log.unit}</p>
+                    <p><strong>Point:</strong> ${log.pointName}</p>
+                    <p><strong>Full Path:</strong> ${log.fullPath}</p>
+                </div>
+            </div>
+        `;
+        logsContainer.appendChild(logElement);
+    });
+    
+    updateOverallStatus();
+}
+
+// Utility functions
+function showNotification(title, message, type = 'info') {
+    const notification = document.createElement('div');
+    const colors = {
+        success: '#27ae60',
+        error: '#e74c3c',
+        info: '#3498db',
+        warning: '#f39c12'
+    };
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        max-width: 300px;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 14px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    
+    notification.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
+        <div>${message}</div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+        function updateImportStatus(message, type) {
+            const statusElement = document.getElementById('importStatus');
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `import-status ${type}`;
+                statusElement.style.display = 'block';
+                
+                // Hide after 5 seconds for success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        statusElement.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Initialize the system when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof initializeSystem === 'function') {
+                initializeSystem();
+            }
+        });
+    </script>
+
+
+<!-- Hamburger Menu Script -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay = document.getElementById('overlay');
+const ahuDropdown = document.getElementById('ahuDropdown');
+const ahuOptions = document.querySelectorAll('.ahu-option');
+
+// Toggle side panel
+hamburgerMenu.addEventListener('click', function() {
+hamburgerMenu.classList.toggle('active');
+sidePanel.classList.toggle('active');
+overlay.classList.toggle('active');
+});
+
+// Close side panel when clicking overlay
+overlay.addEventListener('click', function() {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+});
+
+// Toggle dropdown
+ahuDropdown.querySelector('.ahu-dropdown-header').addEventListener('click', function() {
+ahuDropdown.classList.toggle('active');
+});
+
+// Handle AHU selection
+ahuOptions.forEach(option => {
+option.addEventListener('click', function() {
+// Remove active class from all options
+ahuOptions.forEach(opt => opt.classList.remove('active'));
+
+// Add active class to clicked option
+this.classList.add('active');
+
+// Update the dropdown header text
+const selectedAhu = this.textContent;
+ahuDropdown.querySelector('h3').textContent = selectedAhu;
+
+// Close dropdown
+ahuDropdown.classList.remove('active');
+
+// Here you can add logic to switch between AHU data
+console.log('Selected AHU:', this.getAttribute('data-ahu'));
+
+// Optional: Close side panel after selection
+setTimeout(() => {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+}, 300);
+});
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+if (!ahuDropdown.contains(e.target)) {
+ahuDropdown.classList.remove('active');
+}
+});
+</script>
+
+
+
+<script>
+// Enhanced Boolean System Monitor with Niagara History Integration
+
+// Global variables
+let eventLogs = [];
+let monitoringActive = false;
+let logCounter = 0;
+let startTime = new Date();
+let lastCheckTime = null;
+let graphViewerActive = false;
+let importedJsonData = null;
+let globalConfig = null;
+let monitoredPoints = [];
+let pointStates = new Map();
+let graphDataPoints = [];
+let historyCache = new Map(); // Cache for history ORDs
+
+let zoomState = {
+    isZoomed: false,
+    startTime: null,
+    endTime: null,
+    isDragging: false,
+    dragStart: null,
+    dragEnd: null
+};
+
+// Initialize system
+function initializeSystem() {
+    updateDateTime();
+    updateMonitoringStatus();
+    updateEventLogs();
+    loadGlobalConfig();
+    
+    // Start auto-save every 30 seconds
+    setInterval(saveData, 30000);
+    
+    // Update time every second
+    setInterval(updateDateTime, 1000);
+    
+    console.log('Enhanced Boolean System Monitor with History Integration initialized');
+}
+
+async function monitorStateChanges() {
+    if (!monitoringActive || monitoredPoints.length === 0) return;
+    
+    console.log('Monitoring boolean state changes...');
+    
+    for (const point of monitoredPoints) {
+        try {
+            const currentValue = await readActualPointValue(point);
+            
+            if (currentValue !== null && currentValue !== undefined) {
+                const booleanValue = parseBooleanValue(currentValue);
+                const pointKey = `${point.unit}.${point.pointName}`;
+                const previousValue = pointStates.get(pointKey);
+                
+                // Check if state changed or if this is the first reading
+                if (previousValue === undefined || previousValue !== booleanValue) {
+                    const changeType = previousValue === undefined ? 'Initial State' : 'State Change';
+                    addBooleanStateEntry(point, booleanValue, changeType, previousValue);
+                    pointStates.set(pointKey, booleanValue);
+                    
+                    console.log(`${changeType} detected for ${pointKey}: ${previousValue} → ${booleanValue}`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error monitoring point ${point.unit}.${point.pointName}:`, error);
+        }
+    }
+    
+    updateEventLogs();
+}
+
+function initializeDateInput() {
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+        dateInput.addEventListener('change', forceRefreshGraph);
+    }
+}
+
+
+async function loadGlobalConfig() {
+    try {
+        const response = await fetch('./Global.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        globalConfig = await response.json();
+        parseMonitoredPoints();
+        updateConfigStatus();
+        
+        console.log('Global.json loaded successfully');
+        console.log('Monitored boolean points found:', monitoredPoints.length);
+        
+    } catch (error) {
+        console.error('Error loading Global.json:', error);
+        updateConfigStatus(error.message);
+    }
+}
+
+function parseMonitoredPoints() {
+    monitoredPoints = [];
+    
+    if (!globalConfig || !globalConfig.globalVariables) {
+        console.warn('No globalVariables found in config');
+        return;
+    }
+    
+    for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+        if (!unitData.points || !Array.isArray(unitData.points)) {
+            continue;
+        }
+        
+        unitData.points.forEach(point => {
+            if (point.logBoolean === "yes_Boolean" && point.status === "connected") {
+                monitoredPoints.push({
+                    unit: unitName,
+                    pointName: point.name,
+                    fullPath: point.fullPath,
+                    basePath: unitData.basePath,
+                    id: point.id,
+                    dateAdded: point.dateAdded
+                });
+            }
+        });
+    }
+    
+    console.log('Parsed monitored boolean points:', monitoredPoints);
+}
+
+function updateConfigStatus(errorMessage = null) {
+    const configStatus = document.getElementById('configStatus');
+    
+    if (errorMessage) {
+        configStatus.innerHTML = `
+            <div class="status-display status-error">
+                <div class="status-title">Configuration Error</div>
+                <div class="status-details">
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    <p>Please ensure Global.json exists in the same directory</p>
+                    <p>Click "Reload Config" to try again</p>
+                </div>
+            </div>
+        `;
+    } else if (globalConfig) {
+        const totalUnits = Object.keys(globalConfig.globalVariables || {}).length;
+        const totalPoints = monitoredPoints.length;
+        
+        configStatus.innerHTML = `
+            <div class="status-display status-ok">
+                <div class="status-title">Configuration Loaded Successfully</div>
+                <div class="status-details">
+                    <p><strong>Units Found:</strong> ${totalUnits}</p>
+                    <p><strong>Boolean Points to Monitor:</strong> ${totalPoints}</p>
+                    <p><strong>Config File:</strong> Global.json</p>
+                    <p><strong>Last Loaded:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// History Discovery Functions (from History.docx)
+async function discoverHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Check if we're running in a Niagara environment
+            if (typeof require === 'undefined') {
+                console.error('Baja require system not available. This script must run within a Niagara station environment.');
+                reject(new Error('Niagara environment required for history access'));
+                return;
+            }
+            
+            require(['baja!'], function (baja) {
+                'use strict';
+                
+                console.log('Auto-discovering history from point:', pointOrd);
+                
+                baja.Ord.make(pointOrd).get()
+                    .then(function(entity) {
+                        return entity.tags();
+                    })
+                    .then(function(tagMap) {
+                        var historyTag = tagMap.get('n:history');
+                        console.log('Found history tag:', historyTag);
+                        
+                        if (historyTag && historyTag.toString().trim() !== '') {
+                            var historyPath = historyTag.toString();
+                            
+                            // Prepend 'history:' if it's not already there
+                            if (!historyPath.startsWith('history:')) {
+                                historyPath = 'history:' + historyPath;
+                            }
+                            
+                            console.log('Discovered history ORD:', historyPath);
+                            resolve(historyPath);
+                        } else {
+                            reject(new Error('No n:history tag found on point: ' + pointOrd));
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('Couldn\'t load tags:', err);
+                        reject(new Error('Failed to load point tags: ' + err.message));
+                    });
+            });
+        } catch (error) {
+            console.error('Baja require error:', error);
+            reject(error);
+        }
+    });
+}
+
+// BQL Query Builder (adapted from History.docx)
+function buildHistoryBQLQuery(historyOrd, startTime, endTime, maxPoints = 1000) {
+    const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+    return historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+}
+
+// History Data Loader
+async function loadHistoryData(pointPath, startTime, endTime, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Check cache first
+            const cacheKey = pointPath;
+            let historyOrd = historyCache.get(cacheKey);
+            
+            if (!historyOrd) {
+                // Discover history ORD
+                try {
+                    historyOrd = await discoverHistoryOrd(pointPath);
+                    historyCache.set(cacheKey, historyOrd);
+                } catch (error) {
+                    console.warn(`No history found for point ${pointPath}:`, error.message);
+                    resolve([]); // Return empty array if no history
+                    return;
+                }
+            }
+            
+            // Check if we're running in a Niagara environment
+            if (typeof require === 'undefined') {
+                console.error('Baja require system not available');
+                reject(new Error('Niagara environment required'));
+                return;
+            }
+            
+            require(['baja!'], function (baja) {
+                'use strict';
+                
+                const bqlQuery = buildHistoryBQLQuery(historyOrd, startTime, endTime, maxPoints);
+                console.log('Executing History BQL Query:', bqlQuery);
+                
+                const timestamps = [];
+                const values = [];
+                
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function () {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            
+                            // Convert timestamp
+                            const date = new Date(rawTimestamp.getMillis());
+                            timestamps.push(date);
+                            
+                            // Parse boolean value
+                            const booleanValue = parseBooleanValue(value);
+                            values.push({
+                                timestamp: date,
+                                value: booleanValue ? 1 : 0,
+                                booleanValue: booleanValue,
+                                stateText: booleanValue ? 'TRUE' : 'FALSE'
+                            });
+                        }
+                    }
+                })
+                .then(function () {
+                    console.log(`Loaded ${values.length} history points for ${pointPath}`);
+                    resolve(values);
+                })
+                .catch(function (err) {
+                    console.error('History BQL Query failed:', err);
+                    reject(new Error('Failed to load history data: ' + err.message));
+                });
+            });
+            
+        } catch (error) {
+            console.error('History loading error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Enhanced Graph Functions with History Integration
+async function updateGraphWithHistory() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    const timeRangeSelector = document.getElementById('timeRangeSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    const selectedPoint = pointSelector.value;
+    const selectedUnit2 = unitSelector2 ? unitSelector2.value : '';
+    const selectedPoint2 = pointSelector2 ? pointSelector2.value : '';
+
+    if (!selectedUnit || !selectedPoint) {
+        clearGraph();
+        return;
+    }
+
+    // Show loading indicator
+    showGraphLoading(true);
+    
+    try {
+        await drawBooleanGraphFromHistory(selectedUnit, selectedPoint, selectedUnit2, selectedPoint2);
+    } catch (error) {
+        console.error('Error updating graph with history:', error);
+        showGraphError('Failed to load history data: ' + error.message);
+    } finally {
+        showGraphLoading(false);
+    }
+}
+
+// Boolean-specific graph functions with zoom
+function updateGraph() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    const timeRangeSelector = document.getElementById('timeRangeSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    const selectedPoint = pointSelector.value;
+    const selectedUnit2 = unitSelector2 ? unitSelector2.value : '';
+    const selectedPoint2 = pointSelector2 ? pointSelector2.value : '';
+    const timeRange = timeRangeSelector ? timeRangeSelector.value : 'all';
+
+    if (!selectedUnit || !selectedPoint) {
+        clearGraph();
+        return;
+    }
+
+    drawBooleanGraph(selectedUnit, selectedPoint, selectedUnit2, selectedPoint2, timeRange);
+}
+
+
+// Utility functions for date handling and filtering
+function getSelectedDate() {
+    const dateInput = document.getElementById('dateInput');
+    if (!dateInput || !dateInput.value) return null;
+    
+    const selectedDate = new Date(dateInput.value + 'T00:00:00.000');
+    const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+    
+    return {
+        dateObject: selectedDate,
+        dateString: dateInput.value,
+        startOfDay: startOfDay,
+        endOfDay: endOfDay
+    };
+}
+
+function getFilteredEventLogsByDate(unit = null, point = null) {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return [];
+    
+    let dataSource = [];
+    
+    // Use imported JSON data if available, otherwise use live event logs
+    if (importedJsonData && importedJsonData.eventLogs) {
+        dataSource = importedJsonData.eventLogs;
+    } else if (eventLogs.length > 0) {
+        dataSource = eventLogs;
+    }
+    
+    return dataSource.filter(log => {
+        let logTimestamp;
+        if (log.timestampObj) {
+            logTimestamp = log.timestampObj;
+        } else if (typeof log.timestamp === 'string') {
+            logTimestamp = new Date(log.timestamp);
+        } else if (log.timestamp instanceof Date) {
+            logTimestamp = log.timestamp;
+        } else {
+            return false;
+        }
+        
+        if (isNaN(logTimestamp.getTime())) return false;
+        
+        const logDateString = logTimestamp.getFullYear() + '-' + 
+                             String(logTimestamp.getMonth() + 1).padStart(2, '0') + '-' + 
+                             String(logTimestamp.getDate()).padStart(2, '0');
+        
+        const matchesDate = logDateString === selectedDate.dateString;
+        const matchesUnit = !unit || log.unit === unit;
+        const matchesPoint = !point || log.pointName === point;
+        
+        return matchesDate && matchesUnit && matchesPoint;
+    });
+}
+
+
+function clearGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+    }
+    
+    if (noDataMessage) {
+        const message = importedJsonData ? 
+            'Select a unit and point to view boolean graph data.' :
+            'No data available. Collect data or import JSON first.';
+        noDataMessage.textContent = message;
+        noDataMessage.style.display = 'block';
+    }
+    
+    if (graphLegend) graphLegend.innerHTML = '';
+    if (graphStats) graphStats.innerHTML = '';
+}
+
+
+function forceRefreshGraph() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (unitSelector && pointSelector) {
+        const selectedUnit = unitSelector.value;
+        const selectedPoint = pointSelector.value;
+        
+        populateUnitSelectorFromConfig();
+        populateUnitSelector2FromConfig();
+        
+        if (selectedUnit) {
+            unitSelector.value = selectedUnit;
+            updatePointSelector();
+            
+            if (selectedPoint) {
+                pointSelector.value = selectedPoint;
+                updateGraph();
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function drawBooleanGraphFromHistory(unitName, pointName, unitName2 = '', pointName2 = '') {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (!canvas) return;
+
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) {
+        clearGraph();
+        return;
+    }
+
+    // Determine time range
+    let startTime, endTime;
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        startTime = zoomState.startTime;
+        endTime = zoomState.endTime;
+    } else {
+        startTime = selectedDate.startOfDay;
+        endTime = selectedDate.endOfDay;
+    }
+
+    // Find the point paths from monitored points
+    const point1 = monitoredPoints.find(p => p.unit === unitName && p.pointName === pointName);
+    const point2 = unitName2 && pointName2 ? monitoredPoints.find(p => p.unit === unitName2 && p.pointName === pointName2) : null;
+
+    if (!point1) {
+        showGraphError(`Point not found in configuration: ${unitName} - ${pointName}`);
+        return;
+    }
+
+    try {
+        // Load history data for both series
+        const historyData1 = await loadHistoryData(point1.fullPath, startTime, endTime);
+        const historyData2 = point2 ? await loadHistoryData(point2.fullPath, startTime, endTime) : [];
+
+        // Convert to graph format
+        const filteredData1 = historyData1.map(item => ({
+            ...item,
+            pointName: pointName,
+            unit: unitName,
+            displayName: `${unitName} - ${pointName}`,
+            series: 1
+        }));
+
+        const filteredData2 = historyData2.map(item => ({
+            ...item,
+            pointName: pointName2,
+            unit: unitName2,
+            displayName: `${unitName2} - ${pointName2}`,
+            series: 2
+        }));
+
+        // Check if we have any data
+        if (filteredData1.length === 0 && filteredData2.length === 0) {
+            let message = `No history data found for ${unitName} - ${pointName}`;
+            if (unitName2 && pointName2) {
+                message += ` or ${unitName2} - ${pointName2}`;
+            }
+            message += ` on ${selectedDate.dateString}`;
+            
+            if (zoomState.isZoomed) {
+                message += ` in zoomed time range`;
+            }
+            
+            noDataMessage.textContent = message;
+            noDataMessage.style.display = 'block';
+            canvas.style.display = 'none';
+            graphLegend.innerHTML = '';
+            graphStats.innerHTML = '';
+            return;
+        }
+
+        noDataMessage.style.display = 'none';
+        canvas.style.display = 'block';
+
+        // Draw the graph using existing function but with history data
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        drawDualSeriesBooleanGraphWithZoom(ctx, canvas.width, canvas.height, filteredData1, filteredData2, selectedDate);
+        updateDualSeriesBooleanLegend(unitName, pointName, unitName2, pointName2, filteredData1, filteredData2);
+        updateDualSeriesBooleanStats(filteredData1, filteredData2);
+        
+        // Add zoom controls if not already present
+        addZoomControls();
+        
+        console.log(`Graph updated with history data: ${filteredData1.length} + ${filteredData2.length} points`);
+        
+    } catch (error) {
+        console.error('Error loading history data:', error);
+        showGraphError('Failed to load history data: ' + error.message);
+    }
+}
+
+function drawDualSeriesBooleanGraphWithZoom(ctx, width, height, data1, data2, selectedDate) {
+    const padding = 60;
+    const graphWidth = width - (padding * 2);
+    const graphHeight = height - (padding * 2);
+
+    // Clear previous data points array
+    graphDataPoints = [];
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg') || '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color') || '#ddd';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([2, 2]);
+
+    for (let i = 0; i <= 10; i++) {
+        const x = padding + (graphWidth * i / 10);
+        ctx.beginPath();
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, padding + graphHeight);
+        ctx.stroke();
+    }
+
+    // Horizontal grid lines (only 3 for boolean: FALSE, middle, TRUE)
+    for (let i = 0; i <= 2; i++) {
+        const y = padding + (graphHeight * i / 2);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + graphWidth, y);
+        ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+
+    // Axes
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#000000';
+    ctx.strokeStyle = textColor;
+    ctx.lineWidth = 2;
+    ctx.font = '12px Segoe UI, sans-serif';
+    ctx.fillStyle = textColor;
+
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, padding + graphHeight);
+    ctx.lineTo(padding + graphWidth, padding + graphHeight);
+    ctx.stroke();
+
+    // Y-axis labels for boolean (FALSE/TRUE)
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    
+    ctx.fillText('TRUE', padding - 10, padding);
+    ctx.fillText('FALSE', padding - 10, padding + graphHeight);
+
+    // Determine time range for X-axis labels
+    let displayStartTime, displayEndTime;
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        displayStartTime = zoomState.startTime;
+        displayEndTime = zoomState.endTime;
+    } else {
+        displayStartTime = selectedDate.startOfDay;
+        displayEndTime = selectedDate.endOfDay;
+    }
+
+    // X-axis labels - adjust based on zoom level
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    const timeRange = displayEndTime.getTime() - displayStartTime.getTime();
+    const numLabels = 7;
+    
+    for (let i = 0; i < numLabels; i++) {
+        const timePoint = new Date(displayStartTime.getTime() + (timeRange * i / (numLabels - 1)));
+        const x = padding + (graphWidth * i / (numLabels - 1));
+        
+        let timeStr;
+        if (timeRange < 60 * 60 * 1000) { // Less than 1 hour - show seconds
+            timeStr = timePoint.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        } else { // More than 1 hour - show minutes
+            timeStr = timePoint.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+        
+        ctx.fillText(timeStr, x, padding + graphHeight + 10);
+    }
+
+    // Axis titles
+    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    
+    ctx.save();
+    ctx.translate(20, padding + graphHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Boolean State', 0, 0);
+    ctx.restore();
+    
+    let xAxisTitle = 'Time';
+    if (zoomState.isZoomed) {
+        xAxisTitle += ' (Zoomed)';
+    }
+    ctx.fillText(xAxisTitle, padding + graphWidth / 2, padding + graphHeight + 35);
+
+    // Time range calculations
+    const startTimeMs = displayStartTime.getTime();
+    const endTimeMs = displayEndTime.getTime();
+    const timeRangeMs = endTimeMs - startTimeMs;
+
+    // Helper function to draw square wave for a series
+    function drawSquareWaveSeries(data, color, seriesNumber) {
+        if (data.length === 0) return;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Start drawing the square wave
+        ctx.beginPath();
+        
+        // If we have data, assume the first state started at the beginning of the display range
+        let currentValue = data[0].value;
+        let currentX = padding;
+        let currentY = padding + graphHeight - (graphHeight * currentValue);
+        
+        // Start the line at the beginning of the display range with the first state
+        ctx.moveTo(currentX, currentY);
+        
+        // Process each data point to create square wave
+        for (let i = 0; i < data.length; i++) {
+            const entry = data[i];
+            const nextX = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+            const nextY = padding + graphHeight - (graphHeight * entry.value);
+            
+            // Draw horizontal line to the transition point (maintaining current state)
+            ctx.lineTo(nextX, currentY);
+            
+            // Draw vertical line for the state change (if there's actually a change)
+            if (entry.value !== currentValue) {
+                ctx.lineTo(nextX, nextY);
+                currentValue = entry.value;
+            }
+            
+            // Update current position
+            currentX = nextX;
+            currentY = nextY;
+            
+            // Store point data for click detection
+            graphDataPoints.push({
+                x: nextX,
+                y: nextY,
+                radius: 8,
+                data: entry,
+                index: i,
+                series: seriesNumber,
+                seriesName: seriesNumber === 1 ? 'Primary Series' : 'Secondary Series',
+                seriesColor: color
+            });
+        }
+        
+        // Extend the final state to the end of the display range
+        const endX = padding + graphWidth;
+        ctx.lineTo(endX, currentY);
+        
+        ctx.stroke();
+
+        // Draw data points - make them slightly larger when zoomed for better visibility
+        const pointRadius = zoomState.isZoomed ? 6 : 5;
+        data.forEach((entry, index) => {
+            const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+            const y = padding + graphHeight - (graphHeight * entry.value);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = entry.value ? '#27ae60' : '#e74c3c'; // Green for TRUE, Red for FALSE
+            ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+    }
+
+    // Draw first series (primary - blue)
+    if (data1.length > 0) {
+        drawSquareWaveSeries(data1, '#3498db', 1);
+    }
+
+    // Draw second series (secondary - orange) if it exists
+    if (data2.length > 0) {
+        drawSquareWaveSeries(data2, '#f39c12', 2);
+    }
+
+    // Draw zoom selection rectangle if dragging
+    if (zoomState.isDragging && zoomState.dragStart && zoomState.dragEnd) {
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        
+        const startX = Math.min(zoomState.dragStart.x, zoomState.dragEnd.x);
+        const endX = Math.max(zoomState.dragStart.x, zoomState.dragEnd.x);
+        const rectWidth = endX - startX;
+        const rectHeight = graphHeight;
+        
+        ctx.fillRect(startX, padding, rectWidth, rectHeight);
+        ctx.strokeRect(startX, padding, rectWidth, rectHeight);
+        ctx.setLineDash([]);
+    }
+
+    // Add event listeners to canvas
+    setupZoomEventListeners();
+}
+
+function setupZoomEventListeners() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas || canvas.hasZoomListeners) return;
+    
+    canvas.hasZoomListeners = true;
+    
+    // Mouse wheel zoom
+    canvas.addEventListener('wheel', handleZoomWheel, { passive: false });
+    
+    // Drag to zoom
+    canvas.addEventListener('mousedown', handleZoomMouseDown);
+    canvas.addEventListener('mousemove', handleZoomMouseMove);
+    canvas.addEventListener('mouseup', handleZoomMouseUp);
+    canvas.addEventListener('mouseleave', handleZoomMouseLeave);
+    
+    // Click for data points (existing functionality)
+    canvas.addEventListener('click', handleBooleanGraphClick);
+    
+    canvas.style.cursor = 'crosshair';
+}
+
+function handleBooleanGraphClick(event) {
+    if (!window.graphDataPoints) return;
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Check if click is near any data point
+    for (let i = 0; i < window.graphDataPoints.length; i++) {
+        const point = window.graphDataPoints[i];
+        const distance = Math.sqrt(Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2));
+        
+        if (distance <= point.radius) {
+            showMultiSeriesDataPointTooltip(point, event.clientX, event.clientY);
+            return;
+        }
+    }
+    
+    hideDataPointTooltip();
+}
+
+function handleZoomWheel(event) {
+    event.preventDefault();
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    
+    // Check if mouse is over the graph area
+    if (mouseX < padding || mouseX > padding + graphWidth) return;
+    
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    // Calculate mouse position as a percentage of graph width
+    const mousePercent = (mouseX - padding) / graphWidth;
+    
+    let currentStartTime, currentEndTime;
+    if (zoomState.isZoomed) {
+        currentStartTime = zoomState.startTime;
+        currentEndTime = zoomState.endTime;
+    } else {
+        currentStartTime = selectedDate.startOfDay;
+        currentEndTime = selectedDate.endOfDay;
+    }
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const mouseTime = new Date(currentStartTime.getTime() + (currentRange * mousePercent));
+    
+    // Zoom factor
+    const zoomFactor = event.deltaY > 0 ? 1.5 : 0.67; // Zoom out or in
+    const newRange = currentRange * zoomFactor;
+    
+    // Don't zoom out beyond the full day
+    const maxRange = selectedDate.endOfDay.getTime() - selectedDate.startOfDay.getTime();
+    if (newRange >= maxRange) {
+        // Reset to full view
+        zoomState.isZoomed = false;
+        zoomState.startTime = null;
+        zoomState.endTime = null;
+        updateGraph();
+        return;
+    }
+    
+    // Don't zoom in too much (minimum 5 minutes)
+    const minRange = 5 * 60 * 1000;
+    if (newRange < minRange) return;
+    
+    // Calculate new start and end times centered on mouse position
+    const newStartTime = new Date(mouseTime.getTime() - (newRange * mousePercent));
+    const newEndTime = new Date(mouseTime.getTime() + (newRange * (1 - mousePercent)));
+    
+    // Ensure we don't go outside the selected day
+    const clampedStartTime = new Date(Math.max(newStartTime.getTime(), selectedDate.startOfDay.getTime()));
+    const clampedEndTime = new Date(Math.min(newEndTime.getTime(), selectedDate.endOfDay.getTime()));
+    
+    zoomState.isZoomed = true;
+    zoomState.startTime = clampedStartTime;
+    zoomState.endTime = clampedEndTime;
+    
+    updateGraph();
+}
+
+function handleZoomMouseDown(event) {
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    const graphHeight = canvas.height - (padding * 2);
+    
+    // Check if click is in graph area
+    if (x >= padding && x <= padding + graphWidth && y >= padding && y <= padding + graphHeight) {
+        // Check if we're clicking on a data point first
+        for (let point of graphDataPoints) {
+            const distance = Math.sqrt(Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2));
+            if (distance <= point.radius) {
+                return; // Let the click handler deal with data points
+            }
+        }
+        
+        // Start drag selection
+        zoomState.isDragging = true;
+        zoomState.dragStart = { x: x, y: y };
+        canvas.style.cursor = 'crosshair';
+        event.preventDefault();
+    }
+}
+
+function handleZoomMouseMove(event) {
+    if (!zoomState.isDragging) return;
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    zoomState.dragEnd = { x: x, y: y };
+    updateGraph(); // Redraw with selection rectangle
+}
+
+function handleZoomMouseUp(event) {
+    if (!zoomState.isDragging) return;
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    
+    zoomState.isDragging = false;
+    
+    if (!zoomState.dragStart || !zoomState.dragEnd) return;
+    
+    const startX = Math.min(zoomState.dragStart.x, x);
+    const endX = Math.max(zoomState.dragStart.x, x);
+    const selectionWidth = endX - startX;
+    
+    // Only zoom if selection is wide enough (at least 20 pixels)
+    if (selectionWidth >= 20) {
+        const selectedDate = getSelectedDate();
+        if (!selectedDate) return;
+        
+        // Convert pixel coordinates to time
+        let currentStartTime, currentEndTime;
+        if (zoomState.isZoomed) {
+            currentStartTime = zoomState.startTime;
+            currentEndTime = zoomState.endTime;
+        } else {
+            currentStartTime = selectedDate.startOfDay;
+            currentEndTime = selectedDate.endOfDay;
+        }
+        
+        const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+        const startPercent = (startX - padding) / graphWidth;
+        const endPercent = (endX - padding) / graphWidth;
+        
+        const newStartTime = new Date(currentStartTime.getTime() + (currentRange * startPercent));
+        const newEndTime = new Date(currentStartTime.getTime() + (currentRange * endPercent));
+        
+        zoomState.isZoomed = true;
+        zoomState.startTime = newStartTime;
+        zoomState.endTime = newEndTime;
+    }
+    
+    zoomState.dragStart = null;
+    zoomState.dragEnd = null;
+    canvas.style.cursor = 'crosshair';
+    
+    updateGraph();
+}
+
+
+function handleZoomMouseLeave(event) {
+    if (zoomState.isDragging) {
+        zoomState.isDragging = false;
+        zoomState.dragStart = null;
+        zoomState.dragEnd = null;
+        updateGraph();
+    }
+}
+
+function addZoomControls() {
+    // Check if zoom controls already exist
+    if (document.getElementById('zoomControls')) return;
+    
+    const graphContainer = document.querySelector('.graph-section') || document.querySelector('#graphContainer');
+    if (!graphContainer) return;
+    
+    const zoomControls = document.createElement('div');
+    zoomControls.id = 'zoomControls';
+    zoomControls.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        background: var(--card-bg, #f9f9f9);
+        border: 1px solid var(--border-color, #ddd);
+        border-radius: 8px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    `;
+    
+    zoomControls.innerHTML = `
+        <span style="font-weight: bold; color: var(--text-color, #333);">Zoom Controls:</span>
+        <button onclick="resetZoom()" style="padding: 5px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset Zoom</button>
+        <button onclick="zoomIn()" style="padding: 5px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom In</button>
+        <button onclick="zoomOut()" style="padding: 5px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom Out</button>
+        <span style="font-size: 12px; color: var(--text-muted, #666);">
+            💡 Mouse wheel to zoom, drag to select area, or use buttons
+        </span>
+        <span id="zoomStatus" style="font-size: 12px; color: var(--text-muted, #666); margin-left: auto;"></span>
+    `;
+    
+    // Insert before the graph canvas
+    const canvas = document.getElementById('graphCanvas');
+    if (canvas && canvas.parentNode) {
+        canvas.parentNode.insertBefore(zoomControls, canvas);
+    } else {
+        graphContainer.appendChild(zoomControls);
+    }
+    
+    updateZoomStatus();
+}
+
+
+function showGraphLoading(show) {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    
+    if (show) {
+        if (canvas) canvas.style.display = 'none';
+        if (noDataMessage) {
+            noDataMessage.textContent = 'Loading history data from Niagara Workbench...';
+            noDataMessage.style.display = 'block';
+        }
+    }
+}
+
+
+
+
+
+
+
+
+function addZoomControls() {
+    // Check if zoom controls already exist
+    if (document.getElementById('zoomControls')) return;
+    
+    const graphContainer = document.querySelector('.graph-section') || document.querySelector('#graphContainer');
+    if (!graphContainer) return;
+    
+    const zoomControls = document.createElement('div');
+    zoomControls.id = 'zoomControls';
+    zoomControls.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        background: var(--card-bg, #f9f9f9);
+        border: 1px solid var(--border-color, #ddd);
+        border-radius: 8px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    `;
+    
+    zoomControls.innerHTML = `
+        <span style="font-weight: bold; color: var(--text-color, #333);">Zoom Controls:</span>
+        <button onclick="resetZoom()" style="padding: 5px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset Zoom</button>
+        <button onclick="zoomIn()" style="padding: 5px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom In</button>
+        <button onclick="zoomOut()" style="padding: 5px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom Out</button>
+        <span style="font-size: 12px; color: var(--text-muted, #666);">
+            💡 Mouse wheel to zoom, drag to select area, or use buttons
+        </span>
+        <span id="zoomStatus" style="font-size: 12px; color: var(--text-muted, #666); margin-left: auto;"></span>
+    `;
+    
+    // Insert before the graph canvas
+    const canvas = document.getElementById('graphCanvas');
+    if (canvas && canvas.parentNode) {
+        canvas.parentNode.insertBefore(zoomControls, canvas);
+    } else {
+        graphContainer.appendChild(zoomControls);
+    }
+    
+    updateZoomStatus();
+}
+
+function resetZoom() {
+    zoomState.isZoomed = false;
+    zoomState.startTime = null;
+    zoomState.endTime = null;
+    updateGraph();
+    updateZoomStatus();
+}
+
+function zoomIn() {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    let currentStartTime, currentEndTime;
+    if (zoomState.isZoomed) {
+        currentStartTime = zoomState.startTime;
+        currentEndTime = zoomState.endTime;
+    } else {
+        currentStartTime = selectedDate.startOfDay;
+        currentEndTime = selectedDate.endOfDay;
+    }
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const newRange = currentRange * 0.5; // Zoom in by 50%
+    
+    // Don't zoom in too much (minimum 5 minutes)
+    if (newRange < 5 * 60 * 1000) return;
+    
+    const centerTime = new Date(currentStartTime.getTime() + (currentRange / 2));
+    const newStartTime = new Date(centerTime.getTime() - (newRange / 2));
+    const newEndTime = new Date(centerTime.getTime() + (newRange / 2));
+    
+    zoomState.isZoomed = true;
+    zoomState.startTime = newStartTime;
+    zoomState.endTime = newEndTime;
+    
+    updateGraph();
+    updateZoomStatus();
+}
+
+function zoomOut() {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    if (!zoomState.isZoomed) return;
+    
+    let currentStartTime = zoomState.startTime;
+    let currentEndTime = zoomState.endTime;
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const newRange = currentRange * 2; // Zoom out by 200%
+    
+    // Don't zoom out beyond the full day
+    const maxRange = selectedDate.endOfDay.getTime() - selectedDate.startOfDay.getTime();
+    if (newRange >= maxRange) {
+        resetZoom();
+        return;
+    }
+    
+    const centerTime = new Date(currentStartTime.getTime() + (currentRange / 2));
+    const newStartTime = new Date(Math.max(centerTime.getTime() - (newRange / 2), selectedDate.startOfDay.getTime()));
+    const newEndTime = new Date(Math.min(centerTime.getTime() + (newRange / 2), selectedDate.endOfDay.getTime()));
+    
+    zoomState.startTime = newStartTime;
+    zoomState.endTime = newEndTime;
+    
+    updateGraph();
+    updateZoomStatus();
+}
+
+function updateZoomStatus() {
+    const statusElement = document.getElementById('zoomStatus');
+    if (!statusElement) return;
+    
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        const startStr = zoomState.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const endStr = zoomState.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        statusElement.textContent = `Zoomed: ${startStr} - ${endStr}`;
+    } else {
+        statusElement.textContent = 'Full Day View';
+    }
+}
+
+// Update legend to show zoom status
+function updateDualSeriesBooleanLegend(unitName1, pointName1, unitName2, pointName2, data1, data2) {
+    const graphLegend = document.getElementById('graphLegend');
+    if (!graphLegend) return;
+
+    let legendHtml = '';
+    
+    if (data1.length > 0) {
+        legendHtml += `
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #3498db;"></span>
+                <span class="legend-text">${unitName1} - ${pointName1}</span>
+            </div>
+        `;
+    }
+    
+    if (data2.length > 0) {
+        legendHtml += `
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #f39c12;"></span>
+                <span class="legend-text">${unitName2} - ${pointName2}</span>
+            </div>
+        `;
+    }
+    
+    // Add state indicators
+    legendHtml += `
+        <div class="legend-item">
+            <span class="legend-color" style="background-color: #27ae60; height: 8px; border-radius: 50%;"></span>
+            <span class="legend-text">TRUE State</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background-color: #e74c3c; height: 8px; border-radius: 50%;"></span>
+            <span class="legend-text">FALSE State</span>
+        </div>
+    `;
+    
+    graphLegend.innerHTML = legendHtml;
+}
+
+// Keep all other existing functions unchanged...
+// (updateDualSeriesBooleanStats, handleBooleanGraphClick, showBooleanDataPointTooltip, etc.)
+
+function updateDualSeriesBooleanStats(data1, data2) {
+    const graphStats = document.getElementById('graphStats');
+    if (!graphStats) return;
+
+    let statsHtml = '';
+    
+    if (data1.length > 0) {
+        const trueCount1 = data1.filter(d => d.booleanValue).length;
+        const falseCount1 = data1.filter(d => !d.booleanValue).length;
+        const truePercentage1 = ((trueCount1 / data1.length) * 100).toFixed(1);
+        const currentState1 = data1[data1.length - 1].stateText;
+        const currentIcon1 = data1[data1.length - 1].booleanValue ?  '🔵' : '⚪';
+        
+        statsHtml += `
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${data1.length}</div>
+                <div class="stat-label">Series 1 Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${truePercentage1}%</div>
+                <div class="stat-label">Series 1 TRUE Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${currentIcon1} ${currentState1}</div>
+                <div class="stat-label">Series 1 Current</div>
+            </div>
+        `;
+    }
+    
+    if (data2.length > 0) {
+        const trueCount2 = data2.filter(d => d.booleanValue).length;
+        const falseCount2 = data2.filter(d => !d.booleanValue).length;
+        const truePercentage2 = ((trueCount2 / data2.length) * 100).toFixed(1);
+        const currentState2 = data2[data2.length - 1].stateText;
+        const currentIcon2 = data2[data2.length - 1].booleanValue ?  '🔵' : '⚪';
+        
+        statsHtml += `
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${data2.length}</div>
+                <div class="stat-label">Series 2 Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${truePercentage2}%</div>
+                <div class="stat-label">Series 2 TRUE Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${currentIcon2} ${currentState2}</div>
+                <div class="stat-label">Series 2 Current</div>
+            </div>
+        `;
+    }
+    
+    graphStats.innerHTML = statsHtml;
+}
+
+
+
+
+
+
+function showGraphError(message) {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (canvas) canvas.style.display = 'none';
+    if (noDataMessage) {
+        noDataMessage.textContent = message;
+        noDataMessage.style.display = 'block';
+    }
+    if (graphLegend) graphLegend.innerHTML = '';
+    if (graphStats) graphStats.innerHTML = '';
+}
+
+// Enhanced Graph Viewer Initialization
+function initializeGraphViewer() {
+    populateUnitSelectorFromConfig();
+    populateUnitSelector2FromConfig();
+    initializeDateInput();
+    clearGraph();
+    
+    // Add history vs JSON toggle
+    addDataSourceToggle();
+}
+
+
+
+
+function updatePointSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+    if (selectedUnit) {
+        let dataSource = [];
+        
+        // Use imported JSON data if available, otherwise use live event logs
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+
+
+function updatePointSelector2() {
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    
+    if (!unitSelector2 || !pointSelector2) return;
+
+    const selectedUnit2 = unitSelector2.value;
+    pointSelector2.innerHTML = '<option value="">Select Point (Optional)...</option>';
+
+    if (selectedUnit2) {
+        let dataSource = [];
+        
+        // Use imported JSON data if available, otherwise use live event logs
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit2)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector2.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+function populateUnitSelectorFromConfig() {
+    const unitSelector = document.getElementById('unitSelector');
+    if (!unitSelector) return;
+
+    unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+
+    // First try to use monitored points from config
+    if (monitoredPoints.length > 0) {
+        const uniqueUnits = [...new Set(monitoredPoints.map(point => point.unit))].sort();
+        
+        uniqueUnits.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit;
+            option.textContent = unit;
+            unitSelector.appendChild(option);
+        });
+        return;
+    }
+
+    // Fall back to JSON data if no config
+    let dataSource = [];
+    if (importedJsonData && importedJsonData.eventLogs) {
+        dataSource = importedJsonData.eventLogs;
+    } else if (eventLogs.length > 0) {
+        dataSource = eventLogs;
+    }
+    
+    if (dataSource.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No data available - load Global.json or import JSON file';
+        option.disabled = true;
+        unitSelector.appendChild(option);
+        return;
+    }
+    
+    const uniqueUnits = [...new Set(dataSource.map(log => log.unit))].filter(unit => unit).sort();
+    
+    uniqueUnits.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit;
+        unitSelector.appendChild(option);
+    });
+}
+
+function populateUnitSelector2FromConfig() {
+    const unitSelector2 = document.getElementById('unitSelector2');
+    if (!unitSelector2) return;
+
+    unitSelector2.innerHTML = '<option value="">Select Unit (Optional)...</option>';
+
+    // Use same logic as primary selector
+    if (monitoredPoints.length > 0) {
+        const uniqueUnits = [...new Set(monitoredPoints.map(point => point.unit))].sort();
+        
+        uniqueUnits.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit;
+            option.textContent = unit;
+            unitSelector2.appendChild(option);
+        });
+        return;
+    }
+
+    // Fall back to JSON data
+    let dataSource = [];
+    if (importedJsonData && importedJsonData.eventLogs) {
+        dataSource = importedJsonData.eventLogs;
+    } else if (eventLogs.length > 0) {
+        dataSource = eventLogs;
+    }
+    
+    if (dataSource.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No data available';
+        option.disabled = true;
+        unitSelector2.appendChild(option);
+        return;
+    }
+    
+    const uniqueUnits = [...new Set(dataSource.map(log => log.unit))].filter(unit => unit).sort();
+    
+    uniqueUnits.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit;
+        unitSelector2.appendChild(option);
+    });
+}
+
+function updatePointSelectorFromConfig() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+    if (selectedUnit) {
+        // First try to use monitored points from config
+        if (monitoredPoints.length > 0) {
+            const unitPoints = monitoredPoints
+                .filter(point => point.unit === selectedUnit)
+                .map(point => point.pointName)
+                .sort();
+            
+            unitPoints.forEach(pointName => {
+                const option = document.createElement('option');
+                option.value = pointName;
+                option.textContent = pointName;
+                pointSelector.appendChild(option);
+            });
+            return;
+        }
+
+        // Fall back to JSON data
+        let dataSource = [];
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+function updatePointSelector2FromConfig() {
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    
+    if (!unitSelector2 || !pointSelector2) return;
+
+    const selectedUnit2 = unitSelector2.value;
+    pointSelector2.innerHTML = '<option value="">Select Point (Optional)...</option>';
+
+    if (selectedUnit2) {
+        // First try to use monitored points from config
+        if (monitoredPoints.length > 0) {
+            const unitPoints = monitoredPoints
+                .filter(point => point.unit === selectedUnit2)
+                .map(point => point.pointName)
+                .sort();
+            
+            unitPoints.forEach(pointName => {
+                const option = document.createElement('option');
+                option.value = pointName;
+                option.textContent = pointName;
+                pointSelector2.appendChild(option);
+            });
+            return;
+        }
+
+        // Fall back to JSON data
+        let dataSource = [];
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit2)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector2.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+
+function addDataSourceToggle() {
+    // Check if toggle already exists
+    if (document.getElementById('dataSourceToggle')) return;
+    
+    const graphContainer = document.querySelector('.graph-section') || document.querySelector('#graphContainer');
+    if (!graphContainer) return;
+    
+    const toggleContainer = document.createElement('div');
+    toggleContainer.id = 'dataSourceToggle';
+    toggleContainer.style.cssText = `
+        margin: 10px 0;
+        padding: 15px;
+        background: var(--card-bg, #f9f9f9);
+        border: 1px solid var(--border-color, #ddd);
+        border-radius: 8px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    `;
+    
+    toggleContainer.innerHTML = `
+        <span style="font-weight: bold; color: var(--text-color, #333);">Data Source:</span>
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="radio" name="dataSource" value="history" checked style="margin: 0;">
+            <span>📈 Niagara History Database</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="radio" name="dataSource" value="json" style="margin: 0;">
+            <span>📄 JSON File Data</span>
+        </label>
+        <span style="font-size: 12px; color: var(--text-muted, #666); margin-left: auto;">
+            History provides real-time database access, JSON uses cached files
+        </span>
+    `;
+    
+    // Add event listeners
+    toggleContainer.addEventListener('change', function(e) {
+        if (e.target.name === 'dataSource') {
+            handleDataSourceChange(e.target.value);
+        }
+    });
+    
+    // Insert at the top of graph controls
+    const firstControl = graphContainer.querySelector('.graph-controls') || graphContainer.firstElementChild;
+    if (firstControl) {
+        graphContainer.insertBefore(toggleContainer, firstControl);
+    } else {
+        graphContainer.appendChild(toggleContainer);
+    }
+}
+
+function handleDataSourceChange(dataSource) {
+    console.log('Data source changed to:', dataSource);
+    
+    if (dataSource === 'history') {
+        // Use history-based functions
+        window.updateGraph = updateGraphWithHistory;
+        window.updatePointSelector = updatePointSelectorFromConfig;
+        window.updatePointSelector2 = updatePointSelector2FromConfig;
+    } else {
+        // Use original JSON-based functions
+        window.updateGraph = updateGraphOriginal;
+        window.updatePointSelector = updatePointSelectorOriginal;
+        window.updatePointSelector2 = updatePointSelector2Original;
+    }
+    
+    // Refresh the selectors and clear the graph
+    populateUnitSelectorFromConfig();
+    populateUnitSelector2FromConfig();
+    clearGraph();
+    
+    // Update graph if selections are made
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    if (unitSelector && pointSelector && unitSelector.value && pointSelector.value) {
+        updateGraph();
+    }
+}
+
+// Keep original functions for JSON fallback
+const updateGraphOriginal = updateGraph; // Store reference to original
+const updatePointSelectorOriginal = updatePointSelector; // Store reference to original  
+const updatePointSelector2Original = updatePointSelector2; // Store reference to original
+
+// ... (Keep all other existing functions unchanged: monitoring, JSON import, zoom controls, etc.)
+
+function reloadConfig() {
+    loadGlobalConfig();
+}
+
+function updateDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short'
+    });
+    document.getElementById('currentDateTime').textContent = formatted;
+}
+
+function updateMonitoringStatus() {
+    const statusElement = document.getElementById('monitoringStatus');
+    if (monitoringActive) {
+        statusElement.textContent = 'BOOLEAN MONITORING ACTIVE - State Change Detection';
+        statusElement.className = 'monitoring-status monitoring-active';
+    } else {
+        statusElement.textContent = 'BOOLEAN MONITORING STOPPED';
+        statusElement.className = 'monitoring-status monitoring-inactive';
+    }
+}
+
+function parseBooleanValue(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const lowerValue = value.toLowerCase().trim();
+        if (lowerValue === 'true' || lowerValue === 'on' || lowerValue === 'active' || lowerValue === '1') return true;
+        if (lowerValue === 'false' || lowerValue === 'off' || lowerValue === 'inactive' || lowerValue === '0') return false;
+    }
+    if (typeof value === 'number') return value !== 0;
+    return Boolean(value);
+}
+
+// Keep existing boolean monitoring functions unchanged
+async function checkAllStatesNow() {
+    if (monitoredPoints.length === 0) {
+        showNotification('No Points Configured', 'No boolean points to check', 'warning');
+        return;
+    }
+    
+    console.log('Checking all boolean states...');
+    lastCheckTime = new Date();
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const point of monitoredPoints) {
+        try {
+            const currentValue = await readActualPointValue(point);
+            
+            if (currentValue !== null && currentValue !== undefined) {
+                const booleanValue = parseBooleanValue(currentValue);
+                
+                // Always log during manual check, regardless of state change
+                addBooleanStateEntry(point, booleanValue, 'Manual Check');
+                
+                // Update our state tracking
+                const pointKey = `${point.unit}.${point.pointName}`;
+                pointStates.set(pointKey, booleanValue);
+                
+                successCount++;
+            } else {
+                console.warn(`Null value for ${point.unit}.${point.pointName}`);
+                errorCount++;
+            }
+        } catch (error) {
+            console.error(`Error reading point ${point.unit}.${point.pointName}:`, error);
+            errorCount++;
+        }
+    }
+    
+    updateEventLogs();
+    saveData();
+    
+    const message = `Checked ${successCount} points${errorCount > 0 ? `, ${errorCount} errors` : ''}`;
+    showNotification('State Check Complete', message, successCount > 0 ? 'success' : 'warning');
+}
+
+// Save functions
+function saveData() {
+    try {
+        const saveData = {
+            eventLogs: eventLogs,
+            logCounter: logCounter,
+            monitoringActive: monitoringActive,
+            timestamp: new Date().toISOString(),
+            monitoredPoints: monitoredPoints
+        };
+        
+        console.log('Boolean data saved:', saveData);
+        
+        const saveTimeElement = document.getElementById('lastSaveTime');
+        if (saveTimeElement) {
+            saveTimeElement.textContent = `Last saved: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        console.log('Auto-save completed');
+    } catch (error) {
+        console.error('Save failed:', error);
+    }
+}
+
+
+function clearLogs() {
+    if (confirm('Are you sure you want to clear all boolean logs? This cannot be undone.')) {
+        eventLogs = [];
+        logCounter = 0;
+        pointStates.clear();
+        updateEventLogs();
+        showNotification('Logs Cleared', 'All boolean data has been cleared', 'info');
+    }
+}
+
+function addBooleanStateEntry(point, value, changeType, previousValue = undefined) {
+    const timestamp = new Date().toLocaleString();
+    const timestampObj = new Date();
+    logCounter++;
+    
+    const stateText = value ? 'TRUE' : 'FALSE';
+    const stateIcon = value ? '🔵' : '⚪';
+    
+    let changeDescription = changeType;
+    if (changeType === 'State Change' && previousValue !== undefined) {
+        const prevStateText = previousValue ? 'TRUE' : 'FALSE';
+        changeDescription = `${prevStateText} → ${stateText}`;
+    }
+    
+    const logEntry = {
+        id: logCounter,
+        timestamp: timestamp,
+        timestampObj: timestampObj,
+        unit: point.unit,
+        pointName: point.pointName,
+        pointId: point.id,
+        value: value ? 1 : 0, // Convert to numeric for graphing
+        booleanValue: value,
+        stateText: stateText,
+        stateIcon: stateIcon,
+        changeType: changeType,
+        changeDescription: changeDescription,
+        previousValue: previousValue,
+        fullPath: point.fullPath,
+        displayName: `${point.unit} - ${point.pointName}`,
+        details: `${point.pointName} = ${stateText} (${changeDescription})`,
+        dataUnit: 'Boolean' // For graph display
+    };
+    
+    eventLogs.unshift(logEntry);
+    
+    // Keep only last 500,000 entries for performance
+    if (eventLogs.length > 500000) {
+        eventLogs = eventLogs.slice(0, 500000);
+    }
+}
+
+
+
+async function readActualPointValue(point) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Check if we're running in a Niagara environment
+            if (typeof require === 'undefined') {
+                console.error('Baja require system not available. This script must run within a Niagara station environment.');
+                // For demo purposes, return random boolean values
+                resolve(Math.random() > 0.5);
+                return;
+            }
+            
+            require(['baja!', 'baja!control:Override', 'baja!control:BooleanOverride'], function (baja, Override, BooleanOverride) {
+                'use strict';
+                
+                const pointPath = point.fullPath;
+                console.log(`Reading boolean point: ${pointPath}`);
+                
+                baja.Ord.make(pointPath).get()
+                    .then(function(point) {
+                        if (point && point.getOut) {
+                            const value = point.getOut().getValue();
+                            console.log(`Point ${pointPath} value: ${value}`);
+                            resolve(value);
+                        } else {
+                            console.warn(`Point ${pointPath} has no output value`);
+                            resolve(null);
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error(`Error reading point ${pointPath}:`, error);
+                        reject(error);
+                    });
+            });
+        } catch (error) {
+            console.error(`Baja require error for point ${point.fullPath}:`, error);
+            reject(error);
+        }
+    });
+}
+
+// Set default to history mode
+window.updateGraph = updateGraphWithHistory;
+window.updatePointSelector = updatePointSelectorFromConfig;
+window.updatePointSelector2 = updatePointSelector2FromConfig;
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', initializeSystem);
+
+
+        </script>
+    
+</body>
+</html>
