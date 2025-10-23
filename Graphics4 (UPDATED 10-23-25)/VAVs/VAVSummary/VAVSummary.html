@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - Point Summary & History</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 25%, #2d1b4e 50%, #1e3a5f 75%, #0f2027 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background bubbles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 60% 70%, rgba(138, 43, 226, 0.25) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        .header {
+            text-align: center;
+            color: #e0e6ed;
+            margin: 30px 20px 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.9) 0%, rgba(45, 27, 78, 0.9) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 40px rgba(138, 43, 226, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(138, 43, 226, 0.1), transparent);
+            animation: shimmer 3s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #64b5f6, #ab47bc, #26c6da);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            color: #b0c4de;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            color: #64b5f6;
+            font-weight: 700;
+            font-size: 1em;
+        }
+        
+        .unit-dropdown, .date-picker {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.9) 0%, rgba(30, 58, 95, 0.9) 100%);
+            border: 2px solid rgba(100, 181, 246, 0.3);
+            border-radius: 10px;
+            color: #e0e6ed;
+            font-family: 'Orbitron', monospace;
+            font-size: 1em;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .unit-dropdown:hover, .date-picker:hover {
+            border-color: rgba(171, 71, 188, 0.6);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(138, 43, 226, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .unit-dropdown:focus, .date-picker:focus {
+            outline: none;
+            border-color: #26c6da;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.4),
+                0 0 25px rgba(38, 198, 218, 0.4);
+        }
+        
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            margin: 0 20px 40px;
+            min-height: 70vh;
+        }
+        
+        .points-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95) 0%, rgba(30, 58, 95, 0.95) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+        
+        .history-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95) 0%, rgba(30, 58, 95, 0.95) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #8e2de2 100%);
+            color: #ffffff;
+            padding: 20px 25px;
+            font-size: 1.4em;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: slide 3s infinite;
+        }
+        
+        @keyframes slide {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .points-grid {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .point-item {
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.8) 0%, rgba(45, 27, 78, 0.8) 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+        
+        .point-item:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 
+                0 12px 35px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(138, 43, 226, 0.4);
+            border-color: rgba(171, 71, 188, 0.6);
+        }
+        
+        .point-item.selected {
+            border-color: #26c6da;
+            box-shadow: 
+                0 12px 35px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(38, 198, 218, 0.6);
+            background: linear-gradient(135deg, rgba(38, 198, 218, 0.2) 0%, rgba(45, 27, 78, 0.8) 100%);
+        }
+        
+        .point-name {
+            font-weight: 700;
+            color: #64b5f6;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            text-shadow: 0 0 10px rgba(100, 181, 246, 0.5);
+        }
+        
+        .point-value {
+            font-size: 1.3em;
+            color: #26c6da;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(38, 198, 218, 0.6);
+        }
+        
+        .point-path {
+            font-size: 0.8em;
+            color: #90a4ae;
+            word-break: break-all;
+            opacity: 0.8;
+        }
+        
+        .point-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .type-numeric {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .history-content {
+            padding: 25px;
+            height: 500px;
+            overflow-y: auto;
+        }
+        
+        .history-placeholder {
+            text-align: center;
+            color: #90a4ae;
+            font-style: italic;
+            padding: 50px 20px;
+        }
+        
+        .history-header-info {
+            background: linear-gradient(135deg, rgba(38, 198, 218, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(38, 198, 218, 0.3);
+        }
+        
+        .history-point-name {
+            font-size: 1.2em;
+            color: #26c6da;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .history-point-path {
+            font-size: 0.9em;
+            color: #90a4ae;
+            word-break: break-all;
+        }
+        
+        .history-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .history-data-table th {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.8) 0%, rgba(142, 45, 226, 0.8) 100%);
+            color: #ffffff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            border-bottom: 2px solid rgba(38, 198, 218, 0.3);
+        }
+        
+        .history-data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e6ed;
+        }
+        
+        .history-data-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .history-data-table tr:hover {
+            background: rgba(38, 198, 218, 0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #64b5f6;
+            font-size: 1.1em;
+            text-shadow: 0 0 20px rgba(100, 181, 246, 0.5);
+        }
+        
+        .error {
+            color: #ff6b9d;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #90a4ae;
+            font-style: italic;
+        }
+        
+        .history-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.8) 0%, rgba(45, 27, 78, 0.8) 100%);
+            border-radius: 10px;
+            padding: 10px 15px;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #90a4ae;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.1em;
+            color: #26c6da;
+            font-weight: 700;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .main-layout {
+                flex-direction: column;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 32, 39, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #1e3c72, #8e2de2);
+            border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #2a5298, #ab47bc);
+        }
+        
+        
+        
+        
+        
+        
+           /* Modal styling */
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2a2a2a;
+            margin: auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            color: white;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!--<div class="header">-->
+    <!--    <h1>VAV's Point Summary & History Sheets</h1>-->
+    <!--    <p>VAV Summary Sheets</p>-->
+    <!--    <div class="control-panel">-->
+    <!--        <div class="control-group">-->
+    <!--            <label for="unit-dropdown">Select Unit:</label>-->
+    <!--            <select id="unit-dropdown" class="unit-dropdown">-->
+    <!--                <option value="">Loading units...</option>-->
+    <!--            </select>-->
+    <!--        </div>-->
+    <!--        <div class="control-group">-->
+    <!--            <label for="start-date">Start Date:</label>-->
+    <!--            <input type="date" id="start-date" class="date-picker">-->
+    <!--        </div>-->
+    <!--        <div class="control-group">-->
+    <!--            <label for="end-date">End Date:</label>-->
+    <!--            <input type="date" id="end-date" class="date-picker">-->
+    <!--        </div>-->
+    <!--    </div>-->
+    <!--</div>-->
+    
+    <!--<div class="main-layout">-->
+    <!--    <div class="points-panel">-->
+    <!--        <div class="panel-header">Current Points</div>-->
+    <!--        <div id="points-content" class="points-grid">-->
+    <!--            <div class="loading">Loading points...</div>-->
+    <!--        </div>-->
+    <!--    </div>-->
+        
+    <!--    <div class="history-panel">-->
+    <!--        <div class="panel-header">Historical Data</div>-->
+    <!--        <div id="history-content" class="history-content">-->
+    <!--            <div class="history-placeholder">-->
+    <!--                Click on a point to view its historical data-->
+    <!--            </div>-->
+    <!--        </div>-->
+    <!--    </div>-->
+    <!--</div>-->
+
+    <div class="header">
+        <h1>VAV's Point Summary & History Sheets</h1>
+        <p>VAV Summary Sheets</p>
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="unit-dropdown">Select Unit:</label>
+                <select id="unit-dropdown" class="unit-dropdown">
+                    <option value="">Loading units...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" class="date-picker">
+            </div>
+            <div class="control-group">
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" class="date-picker">
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-layout">
+        <div class="points-panel">
+            <div class="panel-header">Current Points</div>
+            <div id="points-content" class="points-grid">
+                <div class="loading">Loading points...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeHistoryModal()">&times;</span>
+            <div id="history-content" class="history-content">
+                <div class="history-placeholder">
+                    Click on a point to view its historical data
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+   <script>
+        // Global variables (from your original script)
+        let globalConfig = null;
+        let monitoredPoints = [];
+        let subscriber;
+        let pointValues = {};
+        let selectedPoint = null;
+        let historyCache = new Map();
+        
+        // User authorization check
+        function isAuthorizedUser() {
+            const username = 'murphy'; // Simulated user
+            console.log('Current user:', username);
+            
+            if (!username) {
+                console.log('No user found');
+                return false;
+            }
+            
+            const authorizedUsers = ['murphy', 'admin'];
+            const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+            
+            console.log('User authorized:', isAuthorized);
+            return isAuthorized;
+        }
+
+        // Check authorization
+        if (!isAuthorizedUser()) {
+            document.getElementById('points-content').innerHTML = 
+                '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+            throw new Error('Unauthorized access');
+        }
+
+        // Initialize date inputs to last 24 hours
+        function initializeDateInputs() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 1); // 24 hours ago
+            
+            document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
+            document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+        }
+
+        // Load global configuration (from your original script)
+        async function loadGlobalConfig() {
+            try {
+                const response = await fetch('../../Global.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                globalConfig = await response.json();
+                parseMonitoredPoints();
+                populateUnitDropdown();
+                
+                console.log('Global.json loaded successfully');
+                console.log('Monitored points found:', monitoredPoints.length);
+                
+            } catch (error) {
+                console.error('Error loading Global.json:', error);
+                document.getElementById('points-content').innerHTML = 
+                    `<div class="error">Error loading configuration: ${error.message}</div>`;
+            }
+        }
+
+   function parseMonitoredPoints() {
+    monitoredPoints = [];
+
+    if (!globalConfig || !globalConfig.globalVariables) {
+        console.warn('No globalVariables found in config');
+        return;
+    }
+
+  for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+    // Skip any unit that doesn't look like a VAV
+    if (!unitName.toUpperCase().includes('VAV')) continue;
+
+    if (!unitData.points || !Array.isArray(unitData.points)) continue;
+
+    unitData.points.forEach(point => {
+        // Numeric points
+        if ((point.logNumeric === "yes_Numeric") && point.status === "connected") {
+            monitoredPoints.push({
+                unit: unitName,
+                pointName: point.name,
+                fullPath: point.fullPath,
+                basePath: unitData.basePath,
+                id: point.id,
+                dateAdded: point.dateAdded,
+                displayName: `${unitName} - ${point.name}`,
+                pointType: "numeric"
+            });
+        }
+        // Boolean points
+        else if ((point.logBoolean === "yes_Boolean" || point.log === "yes") && point.status === "connected") {
+            monitoredPoints.push({
+                unit: unitName,
+                pointName: point.name,
+                fullPath: point.fullPath,
+                basePath: unitData.basePath,
+                id: point.id,
+                dateAdded: point.dateAdded,
+                displayName: `${unitName} - ${point.name}`,
+                pointType: "boolean"
+            });
+        }
+    });
+}
+
+
+    console.log('Parsed monitored points (numeric and boolean):', monitoredPoints);
+}
+
+
+        // Populate unit dropdown
+        function populateUnitDropdown() {
+            const dropdown = document.getElementById('unit-dropdown');
+            dropdown.innerHTML = '';
+            
+            // Add "All Units" option
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All Units';
+            dropdown.appendChild(allOption);
+            
+            // Get unique unit names
+            const units = [...new Set(monitoredPoints.map(p => p.unit))].sort();
+            units.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = unit.replace(/_/g, ' ');
+                dropdown.appendChild(option);
+            });
+            
+            dropdown.value = 'all';
+            dropdown.addEventListener('change', displayPoints);
+            
+            // Initial display
+            displayPoints();
+        }
+
+        // Display points based on selected unit
+        function displayPoints() {
+            const selectedUnit = document.getElementById('unit-dropdown').value;
+            let pointsToShow = monitoredPoints;
+            
+            if (selectedUnit && selectedUnit !== 'all') {
+                pointsToShow = monitoredPoints.filter(p => p.unit === selectedUnit);
+            }
+            
+            const pointsContent = document.getElementById('points-content');
+            
+            if (pointsToShow.length === 0) {
+                pointsContent.innerHTML = '<div class="no-data">No points found for selected unit.</div>';
+                return;
+            }
+            
+            let html = '';
+            pointsToShow.forEach(point => {
+                const pointTypeClass = point.pointType === 'numeric' ? 'type-numeric' : 'type-boolean';
+                const pointTypeText = point.pointType === 'numeric' ? 'NUMERIC' : 'BOOLEAN';
+                
+                // Show unit name when "All Units" is selected
+                const displayName = selectedUnit === 'all' ? 
+                    `[${point.unit}] ${point.pointName.replace(/_/g, ' ')}` : 
+                    point.pointName.replace(/_/g, ' ');
+                
+                html += `
+                    <div class="point-item" onclick="selectPoint('${point.fullPath}', '${point.displayName}', '${point.pointType}')" 
+                         data-point-path="${point.fullPath}">
+                        <div class="point-type ${pointTypeClass}">${pointTypeText}</div>
+                        <div class="point-name">${displayName}</div>
+                        <div class="point-value" id="value-${point.fullPath}">Loading...</div>
+                        <div class="point-path">${point.fullPath}</div>
+                    </div>
+                `;
+            });
+            
+            pointsContent.innerHTML = html;
+            
+            // Subscribe to all displayed points
+            pointsToShow.forEach(point => {
+                subscribeToPoint(point.fullPath, point.displayName, point.pointType);
+            });
+        }
+
+        // Subscribe to point for real-time updates
+        function subscribeToPoint(pointPath, displayName, pointType) {
+            try {
+                require(['baja!'], function(baja) {
+                    if (!subscriber) {
+                        subscriber = new baja.Subscriber();
+                        
+                        subscriber.attach('changed', function(prop) {
+                            if (prop.getName() === 'out') {
+                                const pointInfo = this.userData;
+                                if (pointInfo) {
+                                    const out = this.getOut();
+                                    const displayValue = out.getValueDisplay();
+                                    
+                                    const valueElement = document.getElementById(`value-${pointInfo.pointPath}`);
+                                    if (valueElement) {
+                                        // Format boolean values properly
+                                        if (pointInfo.pointType === 'boolean') {
+                                            const boolValue = out.getValue();
+                                            valueElement.textContent = boolValue ? 'TRUE' : 'FALSE';
+                                            // Color coding for boolean values
+                                            valueElement.style.color = boolValue ? '#2ecc71' : '#e74c3c';
+                                        } else {
+                                            valueElement.textContent = displayValue;
+                                            valueElement.style.color = '#26c6da';
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                        .then(point => {
+                            console.log(`✅ Connected to ${displayName}`);
+                            
+                            point.userData = { 
+                                pointPath: pointPath,
+                                displayName: displayName,
+                                pointType: pointType
+                            };
+                            
+                            const out = point.getOut();
+                            const displayValue = out.getValueDisplay();
+                            
+                            const valueElement = document.getElementById(`value-${pointPath}`);
+                            if (valueElement) {
+                                if (pointType === 'boolean') {
+                                    const boolValue = out.getValue();
+                                    valueElement.textContent = boolValue ? 'TRUE' : 'FALSE';
+                                    valueElement.style.color = boolValue ? '#2ecc71' : '#e74c3c';
+                                } else {
+                                    valueElement.textContent = displayValue;
+                                    valueElement.style.color = '#26c6da';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`❌ Failed to connect to ${displayName}:`, error);
+                            const valueElement = document.getElementById(`value-${pointPath}`);
+                            if (valueElement) {
+                                valueElement.textContent = 'Connection Error';
+                            }
+                        });
+                });
+            } catch (error) {
+                console.error(`Failed to subscribe to ${pointPath}:`, error);
+            }
+        }
+
+        // Select point and load history
+        function selectPoint(pointPath, displayName, pointType) {
+            // Remove previous selection
+            document.querySelectorAll('.point-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            const clickedItem = document.querySelector(`[data-point-path="${pointPath}"]`);
+            if (clickedItem) {
+                clickedItem.classList.add('selected');
+            }
+            
+            selectedPoint = { path: pointPath, name: displayName, type: pointType };
+            loadHistoryData(pointPath, displayName, pointType);
+        }
+
+        // Discover history ORD (from your original script)
+        async function discoverHistoryOrd(pointOrd) {
+            return new Promise((resolve, reject) => {
+                try {
+                    require(['baja!'], function (baja) {
+                        console.log('Auto-discovering history from point:', pointOrd);
+                        
+                        baja.Ord.make(pointOrd).get()
+                            .then(function(entity) {
+                                return entity.tags();
+                            })
+                            .then(function(tagMap) {
+                                var historyTag = tagMap.get('n:history');
+                                console.log('Found history tag:', historyTag);
+                                
+                                if (historyTag && historyTag.toString().trim() !== '') {
+                                    var historyPath = historyTag.toString();
+                                    
+                                    if (!historyPath.startsWith('history:')) {
+                                        historyPath = 'history:' + historyPath;
+                                    }
+                                    
+                                    console.log('Discovered history ORD:', historyPath);
+                                    resolve(historyPath);
+                                } else {
+                                    reject(new Error('No n:history tag found on point: ' + pointOrd));
+                                }
+                            })
+                            .catch(function(err) {
+                                console.error('Could not load tags:', err);
+                                reject(new Error('Failed to load point tags: ' + err.message));
+                            });
+                    });
+                } catch (error) {
+                    console.error('Baja require error:', error);
+                    reject(error);
+                }
+            });
+        }
+
+// Load historical data for both numeric and boolean points
+// Load historical data for numeric and boolean points
+async function loadHistoryDataForPoint(pointPath, startTime, endTime, pointType, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const cacheKey = pointPath;
+            let historyOrd = historyCache.get(cacheKey);
+
+            // Discover history ORD if not cached
+            if (!historyOrd) {
+                try {
+                    historyOrd = await discoverHistoryOrd(pointPath);
+                    historyCache.set(cacheKey, historyOrd);
+                } catch (error) {
+                    console.warn(`No history found for point ${pointPath}:`, error.message);
+                    resolve([]);
+                    return;
+                }
+            }
+
+            require(['baja!'], function (baja) {
+                // BQL filter by timestamp
+                const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+                const bqlQuery = historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+
+                const dataPoints = [];
+
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function () {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            const date = new Date(rawTimestamp.getMillis());
+
+                            let processedValue;
+
+                            if (pointType === 'boolean') {
+                                // Convert any type to boolean
+                                processedValue = value === true || value === 'true' || value === 1 || value === '1';
+                            } else {
+                                processedValue = parseFloat(value);
+                                if (isNaN(processedValue)) return; // skip invalid numeric
+                            }
+
+                            dataPoints.push({
+                                timestamp: date,
+                                timestampString: date.toLocaleString(),
+                                value: processedValue
+                            });
+                        }
+                    }
+                })
+                .then(() => resolve(dataPoints))
+                .catch(err => reject(new Error('Failed to load history data: ' + err.message)));
+            });
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+
+
+        // Load and display history data
+        async function loadHistoryData(pointPath, displayName, pointType) {
+            const historyContent = document.getElementById('history-content');
+            
+            // Show loading
+            historyContent.innerHTML = `
+                <div class="history-header-info">
+                    <div class="history-point-name">${displayName}</div>
+                    <div class="history-point-path">${pointPath}</div>
+                </div>
+                <div class="loading">Loading historical data...</div>
+            `;
+            
+            try {
+                // Get date range
+                const startDateStr = document.getElementById('start-date').value;
+                const endDateStr = document.getElementById('end-date').value;
+                
+                if (!startDateStr || !endDateStr) {
+                    throw new Error('Please select both start and end dates');
+                }
+                
+                const startDate = new Date(startDateStr);
+                const endDate = new Date(endDateStr + 'T23:59:59');
+                
+                // Load history data using the same function for both numeric and boolean
+                const historyData = await loadHistoryDataForPoint(pointPath, startDate, endDate, pointType, 1000);
+                
+                if (historyData.length === 0) {
+                    historyContent.innerHTML = `
+                        <div class="history-header-info">
+                            <div class="history-point-name">${displayName}</div>
+                            <div class="history-point-path">${pointPath}</div>
+                        </div>
+                        <div class="no-data">No historical data found for the selected date range.</div>
+                    `;
+                    return;
+                }
+                
+                // Calculate statistics based on point type
+                let stats;
+                if (pointType === 'boolean') {
+                    const trueCount = historyData.filter(d => d.value === true || d.value === 'true' || d.value === 1).length;
+                    const falseCount = historyData.length - trueCount;
+                    stats = {
+                        count: historyData.length,
+                        trueCount: trueCount,
+                        falseCount: falseCount,
+                        truePercent: ((trueCount / historyData.length) * 100).toFixed(1)
+                    };
+                } else {
+                    const values = historyData.map(d => typeof d.value === 'number' ? d.value : parseFloat(d.value)).filter(v => !isNaN(v));
+                    stats = {
+                        count: values.length,
+                        min: Math.min(...values),
+                        max: Math.max(...values),
+                        avg: values.reduce((a, b) => a + b, 0) / values.length
+                    };
+                }
+                
+                // Extract data unit for numeric points
+                const unit = pointType === 'numeric' ? extractDataUnit(displayName) : '';
+                
+                // Build HTML
+                let html = `
+                    <div class="history-header-info">
+                        <div class="history-point-name">${displayName}</div>
+                        <div class="history-point-path">${pointPath}</div>
+                    </div>
+                    
+                    <div class="history-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Count</div>
+                            <div class="stat-value">${stats.count}</div>
+                        </div>
+                `;
+                
+                if (pointType === 'boolean') {
+                    html += `
+                        <div class="stat-box">
+                            <div class="stat-label">TRUE Count</div>
+                            <div class="stat-value">${stats.trueCount}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">FALSE Count</div>
+                            <div class="stat-value">${stats.falseCount}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">TRUE %</div>
+                            <div class="stat-value">${stats.truePercent}%</div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="stat-box">
+                            <div class="stat-label">Minimum</div>
+                            <div class="stat-value">${stats.min.toFixed(2)} ${unit}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Maximum</div>
+                            <div class="stat-value">${stats.max.toFixed(2)} ${unit}</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Average</div>
+                            <div class="stat-value">${stats.avg.toFixed(2)} ${unit}</div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    </div>
+                    
+                    <table class="history-data-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                // Show most recent 100 records to avoid overwhelming the display
+                const displayData = historyData.slice(-100);
+                displayData.reverse(); // Show newest first
+                
+                displayData.forEach(point => {
+                    let displayValue;
+                    if (pointType === 'boolean') {
+                        const boolVal = point.value === true || point.value === 'true' || point.value === 1;
+                        displayValue = `<span style="color: ${boolVal ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">${boolVal ? 'TRUE' : 'FALSE'}</span>`;
+                    } else {
+                        const numVal = typeof point.value === 'number' ? point.value : parseFloat(point.value);
+                        displayValue = `${isNaN(numVal) ? point.value : numVal.toFixed(2)} ${unit}`;
+                    }
+                    
+                    html += `
+                        <tr>
+                            <td>${point.timestampString}</td>
+                            <td>${displayValue}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                
+                if (historyData.length > 100) {
+                    html += `
+                        <div style="text-align: center; margin-top: 15px; color: #90a4ae; font-size: 0.9em;">
+                            Showing most recent 100 of ${historyData.length} records
+                        </div>
+                    `;
+                }
+                
+                historyContent.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading history data:', error);
+                historyContent.innerHTML = `
+                    <div class="history-header-info">
+                        <div class="history-point-name">${displayName}</div>
+                        <div class="history-point-path">${pointPath}</div>
+                    </div>
+                    <div class="error">Error loading history: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Extract data unit from point name (from your original script)
+        function extractDataUnit(pointNameOrOrd) {
+            if (!pointNameOrOrd) return '';
+            
+            const name = pointNameOrOrd.toLowerCase();
+            
+            if (name.includes('temp') || name.includes('temperature') || name.includes('dischargeairtemp')) return '°F';
+            if (name.includes('flow') || name.includes('airflow') || name.includes('air-flow')) return 'CFM';
+            if (name.includes('pressure')) return 'PSI';
+            if (name.includes('humidity')) return '%';
+            if (name.includes('percent') || name.includes('pct')) return '%';
+            if (name.includes('speed')) return '%';
+            if (name.includes('power')) return 'kW';
+            if (name.includes('current')) return 'A';
+            if (name.includes('voltage')) return 'V';
+            if (name.includes('frequency') || name.includes('freq')) return 'Hz';
+            if (name.includes('static')) return 'in/wc';
+            
+            return '';
+        }
+
+        // Add event listener for date changes
+        function setupDateChangeListeners() {
+            document.getElementById('start-date').addEventListener('change', function() {
+                if (selectedPoint) {
+                    loadHistoryData(selectedPoint.path, selectedPoint.name, selectedPoint.type);
+                }
+            });
+            
+            document.getElementById('end-date').addEventListener('change', function() {
+                if (selectedPoint) {
+                    loadHistoryData(selectedPoint.path, selectedPoint.name, selectedPoint.type);
+                }
+            });
+        }
+
+        // Cleanup function
+        function cleanup() {
+            if (subscriber) {
+                subscriber.unsubscribeAll();
+                console.log('🧹 Cleaned up all subscriptions');
+            }
+        }
+
+        // Initialize the system
+        function initializeSystem() {
+            initializeDateInputs();
+            setupDateChangeListeners();
+            loadGlobalConfig();
+            
+            console.log('Point Summary & History Viewer initialized');
+        }
+
+        // Handle page unload
+        window.addEventListener('beforeunload', cleanup);
+
+        // Initialize when page loads
+        initializeSystem();
+        </script>
+        
+        
+        
+          <script>
+        // Open modal
+        function openHistoryModal() {
+            document.getElementById("historyModal").style.display = "flex";
+        }
+
+        // Close modal
+        function closeHistoryModal() {
+            document.getElementById("historyModal").style.display = "none";
+        }
+
+        // Override selectPoint to also open the modal
+        function selectPoint(pointPath, displayName, pointType) {
+            // Remove previous selection
+            document.querySelectorAll('.point-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            const clickedItem = document.querySelector(`[data-point-path="${pointPath}"]`);
+            if (clickedItem) {
+                clickedItem.classList.add('selected');
+            }
+            
+            selectedPoint = { path: pointPath, name: displayName, type: pointType };
+
+            // Open modal and load history
+            openHistoryModal();
+            loadHistoryData(pointPath, displayName, pointType);
+        }
+    </script>
+</body>
+</html>
