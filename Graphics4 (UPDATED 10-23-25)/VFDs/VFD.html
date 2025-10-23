@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(120, 40, 200, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(40, 200, 200, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(200, 40, 150, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: rgba(15, 20, 40, 0.6);
+            border-radius: 25px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 50%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(123, 66, 255, 0.5));
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 10px 24px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2) 0%, rgba(123, 66, 255, 0.2) 100%);
+            border-radius: 30px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .gauges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .gauge-card {
+            background: rgba(15, 20, 40, 0.7);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(0, 242, 255, 0.1) 90deg,
+                rgba(123, 66, 255, 0.1) 180deg,
+                rgba(255, 0, 110, 0.1) 270deg,
+                transparent 360deg
+            );
+            animation: rotate 8s linear infinite;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .gauge-card:hover::before {
+            opacity: 1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .gauge-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(123, 66, 255, 0.4);
+            box-shadow: 0 12px 48px rgba(123, 66, 255, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .gauge-title {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 600;
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 1px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+            z-index: 1;
+        }
+
+        .gauge-value {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffffff 0%, #00f2ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            width: 100%;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5));
+        }
+
+        .gauge-unit {
+            font-size: 0.45em;
+            background: linear-gradient(135deg, #7b42ff 0%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .status-section {
+            background: rgba(15, 20, 40, 0.7);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .status-section h2 {
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            padding: 18px;
+            background: rgba(20, 25, 50, 0.5);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .status-item:hover {
+            border-color: rgba(123, 66, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(123, 66, 255, 0.2);
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        .status-on {
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .status-off {
+            color: #ff0066;
+            text-shadow: 0 0 10px rgba(255, 0, 102, 0.5);
+        }
+
+        .override-active {
+            color: #b366ff;
+            text-shadow: 0 0 10px rgba(179, 102, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔌 10 South Broadway - AHU-SF1A</h1>
+            <div class="status-indicator" id="connection-status">Initializing...</div>
+        </header>
+
+        <div class="gauges-grid">
+            <div class="gauge-card">
+                <div class="gauge-title">Speed</div>
+                <div class="gauge-container">
+                    <svg id="speed-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="speed-value">0</span>
+                        <span class="gauge-unit">RPM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Frequency</div>
+                <div class="gauge-container">
+                    <svg id="freq-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="freq-value">0</span>
+                        <span class="gauge-unit">Hz</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Torque</div>
+                <div class="gauge-container">
+                    <svg id="torque-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="torque-value">0</span>
+                        <span class="gauge-unit">%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Power</div>
+                <div class="gauge-container">
+                    <svg id="power-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="power-value">0</span>
+                        <span class="gauge-unit">kW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Current</div>
+                <div class="gauge-container">
+                    <svg id="current-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="current-value">0</span>
+                        <span class="gauge-unit">A</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Voltage</div>
+                <div class="gauge-container">
+                    <svg id="voltage-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="voltage-value">0</span>
+                        <span class="gauge-unit">V</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <h2>📊 Status Information</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">Active Warnings</div>
+                    <div class="status-value" id="warnings-value">Loading...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">AI1 ACT</div>
+                    <div class="status-value" id="ai1act-value">Loading...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">AI2 ACT</div>
+                    <div class="status-value" id="ai2act-value">Loading...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">DC Bus Voltage</div>
+                    <div class="status-value" id="dcbus-value">Loading...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">SPD OUT PCT</div>
+                    <div class="status-value" id="spdoutpct-value">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class CustomGauge {
+            constructor(svgId, config) {
+                this.svg = document.getElementById(svgId);
+                this.config = config;
+                this.value = 0;
+                this.init();
+            }
+
+            init() {
+                const cx = 125;
+                const cy = 125;
+                const radius = 90;
+                const strokeWidth = 18;
+
+                this.svg.innerHTML = '';
+                this.createGradients();
+
+                const bgArc = this.createArc(cx, cy, radius, strokeWidth, 0, 270, 'url(#bgGradient)');
+                this.svg.appendChild(bgArc);
+
+                this.valueArc = this.createArc(cx, cy, radius, strokeWidth, 0, 0, `url(#gradient-${this.config.id})`);
+                this.valueArc.style.filter = 'drop-shadow(0 0 8px ' + this.config.glowColor + ')';
+                this.svg.appendChild(this.valueArc);
+
+                this.addCenterGlow(cx, cy);
+                this.addTickMarks(cx, cy, radius);
+                this.addLabels(cx, cy, radius);
+            }
+
+            createGradients() {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                
+                const bgGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                bgGradient.setAttribute('id', 'bgGradient');
+                bgGradient.innerHTML = `
+                    <stop offset="0%" style="stop-color:rgba(30,35,60,0.4);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgba(40,45,75,0.4);stop-opacity:1" />
+                `;
+                defs.appendChild(bgGradient);
+
+                const valueGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                valueGradient.setAttribute('id', `gradient-${this.config.id}`);
+                valueGradient.setAttribute('x1', '0%');
+                valueGradient.setAttribute('y1', '0%');
+                valueGradient.setAttribute('x2', '100%');
+                valueGradient.setAttribute('y2', '100%');
+                
+                valueGradient.innerHTML = `
+                    <stop offset="0%" style="stop-color:${this.config.color1};stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:${this.config.color2};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:${this.config.color3};stop-opacity:1" />
+                `;
+                defs.appendChild(valueGradient);
+
+                this.svg.appendChild(defs);
+            }
+
+            addCenterGlow(cx, cy) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', '50');
+                circle.setAttribute('fill', `url(#gradient-${this.config.id})`);
+                circle.setAttribute('opacity', '0.08');
+                circle.style.filter = 'blur(15px)';
+                this.svg.appendChild(circle);
+            }
+
+            createArc(cx, cy, radius, strokeWidth, startAngle, endAngle, color) {
+                const start = this.polarToCartesian(cx, cy, radius, startAngle - 135);
+                const end = this.polarToCartesian(cx, cy, radius, endAngle - 135);
+                const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+                
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', strokeWidth);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-linecap', 'round');
+
+                return path;
+            }
+            
+            
+
+            polarToCartesian(cx, cy, radius, angle) {
+                const radians = (angle * Math.PI) / 180;
+                return {
+                    x: cx + radius * Math.cos(radians),
+                    y: cy + radius * Math.sin(radians)
+                };
+            }
+
+            addTickMarks(cx, cy, radius) {
+                const tickCount = 27;
+                const innerRadius = radius - 12;
+                const outerRadius = radius - 4;
+
+                for (let i = 0; i <= tickCount; i++) {
+                    const angle = (i / tickCount) * 270 - 135;
+                    const inner = this.polarToCartesian(cx, cy, innerRadius, angle);
+                    const outer = this.polarToCartesian(cx, cy, outerRadius, angle);
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', inner.x);
+                    line.setAttribute('y1', inner.y);
+                    line.setAttribute('x2', outer.x);
+                    line.setAttribute('y2', outer.y);
+                    
+                    const isMajor = i % 3 === 0;
+                    line.setAttribute('stroke', isMajor ? 'rgba(0, 242, 255, 0.4)' : 'rgba(100, 150, 200, 0.2)');
+                    line.setAttribute('stroke-width', isMajor ? '2' : '1');
+
+                    this.svg.appendChild(line);
+                }
+            }
+
+            addLabels(cx, cy, radius) {
+                const labelRadius = radius - 30;
+                const labels = ['0', '', '', this.config.max / 2, '', '', this.config.max];
+
+                for (let i = 0; i < 7; i++) {
+                    if (labels[i] === '') continue;
+                    
+                    const angle = (i / 6) * 270 - 135;
+                    const pos = this.polarToCartesian(cx, cy, labelRadius, angle);
+
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', pos.x);
+                    text.setAttribute('y', pos.y);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('font-size', '13');
+                    text.setAttribute('fill', 'rgba(0, 242, 255, 0.7)');
+                    text.setAttribute('font-weight', '600');
+                    text.textContent = labels[i];
+
+                    this.svg.appendChild(text);
+                }
+            }
+
+            update(value) {
+                this.value = Math.min(Math.max(value, 0), this.config.max);
+                const angle = (this.value / this.config.max) * 270;
+
+                this.svg.removeChild(this.valueArc);
+
+                const cx = 125;
+                const cy = 125;
+                const radius = 90;
+                const strokeWidth = 18;
+                this.valueArc = this.createArc(cx, cy, radius, strokeWidth, 0, angle, `url(#gradient-${this.config.id})`);
+                this.valueArc.style.filter = 'drop-shadow(0 0 8px ' + this.config.glowColor + ')';
+                
+                this.svg.insertBefore(this.valueArc, this.svg.children[2]);
+            }
+        }
+
+        const gaugeConfigs = {
+            speed: { 
+                max: 2000, 
+                color1: '#00f2ff', 
+                color2: '#7b42ff', 
+                color3: '#00d9ff',
+                glowColor: 'rgba(0, 242, 255, 0.6)',
+                svgId: 'speed-gauge', 
+                valueId: 'speed-value',
+                id: 'speed'
+            },
+            freq: { 
+                max: 60, 
+                color1: '#00ff88', 
+                color2: '#00f2ff', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(0, 255, 136, 0.6)',
+                svgId: 'freq-gauge', 
+                valueId: 'freq-value',
+                id: 'freq'
+            },
+            torque: { 
+                max: 100, 
+                color1: '#ff8800', 
+                color2: '#ff006e', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(255, 136, 0, 0.6)',
+                svgId: 'torque-gauge', 
+                valueId: 'torque-value',
+                id: 'torque'
+            },
+            power: { 
+                max: 50, 
+                color1: '#b366ff', 
+                color2: '#ff006e', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(179, 102, 255, 0.6)',
+                svgId: 'power-gauge', 
+                valueId: 'power-value',
+                id: 'power'
+            },
+            current: { 
+                max: 100, 
+                color1: '#ff0066', 
+                color2: '#ff8800', 
+                color3: '#ff006e',
+                glowColor: 'rgba(255, 0, 102, 0.6)',
+                svgId: 'current-gauge', 
+                valueId: 'current-value',
+                id: 'current'
+            },
+            voltage: { 
+                max: 500, 
+                color1: '#00f2ff', 
+                color2: '#00ff88', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(0, 242, 255, 0.6)',
+                svgId: 'voltage-gauge', 
+                valueId: 'voltage-value',
+                id: 'voltage'
+            }
+        };
+
+        const gauges = {};
+        for (const [key, config] of Object.entries(gaugeConfigs)) {
+            gauges[key] = new CustomGauge(config.svgId, config);
+        }
+
+        require(['baja!'], function (baja) {
+            'use strict';
+
+            const baseOrd = 'station:|slot:/Drivers/NiagaraNetwork/EquitableBldg_JACE01/points/AHU$2dSF1A';
+            
+            const dataPoints = {
+                'OUTPUTSPEED': `${baseOrd}/OUTPUT$20SPEED`,
+                'OUTPUTFREQ': `${baseOrd}/OUTPUT$20FREQ`,
+                'TORQUE': `${baseOrd}/TORQUE`,
+                'POWER': `${baseOrd}/POWER`,
+                'CURRENT': `${baseOrd}/CURRENT`,
+                'OUTPUTVOLT': `${baseOrd}/OUTPUT$20VOLT`,
+                'ACTIVEWARNING3': `${baseOrd}/ACTIVE$20WARNING$203`,
+                'ACTIVEWARNING2': `${baseOrd}/ACTIVE$20WARNING$202`,
+                'ACTIVEWARNING1': `${baseOrd}/ACTIVE$20WARNING$201`,
+                'RunStop': `${baseOrd}/RUN$2eSTOP$20ACT`,
+            };
+
+            function updateGauge(gaugeName, value, config) {
+                const numValue = parseFloat(value) || 0;
+                gauges[gaugeName].update(numValue);
+                document.getElementById(config.valueId).textContent = numValue.toFixed(1);
+            }
+
+            const subscriber = new baja.Subscriber();
+            let connectedPoints = 0;
+
+            subscriber.attach('changed', function(prop) {
+                if (prop.getName() === 'out') {
+                    const pointInfo = this.userData;
+                    const out = this.getOut();
+                    const displayValue = out.getValueDisplay();
+                    const value = out.getValue();
+
+                    if (pointInfo.name === 'OUTPUTSPEED') {
+                        updateGauge('speed', value, gaugeConfigs.speed);
+                    } else if (pointInfo.name === 'OUTPUTFREQ') {
+                        updateGauge('freq', value, gaugeConfigs.freq);
+                    } else if (pointInfo.name === 'TORQUE') {
+                        updateGauge('torque', value, gaugeConfigs.torque);
+                    } else if (pointInfo.name === 'POWER') {
+                        updateGauge('power', value, gaugeConfigs.power);
+                    } else if (pointInfo.name === 'CURRENT') {
+                        updateGauge('current', value, gaugeConfigs.current);
+                    } else if (pointInfo.name === 'OUTPUTVOLT') {
+                        updateGauge('voltage', value, gaugeConfigs.voltage);
+                    } else if (pointInfo.name === 'ACTIVEWARNING3') {
+                        const el = document.getElementById('warnings-value');
+                        el.textContent = displayValue;
+                        el.className = value > 0 ? 'status-value status-off' : 'status-value status-on';
+                    } else if (pointInfo.name === '') {
+                        document.getElementById('ai1act-value').textContent = displayValue;
+                    } else if (pointInfo.name === 'ACTIVEWARNING2') {
+                        document.getElementById('ai2act-value').textContent = displayValue;
+                    } else if (pointInfo.name === 'ACTIVEWARNING1') {
+                        document.getElementById('dcbus-value').textContent = displayValue;
+                    } else if (pointInfo.name === 'RunStop') {
+                        document.getElementById('spdoutpct-value').textContent = displayValue;
+                    }
+                }
+            });
+
+            function subscribeToPoint(pointOrd, pointName) {
+                baja.Ord.make(pointOrd).get({ subscriber: subscriber })
+                    .then(point => {
+                        console.log(`✅ Connected to ${pointName}`);
+                        point.userData = { name: pointName };
+                        connectedPoints++;
+
+                        const out = point.getOut();
+                        const value = out.getValue();
+                        const displayValue = out.getValueDisplay();
+
+                        if (pointName === 'OUTPUTSPEED') {
+                            updateGauge('speed', value, gaugeConfigs.speed);
+                        } else if (pointName === 'OUTPUTFREQ') {
+                            updateGauge('freq', value, gaugeConfigs.freq);
+                        } else if (pointName === 'TORQUE') {
+                            updateGauge('torque', value, gaugeConfigs.torque);
+                        } else if (pointName === 'POWER') {
+                            updateGauge('power', value, gaugeConfigs.power);
+                        } else if (pointName === 'CURRENT') {
+                            updateGauge('current', value, gaugeConfigs.current);
+                        } else if (pointName === 'OUTPUTVOLT') {
+                            updateGauge('voltage', value, gaugeConfigs.voltage);
+                        } else if (pointName === 'ACTIVEWARNING3') {
+                            const el = document.getElementById('warnings-value');
+                            el.textContent = displayValue;
+                            el.className = value > 0 ? 'status-value status-off' : 'status-value status-on';
+                        } else if (pointName === 'ACTIVEWARNING2') {
+                            document.getElementById('ai1act-value').textContent = displayValue;
+                        } else if (pointName === 'ACTIVEWARNING1') {
+                            document.getElementById('ai2act-value').textContent = displayValue;
+                        } else if (pointName === 'RunStop') {
+                            document.getElementById('dcbus-value').textContent = displayValue;
+                        }
+
+                        document.getElementById('connection-status').textContent = 
+                            `Connected (${connectedPoints}/${Object.keys(dataPoints).length} points)`;
+                    })
+                    .catch(error => {
+                        console.error(`❌ Failed to connect to ${pointName}:`, error);
+                    });
+            }
+
+            for (const [pointName, pointOrd] of Object.entries(dataPoints)) {
+                subscribeToPoint(pointOrd, pointName);
+            }
+
+            window.addEventListener('beforeunload', function() {
+                if (subscriber) {
+                    subscriber.unsubscribeAll();
+                    console.log('🧹 Cleaned up subscriptions');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
