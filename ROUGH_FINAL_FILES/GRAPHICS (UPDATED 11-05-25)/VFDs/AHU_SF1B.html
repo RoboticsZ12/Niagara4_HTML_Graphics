@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(120, 40, 200, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(40, 200, 200, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(200, 40, 150, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: rgba(15, 20, 40, 0.6);
+            border-radius: 25px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 50%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(123, 66, 255, 0.5));
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 10px 24px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2) 0%, rgba(123, 66, 255, 0.2) 100%);
+            border-radius: 30px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .gauges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .gauge-card {
+            background: rgba(15, 20, 40, 0.7);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gauge-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(0, 242, 255, 0.1) 90deg,
+                rgba(123, 66, 255, 0.1) 180deg,
+                rgba(255, 0, 110, 0.1) 270deg,
+                transparent 360deg
+            );
+            animation: rotate 8s linear infinite;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .gauge-card:hover::before {
+            opacity: 1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .gauge-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(123, 66, 255, 0.4);
+            box-shadow: 0 12px 48px rgba(123, 66, 255, 0.3),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .gauge-title {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 600;
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 1px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+            z-index: 1;
+        }
+
+        .gauge-value {
+            position: absolute;
+            top: 65%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ffffff 0%, #00f2ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            width: 100%;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5));
+        }
+
+        .gauge-unit {
+            font-size: 0.45em;
+            background: linear-gradient(135deg, #7b42ff 0%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .status-section {
+            background: rgba(15, 20, 40, 0.7);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(100, 200, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .status-section h2 {
+            background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            padding: 18px;
+            background: rgba(20, 25, 50, 0.5);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .status-item:hover {
+            border-color: rgba(123, 66, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(123, 66, 255, 0.2);
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        .status-on {
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .status-off {
+            color: #ff0066;
+            text-shadow: 0 0 10px rgba(255, 0, 102, 0.5);
+        }
+
+        .override-active {
+            color: #b366ff;
+            text-shadow: 0 0 10px rgba(179, 102, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="ahu-header">🔌 10 South Broadway - AHU-SF1A</h1>
+        </header>
+
+        <div class="gauges-grid">
+            <div class="gauge-card">
+                <div class="gauge-title">Speed</div>
+                <div class="gauge-container">
+                    <svg id="speed-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="speed-value">0</span>
+                        <span class="gauge-unit">RPM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Frequency</div>
+                <div class="gauge-container">
+                    <svg id="freq-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="freq-value">0</span>
+                        <span class="gauge-unit">Hz</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Torque</div>
+                <div class="gauge-container">
+                    <svg id="torque-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="torque-value">0</span>
+                        <span class="gauge-unit">%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Power</div>
+                <div class="gauge-container">
+                    <svg id="power-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="power-value">0</span>
+                        <span class="gauge-unit">kW</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Current</div>
+                <div class="gauge-container">
+                    <svg id="current-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="current-value">0</span>
+                        <span class="gauge-unit">A</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gauge-card">
+                <div class="gauge-title">Voltage</div>
+                <div class="gauge-container">
+                    <svg id="voltage-gauge" width="250" height="250"></svg>
+                    <div class="gauge-value">
+                        <span id="voltage-value">0</span>
+                        <span class="gauge-unit">V</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+  
+    </div>
+
+<script>
+        class CustomGauge {
+            constructor(svgId, config) {
+                this.svg = document.getElementById(svgId);
+                this.config = config;
+                this.value = 0;
+                this.init();
+            }
+
+            init() {
+                const cx = 125;
+                const cy = 125;
+                const radius = 90;
+                const strokeWidth = 18;
+
+                this.svg.innerHTML = '';
+                this.createGradients();
+
+                const bgArc = this.createArc(cx, cy, radius, strokeWidth, 0, 270, 'url(#bgGradient)');
+                this.svg.appendChild(bgArc);
+
+                this.valueArc = this.createArc(cx, cy, radius, strokeWidth, 0, 0, `url(#gradient-${this.config.id})`);
+                this.valueArc.style.filter = 'drop-shadow(0 0 8px ' + this.config.glowColor + ')';
+                this.svg.appendChild(this.valueArc);
+
+                this.addCenterGlow(cx, cy);
+                this.addTickMarks(cx, cy, radius);
+                this.addLabels(cx, cy, radius);
+            }
+
+            createGradients() {
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                
+                const bgGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                bgGradient.setAttribute('id', 'bgGradient');
+                bgGradient.innerHTML = `
+                    <stop offset="0%" style="stop-color:rgba(30,35,60,0.4);stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:rgba(40,45,75,0.4);stop-opacity:1" />
+                `;
+                defs.appendChild(bgGradient);
+
+                const valueGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                valueGradient.setAttribute('id', `gradient-${this.config.id}`);
+                valueGradient.setAttribute('x1', '0%');
+                valueGradient.setAttribute('y1', '0%');
+                valueGradient.setAttribute('x2', '100%');
+                valueGradient.setAttribute('y2', '100%');
+                
+                valueGradient.innerHTML = `
+                    <stop offset="0%" style="stop-color:${this.config.color1};stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:${this.config.color2};stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:${this.config.color3};stop-opacity:1" />
+                `;
+                defs.appendChild(valueGradient);
+
+                this.svg.appendChild(defs);
+            }
+
+            addCenterGlow(cx, cy) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', '50');
+                circle.setAttribute('fill', `url(#gradient-${this.config.id})`);
+                circle.setAttribute('opacity', '0.08');
+                circle.style.filter = 'blur(15px)';
+                this.svg.appendChild(circle);
+            }
+
+            createArc(cx, cy, radius, strokeWidth, startAngle, endAngle, color) {
+                const start = this.polarToCartesian(cx, cy, radius, startAngle - 135);
+                const end = this.polarToCartesian(cx, cy, radius, endAngle - 135);
+                const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+                
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', color);
+                path.setAttribute('stroke-width', strokeWidth);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke-linecap', 'round');
+
+                return path;
+            }
+
+            polarToCartesian(cx, cy, radius, angle) {
+                const radians = (angle * Math.PI) / 180;
+                return {
+                    x: cx + radius * Math.cos(radians),
+                    y: cy + radius * Math.sin(radians)
+                };
+            }
+
+            addTickMarks(cx, cy, radius) {
+                const tickCount = 27;
+                const innerRadius = radius - 12;
+                const outerRadius = radius - 4;
+
+                for (let i = 0; i <= tickCount; i++) {
+                    const angle = (i / tickCount) * 270 - 135;
+                    const inner = this.polarToCartesian(cx, cy, innerRadius, angle);
+                    const outer = this.polarToCartesian(cx, cy, outerRadius, angle);
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', inner.x);
+                    line.setAttribute('y1', inner.y);
+                    line.setAttribute('x2', outer.x);
+                    line.setAttribute('y2', outer.y);
+                    
+                    const isMajor = i % 3 === 0;
+                    line.setAttribute('stroke', isMajor ? 'rgba(0, 242, 255, 0.4)' : 'rgba(100, 150, 200, 0.2)');
+                    line.setAttribute('stroke-width', isMajor ? '2' : '1');
+
+                    this.svg.appendChild(line);
+                }
+            }
+
+            addLabels(cx, cy, radius) {
+                const labelRadius = radius - 30;
+                const labels = ['0', '', '', this.config.max / 2, '', '', this.config.max];
+
+                for (let i = 0; i < 7; i++) {
+                    if (labels[i] === '') continue;
+                    
+                    const angle = (i / 6) * 270 - 135;
+                    const pos = this.polarToCartesian(cx, cy, labelRadius, angle);
+
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', pos.x);
+                    text.setAttribute('y', pos.y);
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('dominant-baseline', 'middle');
+                    text.setAttribute('font-size', '13');
+                    text.setAttribute('fill', 'rgba(0, 242, 255, 0.7)');
+                    text.setAttribute('font-weight', '600');
+                    text.textContent = labels[i];
+
+                    this.svg.appendChild(text);
+                }
+            }
+
+            update(value) {
+                this.value = Math.min(Math.max(value, 0), this.config.max);
+                const angle = (this.value / this.config.max) * 270;
+
+                this.svg.removeChild(this.valueArc);
+
+                const cx = 125;
+                const cy = 125;
+                const radius = 90;
+                const strokeWidth = 18;
+                this.valueArc = this.createArc(cx, cy, radius, strokeWidth, 0, angle, `url(#gradient-${this.config.id})`);
+                this.valueArc.style.filter = 'drop-shadow(0 0 8px ' + this.config.glowColor + ')';
+                
+                this.svg.insertBefore(this.valueArc, this.svg.children[2]);
+            }
+        }
+
+        const gaugeConfigs = {
+            speed: { 
+                max: 2000, 
+                color1: '#00f2ff', 
+                color2: '#7b42ff', 
+                color3: '#00d9ff',
+                glowColor: 'rgba(0, 242, 255, 0.6)',
+                svgId: 'speed-gauge', 
+                valueId: 'speed-value',
+                id: 'speed'
+            },
+            freq: { 
+                max: 60, 
+                color1: '#00ff88', 
+                color2: '#00f2ff', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(0, 255, 136, 0.6)',
+                svgId: 'freq-gauge', 
+                valueId: 'freq-value',
+                id: 'freq'
+            },
+            torque: { 
+                max: 100, 
+                color1: '#ff8800', 
+                color2: '#ff006e', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(255, 136, 0, 0.6)',
+                svgId: 'torque-gauge', 
+                valueId: 'torque-value',
+                id: 'torque'
+            },
+            power: { 
+                max: 50, 
+                color1: '#b366ff', 
+                color2: '#ff006e', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(179, 102, 255, 0.6)',
+                svgId: 'power-gauge', 
+                valueId: 'power-value',
+                id: 'power'
+            },
+            current: { 
+                max: 100, 
+                color1: '#ff0066', 
+                color2: '#ff8800', 
+                color3: '#ff006e',
+                glowColor: 'rgba(255, 0, 102, 0.6)',
+                svgId: 'current-gauge', 
+                valueId: 'current-value',
+                id: 'current'
+            },
+            voltage: { 
+                max: 500, 
+                color1: '#00f2ff', 
+                color2: '#00ff88', 
+                color3: '#7b42ff',
+                glowColor: 'rgba(0, 242, 255, 0.6)',
+                svgId: 'voltage-gauge', 
+                valueId: 'voltage-value',
+                id: 'voltage'
+            }
+        };
+
+        const gauges = {};
+        for (const [key, config] of Object.entries(gaugeConfigs)) {
+            gauges[key] = new CustomGauge(config.svgId, config);
+        }
+
+
+require(['baja!'], function (baja) {
+'use strict';
+
+const fullFilename = window.location.pathname.split('/').pop();
+const headerName = fullFilename.replace('.html', '');
+const pathName = headerName.replace(/-/g, '_');
+
+const headerElement = document.getElementById('ahu-header');
+if (headerElement) {
+    headerElement.textContent = pathName;
+}
+
+console.log('=== DYNAMIC MONITORING SCRIPT DEBUG ===');
+console.log('Full filename:', fullFilename);
+console.log('Header name:', headerName);
+console.log('Path name (display):', pathName);
+
+async function loadGlobalConfiguration() {
+    try {
+        console.log('🔍 Loading Global.json configuration...');
+        const response = await fetch('../Global.json');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const globalConfig = await response.json();
+        console.log('✅ Successfully loaded Global.json:', globalConfig);
+        return globalConfig;
+    } catch (error) {
+        console.error('❌ Failed to load Global.json:', error);
+        const alternativePaths = ['/Global.json', '../Global.json', '/file/Global.json', '/files/Global.json'];
+        for (const altPath of alternativePaths) {
+            try {
+                console.log(`🔄 Trying alternative path: ${altPath}`);
+                const response = await fetch(altPath);
+                if (response.ok) {
+                    const globalConfig = await response.json();
+                    console.log(`✅ Found Global.json at ${altPath}:`, globalConfig);
+                    return globalConfig;
+                }
+            } catch (altError) {
+                console.log(`❌ ${altPath} not found`);
+            }
+        }
+        return null;
+    }
+}
+
+function extractDevicePoints(globalConfig, deviceName) {
+    console.log(`🎯 Searching for device: "${deviceName}"`);
+    if (!globalConfig || !globalConfig.globalVariables) {
+        console.error('❌ Invalid Global.json structure');
+        return [];
+    }
+    if (globalConfig.globalVariables[deviceName]) {
+        console.log(`✅ Found exact match for "${deviceName}"`);
+        return globalConfig.globalVariables[deviceName].points || [];
+    }
+    const deviceKeys = Object.keys(globalConfig.globalVariables);
+    const caseInsensitiveMatch = deviceKeys.find(key => key.toLowerCase() === deviceName.toLowerCase());
+    if (caseInsensitiveMatch) {
+        console.log(`✅ Found case-insensitive match: "${caseInsensitiveMatch}"`);
+        return globalConfig.globalVariables[caseInsensitiveMatch].points || [];
+    }
+    const normalizedDeviceName = deviceName.replace(/[_-]/g, '').toLowerCase();
+    const partialMatch = deviceKeys.find(key => {
+        const normalizedKey = key.replace(/[_-]/g, '').toLowerCase();
+        return normalizedKey === normalizedDeviceName || normalizedKey.includes(normalizedDeviceName) || normalizedDeviceName.includes(normalizedKey);
+    });
+    if (partialMatch) {
+        console.log(`✅ Found partial match: "${partialMatch}"`);
+        return globalConfig.globalVariables[partialMatch].points || [];
+    }
+    console.error(`❌ No device found matching "${deviceName}"`);
+    console.log('Available devices:', deviceKeys);
+    return [];
+}
+
+function buildDataPointsFromGlobal(devicePoints, basePath) {
+    const dataPoints = {};
+    const elements = {};
+    const pointToElementMap = {};
+    console.log('🔧 Building data points from Global.json...');
+
+    const gaugeKeywordMapping = {
+        'speed': 'speed-value',
+        'frequency': 'freq-value',
+        'torque': 'torque-value',
+        'power': 'power-value',
+        'current': 'current-value',
+        'voltage': 'voltage-value'
+    };
+
+    let naContainer = document.getElementById('na-table-container');
+    if (!naContainer) {
+        naContainer = document.createElement('div');
+        naContainer.id = 'na-table-container';
+        naContainer.style.cssText = `position: absolute; top: 10%; left: 1%; width: auto; height: auto; max-width: 325px; overflow: hidden; background: #f9f9f9; border: 1px solid #ccc; border-radius: 0.5rem; padding: 0.5rem; font-family: Arial, sans-serif; font-size: 0.9rem; z-index: 9999; box-sizing: border-box; transition: all 0.3s ease;`;
+        document.body.appendChild(naContainer);
+
+        const toggleButton = document.createElement('button');
+        toggleButton.textContent = 'Unit Data ▼';
+        toggleButton.style.cssText = `width: 100%; margin-bottom: 0.5rem; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: 0.3rem; border: 1px solid #aaa; background: #eee; font-weight: bold; font-size: 1rem;`;
+        naContainer.appendChild(toggleButton);
+
+        const table = document.createElement('table');
+        table.style.cssText = `width: 90%; border-collapse: collapse; display: none; color: black; table-layout: fixed; margin-top: 0.5rem;`;
+        table.innerHTML = `<thead><tr style="border-bottom: 2px solid #333;"><th style="text-align:left; padding:0.4rem; border-right: 2px solid #333; width: 50%;">Name</th><th style="text-align:left; padding:0.4rem; width: 20%;">Output</th></tr></thead><tbody></tbody>`;
+        naContainer.appendChild(table);
+
+        toggleButton.addEventListener('click', () => {
+            if (table.style.display === 'none') {
+                table.style.display = 'table';
+                naContainer.style.width = '40%';
+                naContainer.style.maxHeight = '80vh';
+                naContainer.style.overflowY = 'auto';
+                naContainer.style.height = 'auto';
+            } else {
+                table.style.display = 'none';
+                naContainer.style.width = 'auto';
+                naContainer.style.height = 'auto';
+                naContainer.style.overflowY = 'hidden';
+            }
+        });
+    }
+
+    const naTableBody = naContainer.querySelector('tbody');
+
+    devicePoints.forEach(point => {
+        const pointPath = point.fullPath || basePath.replace('{pointName}', point.name);
+        dataPoints[point.name] = pointPath;
+        let mappedElementId = point.id;
+
+        if (point.id && point.id !== "N/A") {
+            const idLower = point.id.toLowerCase();
+            for (const [keyword, gaugeId] of Object.entries(gaugeKeywordMapping)) {
+                if (idLower.includes(keyword)) {
+                    mappedElementId = gaugeId;
+                    console.log(`🎯 Mapped ${point.name} with ID "${point.id}" to gauge: ${gaugeId}`);
+                    break;
+                }
+            }
+        }
+
+        pointToElementMap[point.name] = mappedElementId;
+
+        if (!point.id || point.id === "N/A") {
+            const row = document.createElement('tr');
+            row.style.cssText = `border-bottom: 1px solid #ccc; transition: background 0.2s;`;
+            row.addEventListener('mouseover', () => row.style.background = '#eaeaea');
+            row.addEventListener('mouseout', () => row.style.background = 'transparent');
+
+            const nameCell = document.createElement('td');
+            nameCell.textContent = point.name;
+            nameCell.style.cssText = 'padding: 0.4rem; border-right: 2px solid #333; font-weight: 500; word-wrap: break-word;';
+
+            const valueCell = document.createElement('td');
+            valueCell.id = `na-${point.name}`;
+            valueCell.textContent = 'Loading...';
+            valueCell.style.cssText = 'padding: 0.4rem; word-wrap: break-word;';
+
+            row.appendChild(nameCell);
+            row.appendChild(valueCell);
+            naTableBody.appendChild(row);
+
+            elements[point.name] = document.getElementById(`na-${point.name}`);
+            console.log(`💠 Added ${point.name} to N/A table`);
+        } else {
+            const element = document.getElementById(mappedElementId);
+            if (element) {
+                elements[point.name] = element;
+                console.log(`✅ Mapped ${point.name} (id: ${point.id}) to element ${mappedElementId}`);
+            } else {
+                console.log(`⚠️ Element ${mappedElementId} not found for point ${point.name}`);
+            }
+        }
+    });
+
+    console.log(`🎯 Built ${Object.keys(dataPoints).length} data points from Global.json`);
+    return { dataPoints, elements, pointToElementMap };
+}
+
+window.addEventListener('resize', () => {
+    const container = document.getElementById('na-table-container');
+    if (container) {
+        const width = container.offsetWidth;
+        container.style.fontSize = Math.max(0.8, Math.min(1.2, width / 300)) + 'rem';
+    }
+});
+
+let dataPoints = {};
+let elements = {};
+let pointToElementMap = {};
+
+async function initializeMonitoring() {
+    console.log('🚀 Initializing dynamic monitoring...');
+    const globalConfig = await loadGlobalConfiguration();
+    if (!globalConfig) {
+        showErrorMessage('Failed to load Global.json configuration file');
+        return;
+    }
+    const devicePoints = extractDevicePoints(globalConfig, headerName);
+    if (devicePoints.length === 0) {
+        showErrorMessage(`No configuration found for device "${headerName}" in Global.json`);
+        return;
+    }
+    const basePath = globalConfig.globalVariables[headerName]?.basePath || `station:|slot:/Drivers/BcpBacnetNetwork/${headerName}/points/{pointName}`;
+    const result = buildDataPointsFromGlobal(devicePoints, basePath);
+    dataPoints = result.dataPoints;
+    elements = result.elements;
+    pointToElementMap = result.pointToElementMap;
+    
+    console.log('=== FINAL DATA POINTS FROM GLOBAL.JSON ===');
+    console.log('dataPoints object:', dataPoints);
+    console.log('elements object:', elements);
+    console.log('pointToElementMap object:', pointToElementMap);
+    
+    console.log('=== SUBSCRIBING TO POINTS ===');
+    let subscriptionCount = 0;
+    for (const [pointName, pointPath] of Object.entries(dataPoints)) {
+        console.log(`📡 Subscribing to ${pointName}: ${pointPath}`);
+        subscribeToPoint(pointPath, pointName);
+        subscriptionCount++;
+    }
+    console.log(`🎯 Monitoring initialized successfully!`);
+    console.log(`📊 Subscribed to ${subscriptionCount} data points for ${headerName}`);
+    showSuccessMessage(`Monitoring ${subscriptionCount} points for ${headerName}`);
+}
+
+function showErrorMessage(message) {
+    console.error(`❌ ${message}`);
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f56565; color: white; padding: 15px 25px; border-radius: 8px; z-index: 9999; font-family: Arial, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 500px; text-align: center;`;
+    errorDiv.innerHTML = `<strong>Configuration Error</strong><br>${message}<br><small>Check console for details</small>`;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => { if (document.body.contains(errorDiv)) document.body.removeChild(errorDiv); }, 15000);
+}
+
+function showSuccessMessage(message) {
+    console.log(`✅ ${message}`);
+    const successDiv = document.createElement('div');
+    successDiv.style.cssText = `position: fixed; top: 20px; right: 20px; background: #48bb78; color: white; padding: 10px 20px; border-radius: 8px; z-index: 9999; font-family: Arial, sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px;`;
+    successDiv.textContent = message;
+    document.body.appendChild(successDiv);
+    setTimeout(() => { if (document.body.contains(successDiv)) document.body.removeChild(successDiv); }, 5000);
+}
+
+const subscriber = new baja.Subscriber();
+
+subscriber.attach('changed', function(prop) {
+    if (prop.getName() === 'out') {
+        const pointInfo = this.userData;
+        const pointName = pointInfo.pointName;
+        const elementId = pointToElementMap[pointName];
+        
+        if (elementId && elements[pointName]) {
+            const out = this.getOut();
+            const displayValue = out.getValueDisplay();
+            const value = out.getValue();
+            const isOverridden = this.getStatus().isOverridden();
+            const statusElement = elements[pointName];
+            const gaugeIds = ['speed-value', 'freq-value', 'torque-value', 'power-value', 'current-value', 'voltage-value'];
+            const isGauge = gaugeIds.includes(elementId);
+
+            if (isGauge) {
+                const gaugeType = elementId.replace('-value', '');
+                const numericValue = parseFloat(value) || 0;
+                if (gauges[gaugeType]) {
+                    gauges[gaugeType].update(numericValue);
+                }
+                statusElement.textContent = displayValue.replace(/\s*(RPM|Hz|%|kW|A|V)\s*$/i, '');
+                statusElement.style.color = isOverridden ? '#8B5CF6' : '';
+            } else {
+                if (isOverridden) {
+                    statusElement.className = 'data-value override-on';
+                    statusElement.style.color = '#8B5CF6';
+                    statusElement.textContent = `${displayValue} (Override)`;
+                } else if (elementId === 'AHUAlarm' || elementId.includes('Alarm')) {
+                    if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                        statusElement.className = 'data-value status-off';
+                        statusElement.textContent = displayValue;
+                    } else {
+                        statusElement.className = 'data-value status-on';
+                        statusElement.textContent = displayValue;
+                    }
+                    statusElement.style.color = '';
+                } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                    statusElement.className = 'data-value status-on';
+                    statusElement.style.color = '';
+                    statusElement.textContent = displayValue;
+                } else {
+                    statusElement.className = 'data-value status-off';
+                    statusElement.style.color = '';
+                    statusElement.textContent = displayValue;
+                }
+            }
+
+            if (elementId === 'DischargeAirStaticSPOutput' || elementId === 'DamperPosition') {
+                if (typeof updateDamperGraphic === 'function') updateDamperGraphic(value);
+                if (typeof updateDamperReturnGraphic === 'function') updateDamperReturnGraphic(value);
+            }
+            if (elementId === 'DischargeAirSPOutput' || elementId === 'SupplyFanStatus') {
+                if (typeof updateFanGraphic === 'function') updateFanGraphic(value);
+            }
+            if (elementId === 'CoolingCoilOutput') {
+                if (typeof updateCoolingGraphic === 'function') updateCoolingGraphic(value);
+            }
+        }
+    }
+});
+
+function subscribeToPoint(pointOrd, pointName) {
+    baja.Ord.make(pointOrd).get({ subscriber: subscriber })
+        .then(point => {
+            const elementId = pointToElementMap[pointName];
+            console.log(`✅ Successfully connected to ${pointName} -> ${elementId}: ${pointOrd}`);
+            point.userData = { pointName: pointName };
+
+            const out = point.getOut();
+            const displayValue = out.getValueDisplay();
+            const value = out.getValue();
+            const isOverridden = point.getStatus().isOverridden();
+            const gaugeIds = ['speed-value', 'freq-value', 'torque-value', 'power-value', 'current-value', 'voltage-value'];
+            const isGauge = gaugeIds.includes(elementId);
+
+            if (isGauge) {
+                const gaugeType = elementId.replace('-value', '');
+                const numericValue = parseFloat(value) || 0;
+                if (gauges[gaugeType]) {
+                    gauges[gaugeType].update(numericValue);
+                    console.log(`📊 Initial update ${gaugeType} gauge to ${numericValue}`);
+                }
+                if (elements[pointName]) {
+                    elements[pointName].textContent = displayValue.replace(/\s*(RPM|Hz|%|kW|A|V)\s*$/i, '');
+                    if (isOverridden) elements[pointName].style.color = '#8B5CF6';
+                }
+            } else {
+                if (elementId === 'DischargeAirStaticSPOutput' || elementId === 'DamperPosition') {
+                    if (typeof updateDamperGraphic === 'function') updateDamperGraphic(value);
+                    if (typeof updateDamperReturnGraphic === 'function') updateDamperReturnGraphic(value);
+                }
+                if (elementId === 'DischargeAirSPOutput' || elementId === 'SupplyFanStatus') {
+                    if (typeof updateFanGraphic === 'function') updateFanGraphic(value);
+                }
+                if (elementId === 'CoolingCoilOutput') {
+                    if (typeof updateCoolingGraphic === 'function') updateCoolingGraphic(value);
+                }
+                if (elements[pointName] && elements[pointName].tagName !== 'IMG') {
+                    const statusElement = elements[pointName];
+                    if (isOverridden) {
+                        statusElement.className = 'data-value override-on';
+                        statusElement.style.color = '#8B5CF6';
+                        statusElement.textContent = `${displayValue} (Override)`;
+                    } else if (elementId === 'AHUAlarm' || elementId.includes('Alarm')) {
+                        if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                            statusElement.className = 'data-value status-off';
+                            statusElement.textContent = displayValue;
+                        } else {
+                            statusElement.className = 'data-value status-on';
+                            statusElement.textContent = displayValue;
+                        }
+                        statusElement.style.color = '';
+                    } else if (value && (value.toString().toLowerCase().includes('on') || value > 0)) {
+                        statusElement.className = 'data-value status-on';
+                        statusElement.style.color = '';
+                        statusElement.textContent = displayValue;
+                    } else {
+                        statusElement.className = 'data-value status-off';
+                        statusElement.style.color = '';
+                        statusElement.textContent = displayValue;
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error(`❌ Failed to connect to ${pointName} (${pointOrd}):`, error);
+            if (elements[pointName] && elements[pointName].tagName !== 'IMG') {
+                elements[pointName].textContent = 'Connection Error';
+                elements[pointName].style.color = '#ff6b6b';
+                elements[pointName].className = 'data-value error';
+            }
+        });
+}
+
+window.addEventListener('beforeunload', function() {
+    if (subscriber) {
+        subscriber.unsubscribeAll();
+        console.log('🧹 Cleaned up subscriptions');
+    }
+});
+
+initializeMonitoring().then(() => {
+    console.log('🎯 Dynamic AHU Monitoring System fully initialized!');
+}).catch(error => {
+    console.error('❌ Failed to initialize monitoring system:', error);
+    showErrorMessage('Failed to initialize monitoring system');
+});
+
+});
+    </script>
+</body>
+</html>
