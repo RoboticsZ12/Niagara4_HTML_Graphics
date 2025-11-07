@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+<style>
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #3498db;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --error-color: #e74c3c;
+    --background: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-color: #2c3e50;
+    --border-color: #dee2e6;
+    --shadow: 0 0.2rem 1rem rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+    --primary-color: #34495e;
+    --secondary-color: #3498db;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --error-color: #e74c3c;
+    --background: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-color: #ecf0f1;
+    --border-color: #444;
+    --shadow: 0 0.2rem 1rem rgba(0,0,0,0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--background);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: all 0.3s ease;
+    font-size: clamp(0.875rem, 1vw, 1rem);
+}
+
+.header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1.5% 2%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+}
+
+.header h1 {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    font-weight: 600;
+    position:absolute;
+}
+
+.header-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.datetime {
+    font-size: clamp(0.8rem, 1vw, 0.9rem);
+    opacity: 0.9;
+}
+
+.monitoring-status {
+    font-size: clamp(0.7rem, 0.8vw, 0.8rem);
+    padding: 0.25em 0.5em;
+    border-radius: 0.25em;
+    font-weight: bold;
+}
+
+.monitoring-active {
+    background: var(--success-color);
+    color: white;
+}
+
+.monitoring-inactive {
+    background: var(--error-color);
+    color: white;
+}
+
+.container {
+    max-width: 90%;
+    margin: 0 auto;
+    padding: 2%;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10%, 1fr));
+    gap: 1%;
+    margin-bottom: 2%;
+}
+
+.btn {
+    padding: 0.75em 1em;
+    border: none;
+    border-radius: 0.375em;
+    cursor: pointer;
+    font-size: clamp(0.8rem, 0.9vw, 0.9rem);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary { background: var(--secondary-color); color: white; }
+.btn-success { background: var(--success-color); color: white; }
+.btn-warning { background: var(--warning-color); color: white; }
+.btn-danger { background: var(--error-color); color: white; }
+
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-0.1em);
+}
+
+.card h2 {
+    margin-bottom: 1em;
+    color: var(--primary-color);
+    font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+}
+
+.status-display {
+    padding: 1em;
+    border-radius: 0.375em;
+    margin-bottom: 1em;
+    border-left: 0.25em solid;
+}
+
+.status-ok { background: rgba(39, 174, 96, 0.1); border-left-color: var(--success-color); }
+.status-warning { background: rgba(243, 156, 18, 0.1); border-left-color: var(--warning-color); }
+.status-error { background: rgba(231, 76, 60, 0.1); border-left-color: var(--error-color); }
+
+.status-title { font-weight: bold; margin-bottom: 0.5em; font-size: clamp(1rem, 1vw, 1.1rem); }
+.status-details p { margin-bottom: 0.25em; font-size: clamp(0.8rem, 0.9vw, 0.9rem); }
+
+.bubbleSP { margin-bottom: 1em; }
+
+.file-input-wrapper { position: relative; display: inline-block; cursor: pointer; }
+.file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
+
+.file-input-label {
+    padding: 0.75em 1em;
+    background: var(--secondary-color);
+    color: white;
+    border-radius: 0.375em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.file-input-label:hover { opacity: 0.9; transform: translateY(-0.1em); }
+
+.dark-mode-toggle { display: flex; align-items: center; gap: 0.5em; margin-left: 2%; }
+
+.toggle-switch {
+    width: 5vw;
+    max-width: 50px;
+    height: 2.5vw;
+    max-height: 24px;
+    background: #ccc;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.toggle-switch.active { background: var(--secondary-color); }
+
+.toggle-switch::after {
+    content: '';
+    width: 40%;
+    height: 80%;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 10%;
+    left: 5%;
+    transition: transform 0.3s;
+}
+
+.toggle-switch.active::after { transform: translateX(100%); }
+
+.toggle-label { font-size: clamp(0.8rem, 0.9vw, 0.9rem); color: white; }
+
+.graph-viewer {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: var(--background);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+}
+
+.graph-viewer.active { display: flex; }
+
+.graph-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1% 2%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.graph-controls {
+    background: var(--card-bg);
+    padding: 1% 2%;
+    border-bottom: 0.1vh solid var(--border-color);
+    display: flex;
+    gap: 1%;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.graph-content {
+    flex: 1;
+    padding: 2%;
+    display: flex;
+    flex-direction: column;
+}
+
+.graph-container {
+    background: var(--card-bg);
+    border-radius: 0.5em;
+    padding: 1%;
+    box-shadow: var(--shadow);
+    height: 50vh;
+    position: relative;
+    margin-bottom: 2%;
+}
+
+#graphCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.375em;
+}
+
+.no-data-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-color);
+    font-size: clamp(1rem, 1.2vw, 1.1rem);
+    text-align: center;
+}
+
+.graph-legend {
+    display: flex;
+    gap: 1%;
+    margin-bottom: 1%;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.legend-color { width: 1.25em; height: 0.25em; border-radius: 0.125em; }
+
+.graph-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10%, 1fr));
+    gap: 1%;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    padding: 1%;
+    border-radius: 0.375em;
+    border: 0.1vh solid var(--border-color);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    font-weight: bold;
+    color: var(--secondary-color);
+    margin-bottom: 0.25em;
+}
+
+.stat-label {
+    font-size: clamp(0.8rem, 0.9vw, 0.9rem);
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+/* Input & Select */
+select, input[type="date"], input {
+    padding: 0.5em;
+    border: 0.1vh solid var(--border-color);
+    border-radius: 0.25em;
+    background: var(--card-bg);
+    color: var(--text-color);
+    font-size: clamp(0.8rem, 0.9vw, 0.9rem);
+}
+
+.hidden { display: none; }
+
+.config-status { margin-bottom: 1em; padding: 1%; background: var(--card-bg); border-radius: 0.375em; border: 0.1vh solid var(--border-color); }
+
+.import-status {
+    padding: 0.5% 1%;
+    border-radius: 0.25em;
+    font-size: clamp(0.8rem, 0.9vw, 0.9rem);
+    font-weight: 500;
+    margin-left: auto;
+    min-width: 20%;
+    text-align: center;
+}
+
+/* Media Query */
+@media (max-width: 768px) {
+    .container { padding: 1%; }
+    .header { padding: 1%; flex-direction: column; gap: 1%; }
+    .controls { grid-template-columns: 1fr; }
+    .graph-controls { flex-direction: column; align-items: stretch; }
+}
+
+
+
+
+
+
+
+
+
+
+
+.TopBar {
+  position:relative;
+/*display: flex;*/
+/*flex-direction: row;*/
+/*width: 100%;*/
+/*max-width: 1200px;*/
+/*height: 100%;*/
+/*justify-content: right;*/
+/*gap: 10px;*/
+/*padding: 10px;*/
+}
+
+
+
+.hamburger-menu {
+position: absolute;
+left: 10px;
+top: %;
+transform: translateY(-50%);
+width: 40px;
+height: 40px;
+background-color: #333;
+border: 2px solid #888;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 4px;
+z-index: 1001;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover {
+background-color: #444;
+}
+
+.hamburger-line {
+width: 20px;
+height: 2px;
+background-color: white;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+opacity: 0;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Side Panel Styles */
+.side-panel {
+position: fixed;
+top: 0;
+left: -300px;
+width: 300px;
+height: 100vh;
+background-color: #1a1a1a;
+border-right: 2px solid #444;
+transition: left 0.3s ease;
+z-index: 1000;
+padding: 80px 0 20px 0;
+box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.side-panel.active {
+left: 0;
+}
+
+.side-panel-header {
+padding: 20px;
+border-bottom: 1px solid #444;
+margin-bottom: 20px;
+}
+
+.side-panel-header h2 {
+color: #fff;
+font-size: 18px;
+margin-bottom: 5px;
+}
+
+.side-panel-header p {
+color: #ccc;
+font-size: 14px;
+}
+
+.ahu-dropdown {
+padding: 0 20px;
+}
+
+.ahu-dropdown-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 15px;
+background-color: #333;
+border: 1px solid #555;
+cursor: pointer;
+transition: background-color 0.3s ease;
+margin-bottom: 10px;
+}
+
+.ahu-dropdown-header:hover {
+background-color: #404040;
+}
+
+.ahu-dropdown-header h3 {
+color: #fff;
+font-size: 16px;
+}
+
+.dropdown-arrow {
+color: #ccc;
+font-size: 14px;
+transition: transform 0.3s ease;
+}
+
+.ahu-dropdown.active .dropdown-arrow {
+transform: rotate(180deg);
+}
+
+.ahu-dropdown-content {
+max-height: 0;
+overflow: auto;
+transition: max-height 0.3s ease;
+background-color: #2a2a2a;
+border: 1px solid #555;
+border-top: none;
+}
+
+.ahu-dropdown.active .ahu-dropdown-content {
+max-height: 200px;
+}
+
+.ahu-option {
+padding: 12px 20px;
+color: #ccc;
+cursor: pointer;
+transition: all 0.3s ease;
+border-bottom: 1px solid #444;
+}
+
+.ahu-option:last-child {
+border-bottom: none;
+}
+
+.ahu-option:hover {
+background-color: #4CAF50;
+color: white;
+}
+
+.ahu-option.active {
+background-color: #4CAF50;
+color: white;
+font-weight: bold;
+}
+
+</style>
+
+</head>
+<body>
+<!-- Main View -->
+    <div id="mainView">
+        <div class="header">
+                          <!-- Side Panel -->
+                          <div class="side-panel" id="sidePanel">
+                          <div class="side-panel-header">
+                          <h2>NAV Sheet</h2>
+                          <p>System Selection</p>
+                          </div>
+                          
+                          <div class="ahu-dropdown" id="ahuDropdown">
+                          <!--<div class="ahu-dropdown-header">-->
+                          <h3>Select System View</h3>
+                          <!--<span class="dropdown-arrow">▼</span>-->
+                          <!--</div>-->
+                          <!--<div class="ahu-dropdown-content">-->
+                          
+                          <a href="./Home.html" class="ahu-option" data-ahu="Home" style="display: block;"> <img src="data:image/png;base64,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" 
+                          alt="Home" style="width: 20%; height: 20%; cursor: pointer; " />
+                          </a>
+                          <a href="./FloorPlan.html" class="ahu-option" data-ahu="FloorPlan" style="display: block;">  <img src="data:image/png;base64,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" 
+                          alt="Floor Plan" style="width: 40px; height: 40px; cursor: pointer;" />
+                          </a>
+                          <a href="./Alarms.html" class="ahu-option" data-ahu="Alarms" style="display: block;">  <img  src = "data:image/png;base64,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"
+                          alt="Alarms" style="width: 40px; height: 40px; cursor: pointer;" />
+                          </a>
+                          <a href="./Users.html" class="ahu-option" data-ahu="Users" style="display: block;">  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGwAAABfCAYAAAANiCLOAAAAAXNSR0IB2cksfwAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEABcADAAMKy9FogAAAAlwSFlzAAASdAAAEnQB3mYfeAAAAAd0SU1FB+kGHg8fI6Z4DTcAABUgSURBVHja7Z3Zk13VdcZ/e9+pbw9q9aBGExIIkARIQiPIiu3gGBInsfOQsv2Syis85DVV4k/Qv2DekqpU2U5VKuWK8QC2ARuD0SwkhFq0JmhJPainO99z9l55ONM+t2+DjYRa3dxVddR9h7733PPdtfa31vrWFnSsYx3rWMc61rGOdaxjHetYxzrWsY51rGPLYupBO6F3L4xJuSlUPcG3AgIaIaehO6foy+uTh3Y9frAD2ANgP3lvVE5P+pyb9BidaTJfMVgjdClhpAu2D2TYv77Ac4908/z+7aoD2DLZ/50akxOTPpfnDONlw1TVMlM1NJoGfEvWGnq0MFQQNnZneKQ/y5MjeZ7a0MVfH9ihOoDdJ3vz3Jicmjb8acowugDzvqZuhKZn8D2D+AblG7RvyFlDHksRoVsLG7sVO9fl2Le5yL/+3TOqA9iXbK+fGZM/3PL5/YTlUgXmjcZqDQJYizIGZQza84MjBi/4vYhlXQEeG8zy/I417N3ay+G9qz9MZpfjTd/5YExeu+Hxxk3DRxWNl81hsyAquN5KFEorNCAiiFisWLQFUWARar5lvG64M19noeyBCMfPjZ44tGf7wQ5g99BOXrxy7LUrNX5+zXClnsHPZbAabC6DaA0olBW08gOwrEW0RikNSoNWEAIrQN2H859WyGsoZNWB1e5h+n6/4aU73tH//bjBeEWwKARAKSSTxebz2HwuAC+jEaWQCKAw2AnJbQGE4HU+Gq/w5vlZfvyrs9IB7B7Za8cvy2+u1rldhaYNLjZIAFjLqhoB+dnLrMQ/qk3hykSND64t8N7pS6sWtPsaEq/P+xy/5dPwQTIWJRYlgoigrcX6BgUoY1FGAvIh6WuvBBBZBJwITM83uTxe4drtasfD7tbePnNZbswZbpYF4xmUtcnhB2ww0/TQTQ/teWjjo6wFa8FKcIgNwIoPQkCDx6p1w82ZBmO3Vi9g983Dbsx5fDzdCABQBmUUyrcoZdCAFQGtggAogjIW7Ru0iQ6LshJ7JVZQIqHHRauboloXrt6q8OZ7H8rzh59qG08XFhZeUkptW44L3tfX98qKAGym4jMx30AZUEoQZVBKoVGICMpKQOsVYIMQqcLcS/kmCI+Rp8VgBR6nwkNEaHo+MwsN7sw32p5HqVQ6ViwWjyq1PClbuVze1tvb+8MHHrC5is/0fBN8jc4oMEHeZQFEo4xNABMJQ2WSQKcOJ1SqMDRiA6C9pmG+3GSh6nHm/OVte3c9cSW1Biq1TWvNcgF2t5593wCrNw3Vuo9Cg2g0ggW0FcTqgCmmAAtBMxFoNr3uxWAF5CRa16wVGk1Lo2mxVl4AXk3RE5Er1tplA0xErqwMlmgFjAkuciZYeLQFyQhiVQJYtIZFJaoQtCRE2nA9C5ikCplktLYpJPC2z1hDSqUSy7WG3U04vK+AZZSQFYsyxN6gtCCiEa0RBZoEMIHEm0zCJpWxYML7xCaeGP5EB++ltUIprnwZC/9XgiWuKWQY7MpQLZkQL0F0mGtFJac4cw6pnw0fDwHTxgTrljUBxQ/XMmWjsAg5regpZuntyrBv9/Y3OrT+C9pwb5aN/TnG5w2IAWVBa5RWQQ0xXr/iYJ9ey8IjCpNEnhb9bgUlinxGM9ibZaAv38nD7sYeWpNjy0Cek1drWGuCnCsu7NpUvTBKiiPKHtN4BzRMEi5xSEhXLseGoSJD/YXZDmB3YSNr8v+9dajwg56MUDVgQxof5F/EFXilwsqTW8kIPS2i+y4ZCcpXFiWQ1YqB3gyPbuzl2X07Bpc6l1KpdKxDOj7HDu554oc/ff2sbBvMcGnS0vT8IHlSCqUUoiCsc6DCsnAMlkSlKdfLJAHOCpoM/d1ZHlnfzc6tfUueR6VSOVEsFg8sF62vVConenp6vnDP7r5W6x8e7uLbu9fSoz20WLSVpLPsp5Nj7fto93b8HAtGEqYYrl1KLBuGCjy9rZ+/+atdq7bzfF+r9V/bt0O98e4FOTLez/uXF7hT8mNvatdFiQq7yuKsZTbIs6K8SwL6v3mkyIEda9n92NrPPAff91/xPO/15fIwY8yrd1UpWY6T/skvT8svT05z7mqJOyUv6YtJzDpixqic6ryKgUoAzSjFUG+Wb+5bxzf2jfDdb69uQc6yfbj//NkJefuDWc5eKTFbbmKMTRhiBJpD8eOaIaFXCXTlNCMDXeze1seLz63nuy/sXfUinGX9gD//3Tl5+9w0b56ZZqGu8DwPG9UFIQVQDKBANqPJaWHLSBcvHFrPkb3rOHzgya+E1G3ZP+Qf3r8oo5+WOHVpjnMfzzE55+NbFVQyHI9TolAKMvg8vqmHfTsH2Lt9gEc29r68f8/2V/mK2APxrTz9wegLEzON12/fqTE112Rqvsn0bIN6w2BF4nLTUH+BkYEcIwMFNgwXef7Irq+cXPuB+8Anz106Nlfyjs7MN2l4FhEhqxXdhQz9fXmeP/L0PT3narU6o7UeuF+fr9FovNjf3//GqgFsGWi2aH3/0tFqtXpyxSTOD6KJrCxFXJaOrSjQ7mtI/OPFazLvQzNKkBWpJDhhha6MDee2hKoqJzeLGb+ggXxG0VPQHH5mdQ5GfOkf6p0LV2S0BFdrmklPU7YaD5V6ZxVV4+PSkyMBiCr0UTtFwt6XscljYSFYI+SVojunGOqGJx4q8vBQYfbZZ7YPdgD7HDt+8cqJayV74OKC4p0py4VKhmmbQzKR4MY5gahR6Qpu4sJv0GlWoUZRWQuRmirSexgLsXbRkkFYkzMcfLSPvVt62L6hyN9//WnVAWwJe//DKzPHJ/yB/7nmc6ZSoGEFi0WUBN1lrRMtvQTtFNXa44qAalVN+RZljXOfpECO5N1aFEplGe5W7N/axT/sH+afv71HdQBrsT9dGJNfXG3w2nWf67UMNWux4RSKaA0ZHXqXIwkQJ/S5Go4YoAQMbWwiLDXJY64MLhCiBuE1qzS9Bc0jQ1m+f2QDex7te6xVq/iVZYknPhz76c8/rvHbG02uzwt1TICLDrSIKhzOC+QAyqVpyTrmKKEwidAG66xXjtpXxUQkrbcXgseMMZR8w1jT52fv3caKHTt9fvTFfbuWFujMz8+/UCgUvpQWTL1ev6vE+Z4BduajsW2/u1r7wVvX6ozNGZpWBVoN7bRMRAXApfQb4T/W0W+0yttM0ll2RaMxe7SBHjEZ88PRhVisDWQJF65X6C/eoZDVr39WdMlms8dyuRxfRkLt+/4x4OCyAzY61Rz7xaUKY7OGug9KKwgnKgMmGAzoIZL2LqIRokCm5gLjgkVqAML1SEmJdlKU37ktYqk34NToAv3FLL/+/Xn522+0r0Vaa9+w1n4p05wPhPL318dH5cdn5/loskHNEAMVKTQC7XsAlNKRwteRZUce4aijYv1GNGIUe5ZtEeU4qt/Y80imWlzgjMd8JcupywsM9OaW/Dx9fX2vVKvVl5RSA1+Ch92ViPWug/Q7Zy/LW2MVfnJ2gcmqxUeFo64a0QFAVoVUPhx/TaYrnTUs+GonF94mY0WRjE07ohscVqitXaysMs5a6Ih3lEAuo9m5pY8ffmsj//K9gyuKOd51kB6dqHP8WoU7JQ/rJ8ltMshg0dYkVNz3Y5GNio7wfu3kVgFdl5AttoBlkzCpFoXEyFNbVFdO99rzDJ/crvCb4xO8e+Ij+coA9tvjl+TCeI2xyTqel7C6lFLXOMC1/gxpunae4+ZhacLhkA5rQzYZ3teiX0zpQCANWpj3laseF68ucPrSLKfOjr70lQDsw5s1Lt6qMVeJxltNcuFd4Ezr4XhcKgl2nmNNqpqRMEQXqBamGK9xafEO4pCb8PnGWObLPm+dmuDmdO1Hqz4P+9PZy/Jf705xc6aB74UbOGhNoEELiYZOxohUuG6puCzlLh2SDJvHpCHJu1QLIC4xcXMybCLUSZW94kJxunjseR7nx+a4Ol7i9LnRF/btaZ+bzc3Nbctms8fuxQVfNuXv+U8qfHy7ykKlGcjP4hxII6JQOrpkCqUzAceQoOqxeJVvp5CKQCBOprEWRbjDQGpYIvGkDJBVYALt8CK67wp8RMBrGs5cmmHzSPeSuVmhUBjL5/P3pBVTKpWO3c240xcC7NT5yy/9+N1Jphc8ml6AllIKLIiE040SCGd0RnHk0R4W6paLEw0a4VgQbpLrJtDQ4lGupr5Ftt2SiwU6RejryrBj0xpmFxpM3GmwUG7GnhnnadG2LFYYvb7AjccrS68b4Yjtvah8aK1fuO9r2Pidxo+u3q5SrhnEiDOn5ZINQ14Jz2wo8K3Hutk2mEPiMSETHsnYEM54bDxG5NQW25amWsCKwMwoeGpLLwce72fLui5yWcerHQIS9eJm55pcv1nmrT+elyWS3fjn3R73fQ17/+zozB8uzjE+3aDe8IOLpkLRrgp2CEApshnNUFHzj0/3s3tDkSvTPp4XDuPR/sTT+kN3zXISa0gTDEs4Jhv8bkXwfVhTzPLk5h7EWKZm6kw1g0FCdw1LklnLjZtlRq8vtD2vRqPxorX2p/diDbsbPccXAqxc8wfGble5U7b4zbC4G9UGdbisi9BXVOxaX+Dfvheocf/9P06JFoUY036lEFqKuO2LuqncK9LcxwXjKMwpPM+wdX33rLUy8OlklZn5Or5Jh97otQRhfLLC2I32gIXF2geiCfoXh8RbM3VuTtUwvom/9YvmtkTYMpDn+weHATh54fIx3zdLUHwbT6fEND6VIEvLHLNziDPnLMmYrRgJNmoReHRD9+yB7QMMrcmT0cpZJ4nzMhGo1gxTd+r88f0PH+hE+i8C7E+nL8nkXJPJ2QYS9aQkASm6cA8P5DnwSA//9M2gy9toylHPC/MvaXPhrZNL2eR1WkFLzYpZSVc9IpBRoLI0PYsVGXh2387Bxzf3snNLH8WcRqPi0Ksc7YjvW2YXGlz9tLR6EudawzC70GR+oYH1fUdPkbRFCgqe3tjN4SfWJGuEFazv7htlW470hXefkyIWbpVDXNCcmqOAUhpjJF6mNq4rvvy1XUMM9+fJaZVOrENWKsZSrniMT1RWF2DzZY9aI2FyqbljUazvz7F7Sw/fdVoX1gYbVepIt2HbVUJkEdNUi6YuHW8LgXNZI22qGwD792x/de/2gZPbNvbQ3aVDz4qq30FctALVqs/tyerqAaxU85gr+wFXcbwqrqajOLitnx0bu9Msy7P4vltBb12LJA6VmJbQ6DQvkyq9U66K6T1xwTdmmw5qh/btOLhv5wDD/XkyymWjxO2fSs1nfGIVATZf8ihVvBaiEVxwjZDHZ+emIt9pUShFu2QnHtVm/yjjEImUrE2cEdmWkpR1d8JJ7hMjeJ7FtuyIc3j3upc3j/RQyOlFYTGKBPWm4e0l8rEVBdjJs5eOLVQ8KlUv1bdS4WRkTmm2rutieE2uTQeXdOu/nZe1hkORRdX6pI4oiyl+6ncbApa+7vuf2f7qhuEu+ntyaGTRRpkiQqNhmJqpr3wPqzft0YWyR7nSDKryUW4UXrxcRvPExm76u7NtuqwW46erF0sfrQQk7VFuTbC1z+Ue1ravLGx6qJvhtYVEahL9LeHGYg2fW5MVTp7+6NiKBqxW95krNSlXvKRt7yzwuYzmsfU99LUBLAqJrSUn90i3VsTZ3aZdj6tNTTEaUA8rIdbIIg8D2PxQD8NrC0ld0JF/W2up1X0+uVWm1vCPruj2SqnqM1fyqdQs0XZpytm5Jqvg4ZEih/fvXFTHaPoWP8zb4vKSWlyhUql6cACMiEI5mzGrMHS5uvpkG9n4yuN5fkB0WmxkqOvk2jWFAzoqUDuFZ2uhWvP55GaZWt2s7JBYqnrUG+FGXjbZYDl4ESGnfdb2tMff9wTj22BvDnE6zTZ9Hy09Lqygxdl9NLWpZftdSSORjmcE3yz2sEP7dh5c25cjl1EO6ZBUl6dcbg/2ivKwcsWjVvdjliaxVyjyWcVAb45CPtO+eNo0+F6SM6U8SxJvU85ObnEd0WleKbfe6LZinKKxWygW257s9RSz9BYz1Gqe8xbhiVioN3xKZW+Fe1jFo1bz4mFx5TQG81nNUG+ObKZ9v8hawcZtftL5T7T9a5xDtXSPxQFL3J21aZEJpBuVvmfxTXsv6e7KsqY3n/KsKIkWERpNnzuzdU6evnRsxQI2N9+gUmk6XhKRAShkMgz2LQ2YMTb4treA0nrE+sOWnpfbUab1+cIigSnW0mwavCXCWk8xy5pIl+huLSEgVqjVfSamq5TKzaMrNiTOLjSo1Lxgr96ooRcWUgs5zWB/nlxWvdw+JTB4np+wy6Ws9bG4SNvSlU51pxPPUqG7ipXwS9L+bYrFDH09OQI64+ysE51v3TA5VQ061SsVsL07BilVPD6+UWG+ooNwLxYF5LSmt5hl/54dr7YnHQbj22QX0c8xJYtQS0nU2oGnWrD+LFl8Vz5LTzEbKU6CYQ0UGQXdXbB7xxB7dw0zMlxcuYA9s3OQdYNdTM40mJ5rcnuqxtgnC0zM+mQzGboLS7+U5wcsMWZ4n2ctgClp8TAc8FLARdqSoDS1FNMr5DXFrhygKRbgkc19bFrfy0PDRUaGuli/rpuR4SKHDz2lVixgX3NO/t3jH8rUTIMbt/oYn2qSz2XY/FD3kn/baIS1RBE+F68WgY5yb4vrhbJEGJVQwrY06ejtyZ18bOuaA88/t4HBtTm2bOxl/bpuhga6OPLcgz2p+YVUUy54J89cOtZomqNHnl362+iFtD5hdX+OySIAU2Gv3evEoo0ArHZ5GMCh/U8ePH7y4olHN/cd+NY3dq8obf1dT68c2LvjFeAzdXbZjCKX1WS0wvf/PMBUyqOkTahcmpiIDbaotcZy5tylbXv37Fg04nPowJMr8n/yuy8bq3zn65v43jc3sWNrL/lQcvZZ9N6Vs+Fo4lvDXvQfCyjcvC6YBWs0DA3PYoy8xCqy+xYO3j1+USamq9yerjF6bZ4rn5a4PVWjVPHCIm1Q5ZB261yrF4WDgSoiGQhKQSGXYe2aPA9v6GPPzkH2Pz3MSgt5Dwxgrv3qd2dlfKLC7eka07MNZubrLJQ8ylWPcsWjWvdpNIwjH5TUieaymlxW01XQrOnNM9BfYLC/wNDaAsMDXTw0XGTrpr4HkuWtSMBce//URzM3J6sDk9NV7oTgzS00qdT8tu2RII/KUCho+rpzrBsqsnl9DxtHeladN3WsYx3rWMc61rGOdaxjHetYx5bf/h+VKfYBuFKsrQAAAABJRU5ErkJggg==" 
+                          alt="Users" style="width: 40px; height: 40px; cursor: pointer;" />
+                          </a>
+                          <a href="./Logs.html" class="ahu-option" data-ahu="Logging" style="display: block;">  <img src="data:image/png;base64,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" 
+                          alt="Histories" style="width: 40px; height: 40px; cursor: pointer;" />
+                          </a>
+                          <a href="./Shedules.html" class="ahu-option" data-ahu="Schedules" style="display: block;">  <img src="data:image/png;base64,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"
+                          alt="Schedules" style="width: 40px; height: 40px; cursor: pointer;" />
+                          </a>
+                          <!--</div>-->
+                          </div>
+                          </div>
+                          
+                          
+                          <!--TOP BAR NAV BAR-->
+                          <div class="top-bar">
+                          <!-- Hamburger Menu -->
+                          <div class="hamburger-menu" id="hamburgerMenu">
+                          <div class="hamburger-line"></div>
+                          <div class="hamburger-line"></div>
+                          <div class="hamburger-line"></div>
+                          </div>
+                          </div>
+
+<h1 style="margin-left: 2%;">Boolean System Logger</h1>
+            <div style="display: flex; align-items: center;">
+<div class="header-info" style="position: relative; left: -40px;">
+                    <div id="currentDateTime" class="datetime"></div>
+                    <div id="monitoringStatus" class="monitoring-status"></div>
+                </div>
+                <div class="dark-mode-toggle">
+                    <span class="toggle-label">Light Mode</span>
+                    <div class="toggle-switch" id="toggleSwitch"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Configuration Status -->
+            <div class="card">
+                <h2>Configuration Status</h2>
+                <div id="configStatus" class="config-status">
+                    <div class="status-display status-warning">
+                        <div class="status-title">Loading Global.json configuration...</div>
+                        <div class="status-details">
+                            <p>Attempting to read Global.json from directory</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="card">
+                <h2>Control Panel</h2>
+                <div class="controls">
+                    <button class="btn btn-success" onclick="startMonitoring()">Start Monitoring</button>
+                    <button class="btn btn-warning" onclick="stopMonitoring()">Stop Monitoring</button>
+                    <button class="btn btn-primary" onclick="collectDataNow()">Collect Now</button>
+                    <button class="btn btn-primary" onclick="reloadConfig()">Reload Config</button>
+                    <button class="btn btn-secondary" onclick="exportLogs()">Export CSV</button>
+                    <button class="btn btn-secondary" onclick="exportFullDataJSON()">Export JSON</button>
+                    <button class="btn btn-primary" onclick="toggleGraphViewer()">View Graphs</button>
+                    <button class="btn btn-danger" onclick="clearLogs()">Clear Logs</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h2>System Status</h2>
+                <div id="system-status">
+                    <!-- Overall summary will be injected here -->
+                </div>
+            </div>
+
+            <!-- Recent Event Logs -->
+            <div class="card">
+                <h2>Recent Boolean Data(Last 5 Entries)</h2>
+                <div id="eventLogs">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+       <!-- Graph Viewer -->
+    <div id="graphViewer" class="graph-viewer">
+        <div class="graph-header">
+            <h1>Boolean Graph Viewer</h1>
+            <button class="btn btn-secondary" onclick="toggleGraphViewer()">Back to Monitor</button>
+        </div>
+        
+        <div class="graph-controls">
+            <div class="control-row">
+                <div class="file-input-wrapper">
+                    <input type="file" id="jsonFileInput" accept=".json" onchange="importJsonFile(this)">
+                    <label for="jsonFileInput" class="file-input-label">Import JSON Data</label>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Date:</label>
+                    <input type="date" id="dateInput" onchange="forceRefreshGraph()">
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Time Range:</label>
+                    <select id="timeRangeSelector" onchange="updateGraph()">
+                        <option value="all">All Day</option>
+                        <option value="60">Last Hour</option>
+                        <option value="240">Last 4 Hours</option>
+                        <option value="480">Last 8 Hours</option>
+                    </select>
+                </div>
+            </div>
+
+        <!-- Container for both series -->
+<div class="series-container" style="display: flex; gap: 20px; align-items: flex-start;">
+
+    <!-- Primary Series Controls -->
+    <div class="series-controls series-1" style="flex: 1;">
+        <h4>Primary Series</h4>
+        <div class="control-row" style="display: flex; gap: 10px;">
+            <div class="control-group">
+                <label class="control-label">Unit:</label>
+                <select id="unitSelector" onchange="updatePointSelector(); updateGraph()">
+                    <option value="">Select Unit...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Point:</label>
+                <select id="pointSelector" onchange="updateGraph()">
+                    <option value="">Select Point...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Series Controls -->
+    <div class="series-controls series-2" style="flex: 1;">
+        <h4>Secondary Series (Optional)</h4>
+        <div class="control-row" style="display: flex; gap: 10px;">
+            <div class="control-group">
+                <label class="control-label">Unit:</label>
+                <select id="unitSelector2" onchange="updatePointSelector2(); updateGraph()">
+                    <option value="">Select Unit (Optional)...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Point:</label>
+                <select id="pointSelector2" onchange="updateGraph()">
+                    <option value="">Select Point (Optional)...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+            
+            <div id="importStatus" class="import-status"></div>
+        </div>
+        
+        <div class="graph-content">
+            <div class="graph-container">
+                <canvas id="graphCanvas"></canvas>
+                <div id="noDataMessage" class="no-data-message">
+                    Import a JSON file first to view graph data.
+                </div>
+            </div>
+            
+            <div id="graphLegend" class="graph-legend"></div>
+            <div id="graphStats" class="graph-stats"></div>
+        </div>
+    </div>
+
+
+<!-- Hamburger Menu Script -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay = document.getElementById('overlay');
+const ahuDropdown = document.getElementById('ahuDropdown');
+const ahuOptions = document.querySelectorAll('.ahu-option');
+
+// Toggle side panel
+hamburgerMenu.addEventListener('click', function() {
+hamburgerMenu.classList.toggle('active');
+sidePanel.classList.toggle('active');
+overlay.classList.toggle('active');
+});
+
+// Close side panel when clicking overlay
+overlay.addEventListener('click', function() {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+});
+
+// Toggle dropdown
+ahuDropdown.querySelector('.ahu-dropdown-header').addEventListener('click', function() {
+ahuDropdown.classList.toggle('active');
+});
+
+// Handle AHU selection
+ahuOptions.forEach(option => {
+option.addEventListener('click', function() {
+// Remove active class from all options
+ahuOptions.forEach(opt => opt.classList.remove('active'));
+
+// Add active class to clicked option
+this.classList.add('active');
+
+// Update the dropdown header text
+const selectedAhu = this.textContent;
+ahuDropdown.querySelector('h3').textContent = selectedAhu;
+
+// Close dropdown
+ahuDropdown.classList.remove('active');
+
+// Here you can add logic to switch between AHU data
+console.log('Selected AHU:', this.getAttribute('data-ahu'));
+
+// Optional: Close side panel after selection
+setTimeout(() => {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+}, 300);
+});
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+if (!ahuDropdown.contains(e.target)) {
+ahuDropdown.classList.remove('active');
+}
+});
+</script>
+
+
+
+<script>
+// Boolean System Monitor with Integrated Graphing Utility
+
+// Global variables
+let eventLogs = [];
+let monitoringActive = false;
+let logCounter = 0;
+let startTime = new Date();
+let lastCheckTime = null;
+let graphViewerActive = false;
+let importedJsonData = null;
+let globalConfig = null;
+let monitoredPoints = [];
+let pointStates = new Map();
+let graphDataPoints = [];
+
+
+
+let zoomState = {
+    isZoomed: false,
+    startTime: null,
+    endTime: null,
+    isDragging: false,
+    dragStart: null,
+    dragEnd: null
+};
+
+// Initialize system
+function initializeSystem() {
+    updateDateTime();
+    updateMonitoringStatus();
+    updateEventLogs();
+    loadGlobalConfig();
+    
+    // Start auto-save every 30 seconds
+    setInterval(saveData, 30000);
+    
+    // Update time every second
+    setInterval(updateDateTime, 1000);
+    
+    console.log('Niagara Boolean System Monitor with Graphing initialized');
+}
+
+async function loadGlobalConfig() {
+    try {
+        const response = await fetch('./Global.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        globalConfig = await response.json();
+        parseMonitoredPoints();
+        updateConfigStatus();
+        
+        console.log('Global.json loaded successfully');
+        console.log('Monitored boolean points found:', monitoredPoints.length);
+        
+    } catch (error) {
+        console.error('Error loading Global.json:', error);
+        updateConfigStatus(error.message);
+    }
+}
+
+function parseMonitoredPoints() {
+    monitoredPoints = [];
+    
+    if (!globalConfig || !globalConfig.globalVariables) {
+        console.warn('No globalVariables found in config');
+        return;
+    }
+    
+    for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+        if (!unitData.points || !Array.isArray(unitData.points)) {
+            continue;
+        }
+        
+        unitData.points.forEach(point => {
+            if (point.logBoolean === "yes_Boolean" && point.status === "connected") {
+                monitoredPoints.push({
+                    unit: unitName,
+                    pointName: point.name,
+                    fullPath: point.fullPath,
+                    basePath: unitData.basePath,
+                    id: point.id,
+                    dateAdded: point.dateAdded
+                });
+            }
+        });
+    }
+    
+    console.log('Parsed monitored boolean points:', monitoredPoints);
+}
+
+function updateConfigStatus(errorMessage = null) {
+    const configStatus = document.getElementById('configStatus');
+    
+    if (errorMessage) {
+        configStatus.innerHTML = `
+            <div class="status-display status-error">
+                <div class="status-title">Configuration Error</div>
+                <div class="status-details">
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    <p>Please ensure Global.json exists in the same directory</p>
+                    <p>Click "Reload Config" to try again</p>
+                </div>
+            </div>
+        `;
+    } else if (globalConfig) {
+        const totalUnits = Object.keys(globalConfig.globalVariables || {}).length;
+        const totalPoints = monitoredPoints.length;
+        
+        configStatus.innerHTML = `
+            <div class="status-display status-ok">
+                <div class="status-title">Configuration Loaded Successfully</div>
+                <div class="status-details">
+                    <p><strong>Units Found:</strong> ${totalUnits}</p>
+                    <p><strong>Boolean Points to Monitor:</strong> ${totalPoints}</p>
+                    <p><strong>Config File:</strong> Global.json</p>
+                    <p><strong>Last Loaded:</strong> ${new Date().toLocaleString()}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function reloadConfig() {
+    loadGlobalConfig();
+}
+
+function updateDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short'
+    });
+    document.getElementById('currentDateTime').textContent = formatted;
+}
+
+function updateMonitoringStatus() {
+    const statusElement = document.getElementById('monitoringStatus');
+    if (monitoringActive) {
+        statusElement.textContent = 'BOOLEAN MONITORING ACTIVE - State Change Detection';
+        statusElement.className = 'monitoring-status monitoring-active';
+    } else {
+        statusElement.textContent = 'BOOLEAN MONITORING STOPPED';
+        statusElement.className = 'monitoring-status monitoring-inactive';
+    }
+}
+
+// Boolean monitoring functions
+async function checkAllStatesNow() {
+    if (monitoredPoints.length === 0) {
+        showNotification('No Points Configured', 'No boolean points to check', 'warning');
+        return;
+    }
+    
+    console.log('Checking all boolean states...');
+    lastCheckTime = new Date();
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const point of monitoredPoints) {
+        try {
+            const currentValue = await readActualPointValue(point);
+            
+            if (currentValue !== null && currentValue !== undefined) {
+                const booleanValue = parseBooleanValue(currentValue);
+                
+                // Always log during manual check, regardless of state change
+                addBooleanStateEntry(point, booleanValue, 'Manual Check');
+                
+                // Update our state tracking
+                const pointKey = `${point.unit}.${point.pointName}`;
+                pointStates.set(pointKey, booleanValue);
+                
+                successCount++;
+            } else {
+                console.warn(`Null value for ${point.unit}.${point.pointName}`);
+                errorCount++;
+            }
+        } catch (error) {
+            console.error(`Error reading point ${point.unit}.${point.pointName}:`, error);
+            errorCount++;
+        }
+    }
+    
+    updateEventLogs();
+    saveData();
+    
+    const message = `Checked ${successCount} points${errorCount > 0 ? `, ${errorCount} errors` : ''}`;
+    showNotification('State Check Complete', message, successCount > 0 ? 'success' : 'warning');
+}
+
+async function monitorStateChanges() {
+    if (!monitoringActive || monitoredPoints.length === 0) return;
+    
+    console.log('Monitoring boolean state changes...');
+    
+    for (const point of monitoredPoints) {
+        try {
+            const currentValue = await readActualPointValue(point);
+            
+            if (currentValue !== null && currentValue !== undefined) {
+                const booleanValue = parseBooleanValue(currentValue);
+                const pointKey = `${point.unit}.${point.pointName}`;
+                const previousValue = pointStates.get(pointKey);
+                
+                // Check if state changed or if this is the first reading
+                if (previousValue === undefined || previousValue !== booleanValue) {
+                    const changeType = previousValue === undefined ? 'Initial State' : 'State Change';
+                    addBooleanStateEntry(point, booleanValue, changeType, previousValue);
+                    pointStates.set(pointKey, booleanValue);
+                    
+                    console.log(`${changeType} detected for ${pointKey}: ${previousValue} → ${booleanValue}`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error monitoring point ${point.unit}.${point.pointName}:`, error);
+        }
+    }
+    
+    updateEventLogs();
+}
+
+function parseBooleanValue(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const lowerValue = value.toLowerCase().trim();
+        if (lowerValue === 'true' || lowerValue === 'on' || lowerValue === 'active' || lowerValue === '1') return true;
+        if (lowerValue === 'false' || lowerValue === 'off' || lowerValue === 'inactive' || lowerValue === '0') return false;
+    }
+    if (typeof value === 'number') return value !== 0;
+    return Boolean(value);
+}
+
+async function readActualPointValue(point) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Check if we're running in a Niagara environment
+            if (typeof require === 'undefined') {
+                console.error('Baja require system not available. This script must run within a Niagara station environment.');
+                // For demo purposes, return random boolean values
+                resolve(Math.random() > 0.5);
+                return;
+            }
+            
+            require(['baja!', 'baja!control:Override', 'baja!control:BooleanOverride'], function (baja, Override, BooleanOverride) {
+                'use strict';
+                
+                const pointPath = point.fullPath;
+                console.log(`Reading boolean point: ${pointPath}`);
+                
+                baja.Ord.make(pointPath).get()
+                    .then(function(point) {
+                        if (point && point.getOut) {
+                            const value = point.getOut().getValue();
+                            console.log(`Point ${pointPath} value: ${value}`);
+                            resolve(value);
+                        } else {
+                            console.warn(`Point ${pointPath} has no output value`);
+                            resolve(null);
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error(`Error reading point ${pointPath}:`, error);
+                        reject(error);
+                    });
+            });
+        } catch (error) {
+            console.error(`Baja require error for point ${point.fullPath}:`, error);
+            reject(error);
+        }
+    });
+}
+
+function addBooleanStateEntry(point, value, changeType, previousValue = undefined) {
+    const timestamp = new Date().toLocaleString();
+    const timestampObj = new Date();
+    logCounter++;
+    
+    const stateText = value ? 'TRUE' : 'FALSE';
+    const stateIcon = value ? '🔵' : '⚪';
+    
+    let changeDescription = changeType;
+    if (changeType === 'State Change' && previousValue !== undefined) {
+        const prevStateText = previousValue ? 'TRUE' : 'FALSE';
+        changeDescription = `${prevStateText} → ${stateText}`;
+    }
+    
+    const logEntry = {
+        id: logCounter,
+        timestamp: timestamp,
+        timestampObj: timestampObj,
+        unit: point.unit,
+        pointName: point.pointName,
+        pointId: point.id,
+        value: value ? 1 : 0, // Convert to numeric for graphing
+        booleanValue: value,
+        stateText: stateText,
+        stateIcon: stateIcon,
+        changeType: changeType,
+        changeDescription: changeDescription,
+        previousValue: previousValue,
+        fullPath: point.fullPath,
+        displayName: `${point.unit} - ${point.pointName}`,
+        details: `${point.pointName} = ${stateText} (${changeDescription})`,
+        dataUnit: 'Boolean' // For graph display
+    };
+    
+    eventLogs.unshift(logEntry);
+    
+    // Keep only last 500,000 entries for performance
+    if (eventLogs.length > 500000) {
+        eventLogs = eventLogs.slice(0, 500000);
+    }
+}
+
+// Save functions
+function saveData() {
+    try {
+        const saveData = {
+            eventLogs: eventLogs,
+            logCounter: logCounter,
+            monitoringActive: monitoringActive,
+            timestamp: new Date().toISOString(),
+            monitoredPoints: monitoredPoints
+        };
+        
+        console.log('Boolean data saved:', saveData);
+        
+        const saveTimeElement = document.getElementById('lastSaveTime');
+        if (saveTimeElement) {
+            saveTimeElement.textContent = `Last saved: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        console.log('Auto-save completed');
+    } catch (error) {
+        console.error('Save failed:', error);
+    }
+}
+
+function clearLogs() {
+    if (confirm('Are you sure you want to clear all boolean logs? This cannot be undone.')) {
+        eventLogs = [];
+        logCounter = 0;
+        pointStates.clear();
+        updateEventLogs();
+        showNotification('Logs Cleared', 'All boolean data has been cleared', 'info');
+    }
+}
+
+// Graph viewer functions
+function toggleGraphViewer() {
+    const graphViewer = document.getElementById('graphViewer');
+    const mainView = document.getElementById('mainView');
+    
+    graphViewerActive = !graphViewerActive;
+
+    if (graphViewerActive) {
+        graphViewer.classList.add('active');
+        mainView.classList.add('hidden');
+        initializeGraphViewer();
+    } else {
+        graphViewer.classList.remove('active');
+        mainView.classList.remove('hidden');
+    }
+}
+
+function initializeGraphViewer() {
+    populateUnitSelector();
+    populateUnitSelector2();
+    initializeDateInput();
+    clearGraph();
+}
+
+function initializeDateInput() {
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+        dateInput.addEventListener('change', forceRefreshGraph);
+    }
+}
+
+function populateUnitSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    if (!unitSelector) return;
+
+    unitSelector.innerHTML = '<option value="">Select Unit...</option>';
+
+    let dataSource = [];
+    
+    // Use imported JSON data if available, otherwise use live event logs
+    if (importedJsonData && importedJsonData.eventLogs) {
+        dataSource = importedJsonData.eventLogs;
+    } else if (eventLogs.length > 0) {
+        dataSource = eventLogs;
+    }
+    
+    if (dataSource.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No data available - import JSON file or collect data';
+        option.disabled = true;
+        unitSelector.appendChild(option);
+        return;
+    }
+    
+    const uniqueUnits = [...new Set(dataSource.map(log => log.unit))].filter(unit => unit).sort();
+    
+    uniqueUnits.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit;
+        unitSelector.appendChild(option);
+    });
+}
+
+function populateUnitSelector2() {
+    const unitSelector2 = document.getElementById('unitSelector2');
+    if (!unitSelector2) return;
+
+    unitSelector2.innerHTML = '<option value="">Select Unit (Optional)...</option>';
+
+    let dataSource = [];
+    
+    // Use imported JSON data if available, otherwise use live event logs
+    if (importedJsonData && importedJsonData.eventLogs) {
+        dataSource = importedJsonData.eventLogs;
+    } else if (eventLogs.length > 0) {
+        dataSource = eventLogs;
+    }
+    
+    if (dataSource.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No data available - import JSON file or collect data';
+        option.disabled = true;
+        unitSelector2.appendChild(option);
+        return;
+    }
+    
+    const uniqueUnits = [...new Set(dataSource.map(log => log.unit))].filter(unit => unit).sort();
+    
+    uniqueUnits.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit;
+        unitSelector2.appendChild(option);
+    });
+}
+
+function updatePointSelector() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    pointSelector.innerHTML = '<option value="">Select Point...</option>';
+
+    if (selectedUnit) {
+        let dataSource = [];
+        
+        // Use imported JSON data if available, otherwise use live event logs
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+function updatePointSelector2() {
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    
+    if (!unitSelector2 || !pointSelector2) return;
+
+    const selectedUnit2 = unitSelector2.value;
+    pointSelector2.innerHTML = '<option value="">Select Point (Optional)...</option>';
+
+    if (selectedUnit2) {
+        let dataSource = [];
+        
+        // Use imported JSON data if available, otherwise use live event logs
+        if (importedJsonData && importedJsonData.eventLogs) {
+            dataSource = importedJsonData.eventLogs;
+        } else if (eventLogs.length > 0) {
+            dataSource = eventLogs;
+        }
+        
+        const uniquePoints = [...new Set(
+            dataSource
+                .filter(log => log.unit === selectedUnit2)
+                .map(log => log.pointName)
+        )].sort();
+        
+        uniquePoints.forEach(point => {
+            if (point) {
+                const option = document.createElement('option');
+                option.value = point;
+                option.textContent = point;
+                pointSelector2.appendChild(option);
+            }
+        });
+    }
+
+    clearGraph();
+}
+
+
+
+// Boolean-specific graph functions with zoom
+function updateGraph() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    const unitSelector2 = document.getElementById('unitSelector2');
+    const pointSelector2 = document.getElementById('pointSelector2');
+    const timeRangeSelector = document.getElementById('timeRangeSelector');
+    
+    if (!unitSelector || !pointSelector) return;
+
+    const selectedUnit = unitSelector.value;
+    const selectedPoint = pointSelector.value;
+    const selectedUnit2 = unitSelector2 ? unitSelector2.value : '';
+    const selectedPoint2 = pointSelector2 ? pointSelector2.value : '';
+    const timeRange = timeRangeSelector ? timeRangeSelector.value : 'all';
+
+    if (!selectedUnit || !selectedPoint) {
+        clearGraph();
+        return;
+    }
+
+    drawBooleanGraph(selectedUnit, selectedPoint, selectedUnit2, selectedPoint2, timeRange);
+}
+
+function drawBooleanGraph(unitName, pointName, unitName2 = '', pointName2 = '', timeRange) {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (!canvas) return;
+
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) {
+        clearGraph();
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    // Get data for first series
+    let filteredData1 = getFilteredEventLogsByDate(unitName, pointName);
+    
+    // Get data for second series if specified
+    let filteredData2 = [];
+    if (unitName2 && pointName2) {
+        filteredData2 = getFilteredEventLogsByDate(unitName2, pointName2);
+    }
+
+    // Apply time range filter
+    if (timeRange !== 'all' && !isNaN(parseInt(timeRange))) {
+        const minutesBack = parseInt(timeRange);
+        const cutoffTime = new Date(selectedDate.endOfDay.getTime() - (minutesBack * 60 * 1000));
+        
+        filteredData1 = filteredData1.filter(log => {
+            const logTime = log.timestampObj || new Date(log.timestamp);
+            return logTime >= cutoffTime;
+        });
+        
+        if (filteredData2.length > 0) {
+            filteredData2 = filteredData2.filter(log => {
+                const logTime = log.timestampObj || new Date(log.timestamp);
+                return logTime >= cutoffTime;
+            });
+        }
+    }
+
+    // Apply zoom filter if zoomed
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        filteredData1 = filteredData1.filter(log => {
+            const logTime = log.timestampObj || new Date(log.timestamp);
+            return logTime >= zoomState.startTime && logTime <= zoomState.endTime;
+        });
+        
+        if (filteredData2.length > 0) {
+            filteredData2 = filteredData2.filter(log => {
+                const logTime = log.timestampObj || new Date(log.timestamp);
+                return logTime >= zoomState.startTime && logTime <= zoomState.endTime;
+            });
+        }
+    }
+
+    // Process data - convert boolean values to 0/1 for graphing
+    filteredData1 = filteredData1.map(log => ({
+        timestamp: log.timestampObj || new Date(log.timestamp),
+        timestampString: log.timestamp,
+        value: log.value, // Already converted to 0/1 in addBooleanStateEntry
+        booleanValue: log.booleanValue,
+        stateText: log.stateText,
+        pointName: log.pointName,
+        dataUnit: 'Boolean',
+        series: 1
+    })).sort((a, b) => a.timestamp - b.timestamp);
+
+    if (filteredData2.length > 0) {
+        filteredData2 = filteredData2.map(log => ({
+            timestamp: log.timestampObj || new Date(log.timestamp),
+            timestampString: log.timestamp,
+            value: log.value,
+            booleanValue: log.booleanValue,
+            stateText: log.stateText,
+            pointName: log.pointName,
+            dataUnit: 'Boolean',
+            series: 2
+        })).sort((a, b) => a.timestamp - b.timestamp);
+    }
+
+    // Check if we have any data
+    if (filteredData1.length === 0 && filteredData2.length === 0) {
+        let message = `No boolean data found for ${unitName} - ${pointName}`;
+        if (unitName2 && pointName2) {
+            message += ` or ${unitName2} - ${pointName2}`;
+        }
+        message += ` on ${selectedDate.dateString}`;
+        
+        if (zoomState.isZoomed) {
+            message += ` in zoomed time range`;
+        }
+        
+        noDataMessage.textContent = message;
+        noDataMessage.style.display = 'block';
+        canvas.style.display = 'none';
+        graphLegend.innerHTML = '';
+        graphStats.innerHTML = '';
+        return;
+    }
+
+    noDataMessage.style.display = 'none';
+    canvas.style.display = 'block';
+
+    drawDualSeriesBooleanGraphWithZoom(ctx, canvas.width, canvas.height, filteredData1, filteredData2, selectedDate);
+    updateDualSeriesBooleanLegend(unitName, pointName, unitName2, pointName2, filteredData1, filteredData2);
+    updateDualSeriesBooleanStats(filteredData1, filteredData2);
+    
+    // Add zoom controls if not already present
+    addZoomControls();
+}
+
+function drawDualSeriesBooleanGraphWithZoom(ctx, width, height, data1, data2, selectedDate) {
+    const padding = 60;
+    const graphWidth = width - (padding * 2);
+    const graphHeight = height - (padding * 2);
+
+    // Clear previous data points array
+    graphDataPoints = [];
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Background
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-bg') || '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border-color') || '#ddd';
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([2, 2]);
+
+    for (let i = 0; i <= 10; i++) {
+        const x = padding + (graphWidth * i / 10);
+        ctx.beginPath();
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, padding + graphHeight);
+        ctx.stroke();
+    }
+
+    // Horizontal grid lines (only 3 for boolean: FALSE, middle, TRUE)
+    for (let i = 0; i <= 2; i++) {
+        const y = padding + (graphHeight * i / 2);
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + graphWidth, y);
+        ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+
+    // Axes
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#000000';
+    ctx.strokeStyle = textColor;
+    ctx.lineWidth = 2;
+    ctx.font = '12px Segoe UI, sans-serif';
+    ctx.fillStyle = textColor;
+
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, padding + graphHeight);
+    ctx.lineTo(padding + graphWidth, padding + graphHeight);
+    ctx.stroke();
+
+    // Y-axis labels for boolean (FALSE/TRUE)
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    
+    ctx.fillText('TRUE', padding - 10, padding);
+    ctx.fillText('FALSE', padding - 10, padding + graphHeight);
+
+    // Determine time range for X-axis labels
+    let displayStartTime, displayEndTime;
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        displayStartTime = zoomState.startTime;
+        displayEndTime = zoomState.endTime;
+    } else {
+        displayStartTime = selectedDate.startOfDay;
+        displayEndTime = selectedDate.endOfDay;
+    }
+
+    // X-axis labels - adjust based on zoom level
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    const timeRange = displayEndTime.getTime() - displayStartTime.getTime();
+    const numLabels = 7;
+    
+    for (let i = 0; i < numLabels; i++) {
+        const timePoint = new Date(displayStartTime.getTime() + (timeRange * i / (numLabels - 1)));
+        const x = padding + (graphWidth * i / (numLabels - 1));
+        
+        let timeStr;
+        if (timeRange < 60 * 60 * 1000) { // Less than 1 hour - show seconds
+            timeStr = timePoint.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        } else { // More than 1 hour - show minutes
+            timeStr = timePoint.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+        
+        ctx.fillText(timeStr, x, padding + graphHeight + 10);
+    }
+
+    // Axis titles
+    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    
+    ctx.save();
+    ctx.translate(20, padding + graphHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Boolean State', 0, 0);
+    ctx.restore();
+    
+    let xAxisTitle = 'Time';
+    if (zoomState.isZoomed) {
+        xAxisTitle += ' (Zoomed)';
+    }
+    ctx.fillText(xAxisTitle, padding + graphWidth / 2, padding + graphHeight + 35);
+
+    // Time range calculations
+    const startTimeMs = displayStartTime.getTime();
+    const endTimeMs = displayEndTime.getTime();
+    const timeRangeMs = endTimeMs - startTimeMs;
+
+    // Helper function to draw square wave for a series
+    function drawSquareWaveSeries(data, color, seriesNumber) {
+        if (data.length === 0) return;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Start drawing the square wave
+        ctx.beginPath();
+        
+        // If we have data, assume the first state started at the beginning of the display range
+        let currentValue = data[0].value;
+        let currentX = padding;
+        let currentY = padding + graphHeight - (graphHeight * currentValue);
+        
+        // Start the line at the beginning of the display range with the first state
+        ctx.moveTo(currentX, currentY);
+        
+        // Process each data point to create square wave
+        for (let i = 0; i < data.length; i++) {
+            const entry = data[i];
+            const nextX = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+            const nextY = padding + graphHeight - (graphHeight * entry.value);
+            
+            // Draw horizontal line to the transition point (maintaining current state)
+            ctx.lineTo(nextX, currentY);
+            
+            // Draw vertical line for the state change (if there's actually a change)
+            if (entry.value !== currentValue) {
+                ctx.lineTo(nextX, nextY);
+                currentValue = entry.value;
+            }
+            
+            // Update current position
+            currentX = nextX;
+            currentY = nextY;
+            
+            // Store point data for click detection
+            graphDataPoints.push({
+                x: nextX,
+                y: nextY,
+                radius: 8,
+                data: entry,
+                index: i,
+                series: seriesNumber,
+                seriesName: seriesNumber === 1 ? 'Primary Series' : 'Secondary Series',
+                seriesColor: color
+            });
+        }
+        
+        // Extend the final state to the end of the display range
+        const endX = padding + graphWidth;
+        ctx.lineTo(endX, currentY);
+        
+        ctx.stroke();
+
+        // Draw data points - make them slightly larger when zoomed for better visibility
+        const pointRadius = zoomState.isZoomed ? 6 : 5;
+        data.forEach((entry, index) => {
+            const x = padding + (graphWidth * (entry.timestamp.getTime() - startTimeMs) / timeRangeMs);
+            const y = padding + graphHeight - (graphHeight * entry.value);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, pointRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = entry.value ? '#27ae60' : '#e74c3c'; // Green for TRUE, Red for FALSE
+            ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+    }
+
+    // Draw first series (primary - blue)
+    if (data1.length > 0) {
+        drawSquareWaveSeries(data1, '#3498db', 1);
+    }
+
+    // Draw second series (secondary - orange) if it exists
+    if (data2.length > 0) {
+        drawSquareWaveSeries(data2, '#f39c12', 2);
+    }
+
+    // Draw zoom selection rectangle if dragging
+    if (zoomState.isDragging && zoomState.dragStart && zoomState.dragEnd) {
+        ctx.fillStyle = 'rgba(52, 152, 219, 0.2)';
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        
+        const startX = Math.min(zoomState.dragStart.x, zoomState.dragEnd.x);
+        const endX = Math.max(zoomState.dragStart.x, zoomState.dragEnd.x);
+        const rectWidth = endX - startX;
+        const rectHeight = graphHeight;
+        
+        ctx.fillRect(startX, padding, rectWidth, rectHeight);
+        ctx.strokeRect(startX, padding, rectWidth, rectHeight);
+        ctx.setLineDash([]);
+    }
+
+    // Add event listeners to canvas
+    setupZoomEventListeners();
+}
+
+function setupZoomEventListeners() {
+    const canvas = document.getElementById('graphCanvas');
+    if (!canvas || canvas.hasZoomListeners) return;
+    
+    canvas.hasZoomListeners = true;
+    
+    // Mouse wheel zoom
+    canvas.addEventListener('wheel', handleZoomWheel, { passive: false });
+    
+    // Drag to zoom
+    canvas.addEventListener('mousedown', handleZoomMouseDown);
+    canvas.addEventListener('mousemove', handleZoomMouseMove);
+    canvas.addEventListener('mouseup', handleZoomMouseUp);
+    canvas.addEventListener('mouseleave', handleZoomMouseLeave);
+    
+    // Click for data points (existing functionality)
+    // canvas.addEventListener('click', handleBooleanGraphClick);
+    
+    canvas.style.cursor = 'crosshair';
+}
+
+function handleZoomWheel(event) {
+    event.preventDefault();
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    
+    // Check if mouse is over the graph area
+    if (mouseX < padding || mouseX > padding + graphWidth) return;
+    
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    // Calculate mouse position as a percentage of graph width
+    const mousePercent = (mouseX - padding) / graphWidth;
+    
+    let currentStartTime, currentEndTime;
+    if (zoomState.isZoomed) {
+        currentStartTime = zoomState.startTime;
+        currentEndTime = zoomState.endTime;
+    } else {
+        currentStartTime = selectedDate.startOfDay;
+        currentEndTime = selectedDate.endOfDay;
+    }
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const mouseTime = new Date(currentStartTime.getTime() + (currentRange * mousePercent));
+    
+    // Zoom factor
+    const zoomFactor = event.deltaY > 0 ? 1.5 : 0.67; // Zoom out or in
+    const newRange = currentRange * zoomFactor;
+    
+    // Don't zoom out beyond the full day
+    const maxRange = selectedDate.endOfDay.getTime() - selectedDate.startOfDay.getTime();
+    if (newRange >= maxRange) {
+        // Reset to full view
+        zoomState.isZoomed = false;
+        zoomState.startTime = null;
+        zoomState.endTime = null;
+        updateGraph();
+        return;
+    }
+    
+    // Don't zoom in too much (minimum 5 minutes)
+    const minRange = 5 * 60 * 1000;
+    if (newRange < minRange) return;
+    
+    // Calculate new start and end times centered on mouse position
+    const newStartTime = new Date(mouseTime.getTime() - (newRange * mousePercent));
+    const newEndTime = new Date(mouseTime.getTime() + (newRange * (1 - mousePercent)));
+    
+    // Ensure we don't go outside the selected day
+    const clampedStartTime = new Date(Math.max(newStartTime.getTime(), selectedDate.startOfDay.getTime()));
+    const clampedEndTime = new Date(Math.min(newEndTime.getTime(), selectedDate.endOfDay.getTime()));
+    
+    zoomState.isZoomed = true;
+    zoomState.startTime = clampedStartTime;
+    zoomState.endTime = clampedEndTime;
+    
+    updateGraph();
+}
+
+function handleZoomMouseDown(event) {
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    const graphHeight = canvas.height - (padding * 2);
+    
+    // Check if click is in graph area
+    if (x >= padding && x <= padding + graphWidth && y >= padding && y <= padding + graphHeight) {
+        // Check if we're clicking on a data point first
+        for (let point of graphDataPoints) {
+            const distance = Math.sqrt(Math.pow(x - point.x, 2) + Math.pow(y - point.y, 2));
+            if (distance <= point.radius) {
+                return; // Let the click handler deal with data points
+            }
+        }
+        
+        // Start drag selection
+        zoomState.isDragging = true;
+        zoomState.dragStart = { x: x, y: y };
+        canvas.style.cursor = 'crosshair';
+        event.preventDefault();
+    }
+}
+
+function handleZoomMouseMove(event) {
+    if (!zoomState.isDragging) return;
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    zoomState.dragEnd = { x: x, y: y };
+    updateGraph(); // Redraw with selection rectangle
+}
+
+function handleZoomMouseUp(event) {
+    if (!zoomState.isDragging) return;
+    
+    const canvas = event.target;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const padding = 60;
+    const graphWidth = canvas.width - (padding * 2);
+    
+    zoomState.isDragging = false;
+    
+    if (!zoomState.dragStart || !zoomState.dragEnd) return;
+    
+    const startX = Math.min(zoomState.dragStart.x, x);
+    const endX = Math.max(zoomState.dragStart.x, x);
+    const selectionWidth = endX - startX;
+    
+    // Only zoom if selection is wide enough (at least 20 pixels)
+    if (selectionWidth >= 20) {
+        const selectedDate = getSelectedDate();
+        if (!selectedDate) return;
+        
+        // Convert pixel coordinates to time
+        let currentStartTime, currentEndTime;
+        if (zoomState.isZoomed) {
+            currentStartTime = zoomState.startTime;
+            currentEndTime = zoomState.endTime;
+        } else {
+            currentStartTime = selectedDate.startOfDay;
+            currentEndTime = selectedDate.endOfDay;
+        }
+        
+        const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+        const startPercent = (startX - padding) / graphWidth;
+        const endPercent = (endX - padding) / graphWidth;
+        
+        const newStartTime = new Date(currentStartTime.getTime() + (currentRange * startPercent));
+        const newEndTime = new Date(currentStartTime.getTime() + (currentRange * endPercent));
+        
+        zoomState.isZoomed = true;
+        zoomState.startTime = newStartTime;
+        zoomState.endTime = newEndTime;
+    }
+    
+    zoomState.dragStart = null;
+    zoomState.dragEnd = null;
+    canvas.style.cursor = 'crosshair';
+    
+    updateGraph();
+}
+
+function handleZoomMouseLeave(event) {
+    if (zoomState.isDragging) {
+        zoomState.isDragging = false;
+        zoomState.dragStart = null;
+        zoomState.dragEnd = null;
+        updateGraph();
+    }
+}
+
+function addZoomControls() {
+    // Check if zoom controls already exist
+    if (document.getElementById('zoomControls')) return;
+    
+    const graphContainer = document.querySelector('.graph-section') || document.querySelector('#graphContainer');
+    if (!graphContainer) return;
+    
+    const zoomControls = document.createElement('div');
+    zoomControls.id = 'zoomControls';
+    zoomControls.style.cssText = `
+        margin: 10px 0;
+        padding: 10px;
+        background: var(--card-bg, #f9f9f9);
+        border: 1px solid var(--border-color, #ddd);
+        border-radius: 8px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    `;
+    
+    zoomControls.innerHTML = `
+        <span style="font-weight: bold; color: var(--text-color, #333);">Zoom Controls:</span>
+        <button onclick="resetZoom()" style="padding: 5px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Reset Zoom</button>
+        <button onclick="zoomIn()" style="padding: 5px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom In</button>
+        <button onclick="zoomOut()" style="padding: 5px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer;">Zoom Out</button>
+        <span style="font-size: 12px; color: var(--text-muted, #666);">
+            💡 Mouse wheel to zoom, drag to select area, or use buttons
+        </span>
+        <span id="zoomStatus" style="font-size: 12px; color: var(--text-muted, #666); margin-left: auto;"></span>
+    `;
+    
+    // Insert before the graph canvas
+    const canvas = document.getElementById('graphCanvas');
+    if (canvas && canvas.parentNode) {
+        canvas.parentNode.insertBefore(zoomControls, canvas);
+    } else {
+        graphContainer.appendChild(zoomControls);
+    }
+    
+    updateZoomStatus();
+}
+
+function resetZoom() {
+    zoomState.isZoomed = false;
+    zoomState.startTime = null;
+    zoomState.endTime = null;
+    updateGraph();
+    updateZoomStatus();
+}
+
+function zoomIn() {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    let currentStartTime, currentEndTime;
+    if (zoomState.isZoomed) {
+        currentStartTime = zoomState.startTime;
+        currentEndTime = zoomState.endTime;
+    } else {
+        currentStartTime = selectedDate.startOfDay;
+        currentEndTime = selectedDate.endOfDay;
+    }
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const newRange = currentRange * 0.5; // Zoom in by 50%
+    
+    // Don't zoom in too much (minimum 5 minutes)
+    if (newRange < 5 * 60 * 1000) return;
+    
+    const centerTime = new Date(currentStartTime.getTime() + (currentRange / 2));
+    const newStartTime = new Date(centerTime.getTime() - (newRange / 2));
+    const newEndTime = new Date(centerTime.getTime() + (newRange / 2));
+    
+    zoomState.isZoomed = true;
+    zoomState.startTime = newStartTime;
+    zoomState.endTime = newEndTime;
+    
+    updateGraph();
+    updateZoomStatus();
+}
+
+function zoomOut() {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return;
+    
+    if (!zoomState.isZoomed) return;
+    
+    let currentStartTime = zoomState.startTime;
+    let currentEndTime = zoomState.endTime;
+    
+    const currentRange = currentEndTime.getTime() - currentStartTime.getTime();
+    const newRange = currentRange * 2; // Zoom out by 200%
+    
+    // Don't zoom out beyond the full day
+    const maxRange = selectedDate.endOfDay.getTime() - selectedDate.startOfDay.getTime();
+    if (newRange >= maxRange) {
+        resetZoom();
+        return;
+    }
+    
+    const centerTime = new Date(currentStartTime.getTime() + (currentRange / 2));
+    const newStartTime = new Date(Math.max(centerTime.getTime() - (newRange / 2), selectedDate.startOfDay.getTime()));
+    const newEndTime = new Date(Math.min(centerTime.getTime() + (newRange / 2), selectedDate.endOfDay.getTime()));
+    
+    zoomState.startTime = newStartTime;
+    zoomState.endTime = newEndTime;
+    
+    updateGraph();
+    updateZoomStatus();
+}
+
+function updateZoomStatus() {
+    const statusElement = document.getElementById('zoomStatus');
+    if (!statusElement) return;
+    
+    if (zoomState.isZoomed && zoomState.startTime && zoomState.endTime) {
+        const startStr = zoomState.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const endStr = zoomState.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        statusElement.textContent = `Zoomed: ${startStr} - ${endStr}`;
+    } else {
+        statusElement.textContent = 'Full Day View';
+    }
+}
+
+// Update legend to show zoom status
+function updateDualSeriesBooleanLegend(unitName1, pointName1, unitName2, pointName2, data1, data2) {
+    const graphLegend = document.getElementById('graphLegend');
+    if (!graphLegend) return;
+
+    let legendHtml = '';
+    
+    if (data1.length > 0) {
+        legendHtml += `
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #3498db;"></span>
+                <span class="legend-text">${unitName1} - ${pointName1}</span>
+            </div>
+        `;
+    }
+    
+    if (data2.length > 0) {
+        legendHtml += `
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #f39c12;"></span>
+                <span class="legend-text">${unitName2} - ${pointName2}</span>
+            </div>
+        `;
+    }
+    
+    // Add state indicators
+    legendHtml += `
+        <div class="legend-item">
+            <span class="legend-color" style="background-color: #27ae60; height: 8px; border-radius: 50%;"></span>
+            <span class="legend-text">TRUE State</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-color" style="background-color: #e74c3c; height: 8px; border-radius: 50%;"></span>
+            <span class="legend-text">FALSE State</span>
+        </div>
+    `;
+    
+    graphLegend.innerHTML = legendHtml;
+}
+
+// Keep all other existing functions unchanged...
+// (updateDualSeriesBooleanStats, handleBooleanGraphClick, showBooleanDataPointTooltip, etc.)
+
+function updateDualSeriesBooleanStats(data1, data2) {
+    const graphStats = document.getElementById('graphStats');
+    if (!graphStats) return;
+
+    let statsHtml = '';
+    
+    if (data1.length > 0) {
+        const trueCount1 = data1.filter(d => d.booleanValue).length;
+        const falseCount1 = data1.filter(d => !d.booleanValue).length;
+        const truePercentage1 = ((trueCount1 / data1.length) * 100).toFixed(1);
+        const currentState1 = data1[data1.length - 1].stateText;
+        const currentIcon1 = data1[data1.length - 1].booleanValue ?  '🔵' : '⚪';
+        
+        statsHtml += `
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${data1.length}</div>
+                <div class="stat-label">Series 1 Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${truePercentage1}%</div>
+                <div class="stat-label">Series 1 TRUE Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #3498db;">${currentIcon1} ${currentState1}</div>
+                <div class="stat-label">Series 1 Current</div>
+            </div>
+        `;
+    }
+    
+    if (data2.length > 0) {
+        const trueCount2 = data2.filter(d => d.booleanValue).length;
+        const falseCount2 = data2.filter(d => !d.booleanValue).length;
+        const truePercentage2 = ((trueCount2 / data2.length) * 100).toFixed(1);
+        const currentState2 = data2[data2.length - 1].stateText;
+        const currentIcon2 = data2[data2.length - 1].booleanValue ?  '🔵' : '⚪';
+        
+        statsHtml += `
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${data2.length}</div>
+                <div class="stat-label">Series 2 Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${truePercentage2}%</div>
+                <div class="stat-label">Series 2 TRUE Time</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #f39c12;">${currentIcon2} ${currentState2}</div>
+                <div class="stat-label">Series 2 Current</div>
+            </div>
+        `;
+    }
+    
+    graphStats.innerHTML = statsHtml;
+}
+
+// Utility functions for date handling and filtering
+function getSelectedDate() {
+    const dateInput = document.getElementById('dateInput');
+    if (!dateInput || !dateInput.value) return null;
+    
+    const selectedDate = new Date(dateInput.value + 'T00:00:00.000');
+    const startOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+    
+    return {
+        dateObject: selectedDate,
+        dateString: dateInput.value,
+        startOfDay: startOfDay,
+        endOfDay: endOfDay
+    };
+}
+
+// Filter boolean event logs directly from Niagara
+async function getFilteredEventLogsByDate(unit = null, point = null) {
+    const selectedDate = getSelectedDate();
+    if (!selectedDate) return [];
+
+    // Return empty if no unit/point selected
+    if (!unit || !point) return [];
+
+    const start = selectedDate.startOfDay.getTime();
+    const end = selectedDate.endOfDay.getTime();
+
+    try {
+        // Assume 'baja!' and 'baja!history' are available
+        const HistQuery = await require('baja!history:HistoryQuery');
+        const BHistoryService = await require('baja!history:HistoryService');
+        
+        const service = BHistoryService.getService();
+
+        // Build a query for the point
+        const query = HistQuery.make({
+            minTime: start,
+            maxTime: end,
+            maxItems: 10000 // optional, limit to prevent huge queries
+        });
+
+        // Fetch events from Niagara station
+        const history = await service.query(unit + "/" + point, query);
+        
+        // Map to your expected format
+        const logs = history.map(e => ({
+            timestamp: new Date(e.time),
+            timestampObj: new Date(e.time),
+            booleanValue: e.value === true,
+            stateText: e.valueText || (e.value ? 'ON' : 'OFF'),
+            unit: unit,
+            pointName: point
+        }));
+
+        return logs;
+    } catch (err) {
+        console.error('Error fetching Niagara event logs:', err);
+        return [];
+    }
+}
+
+
+function clearGraph() {
+    const canvas = document.getElementById('graphCanvas');
+    const noDataMessage = document.getElementById('noDataMessage');
+    const graphLegend = document.getElementById('graphLegend');
+    const graphStats = document.getElementById('graphStats');
+    
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+    }
+    
+    if (noDataMessage) {
+        const message = importedJsonData ? 
+            'Select a unit and point to view boolean graph data.' :
+            'No data available. Collect data or import JSON first.';
+        noDataMessage.textContent = message;
+        noDataMessage.style.display = 'block';
+    }
+    
+    if (graphLegend) graphLegend.innerHTML = '';
+    if (graphStats) graphStats.innerHTML = '';
+}
+
+function forceRefreshGraph() {
+    const unitSelector = document.getElementById('unitSelector');
+    const pointSelector = document.getElementById('pointSelector');
+    
+    if (unitSelector && pointSelector) {
+        const selectedUnit = unitSelector.value;
+        const selectedPoint = pointSelector.value;
+        
+        populateUnitSelector();
+        populateUnitSelector2();
+        
+        if (selectedUnit) {
+            unitSelector.value = selectedUnit;
+            updatePointSelector();
+            
+            if (selectedPoint) {
+                pointSelector.value = selectedPoint;
+                updateGraph();
+            }
+        }
+    }
+}
+
+// JSON Import Functions
+function importJsonFile(input) {
+    const file = input.files[0];
+    const statusElement = document.getElementById('importStatus');
+    
+    if (!file) {
+        updateImportStatus('No file selected', 'warning');
+        return;
+    }
+    
+    if (!file.name.toLowerCase().endsWith('.json')) {
+        updateImportStatus('Please select a JSON file', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const jsonData = JSON.parse(e.target.result);
+            processImportedBooleanJson(jsonData, file.name);
+        } catch (error) {
+            console.error('JSON parse error:', error);
+            updateImportStatus('Invalid JSON file format', 'error');
+        }
+    };
+    
+    reader.onerror = function() {
+        updateImportStatus('Error reading file', 'error');
+    };
+    
+    reader.readAsText(file);
+}
+
+function processImportedBooleanJson(jsonData, fileName) {
+    try {
+        // Handle different JSON structures
+        let eventLogs = [];
+        
+        // Check if it's the exported format from this system
+        if (jsonData.eventLogs && Array.isArray(jsonData.eventLogs)) {
+            eventLogs = jsonData.eventLogs;
+        }
+        // Check if it's a direct array of log entries
+        else if (Array.isArray(jsonData)) {
+            eventLogs = jsonData;
+        }
+        // Check for other possible structures
+        else if (jsonData.data && Array.isArray(jsonData.data)) {
+            eventLogs = jsonData.data;
+        }
+        else if (jsonData.logs && Array.isArray(jsonData.logs)) {
+            eventLogs = jsonData.logs;
+        }
+        else {
+            throw new Error('No recognizable event logs structure found in JSON');
+        }
+        
+        // Validate and clean the boolean data
+        const validatedLogs = validateImportedBooleanLogs(eventLogs);
+        
+        if (validatedLogs.length === 0) {
+            throw new Error('No valid boolean log entries found with required fields (unit, pointName, timestamp, value)');
+        }
+        
+        // Store the imported data globally
+        importedJsonData = {
+            eventLogs: validatedLogs,
+            metadata: {
+                fileName: fileName,
+                importTime: new Date().toISOString(),
+                totalEntries: validatedLogs.length
+            }
+        };
+        
+        // Update the UI - POPULATE BOTH SELECTORS
+        populateUnitSelector();
+        populateUnitSelector2();
+        clearGraph();
+        
+        const uniqueUnits = [...new Set(validatedLogs.map(log => log.unit))].length;
+        const uniquePoints = [...new Set(validatedLogs.map(log => log.pointName))].length;
+        
+        updateImportStatus(`Imported: ${validatedLogs.length} boolean entries, ${uniqueUnits} units, ${uniquePoints} points`, 'success');
+        
+        console.log('Boolean JSON data imported successfully:', {
+            fileName: fileName,
+            totalEntries: validatedLogs.length,
+            uniqueUnits: uniqueUnits,
+            uniquePoints: uniquePoints
+        });
+        
+    } catch (error) {
+        console.error('Import processing error:', error);
+        updateImportStatus(`Import failed: ${error.message}`, 'error');
+        importedJsonData = null;
+    }
+}
+
+function validateImportedBooleanLogs(logs) {
+    const validatedLogs = [];
+    
+    logs.forEach((log, index) => {
+        try {
+            // Check for required fields
+            if (!log.unit || !log.pointName || !log.timestamp || (log.value === undefined && log.value === null)) {
+                console.warn(`Skipping log entry ${index}: missing required fields`, log);
+                return;
+            }
+            
+            // Parse and validate timestamp
+            let timestampObj;
+            if (log.timestampObj && log.timestampObj instanceof Date) {
+                timestampObj = log.timestampObj;
+            } else if (typeof log.timestamp === 'string') {
+                timestampObj = new Date(log.timestamp);
+            } else if (log.timestamp instanceof Date) {
+                timestampObj = log.timestamp;
+            } else {
+                console.warn(`Skipping log entry ${index}: invalid timestamp`, log);
+                return;
+            }
+            
+            if (isNaN(timestampObj.getTime())) {
+                console.warn(`Skipping log entry ${index}: invalid timestamp format`, log);
+                return;
+            }
+            
+            // Parse boolean value
+            let booleanValue, numericValue;
+            if (log.booleanValue !== undefined) {
+                booleanValue = parseBooleanValue(log.booleanValue);
+                numericValue = booleanValue ? 1 : 0;
+            } else {
+                // Try to parse the value as boolean
+                booleanValue = parseBooleanValue(log.value);
+                numericValue = booleanValue ? 1 : 0;
+            }
+            
+            const stateText = booleanValue ? 'TRUE' : 'FALSE';
+            const stateIcon = booleanValue ?  '🔵' : '⚪';
+            
+            // Create validated log entry
+            validatedLogs.push({
+                id: log.id || index,
+                timestamp: timestampObj.toLocaleString(),
+                timestampObj: timestampObj,
+                unit: log.unit.toString(),
+                pointName: log.pointName.toString(),
+                pointId: log.pointId || log.id || '',
+                value: numericValue, // For graphing (0/1)
+                booleanValue: booleanValue, // Original boolean
+                stateText: stateText,
+                stateIcon: stateIcon,
+                changeType: log.changeType || 'Imported',
+                changeDescription: log.changeDescription || `${stateText} State`,
+                previousValue: log.previousValue,
+                fullPath: log.fullPath || '',
+                displayName: `${log.unit} - ${log.pointName}`,
+                details: `${log.pointName} = ${stateText}`,
+                dataUnit: 'Boolean'
+            });
+            
+        } catch (error) {
+            console.warn(`Error processing log entry ${index}:`, error, log);
+        }
+    });
+    
+    return validatedLogs;
+}
+
+function updateImportStatus(message, type = 'info') {
+    const statusElement = document.getElementById('importStatus');
+    if (!statusElement) return;
+    
+    statusElement.textContent = message;
+    statusElement.className = `import-status import-${type}`;
+    
+    // Auto-clear success messages after 10 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            if (statusElement.textContent === message) {
+                statusElement.textContent = '';
+                statusElement.className = 'import-status';
+            }
+        }, 10000);
+    }
+}
+
+// Event log display functions
+function updateEventLogs() {
+    const logsContainer = document.getElementById('eventLogs');
+    const recentLogs = eventLogs.slice(0, 5);
+    
+    logsContainer.innerHTML = '';
+    
+    if (recentLogs.length === 0) {
+        logsContainer.innerHTML = `
+            <div class="bubbleSP">
+                <div class="point-status status-display">
+                    <div class="status-title">No boolean state changes recorded yet</div>
+                    <div class="status-details">
+                        <p>System monitors ${monitoredPoints.length} configured points for state changes</p>
+                        <p>Click "Check All States" for immediate state check</p>
+                        <p>Monitoring logs changes automatically when active</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    recentLogs.forEach(log => {
+        const logElement = document.createElement('div');
+        logElement.className = 'bubbleSP';
+        
+        let statusClass = log.booleanValue ? 'status-ok' : 'status-warning';
+        if (log.changeType === 'State Change') {
+            statusClass = 'status-info';
+        }
+        
+        logElement.innerHTML = `
+            <div class="point-status status-display ${statusClass}">
+                <div class="status-title">${log.stateIcon} ${log.displayName} - ${log.stateText}</div>
+                <div class="status-details">
+                    <p><strong>Timestamp:</strong> ${log.timestamp}</p>
+                    <p><strong>State:</strong> ${log.stateText}</p>
+                    <p><strong>Change Type:</strong> ${log.changeType}</p>
+                    <p><strong>Change:</strong> ${log.changeDescription}</p>
+                    <p><strong>Unit:</strong> ${log.unit}</p>
+                    <p><strong>Point:</strong> ${log.pointName}</p>
+                    <p><strong>Full Path:</strong> ${log.fullPath}</p>
+                </div>
+            </div>
+        `;
+        logsContainer.appendChild(logElement);
+    });
+    
+    updateOverallStatus();
+}
+
+function updateOverallStatus() {
+    const statusElement = document.getElementById('system-status');
+    
+    let summaryElement = document.getElementById('overall-summary');
+    if (!summaryElement) {
+        summaryElement = document.createElement('div');
+        summaryElement.id = 'overall-summary';
+        summaryElement.className = 'overall-summary';
+        statusElement.appendChild(summaryElement);
+    }
+    
+    const activePoints = monitoredPoints.length;
+    const totalLogs = eventLogs.length;
+    const trackedStates = pointStates.size;
+    
+    const overallClass = activePoints > 0 ? 'status-ok' : 'status-error';
+    const overallTitle = `🔘 ${activePoints} BOOLEAN POINTS MONITORED`;
+    const monitoringStatusText = monitoringActive ? '🟢 ACTIVE (State Change Detection)' : '🔴 STOPPED';
+    
+    summaryElement.className = `overall-summary status-display ${overallClass}`;
+    summaryElement.innerHTML = `
+        <div class="status-title">${overallTitle}</div>
+        <div class="status-details">
+            <p><strong>Monitoring Status:</strong> ${monitoringStatusText}</p>
+            <p><strong>Configured Points:</strong> ${activePoints} boolean points</p>
+            <p><strong>Total Logged Changes:</strong> ${totalLogs}</p>
+            <p><strong>Last State Change:</strong> ${lastCheckTime ? lastCheckTime.toLocaleString() : 'Never'}</p>
+            <p><strong>Config Status:</strong> ${globalConfig ? 'Loaded' : 'Not Loaded'}</p>
+        </div>
+    `;
+}
+
+            // <p><strong>States Tracked:</strong> ${trackedStates} current states</p>
+
+// Control functions
+function startMonitoring() {
+    if (!globalConfig) {
+        showNotification('Configuration Required', 'Please load Global.json first', 'error');
+        return;
+    }
+    
+    if (monitoredPoints.length === 0) {
+        showNotification('No Points Configured', 'No boolean points found in configuration', 'warning');
+        return;
+    }
+    
+    monitoringActive = true;
+    updateMonitoringStatus();
+    
+    // Initial state check
+    checkAllStatesNow();
+    
+    // Start continuous monitoring every 5 seconds for state changes
+    if (window.stateMonitorInterval) {
+        clearInterval(window.stateMonitorInterval);
+    }
+    window.stateMonitorInterval = setInterval(monitorStateChanges, 5000);
+    
+    showNotification('Monitoring Started', `Monitoring ${monitoredPoints.length} boolean points for state changes`, 'success');
+}
+
+function stopMonitoring() {
+    monitoringActive = false;
+    updateMonitoringStatus();
+    
+    if (window.stateMonitorInterval) {
+        clearInterval(window.stateMonitorInterval);
+    }
+    
+    showNotification('Monitoring Stopped', 'Boolean monitoring has been paused', 'warning');
+}
+
+// Export functions
+function exportLogs() {
+    if (eventLogs.length === 0) {
+        showNotification('No Data', 'No logs to export', 'warning');
+        return;
+    }
+
+    const headers = ['ID', 'Timestamp', 'Unit', 'Point Name', 'Boolean State', 'Change Type', 'Change Description', 'Full Path'];
+
+    // Sort logs by Unit, then Point Name, then Timestamp
+    const sortedLogs = [...eventLogs].sort((a, b) => {
+        if (a.unit !== b.unit) return a.unit.localeCompare(b.unit);
+        if (a.pointName !== b.pointName) return a.pointName.localeCompare(b.pointName);
+        return new Date(a.timestampObj) - new Date(b.timestampObj);
+    });
+
+    const csvRows = [headers.join(',')];
+
+    let lastUnit = null;
+
+    sortedLogs.forEach(log => {
+        // If the unit changed, add a blank row before continuing
+        if (lastUnit !== null && log.unit !== lastUnit) {
+            csvRows.push(''); // blank line
+        }
+
+        csvRows.push([
+            log.id,
+            `"${log.timestamp}"`,
+            `"${log.unit}"`,
+            `"${log.pointName}"`,
+            log.stateText,
+            `"${log.changeType}"`,
+            `"${log.changeDescription}"`,
+            `"${log.fullPath}"`
+        ].join(','));
+
+        lastUnit = log.unit;
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `niagara_boolean_logs_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('Export Complete', `Exported ${eventLogs.length} boolean log entries`, 'success');
+}
+
+
+function exportFullDataJSON() {
+    const exportData = {
+        metadata: {
+            exportTimestamp: new Date().toISOString(),
+            totalLogs: eventLogs.length,
+            exportType: 'fullBooleanData',
+            monitoredPointsCount: monitoredPoints.length,
+            dataType: 'boolean'
+        },
+        eventLogs: eventLogs,
+        systemConfig: {
+            monitoringActive: monitoringActive,
+            logCounter: logCounter,
+            startTime: startTime.toISOString(),
+            lastCheckTime: lastCheckTime ? lastCheckTime.toISOString() : null
+        },
+        monitoredPoints: monitoredPoints,
+        pointStates: Object.fromEntries(pointStates)
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `niagara_boolean_data_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showNotification('JSON Export Complete', 'Full boolean data exported', 'success');
+}
+
+// --- Auto-export scheduler ---
+function scheduleAutoExport() {
+    const exportTimes = ['12:00', '23:59']; // HH:MM in 24-hour format
+
+    setInterval(() => {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${minutes}`;
+
+        if (exportTimes.includes(currentTime)) {
+            exportFullDataJSON();
+        }
+    }, 60 * 1000); // check every minute
+}
+
+// Start the scheduler
+scheduleAutoExport();
+
+
+
+// function exportFullDataJSON() {
+//     const exportData = {
+//         metadata: {
+//             exportTimestamp: new Date().toISOString(),
+//             totalLogs: eventLogs.length,
+//             exportType: 'fullBooleanData',
+//             monitoredPointsCount: monitoredPoints.length,
+//             dataType: 'boolean'
+//         },
+//         eventLogs: eventLogs,
+//         systemConfig: {
+//             monitoringActive: monitoringActive,
+//             logCounter: logCounter,
+//             startTime: startTime.toISOString(),
+//             lastCheckTime: lastCheckTime ? lastCheckTime.toISOString() : null
+//         },
+//         monitoredPoints: monitoredPoints,
+//         pointStates: Object.fromEntries(pointStates)
+//     };
+
+//     const jsonString = JSON.stringify(exportData, null, 2);
+//     const blob = new Blob([jsonString], { type: 'application/json' });
+//     const url = URL.createObjectURL(blob);
+//     const a = document.createElement('a');
+//     a.href = url;
+//     a.download = `niagara_boolean_data_${new Date().toISOString().split('T')[0]}.json`;
+//     document.body.appendChild(a);
+//     a.click();
+//     document.body.removeChild(a);
+//     URL.revokeObjectURL(url);
+
+//     showNotification('JSON Export Complete', 'Full boolean data exported', 'success');
+// }
+
+// Utility functions
+function showNotification(title, message, type = 'info') {
+    const notification = document.createElement('div');
+    const colors = {
+        success: '#27ae60',
+        error: '#e74c3c',
+        info: '#3498db',
+        warning: '#f39c12'
+    };
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        max-width: 300px;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 14px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    
+    notification.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
+        <div>${message}</div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+
+        // Dark mode toggle
+        function initializeDarkMode() {
+            const toggleSwitch = document.getElementById('toggleSwitch');
+            const toggleLabel = document.querySelector('.toggle-label');
+            
+            // For browser compatibility, we'll use a simple flag instead of localStorage
+            const currentTheme = 'light'; // Default to light mode
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            
+            toggleLabel.textContent = 'Light Mode';
+            
+            toggleSwitch.addEventListener('click', function() {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                
+                if (newTheme === 'dark') {
+                    toggleSwitch.classList.add('active');
+                    toggleLabel.textContent = 'Dark Mode';
+                } else {
+                    toggleSwitch.classList.remove('active');
+                    toggleLabel.textContent = 'Light Mode';
+                }
+                
+                if (graphViewerActive) {
+                    updateGraph();
+                }
+            });
+        }
+
+        // Initialize everything when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSystem();
+            initializeDarkMode();
+            
+            console.log('Niagara Numerical System Monitor ready!');
+            console.log('Features: Global.json monitoring, real-time data collection, JSON export, graphing, dark mode');
+        });
+
+        // Resize handling
+        window.addEventListener('resize', function() {
+            if (graphViewerActive) {
+                setTimeout(updateGraph, 100);
+            }
+        });
+
+
+
+        </script>
+    
+</body>
+</html>

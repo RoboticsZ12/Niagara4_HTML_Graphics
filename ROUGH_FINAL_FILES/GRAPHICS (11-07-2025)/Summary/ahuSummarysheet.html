@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f3a 50%, #0f2027 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(64, 224, 208, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.1), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .ahu-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .ahu-table th {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: #e0f7fa;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid rgba(64, 224, 208, 0.3);
+            text-shadow: 0 0 8px rgba(64, 224, 208, 0.4);
+            position: relative;
+        }
+
+        .ahu-table th::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .ahu-table th:last-child {
+            border-right: none;
+        }
+
+        .ahu-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(64, 224, 208, 0.15);
+            border-right: 1px solid rgba(64, 224, 208, 0.15);
+            background: rgba(13, 20, 33, 0.6);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+        }
+
+        .ahu-table td:last-child {
+            border-right: none;
+        }
+
+        .ahu-table tr:nth-child(even) td {
+            background: rgba(26, 31, 58, 0.4);
+        }
+
+        .ahu-table tr:nth-child(odd) td {
+            background: rgba(15, 32, 39, 0.5);
+        }
+
+        .ahu-table tr:hover td {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.3));
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.2);
+        }
+
+        .ahu-name {
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .value-loading {
+            color: #7c3aed;
+            font-style: italic;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .value-error {
+            color: #f87171;
+            font-style: italic;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .value-normal {
+            color: #67e8f9;
+            font-weight: 500;
+            text-shadow: 0 0 8px rgba(103, 232, 249, 0.3);
+        }
+
+        .value-active {
+            color: #34d399;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            animation: glow-green 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-green {
+            from { text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+            to { text-shadow: 0 0 15px rgba(52, 211, 153, 0.7); }
+        }
+
+        .value-inactive {
+            color: #64748b;
+            text-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.2));
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+        
+        /* Hyperlink styling for Name column */
+.ahu-name a,
+.vav-name a {
+    color: #007bff;          
+    text-decoration: none;    
+}
+
+.ahu-name a:hover,
+.vav-name a:hover {
+    color: #0056b3;         
+    text-decoration: underline;
+}
+
+.ahu-name a:visited,
+.vav-name a:visited {
+    color: #bdbdbd;         
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AHU Summary Sheet</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading AHU data...</div>
+        </div>
+    </div>
+    
+    
+
+<script>
+// Global variables
+let pointSubscriptions = [];
+let pointValues = {};
+let allAHUPoints = {};
+let subscriber;
+
+// User authorization check
+function isAuthorizedUser() {
+    const username = 'murphy'; // Simulated user
+    console.log('Current user:', username);
+    
+    if (!username) {
+        console.log('No user found');
+        return false;
+    }
+    
+    const authorizedUsers = ['murphy', 'admin'];
+    const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+    
+    console.log('User authorized for point display:', isAuthorized);
+    return isAuthorized;
+}
+
+// Check authorization before proceeding
+if (!isAuthorizedUser()) {
+    console.log('Point display script terminated - user not authorized');
+    document.getElementById('main-content').innerHTML = 
+        '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+    throw new Error('Unauthorized access');
+}
+
+// Function to check if AHU name should be excluded (fan/exhaust/return equipment)
+function shouldExcludeAHU(ahuName) {
+    const excludePatterns = [
+        /SF/i,      // Supply Fan
+        /RF/i,      // Return Fan
+        /EF/i,      // Exhaust Fan
+        /\bFAN\b/i, // Fan (as whole word)
+        /EXHAUST/i, // Exhaust
+        /RETURN/i,  // Return
+        /VFD/i      // Variable Frequency Drive
+    ];
+    
+    const isExcluded = excludePatterns.some(pattern => pattern.test(ahuName));
+    
+    if (isExcluded) {
+        console.log(`Excluding ${ahuName} - matches fan/exhaust/return pattern`);
+    }
+    
+    return isExcluded;
+}
+
+// Function to format point values
+function formatPointValue(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+    }
+    
+    // Handle "NO_" prefix for missing points
+    if (typeof value === 'string' && value.startsWith('NO_')) {
+        return value;
+    }
+    
+    if (pointId === 'Fan-Stat') {
+        return value ? 'Fan ON' : 'Fan OFF';
+    } else if (pointId === 'DPR-cmd' || pointId === 'HTG-VLV' || pointId === 'Pre-HT-VLV' || pointId === 'CLG-VLV') {
+        return Math.round(value) + '%';
+    } else if (pointId === 'Occupancy') {
+        return value ? 'Occupied' : 'Unoccupied';
+    } else if (typeof value === 'number') {
+        return value.toFixed(1) + '°F';
+    }
+    
+    return value.toString();
+}
+
+// Function to get CSS class for value styling
+function getValueClass(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return 'value-error';
+    }
+    
+    // Handle "NO_" prefix for missing points
+    if (typeof value === 'string' && value.startsWith('NO_')) {
+        return 'value-missing';
+    }
+    
+    if (pointId === 'Fan-Stat') {
+        return value ? 'value-active' : 'value-inactive';
+    }
+    if (pointId === 'Occupancy') {
+        return value ? 'value-active' : 'value-inactive';
+    }
+    
+    return 'value-normal';
+}
+
+// Function to update point value in the display
+function updatePointValue(ahuName, pointId, value) {
+    const elementId = `point-${ahuName}-${pointId}`;
+    const valueElement = document.getElementById(elementId);
+    if (valueElement) {
+        const formattedValue = formatPointValue(value, pointId);
+        const valueClass = getValueClass(value, pointId);
+        
+        valueElement.textContent = formattedValue;
+        valueElement.className = valueClass;
+        
+        if (!pointValues[ahuName]) pointValues[ahuName] = {};
+        pointValues[ahuName][pointId] = value;
+    }
+}
+
+// Initialize subscriber
+try {
+    require(['baja!'], function(baja) {
+        subscriber = new baja.Subscriber();
+        
+        subscriber.attach('changed', function(prop) {
+            if (prop.getName() === 'out') {
+                const pointInfo = this.userData;
+                if (pointInfo) {
+                    const out = this.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(pointInfo.ahuName, pointInfo.pointId, displayValue);
+                }
+            }
+        });
+    });
+} catch (error) {
+    console.error('Failed to initialize subscriber:', error);
+}
+
+// Function to subscribe to a point using Niagara Baja
+function subscribeToPoint(ahuName, pointId, pointPath) {
+    console.log(`Subscribing to: ${pointPath}`);
+    
+    try {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                .then(point => {
+                    console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                    
+                    point.userData = { 
+                        ahuName: ahuName,
+                        pointId: pointId, 
+                        pointPath: pointPath
+                    };
+                    
+                    const out = point.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(ahuName, pointId, displayValue);
+                })
+                .catch(error => {
+                    console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                    updatePointValue(ahuName, pointId, 'Connection Error');
+                });
+        });
+    } catch (error) {
+        console.error(`Failed to subscribe to ${pointPath}:`, error);
+        updatePointValue(ahuName, pointId, 'Connection Error');
+    }
+}
+
+// Function to create the AHU table display
+function createAHUDisplay(ahuData) {
+    const mainContent = document.getElementById('main-content');
+    
+    if (Object.keys(ahuData).length === 0) {
+        mainContent.innerHTML = '<div class="error">No AHU configurations found in JSON file.</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="ahu-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>DA Temp</th>
+                    <th>Fan Status</th>
+                    <th>Occupancy</th>
+                    <th>Damper Pos OA</th>
+                    <th>Heating Valve</th>
+                    <th>Pre-Heat Valve</th>
+                    <th>Cooling Valve</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    const sortedAHUNames = Object.keys(ahuData).sort();
+    
+    sortedAHUNames.forEach(ahuName => {
+        // Build the hyperlink path: ../AHUs/Name.html
+        const ahuLink = `../AHUs/${ahuName}.html`;
+        
+        html += `
+            <tr>
+                <td class="ahu-name"><a href="${ahuLink}">${ahuName}</a></td>
+                <td id="point-${ahuName}-DA-T" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Fan-Stat" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Occupancy" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-DPR-cmd" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-HTG-VLV" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Pre-HT-VLV" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-CLG-VLV" class="value-loading">Loading...</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    mainContent.innerHTML = html;
+    
+    // Subscribe to all points
+    sortedAHUNames.forEach(ahuName => {
+        const points = ahuData[ahuName];
+        
+        const pointMapping = {
+            'DA-T': points.find(p => p.id === 'DA-T'),
+            'Fan-Stat': points.find(p => p.id === 'Fan-Stat'),
+            'Occupancy': points.find(p => p.id === 'Occupancy'),
+            'DPR-cmd': points.find(p => p.id === 'DPR-cmd'),
+            'HTG-VLV': points.find(p => p.id === 'HTG-VLV'),
+            'Pre-HT-VLV': points.find(p => p.id === 'Pre-HT-VLV'),
+            'CLG-VLV': points.find(p => p.id === 'CLG-VLV')
+        };
+        
+        Object.keys(pointMapping).forEach(pointId => {
+            const point = pointMapping[pointId];
+            if (point && point.status === 'connected') {
+                subscribeToPoint(ahuName, pointId, point.fullPath);
+            } else {
+                // Use "NO_" prefix for missing points with proper naming
+                let missingName = 'N/A';
+                if (pointId === 'HTG-VLV') missingName = 'NO_Heating';
+                else if (pointId === 'Pre-HT-VLV') missingName = 'NO_PreHeat';
+                else if (pointId === 'CLG-VLV') missingName = 'NO_Cooling';
+                
+                console.warn(`Point ${pointId} not found or not connected for AHU ${ahuName}`);
+                updatePointValue(ahuName, pointId, missingName);
+            }
+        });
+    });
+}
+
+// Function to load and parse JSON configuration
+async function loadAndDisplayAHUPoints() {
+    try {
+        console.log('=== LOADING AHU POINTS FROM JSON ===');
+        
+        const response = await fetch('../Global.json');
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+        }
+        
+        const jsonData = await response.json();
+        console.log('JSON data loaded:', jsonData);
+        
+        // Filter for AHU configurations only, excluding fan/exhaust/return equipment
+        const ahuConfigs = {};
+        
+        Object.keys(jsonData.globalVariables).forEach(key => {
+            if (key.toLowerCase().startsWith('ahu_')) {
+                // Check if this AHU should be excluded
+                if (shouldExcludeAHU(key)) {
+                    console.log(`Skipping ${key} - fan/exhaust/return equipment`);
+                    return; // Skip this AHU
+                }
+                
+                console.log(`Found AHU configuration: ${key}`);
+                const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                    point.status === "connected"
+                );
+                if (connectedPoints.length > 0) {
+                    ahuConfigs[key] = connectedPoints;
+                }
+            }
+        });
+        
+        allAHUPoints = ahuConfigs;
+        
+        console.log('Filtered AHU configurations:', ahuConfigs);
+        console.log('=== AHU POINT LOADING COMPLETE ===');
+        
+        createAHUDisplay(ahuConfigs);
+        
+    } catch (error) {
+        console.error('Error loading AHU points from JSON:', error);
+        document.getElementById('main-content').innerHTML = 
+            `<div class="error">Error loading AHU data: ${error.message}</div>`;
+    }
+}
+
+// Cleanup function for subscriptions
+function cleanup() {
+    if (subscriber) {
+        subscriber.unsubscribeAll();
+        console.log('🧹 Cleaned up all subscriptions');
+    }
+}
+
+// Handle page unload
+window.addEventListener('beforeunload', cleanup);
+
+// Initialize the system
+loadAndDisplayAHUPoints();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - VFD Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f3a 50%, #0f2027 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(64, 224, 208, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.1), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .vav-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .vav-table th {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: #e0f7fa;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid rgba(64, 224, 208, 0.3);
+            text-shadow: 0 0 8px rgba(64, 224, 208, 0.4);
+            position: relative;
+        }
+
+        .vav-table th::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .vav-table th:last-child {
+            border-right: none;
+        }
+
+        .vav-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(64, 224, 208, 0.15);
+            border-right: 1px solid rgba(64, 224, 208, 0.15);
+            background: rgba(13, 20, 33, 0.6);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+        }
+
+        .vav-table td:last-child {
+            border-right: none;
+        }
+
+        .vav-table tr:nth-child(even) td {
+            background: rgba(26, 31, 58, 0.4);
+        }
+
+        .vav-table tr:nth-child(odd) td {
+            background: rgba(15, 32, 39, 0.5);
+        }
+
+        .vav-table tr:hover td {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.3));
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.2);
+        }
+
+        .vav-name {
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .value-loading {
+            color: #7c3aed;
+            font-style: italic;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .value-error {
+            color: #f87171;
+            font-style: italic;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .value-normal {
+            color: #67e8f9;
+            font-weight: 500;
+            text-shadow: 0 0 8px rgba(103, 232, 249, 0.3);
+        }
+
+        .value-active {
+            color: #34d399;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            animation: glow-green 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-green {
+            from { text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+            to { text-shadow: 0 0 15px rgba(52, 211, 153, 0.7); }
+        }
+
+        .value-inactive {
+            color: #64748b;
+            text-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.2));
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+        
+        /* Hyperlink styling for Name column */
+.ahu-name a,
+.vav-name a {
+    color: #007bff;          
+    text-decoration: none;    
+}
+
+.ahu-name a:hover,
+.vav-name a:hover {
+    color: #0056b3;         
+    text-decoration: underline;
+}
+
+.ahu-name a:visited,
+.vav-name a:visited {
+    color: #bdbdbd;         
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VFD Summary Sheet</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading VFD data...</div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+<script>
+    // Global variables
+    let pointSubscriptions = [];
+    let pointValues = {};
+    let allVFDPoints = {};
+    let subscriber;
+
+    // User authorization check
+    function isAuthorizedUser() {
+        const username = 'murphy'; // Simulated user
+        console.log('Current user:', username);
+        
+        if (!username) {
+            console.log('No user found');
+            return false;
+        }
+        
+        const authorizedUsers = ['murphy', 'admin'];
+        const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+        
+        console.log('User authorized for point display:', isAuthorized);
+        return isAuthorized;
+    }
+
+    // Check authorization before proceeding
+    if (!isAuthorizedUser()) {
+        console.log('Point display script terminated - user not authorized');
+        document.getElementById('main-content').innerHTML = 
+            '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+        throw new Error('Unauthorized access');
+    }
+
+    // Function to format point values
+    function formatPointValue(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return value;
+        }
+        
+        if (pointId === 'speed') {
+            // Speed as percent
+            return Math.round(value) + ' RPM';
+        } else if (pointId === 'frequency') {
+            // Frequency in Hz
+            return value.toFixed(1) + ' Hz';
+        } else if (pointId === 'torque') {
+            // Torque as percent
+            return Math.round(value) + '%';
+        } else if (pointId === 'power') {
+            // Power in kW
+            return value.toFixed(1) + ' kW';
+        } else if (pointId === 'current') {
+            // Current in Amps
+            return value.toFixed(1) + ' A';
+        } else if (pointId === 'voltage') {
+            // Voltage in Volts
+            return Math.round(value) + ' V';
+        } else if (typeof value === 'number') {
+            // Default numeric display
+            return value.toFixed(1);
+        }
+        
+        return value.toString();
+    }
+
+    // Function to get CSS class for value styling
+    function getValueClass(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return 'value-error';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return 'value-missing';
+        }
+        
+        return 'value-normal';
+    }
+
+    // Function to update point value in the display
+    function updatePointValue(vfdName, pointId, value) {
+        const elementId = `point-${vfdName}-${pointId}`;
+        const valueElement = document.getElementById(elementId);
+        if (valueElement) {
+            const formattedValue = formatPointValue(value, pointId);
+            const valueClass = getValueClass(value, pointId);
+            
+            valueElement.textContent = formattedValue;
+            valueElement.className = valueClass;
+            
+            if (!pointValues[vfdName]) pointValues[vfdName] = {};
+            pointValues[vfdName][pointId] = value;
+        }
+    }
+
+    // Initialize subscriber
+    try {
+        require(['baja!'], function(baja) {
+            subscriber = new baja.Subscriber();
+            
+            subscriber.attach('changed', function(prop) {
+                if (prop.getName() === 'out') {
+                    const pointInfo = this.userData;
+                    if (pointInfo) {
+                        const out = this.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(pointInfo.vfdName, pointInfo.pointId, displayValue);
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Failed to initialize subscriber:', error);
+    }
+
+    // Function to subscribe to a point using Niagara Baja
+    function subscribeToPoint(vfdName, pointId, pointPath) {
+        console.log(`Subscribing to: ${pointPath}`);
+        
+        try {
+            require(['baja!'], function(baja) {
+                baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                    .then(point => {
+                        console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                        
+                        point.userData = { 
+                            vfdName: vfdName,
+                            pointId: pointId, 
+                            pointPath: pointPath
+                        };
+                        
+                        const out = point.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(vfdName, pointId, displayValue);
+                    })
+                    .catch(error => {
+                        console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                        updatePointValue(vfdName, pointId, 'Connection Error');
+                    });
+            });
+        } catch (error) {
+            console.error(`Failed to subscribe to ${pointPath}:`, error);
+            updatePointValue(vfdName, pointId, 'Connection Error');
+        }
+    }
+
+    // Function to create the VFD table display
+    function createVFDDisplay(vfdData) {
+        const mainContent = document.getElementById('main-content');
+        
+        if (Object.keys(vfdData).length === 0) {
+            mainContent.innerHTML = '<div class="error">No VFD configurations found in JSON file.</div>';
+            return;
+        }
+        
+        let html = `
+            <table class="vav-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Speed</th>
+                        <th>Frequency</th>
+                        <th>Torque</th>
+                        <th>Power</th>
+                        <th>Current</th>
+                        <th>Voltage</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        const sortedVFDNames = Object.keys(vfdData).sort();
+
+        sortedVFDNames.forEach(vfdName => {
+            const points = vfdData[vfdName];
+            
+            // Extract middle number from VFD name 
+            const vfdParts = vfdName.split('_');
+            const middleNumber = vfdParts.length >= 3 ? vfdParts[1] : '00';
+            
+            // Build the hyperlink path
+            // const vfdLink = `../VFDs/VFD_${middleNumber}/${vfdName}.html`;
+            const vfdLink = `../VFDs/${vfdName}.html`;
+
+            html += `
+                <tr>
+                    <td class="vav-name"><a href="${vfdLink}">${vfdName}</a></td>
+                    <td id="point-${vfdName}-speed" class="value-loading">Loading...</td>
+                    <td id="point-${vfdName}-frequency" class="value-loading">Loading...</td>
+                    <td id="point-${vfdName}-torque" class="value-loading">Loading...</td>
+                    <td id="point-${vfdName}-power" class="value-loading">Loading...</td>
+                    <td id="point-${vfdName}-current" class="value-loading">Loading...</td>
+                    <td id="point-${vfdName}-voltage" class="value-loading">Loading...</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        mainContent.innerHTML = html;
+
+        // Subscribe to all points
+        sortedVFDNames.forEach(vfdName => {
+            const points = vfdData[vfdName];
+            
+            // Map the point IDs to the points we need
+            const pointMapping = {
+                'speed': points.find(p => p.id === 'speed'),
+                'frequency': points.find(p => p.id === 'frequency'),
+                'torque': points.find(p => p.id === 'torque'),
+                'power': points.find(p => p.id === 'power'),
+                'current': points.find(p => p.id === 'current'),
+                'voltage': points.find(p => p.id === 'voltage')
+            };
+            
+            Object.keys(pointMapping).forEach(pointId => {
+                const point = pointMapping[pointId];
+                if (point && point.status === 'connected') {
+                    subscribeToPoint(vfdName, pointId, point.fullPath);
+                } else {
+                    // Use "NO_" prefix for missing points with proper naming
+                    let missingName = 'N/A';
+                    if (pointId === 'speed') missingName = 'NO_Speed';
+                    else if (pointId === 'frequency') missingName = 'NO_Frequency';
+                    else if (pointId === 'torque') missingName = 'NO_Torque';
+                    else if (pointId === 'power') missingName = 'NO_Power';
+                    else if (pointId === 'current') missingName = 'NO_Current';
+                    else if (pointId === 'voltage') missingName = 'NO_Voltage';
+                    
+                    console.warn(`Point ${pointId} not found or not connected for VFD ${vfdName}`);
+                    updatePointValue(vfdName, pointId, missingName);
+                }
+            });
+        });
+    }
+
+    // Function to load and parse JSON configuration
+    async function loadAndDisplayVFDPoints() {
+        try {
+            console.log('=== LOADING VFD POINTS FROM JSON ===');
+            
+            const response = await fetch('../Global.json');
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+            }
+            
+            const jsonData = await response.json();
+            console.log('JSON data loaded:', jsonData);
+            
+            // Filter for VFD configurations only (must contain VFD, SF, RF, or EF in the name)
+            const vfdConfigs = {};
+            
+            Object.keys(jsonData.globalVariables).forEach(key => {
+                const keyLower = key.toLowerCase();
+                // Check if the key contains vfd_, sf_, rf_, or ef_ anywhere in the name
+                if (keyLower.includes('vfd_') || keyLower.includes('_sf') || 
+                    keyLower.includes('_rf') || keyLower.includes('_ef') ||
+                    keyLower.startsWith('rf_') || keyLower.startsWith('ef_')) {
+                    console.log(`Found VFD configuration: ${key}`);
+                    // Get all connected points for this VFD
+                    const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                        point.status === "connected"
+                    );
+                    if (connectedPoints.length > 0) {
+                        vfdConfigs[key] = connectedPoints;
+                    }
+                }
+            });
+            
+            allVFDPoints = vfdConfigs;
+            
+            console.log('Filtered VFD configurations:', vfdConfigs);
+            console.log('=== VFD POINT LOADING COMPLETE ===');
+            
+            createVFDDisplay(vfdConfigs);
+            
+        } catch (error) {
+            console.error('Error loading VFD points from JSON:', error);
+            document.getElementById('main-content').innerHTML = 
+                `<div class="error">Error loading VFD data: ${error.message}</div>`;
+        }
+    }
+
+    // Cleanup function for subscriptions
+    function cleanup() {
+        if (subscriber) {
+            subscriber.unsubscribeAll();
+            console.log('🧹 Cleaned up all subscriptions');
+        }
+    }
+
+    // Handle page unload
+    window.addEventListener('beforeunload', cleanup);
+
+    // Initialize the system
+    loadAndDisplayVFDPoints();
+</script>
+</body>
+</html>
