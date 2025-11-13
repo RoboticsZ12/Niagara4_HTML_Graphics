@@ -1223,7 +1223,6 @@ function determineUnitType(unitName) {
 
     return 'OTHER';
 }
-
 function displayPointResultsByType(points) {
     if (!points || points.length === 0) {
         statusDiv.className = "status error";
@@ -1250,8 +1249,44 @@ function displayPointResultsByType(points) {
     statusDiv.className = "status success";
     statusDiv.textContent = `Found ${points.length} point${points.length !== 1 ? "s" : ''} across ${Object.keys(groupedPoints).length} unit type${Object.keys(groupedPoints).length !== 1 ? 's' : ''}`;
 
+    // Common HVAC point patterns to auto-select (shortened for flexibility)
+    const commonHvacPoints = [
+        // Temperature points
+        'DISCH', 'DA_T', 'DAT',           // Discharge air temp
+        'ZN_T', 'ZONE_T', 'SPACE_T',      // Zone/space temp
+        'OA_T', 'OUTSIDE', 'OUTDOOR',     // Outside air temp
+        'MA_T', 'MIX', 'MIXED',           // Mixed air temp
+        'RA_T', 'RETURN', 'RET_AIR',      // Return air temp
+        'SA_T', 'SAT', 'SUPPLY_AIR',      // Supply air temp
+        'RM_T', 'ROOM', 'SPACE',
+        
+        // Valve points
+        'CLG_VLV', 'COOL', 'CHW',         // Cooling valve/chilled water
+        'HTG_VLV', 'HEAT', 'HW_VLV',      // Heating valve/hot water
+        
+        // Fan points
+        'SF_VFD', 'SF_', 'SUPPLY_FAN', 'SF',    // Supply fan
+        'RF_', 'RETURN_FAN', 'EF_',       // Return/exhaust fan
+        'FAN_SPEED', 'VFD',               // Fan speed/VFD
+        
+        // Damper points
+        'DAMPER', 'DMP', 'OA_DMP', 'DPR',        // Dampers
+        
+        // Setpoint points
+        // 'SETPOINT', '_SP', 'SET_PT',      // Setpoints
+        
+        // Status/control points
+        'OCCUPIED', 'OCC', 'ENABLE',      // Occupancy/enable
+        'STATUS', 'CMD', 'COMMAND', 'C',       // Status/command
+        'ALARM', 'FAULT',                  // Alarms/faults
+    
+        'WATERTEMP', 'LEAVING', 'ENTERING',
+        'OAT', 'OUTSIDE'
+    ];
+
     let html = `
         <div class="control-buttons">
+            <button onclick="autoSelectCommonPoints()">✨ Auto-Select Common HVAC Points</button>
             <button onclick="exportSelected()">💾 Save Selected to Global.json</button>
             <input type="file" id="driverPathInput" accept=".json" onchange="importGlobalJson(event)" />
         </div>
@@ -1341,7 +1376,31 @@ function displayPointResultsByType(points) {
     });
 
     resultsDiv.innerHTML = html;
+    
+    // Store common points list for auto-select function
+    window.commonHvacPoints = commonHvacPoints;
 }
+
+window.autoSelectCommonPoints = function() {
+    const allCheckboxes = document.querySelectorAll('.select-point');
+    let selectedCount = 0;
+    
+    allCheckboxes.forEach(checkbox => {
+        const pointName = checkbox.dataset.pointName.toUpperCase();
+        const isCommon = window.commonHvacPoints.some(pattern => 
+            pointName.includes(pattern)
+        );
+        
+        if (isCommon && !checkbox.checked) {
+            checkbox.checked = true;
+            handlePointSelection(checkbox);
+            selectedCount++;
+        }
+    });
+    
+    statusDiv.className = "status success";
+    statusDiv.textContent = `Auto-selected ${selectedCount} common HVAC points`;
+};
 
 window.handlePointIdChange = function(selectElement, pointName, unitType) {
     const selectedValue = selectElement.value;
