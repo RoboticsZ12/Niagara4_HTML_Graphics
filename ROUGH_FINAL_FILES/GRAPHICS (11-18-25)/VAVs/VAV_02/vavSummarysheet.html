@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f3a 50%, #0f2027 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(64, 224, 208, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.1), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .vav-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .vav-table th {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: #e0f7fa;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid rgba(64, 224, 208, 0.3);
+            text-shadow: 0 0 8px rgba(64, 224, 208, 0.4);
+            position: relative;
+        }
+
+        .vav-table th::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .vav-table th:last-child {
+            border-right: none;
+        }
+
+        .vav-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(64, 224, 208, 0.15);
+            border-right: 1px solid rgba(64, 224, 208, 0.15);
+            background: rgba(13, 20, 33, 0.6);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+        }
+
+        .vav-table td:last-child {
+            border-right: none;
+        }
+
+        .vav-table tr:nth-child(even) td {
+            background: rgba(26, 31, 58, 0.4);
+        }
+
+        .vav-table tr:nth-child(odd) td {
+            background: rgba(15, 32, 39, 0.5);
+        }
+
+        .vav-table tr:hover td {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.3));
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.2);
+        }
+
+        .vav-name {
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .value-loading {
+            color: #7c3aed;
+            font-style: italic;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .value-error {
+            color: #f87171;
+            font-style: italic;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .value-normal {
+            color: #67e8f9;
+            font-weight: 500;
+            text-shadow: 0 0 8px rgba(103, 232, 249, 0.3);
+        }
+
+        .value-active {
+            color: #34d399;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            animation: glow-green 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-green {
+            from { text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+            to { text-shadow: 0 0 15px rgba(52, 211, 153, 0.7); }
+        }
+
+        .value-inactive {
+            color: #64748b;
+            text-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.2));
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+        
+        /* Hyperlink styling for Name column */
+.ahu-name a,
+.vav-name a {
+    color: #007bff;          
+    text-decoration: none;    
+}
+
+.ahu-name a:hover,
+.vav-name a:hover {
+    color: #0056b3;         
+    text-decoration: underline;
+}
+
+.ahu-name a:visited,
+.vav-name a:visited {
+    color: #bdbdbd;         
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VAV Summary Sheet</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading VAV data...</div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+<script>
+    // Global variables
+    let pointSubscriptions = [];
+    let pointValues = {};
+    let allVAVPoints = {};
+    let subscriber;
+
+    // User authorization check
+    function isAuthorizedUser() {
+        const username = 'murphy'; // Simulated user
+        console.log('Current user:', username);
+        
+        if (!username) {
+            console.log('No user found');
+            return false;
+        }
+        
+        const authorizedUsers = ['murphy', 'admin'];
+        const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+        
+        console.log('User authorized for point display:', isAuthorized);
+        return isAuthorized;
+    }
+
+    // Check authorization before proceeding
+    if (!isAuthorizedUser()) {
+        console.log('Point display script terminated - user not authorized');
+        document.getElementById('main-content').innerHTML = 
+            '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+        throw new Error('Unauthorized access');
+    }
+
+    // Function to extract VAV folder from current path
+    function getCurrentVAVFolder() {
+        const path = window.location.pathname;
+        console.log('Current path:', path);
+        
+        // Match pattern like /VAVs/VAV_00/ or /VAVs/VAV_02/
+        const match = path.match(/\/VAVs\/VAV_(\d+)\//);
+        
+        if (match) {
+            const vavFolder = match[1]; // Extract the number (00, 02, etc.)
+            console.log('Detected VAV folder:', vavFolder);
+            return vavFolder;
+        }
+        
+        console.log('No VAV folder detected in path');
+        return null;
+    }
+
+    // Function to format point values
+    function formatPointValue(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return value;
+        }
+        
+        if (pointId === 'Reheat1') {
+            // Heat Command - show active/inactive
+            return value ? 'Heat ON' : 'Heat OFF';
+        } else if (pointId === 'Air-Flow') {
+            // Airflow in CFM
+            return Math.round(value) + ' cfm';
+        } else if (pointId === 'DPR-Pos') {
+            // Damper position as percent
+            return Math.round(value) + '%';
+        } else if (typeof value === 'number') {
+            // Numeric values default to °F
+            return value.toFixed(1) + '°F';
+        }
+        
+        return value.toString();
+    }
+
+    // Function to get CSS class for value styling
+    function getValueClass(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return 'value-error';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return 'value-missing';
+        }
+        
+        if (pointId === 'Reheat1') {
+            return value ? 'value-active' : 'value-inactive';
+        }
+        
+        return 'value-normal';
+    }
+
+    // Function to update point value in the display
+    function updatePointValue(vavName, pointId, value) {
+        const elementId = `point-${vavName}-${pointId}`;
+        const valueElement = document.getElementById(elementId);
+        if (valueElement) {
+            const formattedValue = formatPointValue(value, pointId);
+            const valueClass = getValueClass(value, pointId);
+            
+            valueElement.textContent = formattedValue;
+            valueElement.className = valueClass;
+            
+            if (!pointValues[vavName]) pointValues[vavName] = {};
+            pointValues[vavName][pointId] = value;
+        }
+    }
+
+    // Initialize subscriber
+    try {
+        require(['baja!'], function(baja) {
+            subscriber = new baja.Subscriber();
+            
+            subscriber.attach('changed', function(prop) {
+                if (prop.getName() === 'out') {
+                    const pointInfo = this.userData;
+                    if (pointInfo) {
+                        const out = this.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(pointInfo.vavName, pointInfo.pointId, displayValue);
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Failed to initialize subscriber:', error);
+    }
+
+    // Function to subscribe to a point using Niagara Baja
+    function subscribeToPoint(vavName, pointId, pointPath) {
+        console.log(`Subscribing to: ${pointPath}`);
+        
+        try {
+            require(['baja!'], function(baja) {
+                baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                    .then(point => {
+                        console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                        
+                        point.userData = { 
+                            vavName: vavName,
+                            pointId: pointId, 
+                            pointPath: pointPath
+                        };
+                        
+                        const out = point.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(vavName, pointId, displayValue);
+                    })
+                    .catch(error => {
+                        console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                        updatePointValue(vavName, pointId, 'Connection Error');
+                    });
+            });
+        } catch (error) {
+            console.error(`Failed to subscribe to ${pointPath}:`, error);
+            updatePointValue(vavName, pointId, 'Connection Error');
+        }
+    }
+
+    // Function to create the VAV table display
+    function createVAVDisplay(vavData) {
+        const mainContent = document.getElementById('main-content');
+        
+        if (Object.keys(vavData).length === 0) {
+            mainContent.innerHTML = '<div class="error">No VAV configurations found in JSON file.</div>';
+            return;
+        }
+        
+        let html = `
+            <table class="vav-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Space Temp</th>
+                        <th>Space Setpoint</th>
+                        <th>Air Flow</th>
+                        <th>Heat Command</th>
+                        <th>DA Temp</th>
+                        <th>Damper Pos</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        const sortedVAVNames = Object.keys(vavData).sort();
+
+        sortedVAVNames.forEach(vavName => {
+            const points = vavData[vavName];
+            
+            // Extract middle number from VAV name 
+            const vavParts = vavName.split('_');
+            const middleNumber = vavParts.length >= 3 ? vavParts[1] : '00';
+            
+            // Build the hyperlink path: VAV_xx_yy.html (same folder)
+            const vavLink = `${vavName}.html`;
+            
+            html += `
+                <tr>
+                    <td class="vav-name"><a href="${vavLink}">${vavName}</a></td>
+                    <td id="point-${vavName}-Space-Temp" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Space-Setpoint" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Air-Flow" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Reheat1" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-DA-T" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-DPR-Pos" class="value-loading">Loading...</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        mainContent.innerHTML = html;
+
+        // Subscribe to all points
+        sortedVAVNames.forEach(vavName => {
+            const points = vavData[vavName];
+            
+            // Map the point IDs to the points we need
+            const pointMapping = {
+                'Space-Temp': points.find(p => p.id === 'Space-Temp'),
+                'Space-Setpoint': points.find(p => p.name === 'EffectSP'),
+                'Air-Flow': points.find(p => p.id === 'Air-Flow'),
+                'Reheat1': points.find(p => p.id === 'Reheat1'),
+                'DA-T': points.find(p => p.id === 'DA-T'),
+                'DPR-Pos': points.find(p => p.id === 'DPR-Pos')
+            };
+            
+            Object.keys(pointMapping).forEach(pointId => {
+                const point = pointMapping[pointId];
+                if (point && point.status === 'connected') {
+                    subscribeToPoint(vavName, pointId, point.fullPath);
+                } else {
+                    // Use "NO_" prefix for missing points with proper naming
+                    let missingName = 'N/A';
+                    if (pointId === 'Space-Temp') missingName = 'NO_Space Temp';
+                    else if (pointId === 'Space-Setpoint') missingName = 'NO_Space Setpoint';
+                    else if (pointId === 'Air-Flow') missingName = 'NO_Air Flow';
+                    else if (pointId === 'Reheat1') missingName = 'NO_Heat Command';
+                    else if (pointId === 'DA-T') missingName = 'NO_DA Temp';
+                    else if (pointId === 'DPR-Pos') missingName = 'NO_Damper Pos';
+                    
+                    console.warn(`Point ${pointId} not found or not connected for VAV ${vavName}`);
+                    updatePointValue(vavName, pointId, missingName);
+                }
+            });
+        });
+    }
+
+    // Function to load and parse JSON configuration
+    async function loadAndDisplayVAVPoints() {
+        try {
+            console.log('=== LOADING VAV POINTS FROM JSON ===');
+            
+            // Get the current VAV folder from the path
+            const currentVAVFolder = getCurrentVAVFolder();
+            
+            if (!currentVAVFolder) {
+                throw new Error('Could not determine VAV folder from path');
+            }
+            
+            const response = await fetch('../../Global.json');
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+            }
+            
+            const jsonData = await response.json();
+            console.log('JSON data loaded:', jsonData);
+            
+            // Filter for VAV configurations that match the current folder
+            const vavConfigs = {};
+            
+            Object.keys(jsonData.globalVariables).forEach(key => {
+                // Check if key starts with vav_ and matches the current folder number
+                if (key.toLowerCase().startsWith('vav_')) {
+                    const vavParts = key.split('_');
+                    // vavParts should be like ['VAV', '00', '01'] or ['vav', '00', '01']
+                    if (vavParts.length >= 2) {
+                        const vavFolderNumber = vavParts[1]; // Get the middle number (00, 02, etc.)
+                        
+                        // Only include VAVs that match the current folder
+                        if (vavFolderNumber === currentVAVFolder) {
+                            console.log(`Found matching VAV configuration: ${key}`);
+                            // Get all connected points for this VAV
+                            const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                                point.status === "connected"
+                            );
+                            if (connectedPoints.length > 0) {
+                                vavConfigs[key] = connectedPoints;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            allVAVPoints = vavConfigs;
+            
+            console.log(`Filtered VAV configurations for VAV_${currentVAVFolder}:`, vavConfigs);
+            console.log('=== VAV POINT LOADING COMPLETE ===');
+            
+            createVAVDisplay(vavConfigs);
+            
+        } catch (error) {
+            console.error('Error loading VAV points from JSON:', error);
+            document.getElementById('main-content').innerHTML = 
+                `<div class="error">Error loading VAV data: ${error.message}</div>`;
+        }
+    }
+
+    // Cleanup function for subscriptions
+    function cleanup() {
+        if (subscriber) {
+            subscriber.unsubscribeAll();
+            console.log('🧹 Cleaned up all subscriptions');
+        }
+    }
+
+    // Handle page unload
+    window.addEventListener('beforeunload', cleanup);
+
+    // Initialize the system
+    loadAndDisplayVAVPoints();
+</script>
+
+
+</body>
+</html>
