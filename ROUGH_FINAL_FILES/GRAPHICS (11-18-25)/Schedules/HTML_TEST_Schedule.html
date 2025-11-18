@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<!-- Add RequireJS and BajaScript Support -->
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-size: 11px;
+        }
+        .schedule-container {
+            background: white;
+            border: 1px solid #ccc;
+            max-width: auto;
+            margin: 0 auto;
+        }
+        
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(7, 1fr);
+            border-collapse: collapse;
+            width: auto;
+        }
+        
+        .day-header {
+            background-color: #e8e8e8;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #999;
+            font-size: 11px;
+            position: relative;
+        }
+        
+        .day-header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .day-name {
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        .day-status {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .time-label {
+            background-color: #e8e8e8;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: normal;
+            border: 1px solid #999;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .time-slot {
+            background-color: white;
+            border: 1px solid #999;
+            height: 100px;
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+        }
+        
+        .time-slot:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .time-slot.active {
+            background-color: #4CAF50;
+        }
+        
+        .controls-panel {
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-top: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 11px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .control-label {
+            font-weight: bold;
+            min-width: 70px;
+        }
+        
+        .time-input {
+            width: 60px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            font-size: 11px;
+        }
+        
+        .time-display {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 2px 4px;
+            font-size: 11px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .output-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-circle {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid #666;
+        }
+        
+        .status-null {
+            background-color: white;
+        }
+        
+        .status-true {
+            background-color: #4CAF50;
+        }
+        
+        .status-false {
+            background-color: white;
+        }
+        
+        .button-panel {
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-top: 1px solid #ccc;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        
+        .niagara-btn {
+            padding: 4px 8px;
+            border: 1px solid #999;
+            background: linear-gradient(to bottom, #f8f8f8, #e0e0e0);
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .niagara-btn:hover {
+            background: linear-gradient(to bottom, #e8e8e8, #d0d0d0);
+        }
+        
+        .niagara-btn:active {
+            background: linear-gradient(to bottom, #d0d0d0, #e8e8e8);
+        }
+        
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+            background-color: #666;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        
+        .btn-weekly { background-color: #4CAF50; }
+        .btn-special { background-color: #FF9800; }
+        .btn-properties { background-color: #2196F3; }
+        .btn-summary { background-color: #9C27B0; }
+        .btn-save { background-color: #4CAF50; }
+        .btn-refresh { background-color: #607D8B; }
+        
+        .spacer {
+            flex-grow: 1;
+        }
+        
+        .niagara-status {
+            margin-top: 5px;
+            padding: 5px;
+            background-color: #e9ecef;
+            border: 1px solid #ccc;
+            font-size: 10px;
+        }
+
+        .back-button {
+            cursor: pointer;
+            color: #0066cc;
+            text-decoration: underline;
+        }
+        
+        
+        .page-title {
+  text-align: center;
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 10px;
+  color: #333;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 10px;
+}
+
+    </style>
+</head>
+<body>
+  
+  <div id="pageTitle" class="page-title"></div>
+
+  
+   <div class="schedule-container">
+        <div class="schedule-grid" id="scheduleGrid">
+            <!-- Grid will be populated by JavaScript -->
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-group">
+                <span class="control-label">Event Start</span>
+                <input type="time" class="time-input" id="eventStart" value="10:37" readonly>
+                <span class="time-display" id="eventStartDisplay">AM</span>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Event Finish</span>
+                <input type="time" class="time-input" id="eventFinish" value="10:37" readonly>
+                <span class="time-display" id="eventFinishDisplay">AM</span>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">Event Output</span>
+                <div class="output-indicator">
+                    <div class="status-circle status-null" id="outputIndicator"></div>
+                    <span>null</span>
+                    <div class="status-circle status-true"></div>
+                    <span id="outputValue">true</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-panel">
+            <button class="niagara-btn" id="weeklyScheduleBtn">
+                <span class="btn-icon btn-weekly"></span>
+                Weekly Schedule
+            </button>
+            
+            <button class="niagara-btn" id="summaryBtn">
+                <span class="btn-icon btn-summary"></span>
+                Summary
+            </button>
+            
+            <div class="spacer"></div>
+            
+            <button class="niagara-btn" id="saveBtn">
+                <span class="btn-icon btn-save"></span>
+                Save
+            </button>
+            
+            <button class="niagara-btn" id="refreshBtn">
+                <span class="btn-icon btn-refresh"></span>
+                Refresh
+            </button>
+        </div>
+        
+        <div class="niagara-status" id="niagaraStatus">
+      <div class="back-button" onclick="history.back()">
+        ← Back
+      </div>
+      </div>
+
+    </div>
+
+
+
+<script>
+require(['baja!', 'baja!schedule:DateRangeSchedule' ], function(baja) {
+    'use strict';
+
+    const scheduleORD = 'station:|slot:/Schedules1/HTML_TEST'; // replace with your point
+
+    async function debugScheduleInOut() {
+        try {
+            const schedulePoint = await baja.Ord.make(scheduleORD).get();
+
+            if (!schedulePoint) {
+                console.error('Schedule point not found');
+                return;
+            }
+
+            // Access the 'in' slot
+            const inValue = schedulePoint.getIn ? schedulePoint.getIn().getValue() : schedulePoint.read('in');
+            console.log('IN slot value:', inValue);
+
+            // Access the 'out' slot
+            const outValue = schedulePoint.getOut ? schedulePoint.getOut().getValue() : schedulePoint.read('out');
+            console.log('OUT slot value:', outValue);
+
+            // Optional: show the effective slot as well
+            const effectiveValue = schedulePoint.read ? schedulePoint.read('effective') : null;
+            console.log('EFFECTIVE slot value:', effectiveValue);
+
+        } catch (err) {
+            console.error('Error reading schedule slots:', err);
+        }
+    }
+
+    // Call function
+    debugScheduleInOut();
+
+    // Expose globally if you want
+    window.debugScheduleInOut = debugScheduleInOut;
+});
+</script>
+
+
+
+
+
+
+
+<script>
+  // Get the current file name from the URL
+  const filePath = window.location.pathname;
+  const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+  const titleText = fileName.replace('.html', '');
+
+  // Set the text content of the title div
+  document.getElementById('pageTitle').textContent = titleText;
+</script>
+
+
+
+</body>
+</html>
