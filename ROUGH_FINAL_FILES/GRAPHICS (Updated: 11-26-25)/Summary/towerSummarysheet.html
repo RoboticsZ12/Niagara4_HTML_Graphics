@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - Chiller Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f3a 50%, #0f2027 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 2000px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(64, 224, 208, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.1), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .tables-container {
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .chiller-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+            margin-bottom: 15px;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(49, 46, 129, 0.3));
+            border-radius: 8px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+            text-align: center;
+        }
+
+        .chiller-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            background: transparent;
+        }
+
+        .chiller-table th {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: #e0f7fa;
+            padding: 10px 6px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid rgba(64, 224, 208, 0.3);
+            text-shadow: 0 0 8px rgba(64, 224, 208, 0.4);
+            position: relative;
+            font-size: 11px;
+        }
+
+        .chiller-table th::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .chiller-table th:last-child {
+            border-right: none;
+        }
+
+        .chiller-table td {
+            padding: 8px 6px;
+            text-align: center;
+            border-bottom: 1px solid rgba(64, 224, 208, 0.15);
+            border-right: 1px solid rgba(64, 224, 208, 0.15);
+            background: rgba(13, 20, 33, 0.6);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+            font-size: 11px;
+        }
+
+        .chiller-table td:last-child {
+            border-right: none;
+        }
+
+        .chiller-table tr:hover td {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.3));
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.2);
+        }
+
+        .point-label {
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+            text-align: left;
+            padding-left: 10px;
+            font-size: 11px;
+        }
+
+        .value-loading {
+            color: #7c3aed;
+            font-style: italic;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .value-error {
+            color: #f87171;
+            font-style: italic;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .value-normal {
+            color: #67e8f9;
+            font-weight: 500;
+            text-shadow: 0 0 8px rgba(103, 232, 249, 0.3);
+        }
+
+        .value-active {
+            color: #34d399;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            animation: glow-green 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-green {
+            from { text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+            to { text-shadow: 0 0 15px rgba(52, 211, 153, 0.7); }
+        }
+
+        .value-inactive {
+            color: #64748b;
+            text-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+        }
+
+        .value-alarm {
+            color: #ef4444;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+            animation: glow-red 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-red {
+            from { text-shadow: 0 0 10px rgba(239, 68, 68, 0.7); }
+            to { text-shadow: 0 0 15px rgba(239, 68, 68, 0.9); }
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.2));
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Tower System Monitoring</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading Chiller data...</div>
+        </div>
+    </div>
+
+
+
+
+
+<script>
+// Global variables
+let pointSubscriptions = [];
+let pointValues = {};
+let allTowerPoints = {};
+let subscriber;
+
+// User authorization check
+function isAuthorizedUser() {
+    const username = 'murphy'; // Simulated user
+    console.log('Current user:', username);
+    
+    if (!username) {
+        console.log('No user found');
+        return false;
+    }
+    
+    const authorizedUsers = ['murphy', 'admin'];
+    const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+    
+    console.log('User authorized for point display:', isAuthorized);
+    return isAuthorized;
+}
+
+// Check authorization before proceeding
+if (!isAuthorizedUser()) {
+    console.log('Point display script terminated - user not authorized');
+    document.getElementById('main-content').innerHTML = 
+        '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+    throw new Error('Unauthorized access');
+}
+
+// Individual Tower point definitions - these will be matched per tower
+const individualTowerPoints = [
+    { id: 'ST', label: 'Supply Temp', suffix: '-ST' },
+    { id: 'FAN-EN', label: 'Fan Enable', suffix: '_' },
+    { id: 'TMP-LEAVE', label: 'Leaving Temp', suffix: '' }
+];
+
+const towerControllerPoints = [
+    { id: 'LEAD_TOWER', label: 'Lead Tower' }
+];
+
+// Function to format point values
+function formatPointValue(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+    }
+    
+    // Check if value is a boolean
+    if (typeof value === 'boolean') {
+        // Boolean-specific points
+        if (pointId.includes('FAN-EN')) {
+            return value ? 'Enabled' : 'Disabled';
+        }
+        // Generic boolean
+        return value ? 'ON' : 'OFF';
+    }
+    
+    // Lead Tower - show tower number
+    if (pointId === 'LEAD_TOWER' && typeof value === 'number') {
+        return 'Tower ' + Math.round(value);
+    }
+    
+    // Temperature points (numeric values)
+    if (pointId.includes('-ST') || pointId.includes('TMP-LEAVE')) {
+        if (typeof value === 'number') {
+            return value.toFixed(1) + '°F';
+        }
+    }
+    
+    // Numeric values
+    if (typeof value === 'number') {
+        return value.toFixed(1);
+    }
+    
+    // String values
+    return value.toString();
+}
+
+// Function to get CSS class for value styling
+function getValueClass(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return 'value-error';
+    }
+    
+    // Fan Enable points - check boolean values
+    if (pointId.includes('FAN-EN')) {
+        if (typeof value === 'boolean') {
+            return value ? 'value-active' : 'value-inactive';
+        }
+    }
+    
+    // Temperature values - always normal styling
+    if (typeof value === 'number') {
+        return 'value-normal';
+    }
+    
+    return 'value-normal';
+}
+
+// Function to update point value in the display
+function updatePointValue(towerName, pointId, value) {
+    const elementId = `point-${towerName}-${pointId}`;
+    const valueElement = document.getElementById(elementId);
+    if (valueElement) {
+        const formattedValue = formatPointValue(value, pointId);
+        const valueClass = getValueClass(value, pointId);
+        
+        valueElement.textContent = formattedValue;
+        valueElement.className = valueClass;
+        
+        if (!pointValues[towerName]) pointValues[towerName] = {};
+        pointValues[towerName][pointId] = value;
+    }
+}
+
+// Initialize subscriber
+try {
+    require(['baja!'], function(baja) {
+        subscriber = new baja.Subscriber();
+        
+        subscriber.attach('changed', function(prop) {
+            if (prop.getName() === 'out') {
+                const pointInfo = this.userData;
+                if (pointInfo) {
+                    const out = this.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(pointInfo.towerName, pointInfo.pointId, displayValue);
+                }
+            }
+        });
+    });
+} catch (error) {
+    console.error('Failed to initialize subscriber:', error);
+}
+
+// Function to subscribe to a point using Niagara Baja
+function subscribeToPoint(towerName, pointId, pointPath) {
+    console.log(`Subscribing to: ${pointPath}`);
+    
+    try {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                .then(point => {
+                    console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                    
+                    point.userData = { 
+                        towerName: towerName,
+                        pointId: pointId, 
+                        pointPath: pointPath
+                    };
+                    
+                    const out = point.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(towerName, pointId, displayValue);
+                })
+                .catch(error => {
+                    console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                    updatePointValue(towerName, pointId, 'Connection Error');
+                });
+        });
+    } catch (error) {
+        console.error(`Failed to subscribe to ${pointPath}:`, error);
+        updatePointValue(towerName, pointId, 'Connection Error');
+    }
+}
+
+// Function to create horizontal tower tables
+function createHorizontalTowerTable(towerNames, points, isController = false) {
+    let html = `
+        <div class="tower-section">
+            <table class="tower-table">
+                <thead>
+                    <tr>
+                        <th>Point</th>
+    `;
+    
+    // Add header for each tower
+    towerNames.forEach(name => {
+        html += `<th>${name}</th>`;
+    });
+    
+    html += `
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // Add row for each point
+    points.forEach(point => {
+        html += `<tr><td class="point-label">${point.label}</td>`;
+        
+        towerNames.forEach(towerName => {
+            html += `<td id="point-${towerName}-${point.id}" class="value-loading">Loading...</td>`;
+        });
+        
+        html += `</tr>`;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    return html;
+}
+
+// Function to create the complete tower display
+function createTowerDisplay(towerData) {
+    const mainContent = document.getElementById('main-content');
+    
+    if (Object.keys(towerData).length === 0) {
+        mainContent.innerHTML = '<div class="error">No Tower configurations found in JSON file.</div>';
+        return;
+    }
+    
+    let html = '<div class="main-grid">';
+    
+    // Get available towers
+    const availableTowers = ['Tower_1', 'Tower_2', 'Tower_3'].filter(name => towerData[name]);
+    
+    // Create horizontal table for Tower_1, Tower_2, Tower_3
+    if (availableTowers.length > 0) {
+        html += '<div class="tables-container">';
+        html += '<div class="section-title">Towers</div>';
+        html += '<div class="tower-section"><table class="tower-table"><thead><tr><th>Point</th>';
+        
+        // Add tower headers
+        availableTowers.forEach(name => {
+            html += `<th>${name}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        // Add rows for each point type
+        individualTowerPoints.forEach(pointDef => {
+            html += `<tr><td class="point-label">${pointDef.label}</td>`;
+            
+            availableTowers.forEach(towerName => {
+                // Extract tower number (1, 2, 3)
+                const towerNum = towerName.replace('Tower_', '');
+                
+                // Build the actual point ID based on the pattern
+                let actualPointId;
+                if (pointDef.id === 'ST') {
+                    actualPointId = `Tower${towerNum}-ST`;
+                } else if (pointDef.id === 'FAN-EN') {
+                    actualPointId = `FAN-EN_${towerNum}`;
+                } else if (pointDef.id === 'TMP-LEAVE') {
+                    actualPointId = `TMP-LEAVE${towerNum}`;
+                }
+                
+                html += `<td id="point-${towerName}-${actualPointId}" class="value-loading">Loading...</td>`;
+            });
+            
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        html += '</div>';
+    }
+    
+    // Create table for Tower_Controller (horizontal format)
+    if (towerData['Tower_Controller']) {
+        html += '<div class="tables-container">';
+        html += '<div class="section-title">Tower Controller</div>';
+        html += createHorizontalTowerTable(['Tower_Controller'], towerControllerPoints, true);
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    mainContent.innerHTML = html;
+    
+    // Subscribe to tower points
+    availableTowers.forEach(towerName => {
+        const points = towerData[towerName];
+        const towerNum = towerName.replace('Tower_', '');
+        
+        individualTowerPoints.forEach(pointDef => {
+            let actualPointId;
+            if (pointDef.id === 'ST') {
+                actualPointId = `Tower${towerNum}-ST`;
+            } else if (pointDef.id === 'FAN-EN') {
+                actualPointId = `FAN-EN_${towerNum}`;
+            } else if (pointDef.id === 'TMP-LEAVE') {
+                actualPointId = `TMP-LEAVE${towerNum}`;
+            }
+            
+            const point = points.find(p => p.id === actualPointId);
+            if (point && point.status === 'connected') {
+                subscribeToPoint(towerName, actualPointId, point.fullPath);
+            } else {
+                console.warn(`Point ${actualPointId} not found or not connected for ${towerName}`);
+                updatePointValue(towerName, actualPointId, 'N/A');
+            }
+        });
+    });
+    
+    // Subscribe to controller points
+    if (towerData['Tower_Controller']) {
+        const controllerPoints = towerData['Tower_Controller'];
+        
+        towerControllerPoints.forEach(pointDef => {
+            const point = controllerPoints.find(p => p.id === pointDef.id);
+            if (point && point.status === 'connected') {
+                subscribeToPoint('Tower_Controller', pointDef.id, point.fullPath);
+            } else {
+                console.warn(`Point ${pointDef.id} not found or not connected for Tower_Controller`);
+                updatePointValue('Tower_Controller', pointDef.id, 'N/A');
+            }
+        });
+    }
+}
+
+// Function to load and parse JSON configuration
+async function loadAndDisplayTowerPoints() {
+    try {
+        console.log('=== LOADING TOWER POINTS FROM JSON ===');
+        
+        const response = await fetch('../Global.json');
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+        }
+        
+        const jsonData = await response.json();
+        console.log('JSON data loaded:', jsonData);
+        
+        // Filter for Tower configurations only
+        const towerConfigs = {};
+        
+        Object.keys(jsonData.globalVariables).forEach(key => {
+            if (key === 'Tower_1' || key === 'Tower_2' || key === 'Tower_3' || key === 'Tower_Controller') {
+                console.log(`Found Tower configuration: ${key}`);
+                const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                    point.status === "connected"
+                );
+                if (connectedPoints.length > 0) {
+                    towerConfigs[key] = connectedPoints;
+                }
+            }
+        });
+        
+        allTowerPoints = towerConfigs;
+        
+        console.log('Filtered Tower configurations:', towerConfigs);
+        console.log('=== TOWER POINT LOADING COMPLETE ===');
+        
+        createTowerDisplay(towerConfigs);
+        
+    } catch (error) {
+        console.error('Error loading Tower points from JSON:', error);
+        document.getElementById('main-content').innerHTML = 
+            `<div class="error">Error loading Tower data: ${error.message}</div>`;
+    }
+}
+
+// Cleanup function for subscriptions
+function cleanup() {
+    if (subscriber) {
+        subscriber.unsubscribeAll();
+        console.log('🧹 Cleaned up all subscriptions');
+    }
+}
+
+// Handle page unload
+window.addEventListener('beforeunload', cleanup);
+
+// Initialize the system
+loadAndDisplayTowerPoints();
+</script>
+
+
+</body>
+</html>
