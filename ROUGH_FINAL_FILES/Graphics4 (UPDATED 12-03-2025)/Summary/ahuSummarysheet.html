@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0d1421 0%, #1a1f3a 50%, #0f2027 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(13, 20, 33, 0.95), rgba(26, 31, 58, 0.9));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(64, 224, 208, 0.2);
+            border-radius: 16px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(64, 224, 208, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.1), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .ahu-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .ahu-table th {
+            background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+            color: #e0f7fa;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid rgba(64, 224, 208, 0.3);
+            text-shadow: 0 0 8px rgba(64, 224, 208, 0.4);
+            position: relative;
+        }
+
+        .ahu-table th::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(64, 224, 208, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .ahu-table th:last-child {
+            border-right: none;
+        }
+
+        .ahu-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(64, 224, 208, 0.15);
+            border-right: 1px solid rgba(64, 224, 208, 0.15);
+            background: rgba(13, 20, 33, 0.6);
+            color: #b0bec5;
+            transition: all 0.3s ease;
+        }
+
+        .ahu-table td:last-child {
+            border-right: none;
+        }
+
+        .ahu-table tr:nth-child(even) td {
+            background: rgba(26, 31, 58, 0.4);
+        }
+
+        .ahu-table tr:nth-child(odd) td {
+            background: rgba(15, 32, 39, 0.5);
+        }
+
+        .ahu-table tr:hover td {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.3));
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.2);
+        }
+
+        .ahu-name {
+            font-weight: bold;
+            color: #40e0d0;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .value-loading {
+            color: #7c3aed;
+            font-style: italic;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .value-error {
+            color: #f87171;
+            font-style: italic;
+            text-shadow: 0 0 5px rgba(248, 113, 113, 0.5);
+        }
+
+        .value-normal {
+            color: #67e8f9;
+            font-weight: 500;
+            text-shadow: 0 0 8px rgba(103, 232, 249, 0.3);
+        }
+
+        .value-active {
+            color: #34d399;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+            animation: glow-green 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-green {
+            from { text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+            to { text-shadow: 0 0 15px rgba(52, 211, 153, 0.7); }
+        }
+
+        .value-inactive {
+            color: #64748b;
+            text-shadow: 0 0 5px rgba(100, 116, 139, 0.3);
+        }
+
+        .error {
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.3), rgba(49, 46, 129, 0.2));
+            color: #f87171;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #40e0d0;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+        
+        /* Hyperlink styling for Name column */
+.ahu-name a,
+.vav-name a {
+    color: #007bff;          
+    text-decoration: none;    
+}
+
+.ahu-name a:hover,
+.vav-name a:hover {
+    color: #0056b3;         
+    text-decoration: underline;
+}
+
+.ahu-name a:visited,
+.vav-name a:visited {
+    color: #bdbdbd;         
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AHU Summary Sheet</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading AHU data...</div>
+        </div>
+    </div>
+    
+    
+
+<script>
+// Global variables
+let pointSubscriptions = [];
+let pointValues = {};
+let allAHUPoints = {};
+let subscriber;
+
+// User authorization check
+function isAuthorizedUser() {
+    const username = 'murphy'; // Simulated user
+    console.log('Current user:', username);
+    
+    if (!username) {
+        console.log('No user found');
+        return false;
+    }
+    
+    const authorizedUsers = ['murphy', 'admin'];
+    const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+    
+    console.log('User authorized for point display:', isAuthorized);
+    return isAuthorized;
+}
+
+// Check authorization before proceeding
+if (!isAuthorizedUser()) {
+    console.log('Point display script terminated - user not authorized');
+    document.getElementById('main-content').innerHTML = 
+        '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+    throw new Error('Unauthorized access');
+}
+
+// Function to check if AHU name should be excluded (fan/exhaust/return equipment)
+function shouldExcludeAHU(ahuName) {
+    const excludePatterns = [
+        /SF/i,      // Supply Fan
+        /RF/i,      // Return Fan
+        /EF/i,      // Exhaust Fan
+        /\bFAN\b/i, // Fan (as whole word)
+        /EXHAUST/i, // Exhaust
+        /RETURN/i,  // Return
+        /VFD/i      // Variable Frequency Drive
+    ];
+    
+    const isExcluded = excludePatterns.some(pattern => pattern.test(ahuName));
+    
+    if (isExcluded) {
+        console.log(`Excluding ${ahuName} - matches fan/exhaust/return pattern`);
+    }
+    
+    return isExcluded;
+}
+
+// Function to format point values
+function formatPointValue(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+    }
+    
+    // Handle "NO_" prefix for missing points
+    if (typeof value === 'string' && value.startsWith('NO_')) {
+        return value;
+    }
+    
+    if (pointId === 'Fan-Stat') {
+        return value ? 'Fan ON' : 'Fan OFF';
+    } else if (pointId === 'DPR-cmd' || pointId === 'HTG-VLV' || pointId === 'Pre-HT-VLV' || pointId === 'CLG-VLV') {
+        return Math.round(value) + '%';
+    } else if (pointId === 'Occupancy') {
+        return value ? 'Occupied' : 'Unoccupied';
+    } else if (typeof value === 'number') {
+        return value.toFixed(1) + '°F';
+    }
+    
+    return value.toString();
+}
+
+// Function to get CSS class for value styling
+function getValueClass(value, pointId) {
+    if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+        return 'value-error';
+    }
+    
+    // Handle "NO_" prefix for missing points
+    if (typeof value === 'string' && value.startsWith('NO_')) {
+        return 'value-missing';
+    }
+    
+    if (pointId === 'Fan-Stat') {
+        return value ? 'value-active' : 'value-inactive';
+    }
+    if (pointId === 'Occupancy') {
+        return value ? 'value-active' : 'value-inactive';
+    }
+    
+    return 'value-normal';
+}
+
+// Function to update point value in the display
+function updatePointValue(ahuName, pointId, value) {
+    const elementId = `point-${ahuName}-${pointId}`;
+    const valueElement = document.getElementById(elementId);
+    if (valueElement) {
+        const formattedValue = formatPointValue(value, pointId);
+        const valueClass = getValueClass(value, pointId);
+        
+        valueElement.textContent = formattedValue;
+        valueElement.className = valueClass;
+        
+        if (!pointValues[ahuName]) pointValues[ahuName] = {};
+        pointValues[ahuName][pointId] = value;
+    }
+}
+
+// Initialize subscriber
+try {
+    require(['baja!'], function(baja) {
+        subscriber = new baja.Subscriber();
+        
+        subscriber.attach('changed', function(prop) {
+            if (prop.getName() === 'out') {
+                const pointInfo = this.userData;
+                if (pointInfo) {
+                    const out = this.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(pointInfo.ahuName, pointInfo.pointId, displayValue);
+                }
+            }
+        });
+    });
+} catch (error) {
+    console.error('Failed to initialize subscriber:', error);
+}
+
+// Function to subscribe to a point using Niagara Baja
+function subscribeToPoint(ahuName, pointId, pointPath) {
+    console.log(`Subscribing to: ${pointPath}`);
+    
+    try {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                .then(point => {
+                    console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                    
+                    point.userData = { 
+                        ahuName: ahuName,
+                        pointId: pointId, 
+                        pointPath: pointPath
+                    };
+                    
+                    const out = point.getOut();
+                    const displayValue = out.getValue();
+                    
+                    updatePointValue(ahuName, pointId, displayValue);
+                })
+                .catch(error => {
+                    console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                    updatePointValue(ahuName, pointId, 'Connection Error');
+                });
+        });
+    } catch (error) {
+        console.error(`Failed to subscribe to ${pointPath}:`, error);
+        updatePointValue(ahuName, pointId, 'Connection Error');
+    }
+}
+
+// Function to create the AHU table display
+function createAHUDisplay(ahuData) {
+    const mainContent = document.getElementById('main-content');
+    
+    if (Object.keys(ahuData).length === 0) {
+        mainContent.innerHTML = '<div class="error">No AHU configurations found in JSON file.</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="ahu-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>DA Temp</th>
+                    <th>Fan Status</th>
+                    <th>Occupancy</th>
+                    <th>Damper Pos OA</th>
+                    <th>Heating Valve</th>
+                    <th>Pre-Heat Valve</th>
+                    <th>Cooling Valve</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    const sortedAHUNames = Object.keys(ahuData).sort();
+    
+    sortedAHUNames.forEach(ahuName => {
+        // Build the hyperlink path: ../AHUs/Name.html
+        const ahuLink = `../AHUs/${ahuName}.html`;
+        
+        html += `
+            <tr>
+                <td class="ahu-name"><a href="${ahuLink}">${ahuName}</a></td>
+                <td id="point-${ahuName}-DA-T" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Fan-Stat" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Occupancy" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-DPR-cmd" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-HTG-VLV" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-Pre-HT-VLV" class="value-loading">Loading...</td>
+                <td id="point-${ahuName}-CLG-VLV" class="value-loading">Loading...</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    mainContent.innerHTML = html;
+    
+    // Subscribe to all points
+    sortedAHUNames.forEach(ahuName => {
+        const points = ahuData[ahuName];
+        
+        const pointMapping = {
+            'DA-T': points.find(p => p.id === 'DA-T'),
+            'Fan-Stat': points.find(p => p.id === 'Fan-Stat'),
+            'Occupancy': points.find(p => p.id === 'Occupancy'),
+            'DPR-cmd': points.find(p => p.id === 'DPR-cmd'),
+            'HTG-VLV': points.find(p => p.id === 'HTG-VLV'),
+            'Pre-HT-VLV': points.find(p => p.id === 'Pre-HT-VLV'),
+            'CLG-VLV': points.find(p => p.id === 'CLG-VLV')
+        };
+        
+        Object.keys(pointMapping).forEach(pointId => {
+            const point = pointMapping[pointId];
+            if (point && point.status === 'connected') {
+                subscribeToPoint(ahuName, pointId, point.fullPath);
+            } else {
+                // Use "NO_" prefix for missing points with proper naming
+                let missingName = 'N/A';
+                if (pointId === 'HTG-VLV') missingName = 'NO_Heating';
+                else if (pointId === 'Pre-HT-VLV') missingName = 'NO_PreHeat';
+                else if (pointId === 'CLG-VLV') missingName = 'NO_Cooling';
+                
+                console.warn(`Point ${pointId} not found or not connected for AHU ${ahuName}`);
+                updatePointValue(ahuName, pointId, missingName);
+            }
+        });
+    });
+}
+
+// Function to load and parse JSON configuration
+async function loadAndDisplayAHUPoints() {
+    try {
+        console.log('=== LOADING AHU POINTS FROM JSON ===');
+        
+        const response = await fetch('../Global.json');
+        
+        if (!response.ok) {
+            throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+        }
+        
+        const jsonData = await response.json();
+        console.log('JSON data loaded:', jsonData);
+        
+        // Filter for AHU configurations only, excluding fan/exhaust/return equipment
+        const ahuConfigs = {};
+        
+        Object.keys(jsonData.globalVariables).forEach(key => {
+            if (key.toLowerCase().startsWith('ahu_')) {
+                // Check if this AHU should be excluded
+                if (shouldExcludeAHU(key)) {
+                    console.log(`Skipping ${key} - fan/exhaust/return equipment`);
+                    return; // Skip this AHU
+                }
+                
+                console.log(`Found AHU configuration: ${key}`);
+                const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                    point.status === "connected"
+                );
+                if (connectedPoints.length > 0) {
+                    ahuConfigs[key] = connectedPoints;
+                }
+            }
+        });
+        
+        allAHUPoints = ahuConfigs;
+        
+        console.log('Filtered AHU configurations:', ahuConfigs);
+        console.log('=== AHU POINT LOADING COMPLETE ===');
+        
+        createAHUDisplay(ahuConfigs);
+        
+    } catch (error) {
+        console.error('Error loading AHU points from JSON:', error);
+        document.getElementById('main-content').innerHTML = 
+            `<div class="error">Error loading AHU data: ${error.message}</div>`;
+    }
+}
+
+// Cleanup function for subscriptions
+function cleanup() {
+    if (subscriber) {
+        subscriber.unsubscribeAll();
+        console.log('🧹 Cleaned up all subscriptions');
+    }
+}
+
+// Handle page unload
+window.addEventListener('beforeunload', cleanup);
+
+// Initialize the system
+loadAndDisplayAHUPoints();
+
+
+
+
+
+
+
+// ============================================
+// AHU HISTORY EXPORT FUNCTIONALITY
+// Add this code to your AHU summary script
+// Place it after loadAndDisplayAHUPoints() and BEFORE the cleanup section
+// ============================================
+
+// History cache for discovered history ORDs
+let ahuExportHistoryCache = new Map();
+
+// BQL History Discovery
+async function discoverAHUHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        try {
+            require(['baja!'], function (baja) {
+                console.log('Auto-discovering history from point:', pointOrd);
+                
+                baja.Ord.make(pointOrd).get()
+                    .then(function(entity) {
+                        return entity.tags();
+                    })
+                    .then(function(tagMap) {
+                        var historyTag = tagMap.get('n:history');
+                        console.log('Found history tag:', historyTag);
+                        
+                        if (historyTag && historyTag.toString().trim() !== '') {
+                            var historyPath = historyTag.toString();
+                            
+                            if (!historyPath.startsWith('history:')) {
+                                historyPath = 'history:' + historyPath;
+                            }
+                            
+                            console.log('Discovered history ORD:', historyPath);
+                            resolve(historyPath);
+                        } else {
+                            reject(new Error('No n:history tag found on point: ' + pointOrd));
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('Could not load tags:', err);
+                        reject(new Error('Failed to load point tags: ' + err.message));
+                    });
+            });
+        } catch (error) {
+            console.error('Baja require error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Load historical data using BQL
+async function loadAHUHistoryData(pointPath, startTime, endTime, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const cacheKey = pointPath;
+            let historyOrd = ahuExportHistoryCache.get(cacheKey);
+            
+            if (!historyOrd) {
+                try {
+                    historyOrd = await discoverAHUHistoryOrd(pointPath);
+                    ahuExportHistoryCache.set(cacheKey, historyOrd);
+                } catch (error) {
+                    console.warn(`No history found for point ${pointPath}:`, error.message);
+                    resolve([]);
+                    return;
+                }
+            }
+            
+            require(['baja!'], function (baja) {
+                const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+                const bqlQuery = historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+                
+                console.log('Executing BQL Query:', bqlQuery);
+                
+                const dataPoints = [];
+                
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function () {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            
+                            const date = new Date(rawTimestamp.getMillis());
+                            
+                            dataPoints.push({
+                                timestamp: date,
+                                timestampString: date.toLocaleString(),
+                                value: value
+                            });
+                        }
+                    }
+                })
+                .then(function () {
+                    console.log(`Loaded ${dataPoints.length} history points for ${pointPath}`);
+                    resolve(dataPoints);
+                })
+                .catch(function (err) {
+                    console.error('BQL Query failed:', err);
+                    reject(new Error('Failed to load history data: ' + err.message));
+                });
+            });
+            
+        } catch (error) {
+            console.error('History loading error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Collect all AHU point paths
+function getAllAHUPointPaths() {
+    const paths = [];
+    
+    Object.keys(allAHUPoints).forEach(ahuName => {
+        const points = allAHUPoints[ahuName];
+        
+        const pointMapping = {
+            'DA-T': points.find(p => p.id === 'DA-T'),
+            'Fan-Stat': points.find(p => p.id === 'Fan-Stat'),
+            'Occupancy': points.find(p => p.id === 'Occupancy'),
+            'DPR-cmd': points.find(p => p.id === 'DPR-cmd'),
+            'HTG-VLV': points.find(p => p.id === 'HTG-VLV'),
+            'Pre-HT-VLV': points.find(p => p.id === 'Pre-HT-VLV'),
+            'CLG-VLV': points.find(p => p.id === 'CLG-VLV')
+        };
+        
+        Object.keys(pointMapping).forEach(pointId => {
+            const point = pointMapping[pointId];
+            if (point && point.status === 'connected') {
+                paths.push({
+                    name: `${ahuName}_${pointId}`,
+                    ahuName: ahuName,
+                    pointId: pointId,
+                    path: point.fullPath
+                });
+            }
+        });
+    });
+    
+    return paths;
+}
+
+// CSV EXPORT with Historical Data
+async function exportAHUHistoryToCSV() {
+    console.log('📄 Generating AHU CSV export with historical data...');
+    
+    // Show loading message
+    const mainContent = document.getElementById('main-content');
+    const originalContent = mainContent.innerHTML;
+    mainContent.innerHTML = '<div style="text-align: center; padding: 50px; color: #26c6da; font-size: 1.5em;">Loading historical data for CSV export...</div>';
+    
+    try {
+        // // Get date range (last 24 hours by default)
+        // const endDate = new Date();
+        // const startDate = new Date();
+        // startDate.setDate(startDate.getDate() - 1);
+        const startDate = new Date(document.getElementById('ahu-start-datetime').value);
+const endDate = new Date(document.getElementById('ahu-end-datetime').value);
+
+        
+        const allPoints = getAllAHUPointPaths();
+        
+        if (allPoints.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No data points available to export');
+            return;
+        }
+        
+        // Load history for all points
+        const historyPromises = allPoints.map(point => 
+            loadAHUHistoryData(point.path, startDate, endDate, 1000)
+                .then(data => ({ pointName: point.name, data: data }))
+        );
+        
+        const allHistoryData = await Promise.all(historyPromises);
+        
+        // Create timestamp-based CSV structure
+        const timestampMap = new Map();
+        
+        allHistoryData.forEach(pointHistory => {
+            pointHistory.data.forEach(reading => {
+               // Detect if this reading.value is a time string (e.g. "2:15:00 PM")
+const isTimeString = typeof reading.value === 'string' &&
+                     /\d{1,2}:\d{2}(:\d{2})?\s?(AM|PM)/i.test(reading.value);
+
+let fullTimestamp;
+
+// If this reading is providing the TIME, merge it with the date
+if (isTimeString) {
+    fullTimestamp = `${reading.timestampString} ${reading.value}`;
+    
+    // Ensure this timestamp row exists
+    if (!timestampMap.has(fullTimestamp)) {
+        timestampMap.set(fullTimestamp, { timestamp: fullTimestamp });
+    }
+
+    // Do NOT store this "time point" as a value column
+    return;
+}
+
+// Normal point column (not a time column)
+fullTimestamp = [...timestampMap.keys()].find(ts =>
+    ts.startsWith(reading.timestampString)
+) || reading.timestampString;
+
+// Ensure row exists
+if (!timestampMap.has(fullTimestamp)) {
+    timestampMap.set(fullTimestamp, { timestamp: fullTimestamp });
+}
+
+// Store the real point value
+timestampMap.get(fullTimestamp)[pointHistory.pointName] = reading.value;
+
+            });
+        });
+        
+        // Convert to array and sort by timestamp
+        const sortedData = Array.from(timestampMap.values()).sort((a, b) => 
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+        
+        if (sortedData.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No historical data found for the selected time range');
+            return;
+        }
+        
+        // Build CSV headers
+        const headers = ['Timestamp', ...allPoints.map(p => p.name)];
+        let csvContent = headers.join(',') + '\n';
+        
+        // Build CSV rows
+sortedData.forEach(row => {
+    // Fix: wrap timestamp in quotes so Excel keeps it in one column
+const safeTimestamp = `"${row.timestamp.replace(/"/g, '""')}"`;
+
+    const csvRow = [
+        safeTimestamp,
+        ...allPoints.map(point => {
+            const value = row[point.name];
+            if (value === undefined || value === null) return '';
+            const strValue = String(value);
+            if (strValue.includes(',') || strValue.includes('"')) {
+                return `"${strValue.replace(/"/g, '""')}"`;
+            }
+            return strValue;
+        })
+    ];
+
+    csvContent += csvRow.join(',') + '\n';
+});
+
+        
+        // Download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const filename = `AHU_History_${startDate.toISOString().slice(0, 10)}_to_${endDate.toISOString().slice(0, 10)}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log(`✅ CSV exported: ${filename} (${sortedData.length} rows)`);
+        mainContent.innerHTML = originalContent;
+        alert(`CSV exported successfully: ${sortedData.length} readings`);
+        
+    } catch (error) {
+        console.error('Error exporting CSV:', error);
+        mainContent.innerHTML = originalContent;
+        alert('Failed to export CSV: ' + error.message);
+    }
+    
+}
+
+// Generate PDF Report with Historical Data
+async function generateAHUHistoryPDFReport() {
+    console.log('📄 Generating AHU PDF report with historical data...');
+    
+    // Show loading message
+    const mainContent = document.getElementById('main-content');
+    const originalContent = mainContent.innerHTML;
+    mainContent.innerHTML = '<div style="text-align: center; padding: 50px; color: #26c6da; font-size: 1.5em;">Loading historical data for PDF report...</div>';
+    
+    try {
+const startDate = new Date(document.getElementById('ahu-start-datetime').value);
+const endDate = new Date(document.getElementById('ahu-end-datetime').value);
+
+        
+        const allPoints = getAllAHUPointPaths();
+        
+        if (allPoints.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No data points available to export');
+            return;
+        }
+        
+        // Load history for all points
+        const historyPromises = allPoints.map(point => 
+            loadAHUHistoryData(point.path, startDate, endDate, 1000)
+                .then(data => ({ 
+                    pointName: point.name, 
+                    ahuName: point.ahuName, 
+                    pointId: point.pointId, 
+                    data: data 
+                }))
+        );
+        
+        const allHistoryData = await Promise.all(historyPromises);
+        
+        // Function to determine unit based on point ID
+        function getAHUPointUnit(pointId) {
+            if (pointId === 'DA-T') return '°F';
+            if (pointId === 'DPR-cmd' || pointId === 'HTG-VLV' || pointId === 'Pre-HT-VLV' || pointId === 'CLG-VLV') return '%';
+            if (pointId === 'Fan-Stat' || pointId === 'Occupancy') return '';
+            return '';
+        }
+        
+        // Group by AHU
+        const ahuGroups = {};
+        allHistoryData.forEach(pointHistory => {
+            if (!ahuGroups[pointHistory.ahuName]) {
+                ahuGroups[pointHistory.ahuName] = [];
+            }
+            ahuGroups[pointHistory.ahuName].push(pointHistory);
+        });
+        
+        // Calculate statistics for each point
+        const pointStats = allHistoryData.map(pointHistory => {
+            const values = pointHistory.data.map(d => parseFloat(d.value)).filter(v => !isNaN(v));
+            const unit = getAHUPointUnit(pointHistory.pointId);
+            
+            let stats;
+            if (values.length > 0) {
+                stats = {
+                    count: values.length,
+                    min: Math.min(...values),
+                    max: Math.max(...values),
+                    avg: values.reduce((a, b) => a + b, 0) / values.length
+                };
+            } else {
+                stats = {
+                    count: pointHistory.data.length,
+                    hasData: false
+                };
+            }
+            
+            return {
+                pointName: pointHistory.pointName,
+                ahuName: pointHistory.ahuName,
+                pointId: pointHistory.pointId,
+                stats: stats,
+                unit: unit,
+                latestValue: pointHistory.data.length > 0 ? 
+                    parseFloat(pointHistory.data[pointHistory.data.length - 1].value) : null,
+                historyData: pointHistory.data
+            };
+        });
+        
+        const reportDate = new Date().toLocaleString();
+        
+        // Build summary table by AHU
+        let summaryHTML = '<div style="page-break-inside: avoid;"><h2 style="color: #1e3c72; font-size: 18pt; margin-top: 25px; border-bottom: 2px solid #26c6da; padding-bottom: 8px;">AHU Summary Statistics</h2>';
+        
+        const sortedAHUNames = Object.keys(ahuGroups).sort();
+        
+        sortedAHUNames.forEach(ahuName => {
+            const ahuPoints = pointStats.filter(p => p.ahuName === ahuName);
+            
+            summaryHTML += `<h3 style="color: #37474f; font-size: 14pt; margin-top: 20px; margin-bottom: 10px;">${ahuName}</h3>`;
+            summaryHTML += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt;">';
+            summaryHTML += '<thead style="background: #263238; color: white;"><tr>';
+            summaryHTML += '<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Point</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Latest</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Min</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Avg</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Max</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Count</th>';
+            summaryHTML += '</tr></thead><tbody>';
+            
+            ahuPoints.forEach((point, index) => {
+                const bgColor = index % 2 === 0 ? '#f5f5f5' : '#ffffff';
+                
+                // Format point name for display
+                let displayName = point.pointId;
+                if (point.pointId === 'DA-T') displayName = 'DA Temp';
+                else if (point.pointId === 'Fan-Stat') displayName = 'Fan Status';
+                else if (point.pointId === 'Occupancy') displayName = 'Occupancy';
+                else if (point.pointId === 'DPR-cmd') displayName = 'OA Damper';
+                else if (point.pointId === 'HTG-VLV') displayName = 'Heating Valve';
+                else if (point.pointId === 'Pre-HT-VLV') displayName = 'Pre-Heat Valve';
+                else if (point.pointId === 'CLG-VLV') displayName = 'Cooling Valve';
+                
+                if (point.stats.hasData === false) {
+                    summaryHTML += `
+                        <tr style="background: ${bgColor};">
+                            <td style="padding: 6px; border: 1px solid #ddd;">${displayName}</td>
+                            <td colspan="5" style="padding: 6px; border: 1px solid #ddd; text-align: center; color: #999;">No Numeric Data</td>
+                        </tr>
+                    `;
+                } else {
+                    const latestDisplay = point.latestValue !== null ? point.latestValue.toFixed(2) : 'N/A';
+                    summaryHTML += `
+                        <tr style="background: ${bgColor};">
+                            <td style="padding: 6px; border: 1px solid #ddd; font-weight: 500;">${displayName}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;"><strong>${latestDisplay} ${point.unit}</strong></td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.min.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.avg.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.max.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${point.stats.count}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            summaryHTML += '</tbody></table>';
+        });
+        
+        summaryHTML += '</div>';
+        
+        // Build detailed history tables (limited to prevent huge PDFs)
+        let detailTablesHTML = '<div style="page-break-before: always;"><h2 style="color: #1e3c72; font-size: 18pt; margin-top: 25px; border-bottom: 2px solid #26c6da; padding-bottom: 8px;">Detailed Historical Data (Sample)</h2>';
+        detailTablesHTML += '<p style="color: #666; font-size: 9pt; margin-bottom: 15px;">Showing last 100 readings for each point</p></div>';
+        
+        // Limit detail tables to first 20 AHUs to keep PDF reasonable
+        const detailAHUs = sortedAHUNames.slice(0, 20);
+        
+        detailAHUs.forEach(ahuName => {
+            const ahuPoints = pointStats.filter(p => p.ahuName === ahuName);
+            
+            detailTablesHTML += `<div style="page-break-inside: avoid; margin-top: 25px;"><h3 style="color: #37474f; font-size: 12pt; margin-bottom: 10px;">${ahuName}</h3>`;
+            
+            ahuPoints.forEach(point => {
+                if (point.historyData && point.historyData.length > 0) {
+                    const displayData = point.historyData.slice(-100).reverse();
+                    
+                    let displayName = point.pointId;
+                    if (point.pointId === 'DA-T') displayName = 'DA Temp';
+                    else if (point.pointId === 'Fan-Stat') displayName = 'Fan Status';
+                    else if (point.pointId === 'Occupancy') displayName = 'Occupancy';
+                    else if (point.pointId === 'DPR-cmd') displayName = 'OA Damper';
+                    else if (point.pointId === 'HTG-VLV') displayName = 'Heating Valve';
+                    else if (point.pointId === 'Pre-HT-VLV') displayName = 'Pre-Heat Valve';
+                    else if (point.pointId === 'CLG-VLV') displayName = 'Cooling Valve';
+                    
+                    detailTablesHTML += `
+                        <h4 style="color: #546e7a; font-size: 10pt; margin: 15px 0 8px 0;">${displayName}</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 8pt;">
+                            <thead style="background: #37474f; color: white;">
+                                <tr>
+                                    <th style="padding: 6px; text-align: left; border: 1px solid #ddd;">Timestamp</th>
+                                    <th style="padding: 6px; text-align: right; border: 1px solid #ddd;">Value ${point.unit ? '(' + point.unit + ')' : ''}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    displayData.forEach((reading, idx) => {
+                        const bgColor = idx % 2 === 0 ? '#f9f9f9' : '#ffffff';
+                        const value = parseFloat(reading.value);
+                        const displayValue = !isNaN(value) ? value.toFixed(2) : reading.value;
+                        
+                        detailTablesHTML += `
+                            <tr style="background: ${bgColor};">
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 9pt;">${reading.timestampString}</td>
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; text-align: right;  font-size: 9pt; font-family: monospace;">${displayValue}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    detailTablesHTML += '</tbody></table>';
+                }
+            });
+            
+            detailTablesHTML += '</div>';
+        });
+        
+        if (sortedAHUNames.length > 20) {
+            detailTablesHTML += `<p style="text-align: center; color: #90a4ae; font-size: 9pt; margin-top: 20px;">Detailed history shown for first 10 AHUs only. Full data available in CSV export.</p>`;
+        }
+        
+        // Build complete PDF HTML
+        const pdfHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AHU Performance Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 15mm; font-size: 10pt; color: #000; }
+        .header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #1e3c72; padding-bottom: 15px; }
+        .header h1 { color: #1e3c72; font-size: 24pt; margin-bottom: 8px; }
+        .header p { color: #546e7a; font-size: 10pt; }
+        .info-section { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ddd; }
+        .info-row { display: flex; margin-bottom: 6px; }
+        .info-label { font-weight: bold; width: 140px; color: #37474f; }
+        .info-value { color: #546e7a; }
+        table { width: 100%; border-collapse: collapse; }
+        .footer { margin-top: 30px; text-align: center; color: #90a4ae; font-size: 9pt; border-top: 1px solid #e0e0e0; padding-top: 10px; page-break-inside: avoid; }
+        @media print {
+            body { padding: 10mm; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AHU Performance Report</h1>
+        <p>Murphy Control Panel - AHU Monitoring System</p>
+    </div>
+    
+    <div class="info-section">
+        <div class="info-row">
+            <div class="info-label">Report Generated:</div>
+            <div class="info-value">${reportDate}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Data Time Range:</div>
+            <div class="info-value">${startDate.toLocaleString()} to ${endDate.toLocaleString()}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Total AHUs:</div>
+            <div class="info-value">${sortedAHUNames.length} units monitored</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Total Data Points:</div>
+            <div class="info-value">${allPoints.length} points</div>
+        </div>
+    </div>
+    
+    ${summaryHTML}
+    ${detailTablesHTML}
+    
+    <div class="footer">
+        <p>Generated by Murphy Control Panel - AHU Monitoring System</p>
+        <p>${reportDate}</p>
+    </div>
+    
+    <div class="no-print" style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 2px solid #ddd; border-radius: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <button onclick="window.print()" style="padding: 12px 24px; background: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; margin-right: 10px;">
+            🖨️ Save as PDF
+        </button>
+        <button onclick="window.close()" style="padding: 12px 24px; background: #546e7a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            Close
+        </button>
+    </div>
+</body>
+</html>
+        `;
+        
+        mainContent.innerHTML = originalContent;
+        
+        const pdfWindow = window.open('', '_blank');
+        if (pdfWindow) {
+            pdfWindow.document.write(pdfHTML);
+            pdfWindow.document.close();
+            console.log('✅ PDF report generated successfully');
+        } else {
+            alert('Pop-up blocked. Please allow pop-ups for this site.');
+        }
+        
+    } catch (error) {
+        console.error('Error generating PDF report:', error);
+        mainContent.innerHTML = originalContent;
+        alert('Failed to generate report: ' + error.message);
+    }
+}
+
+// CREATE UI CONTROLS
+function createAHUExportControls() {
+    // Find a suitable place to add buttons - after the header or before the table
+    const mainContent = document.getElementById('main-content');
+    if (!mainContent) return;
+    
+    // Create controls container
+    const controlsDiv = document.createElement('div');
+    controlsDiv.id = 'ahu-export-controls';
+    controlsDiv.style.cssText = 'margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; padding: 20px; background: rgba(38, 198, 218, 0.1); border-radius: 10px;';
+    
+    const buttonStyle = `
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #26c6da 0%, #1e88e5 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(38, 198, 218, 0.3);
+    `;
+    
+    // --- Date/Time Inputs ---
+const startInput = document.createElement('input');
+startInput.type = 'datetime-local';
+startInput.id = 'ahu-start-datetime';
+startInput.style.cssText = 'padding: 10px; border-radius: 8px; border: 1px solid #ccc;';
+
+const endInput = document.createElement('input');
+endInput.type = 'datetime-local';
+endInput.id = 'ahu-end-datetime';
+endInput.style.cssText = 'padding: 10px; border-radius: 8px; border: 1px solid #ccc;';
+
+// Set defaults to last 24 hours
+const now = new Date();
+const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+startInput.value = yesterday.toISOString().slice(0,16);
+endInput.value = now.toISOString().slice(0,16);
+
+// Add inputs to controls
+controlsDiv.appendChild(startInput);
+controlsDiv.appendChild(endInput);
+
+    
+    
+    // CSV Export Button
+    const csvBtn = document.createElement('button');
+    csvBtn.textContent = '📊 Export CSV History';
+    csvBtn.style.cssText = buttonStyle;
+    csvBtn.onclick = exportAHUHistoryToCSV;
+    csvBtn.onmouseover = () => {
+        csvBtn.style.transform = 'translateY(-2px)';
+        csvBtn.style.boxShadow = '0 6px 20px rgba(38, 198, 218, 0.4)';
+    };
+    csvBtn.onmouseout = () => {
+        csvBtn.style.transform = '';
+        csvBtn.style.boxShadow = '0 4px 12px rgba(38, 198, 218, 0.3)';
+    };
+    
+    // PDF Report Button
+    const pdfBtn = document.createElement('button');
+    pdfBtn.textContent = '📄 Generate PDF Report';
+    pdfBtn.style.cssText = buttonStyle;
+    pdfBtn.onclick = generateAHUHistoryPDFReport;
+    pdfBtn.onmouseover = () => {
+        pdfBtn.style.transform = 'translateY(-2px)';
+        pdfBtn.style.boxShadow = '0 6px 20px rgba(38, 198, 218, 0.4)';
+    };
+    pdfBtn.onmouseout = () => {
+        pdfBtn.style.transform = '';
+        pdfBtn.style.boxShadow = '0 4px 12px rgba(38, 198, 218, 0.3)';
+    };
+    
+    controlsDiv.appendChild(csvBtn);
+    controlsDiv.appendChild(pdfBtn);
+    
+    // Insert before the main content
+    mainContent.parentNode.insertBefore(controlsDiv, mainContent);
+    
+    console.log('✅ AHU export controls added to UI');
+}
+
+// Initialize after AHU display loads
+setTimeout(createAHUExportControls, 0);
+
+console.log('✅ AHU history-based export functionality loaded');
+
+// ============================================
+// END OF AHU EXPORT CODE
+// ============================================
+
+
+</script>
+
+
+</body>
+</html>
