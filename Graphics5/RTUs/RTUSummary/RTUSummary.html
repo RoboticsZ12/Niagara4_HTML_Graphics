@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - Point Summary & History</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 25%, #2d1b4e 50%, #1e3a5f 75%, #0f2027 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background bubbles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 60% 70%, rgba(138, 43, 226, 0.25) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0px, 0px) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        .header {
+            text-align: center;
+            color: #e0e6ed;
+            margin: 30px 20px 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.9) 0%, rgba(45, 27, 78, 0.9) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 40px rgba(138, 43, 226, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(138, 43, 226, 0.1), transparent);
+            animation: shimmer 3s linear infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #64b5f6, #ab47bc, #26c6da);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            color: #b0c4de;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            color: #64b5f6;
+            font-weight: 700;
+            font-size: 1em;
+        }
+        
+        .unit-dropdown, .date-picker {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.9) 0%, rgba(30, 58, 95, 0.9) 100%);
+            border: 2px solid rgba(100, 181, 246, 0.3);
+            border-radius: 10px;
+            color: #e0e6ed;
+            font-family: 'Orbitron', monospace;
+            font-size: 1em;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color: white;
+        }
+        
+        .unit-dropdown:hover, .date-picker:hover {
+            border-color: rgba(171, 71, 188, 0.6);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(138, 43, 226, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .unit-dropdown:focus, .date-picker:focus {
+            outline: none;
+            border-color: #26c6da;
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.4),
+                0 0 25px rgba(38, 198, 218, 0.4);
+        }
+        .unit-dropdown option {
+    background-color: #0a1a2f;   /* navy */
+    color: #ffffff;
+    font-family: 'Orbitron', monospace;
+    font-weight: 500;
+}
+
+        
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            margin: 0 20px 40px;
+            min-height: 70vh;
+        }
+        
+        .points-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95) 0%, rgba(30, 58, 95, 0.95) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+        
+        .history-panel {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95) 0%, rgba(30, 58, 95, 0.95) 100%);
+            border-radius: 20px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #8e2de2 100%);
+            color: #ffffff;
+            padding: 20px 25px;
+            font-size: 1.4em;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: slide 3s infinite;
+        }
+        
+        @keyframes slide {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .points-grid {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .point-item {
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.8) 0%, rgba(45, 27, 78, 0.8) 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+        
+        .point-item:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 
+                0 12px 35px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(138, 43, 226, 0.4);
+            border-color: rgba(171, 71, 188, 0.6);
+        }
+        
+        .point-item.selected {
+            border-color: #26c6da;
+            box-shadow: 
+                0 12px 35px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(38, 198, 218, 0.6);
+            background: linear-gradient(135deg, rgba(38, 198, 218, 0.2) 0%, rgba(45, 27, 78, 0.8) 100%);
+        }
+        
+        .point-name {
+            font-weight: 700;
+            color: #64b5f6;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            text-shadow: 0 0 10px rgba(100, 181, 246, 0.5);
+        }
+        
+        .point-value {
+            font-size: 1.3em;
+            color: #26c6da;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(38, 198, 218, 0.6);
+        }
+        
+        .point-path {
+            font-size: 0.8em;
+            color: #90a4ae;
+            word-break: break-all;
+            opacity: 0.8;
+        }
+        
+        .point-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7em;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .type-numeric {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .history-content {
+            padding: 25px;
+            height: 500px;
+            overflow-y: auto;
+        }
+        
+        .history-placeholder {
+            text-align: center;
+            color: #90a4ae;
+            font-style: italic;
+            padding: 50px 20px;
+        }
+        
+        .history-header-info {
+            background: linear-gradient(135deg, rgba(38, 198, 218, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(38, 198, 218, 0.3);
+        }
+        
+        .history-point-name {
+            font-size: 1.2em;
+            color: #26c6da;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .history-point-path {
+            font-size: 0.9em;
+            color: #90a4ae;
+            word-break: break-all;
+        }
+        
+        .history-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .history-data-table th {
+            background: linear-gradient(135deg, rgba(30, 60, 114, 0.8) 0%, rgba(142, 45, 226, 0.8) 100%);
+            color: #ffffff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 700;
+            border-bottom: 2px solid rgba(38, 198, 218, 0.3);
+        }
+        
+        .history-data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e6ed;
+        }
+        
+        .history-data-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .history-data-table tr:hover {
+            background: rgba(38, 198, 218, 0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #64b5f6;
+            font-size: 1.1em;
+            text-shadow: 0 0 20px rgba(100, 181, 246, 0.5);
+        }
+        
+        .error {
+            color: #ff6b9d;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 107, 157, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #90a4ae;
+            font-style: italic;
+        }
+        
+        .history-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.8) 0%, rgba(45, 27, 78, 0.8) 100%);
+            border-radius: 10px;
+            padding: 10px 15px;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #90a4ae;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.1em;
+            color: #26c6da;
+            font-weight: 700;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .main-layout {
+                flex-direction: column;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 32, 39, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #1e3c72, #8e2de2);
+            border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #2a5298, #ab47bc);
+        }
+        
+        
+        
+        
+        
+        
+           /* Modal styling */
+        .modal {
+            display: none; 
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #2a2a2a;
+            margin: auto;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            color: white;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #fff;
+        }
+        
+        
+        
+        
+        
+        .history-graph-wrapper {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#history-graph-canvas {
+    display: block;
+    width: 100%;
+}
+    </style>
+</head>
+<body>
+  
+    <div class="header">
+        <h1>RTU's Point Summary & History Sheets</h1>
+        <p>RTU Summary Sheets</p>
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="unit-dropdown">Select Unit:</label>
+                <select id="unit-dropdown" class="unit-dropdown">
+                    <option value="">Loading units...</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="start-date">Start Date:</label>
+                <input type="date" id="start-date" class="date-picker">
+            </div>
+            <div class="control-group">
+                <label for="end-date">End Date:</label>
+                <input type="date" id="end-date" class="date-picker">
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-layout">
+        <div class="points-panel">
+            <div class="panel-header">Current Points</div>
+            <div id="points-content" class="points-grid">
+                <div class="loading">Loading points...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+          <button id="toggle-history-view-btn" onclick="toggleHistoryView()" 
+        style="margin: 10px 0; padding: 10px 20px; background: #26c6da; color: white; 
+               border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+    📊 Graph View
+</button>
+            <span class="close-btn" onclick="closeHistoryModal()">&times;</span>
+            <div id="history-content" class="history-content">
+                <div class="history-placeholder">
+                    Click on a point to view its historical data
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <script>
+ // Global variables
+let globalConfig = null;
+let monitoredPoints = [];
+let subscriber;
+let pointValues = {};
+let selectedPoint = null;
+let historyCache = new Map();
+let currentHistoryData = null;
+let currentHistoryStats = null;
+let historyViewMode = 'table'; // 'table' | 'graph'
+let currentHistoryTableHTML = '';
+
+
+// Decode Niagara-style ASCII ($20, $2d, etc.) for display
+function decodeNiagaraName(str) {
+    if (!str || typeof str !== 'string') return str;
+
+    return str.replace(/\$([0-9a-fA-F]{2})/g, (match, hex) => {
+        return String.fromCharCode(parseInt(hex, 16));
+    });
+}
+
+
+// User authorization check
+function isAuthorizedUser() {
+    const username = 'murphy'; // Simulated user
+    console.log('Current user:', username);
+    
+    if (!username) {
+        console.log('No user found');
+        return false;
+    }
+    
+    const authorizedUsers = ['murphy', 'admin'];
+    const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+    
+    console.log('User authorized:', isAuthorized);
+    return isAuthorized;
+}
+
+// Check authorization
+if (!isAuthorizedUser()) {
+    document.getElementById('points-content').innerHTML = 
+        '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+    throw new Error('Unauthorized access');
+}
+
+// Initialize date inputs to last 24 hours
+function initializeDateInputs() {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 1); // 24 hours ago
+    
+    document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
+}
+
+// Toggle between table and graph view
+function toggleHistoryView() {
+    if (!currentHistoryData) return;
+
+    historyViewMode = historyViewMode === 'table' ? 'graph' : 'table';
+
+    const btn = document.getElementById('toggle-history-view-btn');
+    if (btn) {
+        btn.textContent = historyViewMode === 'table' ? '📊 Graph View' : '📋 Table View';
+    }
+
+    renderHistoryView();
+}
+
+// Render the appropriate view
+function renderHistoryView() {
+    if (!currentHistoryData || !selectedPoint) return;
+
+    if (historyViewMode === 'table') {
+        document.getElementById('history-content').innerHTML = currentHistoryTableHTML;
+    } else {
+        renderHistoryGraphView();
+    }
+}
+
+// Render graph view
+function renderHistoryGraphView() {
+    const container = document.getElementById('history-content');
+
+    const unit = selectedPoint.type === 'numeric' ? extractDataUnit(selectedPoint.name) : '';
+
+    container.innerHTML = `
+        <div class="history-header-info">
+     <div class="history-point-name">${decodeNiagaraName(selectedPoint.name)}</div>
+<div class="history-point-path">${decodeNiagaraName(selectedPoint.path)}</div>
+
+        </div>
+        <div class="history-graph-wrapper" style="margin-top: 20px;">
+            <canvas id="history-graph-canvas"></canvas>
+        </div>
+    `;
+
+    const canvas = document.getElementById('history-graph-canvas');
+drawHistoryGraph(
+    canvas,
+    currentHistoryData,
+    decodeNiagaraName(selectedPoint.name),
+    unit
+);
+}
+
+// Draw the history graph with hover functionality
+function drawHistoryGraph(canvas, data, label, unit) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const height = 360;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const padding = { top: 40, right: 30, bottom: 60, left: 70 };
+    const gw = width - padding.left - padding.right;
+    const gh = height - padding.top - padding.bottom;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    if (!data.length) {
+        ctx.fillStyle = '#888';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data', width / 2, height / 2);
+        return;
+    }
+
+    // Store points for hover detection
+    const plottedPoints = [];
+
+    const values = data.map(d =>
+        typeof d.value === 'boolean' ? (d.value ? 1 : 0) : d.value
+    );
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    const xScale = i => padding.left + (i / (data.length - 1)) * gw;
+    const yScale = v => padding.top + gh - ((v - min) / range) * gh;
+
+    // Draw grid
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i <= 5; i++) {
+        const y = padding.top + (gh / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + gw, y);
+        ctx.stroke();
+
+        const val = max - (range / 5) * i;
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(
+            val.toFixed(1) + (unit ? ' ' + unit : ''),
+            padding.left - 8,
+            y + 4
+        );
+    }
+
+    // X-axis labels
+    const startTime = data[0].timestamp.getTime();
+    const endTime = data[data.length - 1].timestamp.getTime();
+    const rangeHours = (endTime - startTime) / (1000 * 60 * 60);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#666';
+    ctx.font = '11px Arial';
+
+    for (let i = 0; i < 6; i++) {
+        const idx = Math.floor((i / 5) * (data.length - 1));
+        const x = xScale(idx);
+        const ts = data[idx].timestamp;
+
+        let label;
+        if (rangeHours <= 24) {
+            label = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (rangeHours <= 168) {
+            label = ts.toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } else {
+            label = ts.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+        }
+
+        ctx.fillText(label, x, height - 25);
+    }
+
+    // Draw line
+    ctx.strokeStyle = '#26c6da';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    data.forEach((p, i) => {
+        const v = typeof p.value === 'boolean' ? (p.value ? 1 : 0) : p.value;
+        const x = xScale(i);
+        const y = yScale(v);
+
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+
+        plottedPoints.push({ x, y, value: p.value, timestamp: p.timestamp });
+    });
+
+    ctx.stroke();
+
+    // Draw axes
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, padding.top + gh);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + gh);
+    ctx.lineTo(padding.left + gw, padding.top + gh);
+    ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#1e3c72';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, width / 2, 24);
+
+    // Hover tooltip
+    canvas.onmousemove = e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let closest = null;
+        let minDist = 8;
+
+        plottedPoints.forEach(p => {
+            const d = Math.hypot(mx - p.x, my - p.y);
+            if (d < minDist) {
+                minDist = d;
+                closest = p;
+            }
+        });
+
+        if (!closest) {
+            drawHistoryGraph(canvas, data, label, unit);
+            canvas.style.cursor = 'default';
+            return;
+        }
+
+        canvas.style.cursor = 'pointer';
+        drawHistoryGraph(canvas, data, label, unit);
+
+        // Guide line
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(closest.x, padding.top);
+        ctx.lineTo(closest.x, padding.top + gh);
+        ctx.stroke();
+
+        // Highlight point
+        ctx.fillStyle = '#ff7043';
+        ctx.beginPath();
+        ctx.arc(closest.x, closest.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tooltip
+        const valueText =
+            typeof closest.value === 'boolean'
+                ? (closest.value ? 'TRUE' : 'FALSE')
+                : closest.value.toFixed(2) + (unit ? ' ' + unit : '');
+
+        drawTooltip(
+            ctx,
+            closest.x + 10,
+            closest.y - 10,
+            `${closest.timestamp.toLocaleString()}\nValue: ${valueText}`
+        );
+    };
+}
+
+// Draw tooltip
+function drawTooltip(ctx, x, y, text) {
+    const padding = 8;
+    const lineHeight = 14;
+    const maxWidth = 200;
+
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        const testWidth = ctx.measureText(testLine).width;
+        if (testWidth + padding * 2 > maxWidth) {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = testLine;
+        }
+    });
+    if (currentLine) lines.push(currentLine);
+
+    const width = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)) + padding * 2);
+    const height = lines.length * lineHeight + padding * 2;
+
+    if (x + width > ctx.canvas.width) {
+        x = ctx.canvas.width - width - 5;
+    }
+    if (y - height < 0) {
+        y = height + 5;
+    }
+
+    ctx.fillStyle = 'rgba(50,50,50,0.9)';
+    ctx.fillRect(x, y - height, width, height);
+
+    ctx.fillStyle = '#fff';
+    lines.forEach((line, i) => {
+        ctx.fillText(line, x + padding, y - height + padding + (i + 1) * lineHeight - 4);
+    });
+}
+
+// Load global configuration
+async function loadGlobalConfig() {
+    try {
+        const response = await fetch('../../Global.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        globalConfig = await response.json();
+        parseMonitoredPoints();
+        populateUnitDropdown();
+        
+        console.log('Global.json loaded successfully');
+        console.log('Monitored points found:', monitoredPoints.length);
+        
+    } catch (error) {
+        console.error('Error loading Global.json:', error);
+        document.getElementById('points-content').innerHTML = 
+            `<div class="error">Error loading configuration: ${error.message}</div>`;
+    }
+}
+
+function parseMonitoredPoints() {
+    monitoredPoints = [];
+
+    if (!globalConfig || !globalConfig.globalVariables) {
+        console.warn('No globalVariables found in config');
+        return;
+    }
+
+    for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+        const unitNameUpper = unitName.toUpperCase();
+        if (!unitNameUpper.includes('RTU') && !unitNameUpper.includes('ROOFTOP')) {
+            continue;
+        }
+
+        if (!unitData.points || !Array.isArray(unitData.points)) continue;
+
+        unitData.points.forEach(point => {
+            if ((point.logNumeric === "yes_Numeric") && point.status === "connected") {
+                monitoredPoints.push({
+                    unit: unitName,
+                    pointName: point.name,
+                    fullPath: point.fullPath,
+                    basePath: unitData.basePath,
+                    id: point.id,
+                    dateAdded: point.dateAdded,
+                    displayName: `${unitName} - ${point.name}`,
+                    pointType: "numeric"
+                });
+            }
+            else if ((point.logBoolean === "yes_Boolean" || point.log === "yes") && point.status === "connected") {
+                monitoredPoints.push({
+                    unit: unitName,
+                    pointName: point.name,
+                    fullPath: point.fullPath,
+                    basePath: unitData.basePath,
+                    id: point.id,
+                    dateAdded: point.dateAdded,
+                    displayName: `${unitName} - ${point.name}`,
+                    pointType: "boolean"
+                });
+            }
+        });
+    }
+
+    console.log('Parsed monitored RTU/Rooftop points:', monitoredPoints);
+}
+
+// Populate unit dropdown
+function populateUnitDropdown() {
+    const dropdown = document.getElementById('unit-dropdown');
+    dropdown.innerHTML = '';
+    
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'All Units';
+    dropdown.appendChild(allOption);
+    
+    const units = [...new Set(monitoredPoints.map(p => p.unit))].sort();
+    units.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit;
+        option.textContent = unit.replace(/_/g, ' ');
+        dropdown.appendChild(option);
+    });
+    
+    dropdown.value = 'all';
+    dropdown.addEventListener('change', displayPoints);
+    
+    displayPoints();
+}
+
+// Display points
+function displayPoints() {
+    const selectedUnit = document.getElementById('unit-dropdown').value;
+    let pointsToShow = monitoredPoints;
+    
+    if (selectedUnit && selectedUnit !== 'all') {
+        pointsToShow = monitoredPoints.filter(p => p.unit === selectedUnit);
+    }
+    
+    const pointsContent = document.getElementById('points-content');
+    
+    if (pointsToShow.length === 0) {
+        pointsContent.innerHTML = '<div class="no-data">No points found for selected unit.</div>';
+        return;
+    }
+    
+    let html = '';
+    pointsToShow.forEach(point => {
+        const pointTypeClass = point.pointType === 'numeric' ? 'type-numeric' : 'type-boolean';
+        const pointTypeText = point.pointType === 'numeric' ? 'NUMERIC' : 'BOOLEAN';
+        
+       const decodedUnit = decodeNiagaraName(point.unit).replace(/_/g, ' ');
+const decodedPoint = decodeNiagaraName(point.pointName).replace(/_/g, ' ');
+
+const displayName = selectedUnit === 'all'
+    ? `[${decodedUnit}] ${decodedPoint}`
+    : decodedPoint;
+
+        
+        html += `
+            <div class="point-item" onclick="selectPoint('${point.fullPath}', '${point.displayName}', '${point.pointType}')" 
+                 data-point-path="${point.fullPath}">
+                <div class="point-type ${pointTypeClass}">${pointTypeText}</div>
+                <div class="point-name">${displayName}</div>
+                <div class="point-value" id="value-${point.fullPath}">Loading...</div>
+                <div class="point-path">${point.fullPath}</div>
+            </div>
+        `;
+    });
+    
+    pointsContent.innerHTML = html;
+    
+    pointsToShow.forEach(point => {
+        subscribeToPoint(point.fullPath, point.displayName, point.pointType);
+    });
+}
+
+// Subscribe to point
+function subscribeToPoint(pointPath, displayName, pointType) {
+    try {
+        require(['baja!'], function(baja) {
+            if (!subscriber) {
+                subscriber = new baja.Subscriber();
+                
+                subscriber.attach('changed', function(prop) {
+                    if (prop.getName() === 'out') {
+                        const pointInfo = this.userData;
+                        if (pointInfo) {
+                            const out = this.getOut();
+                            const displayValue = out.getValueDisplay();
+                            
+                            const valueElement = document.getElementById(`value-${pointInfo.pointPath}`);
+                            if (valueElement) {
+                                if (pointInfo.pointType === 'boolean') {
+                                    const boolValue = out.getValue();
+                                    valueElement.textContent = boolValue ? 'TRUE' : 'FALSE';
+                                    valueElement.style.color = boolValue ? '#2ecc71' : '#e74c3c';
+                                } else {
+                                    valueElement.textContent = displayValue;
+                                    valueElement.style.color = '#26c6da';
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                .then(point => {
+                    console.log(`✅ Connected to ${displayName}`);
+                    
+                    point.userData = { 
+                        pointPath: pointPath,
+                        displayName: displayName,
+                        pointType: pointType
+                    };
+                    
+                    const out = point.getOut();
+                    const displayValue = out.getValueDisplay();
+                    
+                    const valueElement = document.getElementById(`value-${pointPath}`);
+                    if (valueElement) {
+                        if (pointType === 'boolean') {
+                            const boolValue = out.getValue();
+                            valueElement.textContent = boolValue ? 'TRUE' : 'FALSE';
+                            valueElement.style.color = boolValue ? '#2ecc71' : '#e74c3c';
+                        } else {
+                            valueElement.textContent = displayValue;
+                            valueElement.style.color = '#26c6da';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`❌ Failed to connect to ${displayName}:`, error);
+                    const valueElement = document.getElementById(`value-${pointPath}`);
+                    if (valueElement) {
+                        valueElement.textContent = 'Connection Error';
+                    }
+                });
+        });
+    } catch (error) {
+        console.error(`Failed to subscribe to ${pointPath}:`, error);
+    }
+}
+
+// Select point
+function selectPoint(pointPath, displayName, pointType) {
+    document.querySelectorAll('.point-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    const clickedItem = document.querySelector(`[data-point-path="${pointPath}"]`);
+    if (clickedItem) {
+        clickedItem.classList.add('selected');
+    }
+    
+    selectedPoint = { path: pointPath, name: displayName, type: pointType };
+    
+    openHistoryModal();
+    loadHistoryData(pointPath, displayName, pointType);
+}
+
+// Discover history ORD
+async function discoverHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        try {
+            require(['baja!'], function (baja) {
+                console.log('Auto-discovering history from point:', pointOrd);
+                
+                baja.Ord.make(pointOrd).get()
+                    .then(function(entity) {
+                        return entity.tags();
+                    })
+                    .then(function(tagMap) {
+                        var historyTag = tagMap.get('n:history');
+                        console.log('Found history tag:', historyTag);
+                        
+                        if (historyTag && historyTag.toString().trim() !== '') {
+                            var historyPath = historyTag.toString();
+                            
+                            if (!historyPath.startsWith('history:')) {
+                                historyPath = 'history:' + historyPath;
+                            }
+                            
+                            console.log('Discovered history ORD:', historyPath);
+                            resolve(historyPath);
+                        } else {
+                            reject(new Error('No n:history tag found on point: ' + pointOrd));
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('Could not load tags:', err);
+                        reject(new Error('Failed to load point tags: ' + err.message));
+                    });
+            });
+        } catch (error) {
+            console.error('Baja require error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Load historical data
+async function loadHistoryDataForPoint(pointPath, startTime, endTime, pointType, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const cacheKey = pointPath;
+            let historyOrd = historyCache.get(cacheKey);
+
+            if (!historyOrd) {
+                try {
+                    historyOrd = await discoverHistoryOrd(pointPath);
+                    historyCache.set(cacheKey, historyOrd);
+                } catch (error) {
+                    console.warn(`No history found for point ${pointPath}:`, error.message);
+                    resolve([]);
+                    return;
+                }
+            }
+
+            require(['baja!'], function (baja) {
+                const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+                const bqlQuery = historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+
+                const dataPoints = [];
+
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function () {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            const date = new Date(rawTimestamp.getMillis());
+
+                            let processedValue;
+
+                            if (pointType === 'boolean') {
+                                processedValue = value === true || value === 'true' || value === 1 || value === '1';
+                            } else {
+                                processedValue = parseFloat(value);
+                                if (isNaN(processedValue)) return;
+                            }
+
+                            dataPoints.push({
+                                timestamp: date,
+                                timestampString: date.toLocaleString(),
+                                value: processedValue
+                            });
+                        }
+                    }
+                })
+                .then(() => resolve(dataPoints))
+                .catch(err => reject(new Error('Failed to load history data: ' + err.message)));
+            });
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// Load and display history
+async function loadHistoryData(pointPath, displayName, pointType) {
+    const historyContent = document.getElementById('history-content');
+    
+    historyContent.innerHTML = `
+        <div class="history-header-info">
+        <div class="history-point-name">${decodeNiagaraName(displayName)}</div>
+<div class="history-point-path">${decodeNiagaraName(pointPath)}</div>
+
+        </div>
+        <div class="loading">Loading historical data...</div>
+    `;
+    
+    try {
+        const startDateStr = document.getElementById('start-date').value;
+        const endDateStr = document.getElementById('end-date').value;
+        
+        if (!startDateStr || !endDateStr) {
+            throw new Error('Please select both start and end dates');
+        }
+        
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr + 'T23:59:59');
+        
+        const historyData = await loadHistoryDataForPoint(pointPath, startDate, endDate, pointType, 10000);
+        
+        if (historyData.length === 0) {
+            historyContent.innerHTML = `
+                <div class="history-header-info">
+                  <div class="history-point-name">${decodeNiagaraName(displayName)}</div>
+<div class="history-point-path">${decodeNiagaraName(pointPath)}</div>
+
+                </div>
+                <div class="no-data">No historical data found for the selected date range.</div>
+            `;
+            return;
+        }
+        
+        currentHistoryData = historyData;
+        
+        // Calculate statistics
+        let stats;
+        if (pointType === 'boolean') {
+            const trueCount = historyData.filter(d => d.value === true).length;
+            const falseCount = historyData.length - trueCount;
+            stats = {
+                count: historyData.length,
+                trueCount: trueCount,
+                falseCount: falseCount,
+                truePercent: ((trueCount / historyData.length) * 100).toFixed(1)
+            };
+        } else {
+            const values = historyData.map(d => d.value);
+            stats = {
+                count: values.length,
+                min: Math.min(...values),
+                max: Math.max(...values),
+                avg: values.reduce((a, b) => a + b, 0) / values.length
+            };
+        }
+        
+        currentHistoryStats = stats;
+        
+        const unit = pointType === 'numeric' ? extractDataUnit(displayName) : '';
+        
+        // Build table HTML
+        let html = `
+            <div class="history-header-info">
+                <div class="history-point-name">${displayName}</div>
+                <div class="history-point-path">${pointPath}</div>
+            </div>
+            
+            <div class="history-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Count</div>
+                    <div class="stat-value">${stats.count}</div>
+                </div>
+        `;
+        
+        if (pointType === 'boolean') {
+            html += `
+                <div class="stat-box">
+                    <div class="stat-label">TRUE Count</div>
+                    <div class="stat-value">${stats.trueCount}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">FALSE Count</div>
+                    <div class="stat-value">${stats.falseCount}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">TRUE %</div>
+                    <div class="stat-value">${stats.truePercent}%</div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="stat-box">
+                    <div class="stat-label">Minimum</div>
+                    <div class="stat-value">${stats.min.toFixed(2)} ${unit}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Maximum</div>
+                    <div class="stat-value">${stats.max.toFixed(2)} ${unit}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Average</div>
+                    <div class="stat-value">${stats.avg.toFixed(2)} ${unit}</div>
+                </div>
+            `;
+        }
+        
+        html += `</div>`;
+        
+        html += `
+            <table class="history-data-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        const displayData = historyData.slice(-100).reverse();
+        
+        displayData.forEach(point => {
+            let displayValue;
+            if (pointType === 'boolean') {
+                const boolVal = point.value === true;
+                displayValue = `<span style="color: ${boolVal ? '#2ecc71' : '#e74c3c'}; font-weight: bold;">${boolVal ? 'TRUE' : 'FALSE'}</span>`;
+            } else {
+                displayValue = `${point.value.toFixed(2)} ${unit}`;
+            }
+            
+            html += `
+                <tr>
+                    <td>${point.timestampString}</td>
+                    <td>${displayValue}</td>
+                </tr>
+            `;
+        });
+        
+        html += `</tbody></table>`;
+        
+        if (historyData.length > 100) {
+            html += `
+                <div style="text-align: center; margin-top: 15px; color: #90a4ae; font-size: 0.9em;">
+                    Showing most recent 100 of ${historyData.length} records
+                </div>
+            `;
+        }
+        
+        currentHistoryTableHTML = html;
+        historyViewMode = 'table';
+        
+        const btn = document.getElementById('toggle-history-view-btn');
+        if (btn) {
+            btn.textContent = '📊 Graph View';
+        }
+        
+        renderHistoryView();
+        
+    } catch (error) {
+        console.error('Error loading history data:', error);
+        historyContent.innerHTML = `
+            <div class="history-header-info">
+                <div class="history-point-name">${displayName}</div>
+                <div class="history-point-path">${pointPath}</div>
+            </div>
+            <div class="error">Error loading history: ${error.message}</div>
+        `;
+    }
+}
+
+// Extract data unit
+function extractDataUnit(pointNameOrOrd) {
+    if (!pointNameOrOrd) return '';
+    
+    const name = pointNameOrOrd.toLowerCase();
+    
+    if (name.includes('temp') || name.includes('temperature') || name.includes('dischargeairtemp')) return '°F';
+    if (name.includes('flow') || name.includes('airflow') || name.includes('air-flow')) return 'CFM';
+    if (name.includes('pressure')) return 'PSI';
+    if (name.includes('humidity')) return '%';
+    if (name.includes('percent') || name.includes('pct')) return '%';
+    if (name.includes('speed')) return '%';
+    if (name.includes('power')) return 'kW';
+    if (name.includes('current')) return 'A';
+    if (name.includes('voltage')) return 'V';
+    if (name.includes('frequency') || name.includes('freq')) return 'Hz';
+    if (name.includes('static')) return 'in/wc';
+    
+    return '';
+}
+
+// Modal functions
+function openHistoryModal() {
+    document.getElementById("historyModal").style.display = "flex";
+}
+
+function closeHistoryModal() {
+    document.getElementById("historyModal").style.display = "none";
+    currentHistoryData = null;
+    currentHistoryStats = null;
+    historyViewMode = 'table';
+}
+
+// Add event listener for date changes
+function setupDateChangeListeners() {
+    document.getElementById('start-date').addEventListener('change', function() {
+        if (selectedPoint) {
+            loadHistoryData(selectedPoint.path, selectedPoint.name, selectedPoint.type);
+        }
+    });
+    
+    document.getElementById('end-date').addEventListener('change', function() {
+        if (selectedPoint) {
+            loadHistoryData(selectedPoint.path, selectedPoint.name, selectedPoint.type);
+        }
+    });
+}
+
+// Cleanup function
+function cleanup() {
+    if (subscriber) {
+        subscriber.unsubscribeAll();
+        console.log('🧹 Cleaned up all subscriptions');
+    }
+}
+
+// Initialize the system
+function initializeSystem() {
+    initializeDateInputs();
+    setupDateChangeListeners();
+    loadGlobalConfig();
+    
+    console.log('RTU Point Summary & History Viewer initialized');
+}
+
+// Handle page unload
+window.addEventListener('beforeunload', cleanup);
+
+// Initialize when page loads
+initializeSystem();
+
+</script>
+
+
+</body>
+</html>
