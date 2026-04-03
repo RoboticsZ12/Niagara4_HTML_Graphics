@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Audit History</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: rgba(13,17,23,0.97);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  gap: 8px;
+}
+.top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  pointer-events: none;
+}
+
+/* hamburger */
+.hamburger {
+  width: 36px; height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line {
+  width: 18px; height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: var(--transition);
+}
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+.top-bar-left {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+
+.top-center {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+.site-label {
+  font-family: var(--font-head);
+  font-size: clamp(11px, 1.6vw, 22px);
+  letter-spacing: clamp(1px, 0.4vw, 4px);
+  color: var(--accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.page-title {
+  font-family: var(--font-head);
+  font-size: clamp(10px, 1.2vw, 18px);
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.top-right {
+  display: flex; align-items: center; gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.user-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: clamp(10px, 0.85vw, 14px);
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.user-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* Audit History button — matches PX Alarm Console style */
+.audit-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  padding: 6px clamp(8px, 1vw, 16px);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: clamp(9px, 0.75vw, 13px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+  text-decoration: none;
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.audit-btn:hover {
+  background: rgba(0,200,255,0.1);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.audit-btn:active { transform: translateY(0); }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel {
+  position: fixed;
+  top: 0; left: -300px;
+  width: 280px; height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  z-index: 300;
+  transition: left 0.3s ease;
+  padding: 80px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+
+.side-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.side-panel-header h2 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: normal;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.side-nav-section-label {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 14px 20px 10px;
+  letter-spacing: 0.5px;
+}
+
+.side-panel-nav { display: flex; flex-direction: column; }
+
+.side-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  text-decoration: none;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: var(--transition);
+  position: relative;
+}
+.side-nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+.side-nav-link:hover { background: rgba(0,200,255,0.07); color: var(--text-primary); padding-left: 26px; }
+.side-nav-link:hover::before { transform: scaleY(1); }
+
+.side-nav-icon { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.side-nav-icon svg { width: 36px; height: 36px; }
+.side-nav-label { font-family: var(--font-head); font-size: 14px; letter-spacing: 0.5px; }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding: 28px 28px 0;
+  overflow-y: auto;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── PAGE HEADER ───────────────────────────────────────────────────── */
+.page-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 24px;
+}
+.page-header .line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.page-header h2 {
+  font-family: var(--font-head);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* ─── INFO CARD ─────────────────────────────────────────────────────── */
+#audit-info {
+  margin-bottom: 24px;
+}
+.overall-summary {
+  background: rgba(22,27,39,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+}
+
+.status-indicator {
+  font-family: var(--font-head);
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.status-indicator.status-ok {
+  background: rgba(0,230,118,0.08);
+  color: var(--green);
+  border: 1px solid rgba(0,230,118,0.3);
+}
+.status-indicator.status-info {
+  background: rgba(0,200,255,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(0,200,255,0.3);
+}
+.status-indicator.status-error {
+  background: rgba(255,68,68,0.08);
+  color: var(--red);
+  border: 1px solid rgba(255,68,68,0.3);
+}
+
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+  animation: dotBlink 1.5s infinite;
+}
+@keyframes dotBlink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ─── CONTROLS BAR ──────────────────────────────────────────────────── */
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.filter-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+}
+.filter-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.filter-input::placeholder { color: var(--text-muted); }
+
+.control-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.control-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.05); }
+
+.control-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,200,255,0.08);
+}
+
+.records-count {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ─── TABLE CONTAINER ───────────────────────────────────────────────── */
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(22,27,39,0.85);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+
+/* ─── TABLE ─────────────────────────────────────────────────────────── */
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  min-width: 700px;
+}
+
+.audit-table thead tr {
+  background: rgba(0,200,255,0.06);
+  border-bottom: 1px solid var(--border);
+}
+.audit-table thead th {
+  padding: 14px 18px;
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: normal;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+.audit-table thead th:hover { background: rgba(0,200,255,0.08); }
+.audit-table thead th .sort-icon {
+  margin-left: 6px;
+  opacity: 0.4;
+  font-size: 11px;
+}
+.audit-table thead th.sort-asc .sort-icon,
+.audit-table thead th.sort-desc .sort-icon { opacity: 1; color: var(--accent); }
+
+.audit-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: var(--transition);
+}
+.audit-table tbody tr:last-child { border-bottom: none; }
+.audit-table tbody tr:hover { background: rgba(0,200,255,0.04); }
+
+.audit-table td {
+  padding: 13px 18px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+/* ─── CELL TYPES ────────────────────────────────────────────────────── */
+.cell-timestamp {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.cell-user {
+  font-family: var(--font-head);
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+.cell-action {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.cell-target {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.cell-value {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── ACTION TYPE BADGES ────────────────────────────────────────────── */
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.action-badge.set {
+  background: rgba(0,200,255,0.08);
+  color: var(--accent);
+  border-color: rgba(0,200,255,0.3);
+}
+.action-badge.login {
+  background: rgba(0,230,118,0.08);
+  color: var(--green);
+  border-color: rgba(0,230,118,0.3);
+}
+.action-badge.logout {
+  background: rgba(122,132,153,0.1);
+  color: var(--text-muted);
+  border-color: rgba(122,132,153,0.2);
+}
+.action-badge.invoke {
+  background: rgba(123,94,167,0.1);
+  color: #b39ddb;
+  border-color: rgba(123,94,167,0.3);
+}
+.action-badge.add {
+  background: rgba(0,230,118,0.08);
+  color: var(--green);
+  border-color: rgba(0,230,118,0.3);
+}
+.action-badge.delete {
+  background: rgba(255,68,68,0.08);
+  color: var(--red);
+  border-color: rgba(255,68,68,0.3);
+}
+.action-badge.changed {
+  background: rgba(255,171,0,0.08);
+  color: var(--amber);
+  border-color: rgba(255,171,0,0.3);
+}
+.action-badge.other {
+  background: rgba(122,132,153,0.08);
+  color: var(--text-muted);
+  border-color: rgba(122,132,153,0.2);
+}
+
+/* ─── LOADING / EMPTY ───────────────────────────────────────────────── */
+.loading-row td, .empty-row td {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+
+/* spinner */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(0,200,255,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── PAGINATION ────────────────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+  background: rgba(13,17,23,0.5);
+  flex-wrap: wrap;
+}
+.page-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+  min-width: 36px;
+  text-align: center;
+}
+.page-btn:hover { border-color: var(--accent); color: var(--accent); }
+.page-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.08); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-info {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: rgba(13,17,23,0.97);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  height: 50px;
+  flex-shrink: 0;
+  position: relative;
+}
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.datetime-display {
+  font-family: var(--font-head);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+.logoff-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .audit-table th:nth-child(5),
+  .audit-table td:nth-child(5) { display: none; }
+}
+@media (max-width: 700px) {
+  .audit-table th:nth-child(4),
+  .audit-table td:nth-child(4),
+  .audit-table th:nth-child(5),
+  .audit-table td:nth-child(5) { display: none; }
+  .main-content { padding: 14px 10px 0; }
+}
+@media (max-width: 500px) {
+  .top-bar { height: auto; min-height: 54px; padding: 6px 10px; }
+  .site-label  { letter-spacing: 1px; }
+  .audit-btn   { font-size: 9px; padding: 5px 8px; }
+  .user-badge  { padding: 4px 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- overlays -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+          <line x1="22" y1="20" x2="28" y2="20" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="28" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="12" cy="30" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="30" r="1.5" fill="#00c8ff"/>
+          <circle cx="28" cy="30" r="1.5" fill="#c8cfe0"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Audit History</span>
+  </div>
+
+  <div class="top-right">
+    <!-- Audit History button — admin-gated, dynamic IP + folder name -->
+    <button class="audit-btn" id="auditHistoryBtn" title="Open Niagara Audit History Table">
+      📋 Open Full Audit Log
+    </button>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+
+  <!-- Page heading -->
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>📋 Audit History Log</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <!-- Info banner -->
+  <div id="audit-info" style="margin-bottom:20px;">
+    <div class="overall-summary">
+      <div class="status-indicator status-info" id="iframeStatusBanner">
+        <span class="status-dot" style="background:var(--accent);"></span>
+        📋 Loading Audit History — ClaycoRBB
+      </div>
+      <div class="status-details">
+        <span id="auditSiteLabel">SITE: ClaycoRBB &nbsp;|&nbsp; SOURCE: history:/ClaycoRBB/AuditHistory</span>
+        <span id="auditLoadedTime">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── IFRAME CONTAINER ───────────────────────────────────────────── -->
+  <div id="iframeContainer" style="
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: rgba(22,27,39,0.85);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 0 40px rgba(0,200,255,0.05);
+    margin-bottom: 28px;
+    position: relative;
+  ">
+    <!-- iframe header bar -->
+    <div style="
+      background: rgba(0,200,255,0.06);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    ">
+      <span style="font-family:var(--font-head);font-size:12px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">
+        🖥 Niagara Audit History Viewer
+      </span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="iframeUrlLabel" style="font-family:var(--font-head);font-size:11px;color:var(--text-muted);letter-spacing:0.5px;word-break:break-all;"></span>
+        <button onclick="reloadAuditIframe()" style="
+          background:none;border:1px solid var(--border);border-radius:5px;
+          color:var(--text-muted);padding:4px 12px;cursor:pointer;
+          font-family:var(--font-head);font-size:11px;letter-spacing:1px;
+          transition:var(--transition);
+        " onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+           onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          ⟳ Reload
+        </button>
+      </div>
+    </div>
+
+    <!-- loading overlay shown while iframe loads -->
+    <div id="iframeLoadOverlay" style="
+      position:absolute;
+      inset:52px 0 0 0;
+      background:rgba(13,17,23,0.85);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:10;
+      font-family:var(--font-head);
+      font-size:13px;
+      letter-spacing:2px;
+      color:var(--text-muted);
+      gap:10px;
+    ">
+      <span class="spinner"></span> LOADING AUDIT RECORDS…
+    </div>
+
+    <!-- non-admin message (shown when user is not admin) -->
+    <div id="iframeNoAccess" style="
+      display:none;
+      padding:60px;
+      text-align:center;
+      font-family:var(--font-head);
+      font-size:13px;
+      letter-spacing:2px;
+      color:var(--text-muted);
+    ">
+      🔒 ADMIN ACCESS REQUIRED TO VIEW AUDIT HISTORY
+    </div>
+
+    <!-- The iframe itself -->
+    <iframe
+      id="auditIframe"
+      src="about:blank"
+      style="
+        width: 100%;
+        height: 680px;
+        border: none;
+        display: block;
+        background: #fff;
+      "
+      title="Niagara Audit History"
+      onload="onIframeLoad()"
+    ></iframe>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now  = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric',
+                 hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent =
+    now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     AUDIT IFRAME LOADER
+     - Hardcoded site folder: ClaycoRBB
+     - IP read from window.location.hostname at runtime
+     - Admin-gated via HomeConfig.json (same logic as alarm console)
+     - Loads the Niagara WebHistoryTable view inline via iframe
+══════════════════════════════════════════════════════════════════ -->
+<script>
+(async function () {
+  const btn         = document.getElementById('auditHistoryBtn');
+  const frame       = document.getElementById('auditIframe');
+  const frameWrap   = document.getElementById('iframeContainer');
+  const noAccess    = document.getElementById('iframeNoAccess');
+  const urlLabel    = document.getElementById('iframeUrlLabel');
+  const banner      = document.getElementById('iframeStatusBanner');
+  const loadedTime  = document.getElementById('auditLoadedTime');
+
+  /* ── Build URL (hardcoded folder, dynamic IP) ── */
+  function buildAuditUrl() {
+    const host = window.location.hostname;
+    return 'https://' + host + '/ord/history:/ClaycoRBB/AuditHistory%7Cview:history:WebHistoryTable';
+  }
+
+  /* ── Admin check ── */
+  async function isAdmin() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+      const res = await fetch('HomeConfig.json');
+      if (!res.ok) return false;
+      const config = await res.json();
+      const user = (config.Users || []).find(u => u.name === username);
+      return user && user.role.toLowerCase() === 'admin';
+    } catch(e) {
+      console.warn('HomeConfig.json role check failed:', e);
+      return false;
+    }
+  }
+
+  const admin = await isAdmin();
+
+  if (admin) {
+    const url = buildAuditUrl();
+
+    // Show URL in header bar
+    if (urlLabel) urlLabel.textContent = url;
+
+    // Load iframe
+    if (frame) frame.src = url;
+
+    // Button scrolls to container and reloads
+    if (btn) {
+      btn.addEventListener('click', function () {
+        if (frame) frame.src = buildAuditUrl();
+        if (frameWrap) frameWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      btn.title = 'Reload audit history · ClaycoRBB';
+    }
+
+    // Update banner when loaded
+    if (loadedTime) {
+      loadedTime.textContent = 'LOADED: ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    }
+
+  } else {
+    // Non-admin — disable button
+    if (btn) {
+      btn.disabled = true;
+      btn.title    = 'Admin access required';
+      btn.style.opacity      = '0.35';
+      btn.style.cursor       = 'not-allowed';
+      btn.style.borderColor  = 'rgba(122,132,153,0.3)';
+      btn.style.color        = 'var(--text-muted)';
+      btn.style.boxShadow    = 'none';
+      btn.style.transform    = 'none';
+      btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); });
+    }
+    // Hide iframe, show no-access message
+    if (frame)    frame.style.display    = 'none';
+    if (noAccess) noAccess.style.display = 'block';
+    document.getElementById('iframeLoadOverlay').style.display = 'none';
+
+    // Update banner
+    if (banner) {
+      banner.className = 'status-indicator status-error';
+      banner.innerHTML = '<span class="status-dot" style="background:var(--red);"></span>🔒 Admin Access Required';
+    }
+  }
+})();
+
+/* ── Called by iframe onload ── */
+function onIframeLoad() {
+  const overlay = document.getElementById('iframeLoadOverlay');
+  if (overlay) overlay.style.display = 'none';
+  const loadedTime = document.getElementById('auditLoadedTime');
+  if (loadedTime) {
+    loadedTime.textContent = 'LOADED: ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  }
+  const banner = document.getElementById('iframeStatusBanner');
+  if (banner && !banner.classList.contains('status-error')) {
+    banner.className = 'status-indicator status-ok';
+    banner.innerHTML = '<span class="status-dot" style="background:var(--green);"></span>✅ Audit History Loaded — ClaycoRBB';
+  }
+}
+
+/* ── Reload button in iframe header ── */
+function reloadAuditIframe() {
+  const frame = document.getElementById('auditIframe');
+  const overlay = document.getElementById('iframeLoadOverlay');
+  const banner = document.getElementById('iframeStatusBanner');
+  if (overlay) overlay.style.display = 'flex';
+  if (banner) {
+    banner.className = 'status-indicator status-info';
+    banner.innerHTML = '<span class="status-dot" style="background:var(--accent);"></span>📋 Reloading Audit History…';
+  }
+  if (frame) {
+    const src = frame.src;
+    frame.src = 'about:blank';
+    setTimeout(() => { frame.src = src; }, 100);
+  }
+}
+</script>
+
+</body>
+</html>

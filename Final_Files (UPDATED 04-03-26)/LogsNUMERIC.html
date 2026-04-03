@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Numerical Histories</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ─── DARK THEME (default) ──────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+
+  /* graph-specific */
+  --graph-bg:         #0d1117;
+  --graph-grid:       rgba(0,200,255,0.07);
+  --graph-axis:       rgba(0,200,255,0.35);
+  --graph-label:      #9aa3b5;
+  --graph-axis-title: rgba(0,200,255,0.6);
+}
+
+/* ─── LIGHT THEME ────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-deep:      #f0f4f8;
+  --bg-panel:     #e4eaf2;
+  --bg-card:      #dae2ee;
+  --bg-card-hover:#cdd7e7;
+  --accent:       #0077aa;
+  --accent-glow:  rgba(0, 119, 170, 0.20);
+  --accent2:      #6644aa;
+  --green:        #00875a;
+  --red:          #cc2200;
+  --amber:        #cc7700;
+  --text-primary: #111827;
+  --text-muted:   #4b5a6e;
+  --border:       rgba(0,119,170,0.22);
+  --border-hover: rgba(0,119,170,0.55);
+
+  /* graph-specific */
+  --graph-bg:         #f8fafc;
+  --graph-grid:       rgba(0,100,160,0.10);
+  --graph-axis:       rgba(0,100,160,0.40);
+  --graph-label:      #4b5a6e;
+  --graph-axis-title: rgba(0,100,160,0.70);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.hamburger {
+  width: 36px; height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line {
+  width: 18px; height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: var(--transition);
+}
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+.top-center {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.site-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.page-title {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.top-right {
+  display: flex; align-items: center; gap: 12px;
+}
+.user-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 15px;
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.user-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+}
+#userDisplay { color: var(--text-primary); font-size: 15px; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel {
+  position: fixed;
+  top: 0; left: -300px;
+  width: 280px; height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  z-index: 300;
+  transition: left 0.3s ease, background 0.3s ease;
+  padding: 80px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+
+.side-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.side-panel-header h2 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: normal;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.side-nav-section-label {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 14px 20px 10px;
+  letter-spacing: 0.5px;
+}
+.side-panel-nav { display: flex; flex-direction: column; }
+.side-nav-link {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 20px;
+  text-decoration: none;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(128,128,128,0.1);
+  transition: var(--transition);
+  position: relative;
+}
+.side-nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+.side-nav-link:hover { background: rgba(0,119,170,0.07); color: var(--text-primary); padding-left: 26px; }
+.side-nav-link:hover::before { transform: scaleY(1); }
+.side-nav-icon { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.side-nav-icon svg { width: 36px; height: 36px; }
+.side-nav-label { font-family: var(--font-head); font-size: 14px; letter-spacing: 0.5px; }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-deep);
+  transition: background 0.3s ease;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── GRAPH HEADER BAR ──────────────────────────────────────────────── */
+.graph-header-bar {
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.graph-title {
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+/* ─── GRAPH CONTROLS ────────────────────────────────────────────────── */
+.graph-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 130px;
+}
+.control-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.control-group select,
+.control-group input[type="date"] {
+  padding: 7px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.control-group select:focus,
+.control-group input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.control-group select option {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+
+/* ─── SERIES PANEL ──────────────────────────────────────────────────── */
+.series-panel {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.series-controls {
+  flex: 1;
+  min-width: 260px;
+  max-width: 340px;
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--bg-panel);
+  position: relative;
+  border: 1px solid;
+  transition: background 0.3s ease;
+}
+.series-controls h4 {
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.series-controls .control-group { margin-bottom: 8px; }
+.series-controls select {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  font-size: 14px;      /* ← LARGER */
+  letter-spacing: 0.3px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.series-controls .control-label {
+  font-size: 11px;      /* ← LARGER */
+  letter-spacing: 1.5px;
+}
+.series-controls select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.series-controls select option { background: var(--bg-panel); color: var(--text-primary); }
+
+.series-controls .remove-btn {
+  background: none;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  color: var(--red);
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  transition: var(--transition);
+}
+.series-controls .remove-btn:hover { background: rgba(255,68,68,0.1); }
+
+#addSeriesButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  min-width: 140px;
+  border: 1px dashed var(--border) !important;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.25s ease;
+  flex: 0 0 140px;
+}
+#addSeriesButton:hover {
+  border-color: var(--accent) !important;
+  background: var(--accent-glow);
+}
+#addSeriesButton div { color: var(--text-muted); text-align: center; font-family: var(--font-head); font-size: 13px; letter-spacing: 1px; }
+#addSeriesButton div div:first-child { font-size: 22px; margin-bottom: 6px; color: var(--accent); }
+
+/* ─── GRAPH AREA ────────────────────────────────────────────────────── */
+.graph-area {
+  flex: 1;
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-deep);
+  transition: background 0.3s ease;
+}
+.graph-area::-webkit-scrollbar { width: 6px; }
+.graph-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.graph-canvas-container {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-height: 420px;
+  position: relative;
+  transition: background 0.3s ease, border-color 0.3s ease;
+  flex-shrink: 0;
+}
+#graphCanvas {
+  width: 100%;
+  height: 420px;
+  cursor: crosshair;
+  display: none;
+}
+#noDataMessage {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ─── CROSSHAIR READOUT ─────────────────────────────────────────────── */
+#crosshairReadout {
+  position: absolute;
+  top: 10px; right: 16px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  pointer-events: none;
+  display: none;
+  z-index: 10;
+  min-width: 220px;
+  transition: background 0.3s ease;
+}
+#crosshairReadout.visible { display: block; }
+.crosshair-row { margin-bottom: 4px; }
+.crosshair-row:last-child { margin-bottom: 0; }
+
+/* ─── LEGEND + STATS ────────────────────────────────────────────────── */
+.graph-bottom-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.graph-legend,
+.graph-stats {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  flex: 1;
+  min-width: 240px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.graph-legend h3,
+.graph-stats h3 {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.legend-color {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.legend-toggle {
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+  transition: var(--transition);
+  background: none;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+}
+
+.stat-group {
+  margin-bottom: 14px;
+  padding-left: 12px;
+  border-left: 3px solid;
+}
+.stat-group:last-child { margin-bottom: 0; }
+.stat-cards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.stat-card {
+  text-align: center;
+  padding: 7px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.stat-value {
+  font-family: var(--font-head);
+  font-size: 14px;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+.stat-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ─── ANNOTATION PANEL ──────────────────────────────────────────────── */
+.annotation-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.annotation-panel h3 {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.annotation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.annotation-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-head);
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  background: var(--bg-deep);
+  border-radius: 4px;
+  border-left: 3px solid var(--accent);
+  transition: background 0.3s ease;
+}
+.annotation-item .ann-time { color: var(--accent); min-width: 100px; }
+.annotation-item .ann-text { flex: 1; }
+.annotation-item .ann-delete {
+  background: none; border: none; color: var(--red);
+  cursor: pointer; font-size: 14px; padding: 0 4px;
+  transition: var(--transition);
+}
+.annotation-item .ann-delete:hover { opacity: 0.7; }
+
+/* ─── BTN ───────────────────────────────────────────────────────────── */
+.btn {
+  padding: 8px 18px;
+  border: 1px solid;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  background: none;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary { border-color: var(--accent); color: var(--accent); }
+.btn-primary:hover { background: var(--accent-glow); box-shadow: 0 0 12px var(--accent-glow); }
+
+.btn-success { border-color: var(--green); color: var(--green); }
+.btn-success:hover { background: rgba(0,135,90,0.08); }
+
+.btn-warning { border-color: var(--amber); color: var(--amber); }
+.btn-warning:hover { background: rgba(204,119,0,0.08); }
+
+.btn-danger { border-color: var(--red); color: var(--red); }
+.btn-danger:hover { background: rgba(204,34,0,0.08); }
+
+.btn-sm { padding: 5px 12px; font-size: 10px; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  height: 50px;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.datetime-display {
+  font-family: var(--font-head);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.logoff-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── EXPORT MODAL ──────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  transition: background 0.3s ease;
+}
+.modal h3 {
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.modal-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: var(--transition);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+.modal-option:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+.modal-option .opt-icon { font-size: 20px; }
+.modal-option .opt-desc { font-size: 10px; letter-spacing: 0.5px; color: var(--text-muted); margin-top: 2px; }
+.modal-close {
+  margin-top: 14px;
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  background: none;
+  transition: var(--transition);
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── ZOOM INDICATOR ────────────────────────────────────────────────── */
+#zoomIndicator {
+  position: absolute;
+  bottom: 14px; right: 16px;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: none;
+}
+#zoomIndicator.visible { display: block; }
+
+/* ─── LOADING BAR ───────────────────────────────────────────────────── */
+.loading-bar-wrap {
+  height: 2px;
+  background: transparent;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ─── DARK MODE TOGGLE ──────────────────────────────────────────────── */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toggle-label {
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.toggle-switch {
+  position: relative;
+  width: 44px; height: 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.toggle-switch.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+.toggle-slider {
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.toggle-switch.active .toggle-slider {
+  transform: translateX(22px);
+  background: var(--accent);
+}
+
+/* ─── SVG nav icon color in light mode ─────────────────────────────── */
+[data-theme="light"] .side-nav-icon svg line,
+[data-theme="light"] .side-nav-icon svg rect,
+[data-theme="light"] .side-nav-icon svg polygon,
+[data-theme="light"] .side-nav-icon svg circle,
+[data-theme="light"] .side-nav-icon svg path {
+  stroke: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .graph-controls { flex-direction: column; }
+  .series-panel { flex-direction: column; }
+  .graph-bottom-row { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- overlay -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+          <line x1="22" y1="20" x2="28" y2="20" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="28" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="12" cy="30" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="30" r="1.5" fill="#00c8ff"/>
+          <circle cx="28" cy="30" r="1.5" fill="#c8cfe0"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Numerical Histories</span>
+  </div>
+
+  <div class="top-right">
+    <div class="toggle-container">
+      <span class="toggle-label" id="toggleLabel">Dark</span>
+      <div id="toggleSwitch" class="toggle-switch active">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ──────────────────────────────────────────────────── -->
+<div class="main-content" id="mainContent">
+
+  <!-- Loading progress bar -->
+  <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar"></div></div>
+
+  <!-- Graph controls row -->
+  <div class="graph-controls">
+    <div class="control-group">
+      <label class="control-label">Date</label>
+      <input type="date" id="dateInput" onchange="updateGraph()">
+    </div>
+    <div class="control-group">
+      <label class="control-label">Time Range</label>
+      <select id="timeRangeSelector" onchange="updateGraph()">
+        <option value="all">Full Day</option>
+        <option value="60">Last Hour</option>
+        <option value="240">Last 4 Hours</option>
+        <option value="480">Last 8 Hours</option>
+        <option value="720">Last 12 Hours</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Graph Type</label>
+      <select id="graphTypeSelector" onchange="updateGraph()">
+        <option value="line">Line</option>
+        <option value="step">Step</option>
+        <option value="area">Area Fill</option>
+        <option value="scatter">Scatter</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Smooth</label>
+      <select id="smoothingSelector" onchange="updateGraph()">
+        <option value="0">None</option>
+        <option value="3">Light</option>
+        <option value="7">Medium</option>
+        <option value="15">Heavy</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="forceRefreshGraph()">↺ Refresh</button>
+      <button class="btn btn-success" onclick="resetZoom()" id="resetZoomBtn" style="display:none;">⊞ Reset Zoom</button>
+      <button class="btn btn-warning" onclick="openExportModal()">⬇ Export</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleAnnotationMode()" id="annotateBtn" title="Click graph to place annotation marker">✎ Annotate</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleRefLines()" id="refLinesBtn" title="Show min/avg/max reference lines">⊟ Ref Lines</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Series Panel -->
+  <div class="series-panel" id="seriesPanel">
+    <!-- Series controls injected by JS -->
+  </div>
+
+  <!-- Graph Area -->
+  <div class="graph-area">
+
+    <!-- Canvas Container -->
+    <div class="graph-canvas-container" id="canvasContainer">
+      <canvas id="graphCanvas"></canvas>
+      <div id="noDataMessage">Select a unit and point to view graph data.</div>
+      <div id="crosshairReadout"></div>
+      <div id="zoomIndicator">ZOOM ACTIVE</div>
+    </div>
+
+    <!-- Legend + Stats -->
+    <div class="graph-bottom-row">
+      <div class="graph-legend" id="graphLegend">
+        <h3>Legend</h3>
+        <div id="legendItems"></div>
+      </div>
+      <div class="graph-stats" id="graphStats">
+        <h3>Statistics</h3>
+        <div id="statsItems"></div>
+      </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotation-panel" id="annotationPanel" style="display:none;">
+      <h3>
+        <span>Annotations</span>
+        <button class="btn btn-sm btn-danger" onclick="clearAllAnnotations()">Clear All</button>
+      </h3>
+      <div class="annotation-list" id="annotationList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── EXPORT MODAL ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h3>Export Data</h3>
+    <div class="modal-option" onclick="exportCSV()">
+      <span class="opt-icon">📄</span>
+      <div>
+        <div>Export as CSV</div>
+        <div class="opt-desc">Comma-separated values, opens in Excel</div>
+      </div>
+    </div>
+    <div class="modal-option" onclick="exportPDF()">
+      <span class="opt-icon">📋</span>
+      <div>
+        <div>Export as PDF Report</div>
+        <div class="opt-desc">Graph image + data table, print-ready</div>
+      </div>
+    </div>
+    <div class="modal-option" onclick="exportPNG()">
+      <span class="opt-icon">🖼</span>
+      <div>
+        <div>Save Graph as PNG</div>
+        <div class="opt-desc">Snapshot of current canvas</div>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeExportModal()">✕ Cancel</button>
+  </div>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- FADE IN -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- DATETIME -->
+<script>
+(function startClock() {
+  function tick() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric',
+                   hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent =
+      now.toLocaleString('en-US', opts).replace(',','');
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- DARK MODE TOGGLE — now actually reads/sets data-theme correctly -->
+<script>
+function getCurrentTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'dark';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const toggleSwitch = document.getElementById('toggleSwitch');
+  const toggleLabel  = document.getElementById('toggleLabel');
+  if (theme === 'dark') {
+    toggleSwitch.classList.add('active');
+    if (toggleLabel) toggleLabel.textContent = 'Dark';
+  } else {
+    toggleSwitch.classList.remove('active');
+    if (toggleLabel) toggleLabel.textContent = 'Light';
+  }
+  // Re-draw the graph with new theme colours
+  if (allLoadedSeriesData && allLoadedSeriesData.length > 0) {
+    const tr = document.getElementById('timeRangeSelector');
+    drawMultiSeriesGraph(allLoadedSeriesData, tr ? tr.value : 'all');
+  }
+}
+
+function initializeDarkMode() {
+  // Start in dark mode by default
+  applyTheme('dark');
+  const toggleSwitch = document.getElementById('toggleSwitch');
+  toggleSwitch.addEventListener('click', function() {
+    const newTheme = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+  });
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CORE APPLICATION LOGIC — ALL GRAPHING PRESERVED + ENHANCED
+══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─── Global State ────────────────────────────────────────────────────
+let globalConfig = null;
+let monitoredPoints = [];
+let activeSeries = [];
+let seriesColors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6'];
+let maxSeries = 5;
+let historyCache = new Map();
+let graphDataPoints = [];
+let allLoadedSeriesData = [];
+
+// Enhanced features state
+let annotations = [];
+let annotationMode = false;
+let showRefLines = false;
+let zoomState = null;
+let isDragging = false;
+let dragStart = null;
+let dragEnd = null;
+let hiddenSeries = new Set();
+let seriesVisibility = {};
+
+// ─── Helper: read CSS variable (resolves current theme) ───────────────
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  initializeDateInput();
+  initializeSeriesContainer();
+  loadGlobalConfig();
+  initializeDarkMode();
+  setTimeout(() => { resizeCanvas(); clearGraph(); initCanvasEvents(); }, 120);
+  console.log('Numerical Histories ready');
+});
+
+window.addEventListener('resize', function() {
+  if (allLoadedSeriesData.length > 0) { setTimeout(updateGraph, 100); }
+});
+
+// ─── Loading Bar ──────────────────────────────────────────────────────
+function setLoadingProgress(pct) {
+  const bar = document.getElementById('loadingBar');
+  if (bar) bar.style.width = pct + '%';
+}
+
+// ─── Config ───────────────────────────────────────────────────────────
+async function loadGlobalConfig() {
+  try {
+    const response = await fetch('./Global.json');
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    globalConfig = await response.json();
+    parseMonitoredPoints();
+    updateAllSeriesSelectors();
+    console.log('Global.json loaded. Monitored points:', monitoredPoints.length);
+  } catch (error) {
+    console.error('Error loading Global.json:', error);
+  }
+}
+
+function decodeNiagaraString(str) {
+  if (!str) return str;
+  return str.replace(/\$([0-9A-Fa-f]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function cleanDisplayName(name) {
+  if (!name) return name;
+  return decodeNiagaraString(name).trim();
+}
+
+function parseMonitoredPoints() {
+  monitoredPoints = [];
+  if (!globalConfig || !globalConfig.globalVariables) return;
+  for (const [unitName, unitData] of Object.entries(globalConfig.globalVariables)) {
+    if (!unitData.points || !Array.isArray(unitData.points)) continue;
+    unitData.points.forEach(point => {
+      const isNumeric = point.logNumeric === "yes_Numeric";
+      const isBoolean = point.logBoolean === "yes_Boolean";
+      if ((isNumeric || isBoolean) && point.status === "connected") {
+        monitoredPoints.push({
+          unit: unitName, pointName: point.name, fullPath: point.fullPath,
+          basePath: unitData.basePath, id: point.id, dateAdded: point.dateAdded,
+          pointType: isNumeric ? 'numeric' : 'boolean',
+          displayUnit: cleanDisplayName(unitName),
+          displayPointName: cleanDisplayName(point.name),
+          displayName: cleanDisplayName(unitName) + ' - ' + cleanDisplayName(point.name)
+        });
+      }
+    });
+  }
+}
+
+// ─── Series Container ─────────────────────────────────────────────────
+function initializeSeriesContainer() {
+  const seriesPanel = document.getElementById('seriesPanel');
+  if (!seriesPanel) return;
+  seriesPanel.innerHTML = '';
+  activeSeries = [];
+  addNewSeries();
+}
+
+function addNewSeries() {
+  if (activeSeries.length >= maxSeries) return;
+  const seriesId = Date.now() + Math.random();
+  const seriesIndex = activeSeries.length;
+  const seriesColor = seriesColors[seriesIndex];
+  const series = { id: seriesId, index: seriesIndex, unit: '', point: '', color: seriesColor, label: seriesIndex === 0 ? 'Primary Series' : `Series ${seriesIndex + 1}` };
+  activeSeries.push(series);
+  seriesVisibility[seriesId] = true;
+  const seriesPanel = document.getElementById('seriesPanel');
+  const seriesDiv = createSeriesControls(series);
+  const addButton = document.getElementById('addSeriesButton');
+  if (addButton) { seriesPanel.insertBefore(seriesDiv, addButton); }
+  else { seriesPanel.appendChild(seriesDiv); }
+  updateAddSeriesButton();
+  updateAllSeriesSelectors();
+}
+
+function removeSeries(seriesId) {
+  const seriesIndex = activeSeries.findIndex(s => s.id == seriesId);
+  if (seriesIndex === -1 || seriesIndex === 0) return;
+  activeSeries.splice(seriesIndex, 1);
+  delete seriesVisibility[seriesId];
+  const el = document.getElementById(`series-${seriesId}`);
+  if (el) el.remove();
+  activeSeries.forEach((series, index) => {
+    series.index = index;
+    series.color = seriesColors[index];
+    series.label = index === 0 ? 'Primary Series' : `Series ${index + 1}`;
+    const el = document.getElementById(`series-${series.id}`);
+    if (el) {
+      el.style.borderColor = series.color;
+      const title = el.querySelector('h4');
+      if (title) { title.textContent = series.label; title.style.color = series.color; }
+    }
+  });
+  updateAddSeriesButton();
+  updateGraph();
+}
+
+function updateAddSeriesButton() {
+  const seriesPanel = document.getElementById('seriesPanel');
+  if (!seriesPanel) return;
+  const existing = document.getElementById('addSeriesButton');
+  if (existing) existing.remove();
+  if (activeSeries.length < maxSeries) {
+    const addButton = document.createElement('div');
+    addButton.id = 'addSeriesButton';
+    addButton.innerHTML = `<div><div>+</div><div>Add Series</div><div style="font-size:11px;opacity:0.6;">(${activeSeries.length}/${maxSeries})</div></div>`;
+    addButton.addEventListener('click', addNewSeries);
+    seriesPanel.appendChild(addButton);
+  }
+}
+
+function createSeriesControls(series) {
+  const div = document.createElement('div');
+  div.className = 'series-controls';
+  div.id = `series-${series.id}`;
+  div.style.borderColor = series.color;
+  div.style.borderWidth = '1px';
+  div.style.borderStyle = 'solid';
+  const isFirst = series.index === 0;
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h4 style="margin:0;color:${series.color};">${series.label}</h4>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="series-vis-btn" id="visBtn-${series.id}" onclick="toggleSeriesVisibilityFromCard('${series.id}')"
+          title="Show/Hide this series on graph"
+          style="background:none;border:1px solid ${series.color};border-radius:4px;color:${series.color};padding:3px 10px;cursor:pointer;font-family:var(--font-head);font-size:10px;letter-spacing:1px;transition:var(--transition);">
+          👁 ON
+        </button>
+        ${!isFirst ? `<button class="remove-btn" onclick="removeSeries('${series.id}')">Remove</button>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="control-group">
+        <label class="control-label">Device Type</label>
+        <select id="deviceTypeSelector-${series.id}" onchange="updateUnitSelector('${series.id}'); updateSeriesData('${series.id}'); updateGraph()">
+          <option value="">${isFirst ? 'Select Device Type...' : 'Optional...'}</option>
+        </select>
+      </div>
+<div style="display:flex;gap:8px;align-items:flex-end;">
+        <div class="control-group" style="flex:0 0 72px;">
+          <label class="control-label">Decimals</label>
+          <select id="decimalsSelector-${series.id}" onchange="updateSeriesData('${series.id}'); updateGraph()" style="width:100%;">
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div class="control-group" style="flex:1;">
+          <label class="control-label">Unit</label>
+          <select id="unitSelector-${series.id}" onchange="updatePointSelector('${series.id}'); updateSeriesData('${series.id}'); updateGraph()">
+            <option value="">${isFirst ? 'Select Unit...' : 'Optional...'}</option>
+          </select>
+        </div>
+        <div class="control-group" style="flex:1;">
+          <label class="control-label">Point</label>
+          <select id="pointSelector-${series.id}" onchange="updateSeriesData('${series.id}'); updateGraph()">
+            <option value="">${isFirst ? 'Select Point...' : 'Optional...'}</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  return div;
+}
+
+function updateAllSeriesSelectors() {
+  activeSeries.forEach(series => {
+    populateDeviceTypeSelector(series.id);
+    populateUnitSelectorForSeries(series.id);
+    updatePointSelector(series.id);
+  });
+}
+
+function populateDeviceTypeSelector(seriesId) {
+  const sel = document.getElementById(`deviceTypeSelector-${seriesId}`);
+  if (!sel) return;
+  const cur = sel.value;
+  const isFirst = activeSeries.find(s => s.id == seriesId).index === 0;
+  sel.innerHTML = `<option value="">${isFirst ? 'Select Device Type...' : 'Optional...'}</option>`;
+  const types = new Set();
+  monitoredPoints.forEach(p => types.add(extractDeviceType(p.unit)));
+  [...types].sort().forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    if (t === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function populateUnitSelectorForSeries(seriesId) {
+  const dtSel = document.getElementById(`deviceTypeSelector-${seriesId}`);
+  const unitSel = document.getElementById(`unitSelector-${seriesId}`);
+  if (!unitSel) return;
+  const cur = unitSel.value;
+  const isFirst = activeSeries.find(s => s.id == seriesId).index === 0;
+  const selDT = dtSel ? dtSel.value : '';
+  unitSel.innerHTML = `<option value="">${isFirst ? 'Select Unit...' : 'Optional...'}</option>`;
+  let units = monitoredPoints.map(p => p.unit);
+  if (selDT) units = units.filter(u => extractDeviceType(u) === selDT);
+  [...new Set(units)].filter(Boolean).sort().forEach(u => {
+    const o = document.createElement('option');
+    o.value = u; o.textContent = cleanDisplayName(u);
+    if (u === cur) o.selected = true;
+    unitSel.appendChild(o);
+  });
+}
+
+function updatePointSelector(seriesId) {
+  const unitSel = document.getElementById(`unitSelector-${seriesId}`);
+  const ptSel = document.getElementById(`pointSelector-${seriesId}`);
+  if (!unitSel || !ptSel) return;
+  const selUnit = unitSel.value;
+  const cur = ptSel.value;
+  const isFirst = activeSeries.find(s => s.id == seriesId).index === 0;
+  ptSel.innerHTML = `<option value="">${isFirst ? 'Select Point...' : 'Optional...'}</option>`;
+  if (selUnit && monitoredPoints.length > 0) {
+    monitoredPoints.filter(p => p.unit === selUnit).map(p => p.pointName).sort().forEach(pn => {
+      const o = document.createElement('option');
+      o.value = pn; o.textContent = cleanDisplayName(pn);
+      if (pn === cur) o.selected = true;
+      ptSel.appendChild(o);
+    });
+  }
+}
+
+function updateUnitSelector(seriesId) {
+  populateUnitSelectorForSeries(seriesId);
+  updatePointSelector(seriesId);
+  updateSeriesData(seriesId);
+}
+
+function updateSeriesData(seriesId) {
+  const series = activeSeries.find(s => s.id == seriesId);
+  if (!series) return;
+  const dtSel = document.getElementById(`deviceTypeSelector-${seriesId}`);
+  const unitSel = document.getElementById(`unitSelector-${seriesId}`);
+  const ptSel = document.getElementById(`pointSelector-${seriesId}`);
+  if (dtSel) series.deviceType = dtSel.value;
+if (unitSel && ptSel) { series.unit = unitSel.value; series.point = ptSel.value; }
+  const decSel = document.getElementById(`decimalsSelector-${seriesId}`);
+  series.decimals = decSel ? parseInt(decSel.value, 10) : 2;}
+
+function extractDeviceType(unitName) {
+  if (!unitName) return 'Other';
+  const patterns = [
+    { regex: /^FTU[-_]?/i, type: 'FTU' }, { regex: /^VAV[-_]?/i, type: 'VAV' },
+    { regex: /^RTU[-_]?/i, type: 'RTU' }, { regex: /^AHU[-_]?/i, type: 'AHU' },
+    { regex: /^FCU[-_]?/i, type: 'FCU' }, { regex: /^HP[-_]?/i, type: 'HP' },
+    { regex: /^CHILLER[-_]?/i, type: 'CHILLER' }, { regex: /^BOILER[-_]?/i, type: 'BOILER' },
+    { regex: /^PUMP[-_]?/i, type: 'PUMP' }, { regex: /^FAN[-_]?/i, type: 'FAN' },
+    { regex: /^VFD[-_]?/i, type: 'VFD' }, { regex: /^ZONE[-_]?/i, type: 'ZONE' }
+  ];
+  for (const p of patterns) { if (p.regex.test(unitName)) return p.type; }
+  return 'Other';
+}
+
+function extractDataUnit(name) {
+  if (!name) return '';
+  const n = name.toLowerCase();
+  if (n.includes('temp') || n.includes('temperature') || n.includes('dischargeairtemp')) return '°F';
+  if (n.includes('flow') || n.includes('airflow') || n.includes('air-flow')) return 'CFM';
+  if (n.includes('pressure')) return 'PSI';
+  if (n.includes('humidity')) return '%';
+  if (n.includes('percent') || n.includes('pct') || n.includes('speed')) return '%';
+  if (n.includes('power')) return 'kW';
+  if (n.includes('current')) return 'A';
+  if (n.includes('voltage')) return 'V';
+  if (n.includes('frequency') || n.includes('freq')) return 'Hz';
+  if (n.includes('static')) return 'in/wc';
+  return '';
+}
+
+// ─── History / Niagara ────────────────────────────────────────────────
+async function discoverHistoryOrd(pointOrd) {
+  return new Promise((resolve, reject) => {
+    try {
+      if (typeof require === 'undefined') { reject(new Error('Niagara env required')); return; }
+      require(['baja!'], function(baja) {
+        baja.Ord.make(pointOrd).get()
+          .then(e => e.tags())
+          .then(tagMap => {
+            const h = tagMap.get('n:history');
+            if (h && h.toString().trim() !== '') {
+              let p = h.toString();
+              if (!p.startsWith('history:')) p = 'history:' + p;
+              resolve(p);
+            } else { reject(new Error('No n:history tag')); }
+          })
+          .catch(err => reject(new Error('Tag load failed: ' + err.message)));
+      });
+    } catch(e) { reject(e); }
+  });
+}
+
+async function loadHistoryData(pointPath, startTime, endTime, pointType, maxPoints = 1000) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const cacheKey = pointPath;
+      let historyOrd = historyCache.get(cacheKey);
+      if (!historyOrd) {
+        try {
+          historyOrd = await discoverHistoryOrd(pointPath);
+          historyCache.set(cacheKey, historyOrd);
+        } catch(e) { resolve([]); return; }
+      }
+      if (typeof require === 'undefined') { reject(new Error('Niagara env required')); return; }
+      require(['baja!'], function(baja) {
+        const tCond = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+        const bql = historyOrd + '|bql:select timestamp, value where ' + tCond + ' order by timestamp';
+        const pts = [];
+        baja.Ord.make(bql).get({
+          cursor: {
+            limit: maxPoints,
+            each: function() {
+              const row = this.get();
+              const ts = new Date(row.get("timestamp").getMillis());
+              const val = row.get("value");
+              if (pointType === 'numeric') {
+                const n = parseFloat(val);
+                if (!isNaN(n)) pts.push({ timestamp: ts, value: n, pointType: 'numeric' });
+              } else {
+                const b = val.toString().toLowerCase() === 'true' || val === '1' || val === 1;
+                pts.push({ timestamp: ts, value: b ? 1 : 0, booleanValue: b, displayValue: b ? 'ON' : 'OFF', pointType: 'boolean' });
+              }
+            }
+          }
+        }).then(() => resolve(pts)).catch(err => reject(new Error('BQL failed: ' + err.message)));
+      });
+    } catch(e) { reject(e); }
+  });
+}
+
+// ─── Date / Time ──────────────────────────────────────────────────────
+function initializeDateInput() {
+  const di = document.getElementById('dateInput');
+  if (di) di.value = new Date().toISOString().split('T')[0];
+}
+
+function getSelectedDate() {
+  const di = document.getElementById('dateInput');
+  if (!di || !di.value) return null;
+  const d = new Date(di.value + 'T00:00:00.000');
+  return {
+    dateObject: d, dateString: di.value,
+    startOfDay: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0),
+    endOfDay:   new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999)
+  };
+}
+
+// ─── Canvas / Resize ─────────────────────────────────────────────────
+function resizeCanvas() {
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas) return;
+  const container = canvas.parentElement;
+  const w = container.clientWidth - 32;
+  if (canvas.width !== w) canvas.width = w || 800;
+  if (canvas.height !== 420) canvas.height = 420;
+}
+
+// ─── Main Update Graph ────────────────────────────────────────────────
+async function updateGraph() {
+  const timeRangeSelector = document.getElementById('timeRangeSelector');
+  const timeRange = timeRangeSelector ? timeRangeSelector.value : 'all';
+  const validSeries = activeSeries.filter(s => s.unit && s.point);
+  if (validSeries.length === 0) { clearGraph(); return; }
+  const selectedDate = getSelectedDate();
+  if (!selectedDate) { clearGraph(); return; }
+
+  showGraphLoading(true);
+  setLoadingProgress(10);
+
+  const canvas = document.getElementById('graphCanvas');
+  if (canvas) { canvas.style.display = 'block'; }
+
+  const allSeriesData = [];
+  try {
+    let i = 0;
+    for (const series of validSeries) {
+      const matchedPoint = monitoredPoints.find(p => p.unit === series.unit && p.pointName === series.point);
+      if (!matchedPoint) continue;
+      let startT = selectedDate.startOfDay;
+      let endT = selectedDate.endOfDay;
+      if (zoomState) { startT = new Date(zoomState.startTime); endT = new Date(zoomState.endTime); }
+      else if (timeRange !== 'all' && !isNaN(parseInt(timeRange))) {
+        const cutoff = new Date(endT.getTime() - parseInt(timeRange) * 60000);
+        if (cutoff > startT) startT = cutoff;
+      }
+      setLoadingProgress(10 + ((i / validSeries.length) * 80));
+      const data = await loadHistoryData(matchedPoint.fullPath, startT, endT, matchedPoint.pointType, 1000);
+      if (data.length > 0) {
+        allSeriesData.push({
+          series,
+          data: data.map(pt => ({
+            ...pt, pointName: series.point,
+            dataUnit: matchedPoint.pointType === 'boolean' ? '' : extractDataUnit(series.point),
+            seriesIndex: series.index, pointType: matchedPoint.pointType
+          })),
+          pointType: matchedPoint.pointType
+        });
+      }
+      i++;
+    }
+
+    allLoadedSeriesData = allSeriesData;
+    setLoadingProgress(95);
+
+    if (allSeriesData.length === 0) {
+      const nm = document.getElementById('noDataMessage');
+      if (nm) { nm.textContent = 'No data available for selected date/points.'; nm.style.display = 'block'; nm.style.color = 'var(--text-muted)'; }
+      setLoadingProgress(0);
+      return;
+    }
+
+    drawMultiSeriesGraph(allSeriesData, timeRange);
+    setLoadingProgress(100);
+    setTimeout(() => setLoadingProgress(0), 600);
+
+  } catch(err) {
+    console.error('Graph update error:', err);
+    showGraphError('Failed to load data: ' + err.message);
+    setLoadingProgress(0);
+  } finally {
+    showGraphLoading(false);
+  }
+}
+
+// ─── Smoothing ────────────────────────────────────────────────────────
+function smoothData(data, windowSize) {
+  if (!windowSize || windowSize <= 1) return data;
+  return data.map((pt, i) => {
+    const half = Math.floor(windowSize / 2);
+    const slice = data.slice(Math.max(0, i - half), Math.min(data.length, i + half + 1));
+    const avg = slice.reduce((s, p) => s + p.value, 0) / slice.length;
+    return { ...pt, value: avg };
+  });
+}
+
+// ─── Draw Graph — uses CSS variables for theme-aware colours ─────────
+function drawMultiSeriesGraph(allSeriesData, timeRange) {
+  const canvas = document.getElementById('graphCanvas');
+  const noDataMessage = document.getElementById('noDataMessage');
+  if (!canvas) return;
+
+  const container = canvas.parentElement;
+  canvas.width = (container.clientWidth - 32) || 800;
+  canvas.height = 420;
+  canvas.style.display = 'block';
+
+  const graphType = document.getElementById('graphTypeSelector') ? document.getElementById('graphTypeSelector').value : 'line';
+  const smoothingVal = parseInt(document.getElementById('smoothingSelector') ? document.getElementById('smoothingSelector').value : '0');
+  const selectedDate = getSelectedDate();
+  if (!selectedDate) return;
+
+  const ctx = canvas.getContext('2d');
+  graphDataPoints = [];
+  if (noDataMessage) noDataMessage.style.display = 'none';
+
+  const allValues = [];
+  allSeriesData.forEach(sd => {
+    if (seriesVisibility[sd.series.id] !== false) {
+      allValues.push(...sd.data.map(d => d.value));
+    }
+  });
+  if (allValues.length === 0) { clearGraph(); return; }
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+  const vRange = maxValue - minValue || 1;
+  const vPad = vRange * 0.12;
+  const adjMin = minValue - vPad;
+  const adjMax = maxValue + vPad;
+
+  let xStart, xEnd;
+  if (zoomState) {
+    xStart = zoomState.startTime;
+    xEnd = zoomState.endTime;
+  } else if (timeRange !== 'all' && !isNaN(parseInt(timeRange))) {
+    xEnd = selectedDate.endOfDay.getTime();
+    xStart = xEnd - parseInt(timeRange) * 60000;
+  } else {
+    xStart = selectedDate.startOfDay.getTime();
+    xEnd = selectedDate.endOfDay.getTime();
+  }
+
+  drawGraphAxes(ctx, canvas.width, canvas.height, adjMin, adjMax, xStart, xEnd);
+
+  const padding = 72;
+  const graphWidth = canvas.width - padding * 2;
+  const graphHeight = canvas.height - padding * 2;
+
+  allSeriesData.forEach(({ series, data }) => {
+    if (seriesVisibility[series.id] === false) return;
+    const smoothed = smoothData(data, smoothingVal);
+
+    ctx.save();
+    ctx.strokeStyle = series.color;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const toX = ts => padding + graphWidth * (ts.getTime() - xStart) / (xEnd - xStart);
+    const toY = val => padding + graphHeight - graphHeight * (val - adjMin) / (adjMax - adjMin);
+
+    if (graphType === 'area') {
+      ctx.beginPath();
+      smoothed.forEach((entry, i) => {
+        const x = toX(entry.timestamp);
+        const y = toY(entry.value);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.lineTo(toX(smoothed[smoothed.length-1].timestamp), padding + graphHeight);
+      ctx.lineTo(toX(smoothed[0].timestamp), padding + graphHeight);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, padding, 0, padding + graphHeight);
+      grad.addColorStop(0, series.color + '55');
+      grad.addColorStop(1, series.color + '05');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    if (graphType !== 'scatter') {
+      ctx.beginPath();
+      smoothed.forEach((entry, i) => {
+        const x = toX(entry.timestamp);
+        const y = toY(entry.value);
+        if (i === 0) { ctx.moveTo(x, y); }
+        else if (graphType === 'step') {
+          const prevX = toX(smoothed[i-1].timestamp);
+          ctx.lineTo(x, toY(smoothed[i-1].value));
+          ctx.lineTo(x, y);
+        } else { ctx.lineTo(x, y); }
+      });
+      ctx.stroke();
+    }
+
+    data.forEach((entry, di) => {
+      const x = toX(entry.timestamp);
+      const y = toY(entry.value);
+      ctx.beginPath();
+      if (graphType === 'scatter') {
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = series.color;
+        ctx.fill();
+      } else {
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = series.color;
+        ctx.fill();
+        // Use theme-aware dot border
+        ctx.strokeStyle = cssVar('--bg-deep');
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+graphDataPoints.push({ x, y, radius: 7, data: entry, index: di, series: series.index + 1, seriesName: series.label, seriesColor: series.color, seriesId: series.id, seriesDecimals: series.decimals ?? 2 });    });
+    ctx.restore();
+  });
+
+  drawRefLines(ctx, allSeriesData, adjMin, adjMax, padding, graphWidth, graphHeight);
+  drawAnnotations(ctx, xStart, xEnd, adjMin, adjMax, padding, graphWidth, graphHeight);
+
+  if (isDragging && dragStart && dragEnd) {
+    ctx.save();
+    ctx.fillStyle = cssVar('--accent-glow') || 'rgba(0,200,255,0.08)';
+    ctx.strokeStyle = cssVar('--accent');
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    const rx = Math.min(dragStart.x, dragEnd.x);
+    const rw = Math.abs(dragEnd.x - dragStart.x);
+    ctx.fillRect(rx, padding, rw, graphHeight);
+    ctx.strokeRect(rx, padding, rw, graphHeight);
+    ctx.restore();
+  }
+
+  graphState = { xStart, xEnd, adjMin, adjMax, padding, gw: graphWidth, gh: graphHeight };
+
+  updateGraphLegend(allSeriesData);
+  updateGraphStats(allSeriesData);
+  renderAnnotationList();
+}
+
+// ─── Axes — theme-aware ──────────────────────────────────────────────
+function drawGraphAxes(ctx, width, height, adjMin, adjMax, xStart, xEnd) {
+  const padding = 72;
+  const gw = width - padding * 2;
+  const gh = height - padding * 2;
+
+  // Background — use CSS variable
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = cssVar('--graph-bg');
+  ctx.fillRect(0, 0, width, height);
+
+  // Grid
+  ctx.strokeStyle = cssVar('--graph-grid');
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([2, 5]);
+  for (let i = 0; i <= 10; i++) {
+    const x = padding + gw * i / 10;
+    ctx.beginPath(); ctx.moveTo(x, padding); ctx.lineTo(x, padding + gh); ctx.stroke();
+  }
+  for (let i = 0; i <= 8; i++) {
+    const y = padding + gh * i / 8;
+    ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(padding + gw, y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Axes
+  ctx.strokeStyle = cssVar('--graph-axis');
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, padding + gh);
+  ctx.lineTo(padding + gw, padding + gh);
+  ctx.stroke();
+
+  // Y labels
+  ctx.font = '13px Courier New, monospace';
+  ctx.fillStyle = cssVar('--graph-label');
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+const axisDecimals = (() => {
+    const visible = activeSeries.filter(s => seriesVisibility[s.id] !== false && s.decimals != null);
+    return visible.length > 0 ? Math.max(...visible.map(s => s.decimals ?? 2)) : 2;
+  })();
+  for (let i = 0; i <= 8; i++) {
+    const v = adjMin + (adjMax - adjMin) * (1 - i / 8);
+    ctx.fillText(v.toFixed(axisDecimals), padding - 8, padding + gh * i / 8);
+  }
+
+  // X labels
+  ctx.font = '12px Courier New, monospace';
+  ctx.fillStyle = cssVar('--graph-label');
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const spanMs = xEnd - xStart;
+  const labelCount = 7;
+  for (let i = 0; i <= labelCount; i++) {
+    const t = new Date(xStart + spanMs * i / labelCount);
+    const x = padding + gw * i / labelCount;
+    const str = t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    ctx.fillText(str, x, padding + gh + 8);
+  }
+
+  // Axis titles
+  ctx.font = 'bold 13px Courier New, monospace';
+  ctx.fillStyle = cssVar('--graph-axis-title');
+  ctx.save();
+  ctx.translate(14, padding + gh / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('Value', 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'center';
+  ctx.fillText('Time', padding + gw / 2, padding + gh + 34);
+}
+
+// ─── Reference Lines ──────────────────────────────────────────────────
+function toggleRefLines() {
+  showRefLines = !showRefLines;
+  const btn = document.getElementById('refLinesBtn');
+  if (btn) {
+    if (showRefLines) { btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)'; btn.textContent = '⊟ Ref Lines ON'; }
+    else { btn.style.borderColor = ''; btn.style.color = ''; btn.textContent = '⊟ Ref Lines'; }
+  }
+  if (allLoadedSeriesData.length > 0) {
+    drawMultiSeriesGraph(allLoadedSeriesData, document.getElementById('timeRangeSelector') ? document.getElementById('timeRangeSelector').value : 'all');
+  }
+}
+
+function drawRefLines(ctx, allSeriesData, adjMin, adjMax, padding, gw, gh) {
+  if (!showRefLines) return;
+  allSeriesData.forEach(({ series, data }) => {
+    if (seriesVisibility[series.id] === false || data.length === 0) return;
+    const vals = data.map(d => d.value);
+    const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const toY = val => padding + gh - gh * (val - adjMin) / (adjMax - adjMin);
+    [[avg, 'AVG', series.color, [6,4]], [min, 'MIN', cssVar('--text-muted'), [3,6]], [max, 'MAX', cssVar('--text-muted'), [3,6]]].forEach(([val, label, color, dash]) => {
+      const y = toY(val);
+      if (y < padding || y > padding + gh) return;
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(dash);
+      ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(padding + gw, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.85;
+      ctx.font = 'bold 11px Courier New';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${label}: ${val.toFixed(series.decimals ?? 2)}`, padding + 4, y - 2);
+      ctx.restore();
+    });
+  });
+}
+
+// ─── Annotations ─────────────────────────────────────────────────────
+function drawAnnotations(ctx, xStart, xEnd, adjMin, adjMax, padding, gw, gh) {
+  annotations.forEach(ann => {
+    const x = padding + gw * (ann.timestamp - xStart) / (xEnd - xStart);
+    if (x < padding || x > padding + gw) return;
+    ctx.save();
+    ctx.strokeStyle = cssVar('--amber');
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, padding);
+    ctx.lineTo(x, padding + gh);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = '10px Courier New';
+    ctx.fillStyle = cssVar('--amber');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const label = ann.text || '▼';
+    ctx.fillText(label, x + 4, padding + 4);
+    ctx.restore();
+  });
+}
+
+// ─── Canvas Events ────────────────────────────────────────────────────
+let graphState = { xStart: 0, xEnd: 1, adjMin: 0, adjMax: 1, padding: 72, gw: 700, gh: 350 };
+
+function initCanvasEvents() {
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas) return;
+  canvas.addEventListener('mousemove', handleMouseMove);
+  canvas.addEventListener('mouseleave', hideCrosshair);
+  canvas.addEventListener('mousedown', handleMouseDown);
+  canvas.addEventListener('mouseup', handleMouseUp);
+  canvas.addEventListener('click', handleCanvasClick);
+}
+
+function handleMouseMove(e) {
+  const { xStart, xEnd, adjMin, adjMax, padding, gw, gh } = graphState;
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  if (isDragging && dragStart) {
+    dragEnd = { x: mx, y: my };
+    drawMultiSeriesGraph(allLoadedSeriesData, document.getElementById('timeRangeSelector') ? document.getElementById('timeRangeSelector').value : 'all');
+    return;
+  }
+
+  const readout = document.getElementById('crosshairReadout');
+  if (!readout) return;
+  if (mx < padding || mx > padding + gw || my < padding || my > padding + gh) {
+    readout.classList.remove('visible');
+    return;
+  }
+  const tMs = xStart + (mx - padding) / gw * (xEnd - xStart);
+  const val = adjMin + (1 - (my - padding) / gh) * (adjMax - adjMin);
+  const t = new Date(tMs);
+  const timeStr = t.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
+
+  let nearestHTML = '';
+  allLoadedSeriesData.forEach(({ series, data }) => {
+    if (seriesVisibility[series.id] === false) return;
+    let closest = null;
+    let closestDist = Infinity;
+    data.forEach(pt => {
+      const d = Math.abs(pt.timestamp.getTime() - tMs);
+      if (d < closestDist) { closestDist = d; closest = pt; }
+    });
+    if (closest && closestDist < (xEnd - xStart) * 0.02) {
+const dec = series.decimals ?? 2;
+      nearestHTML += `<div class="crosshair-row" style="color:${series.color};">● ${cleanDisplayName(series.point)}: <strong style="color:var(--text-primary);">${closest.value.toFixed ? closest.value.toFixed(dec) : closest.value} ${closest.dataUnit || ''}</strong></div>`;
+      }
+  });
+
+  readout.innerHTML = `<div class="crosshair-row" style="color:var(--accent);margin-bottom:6px;font-size:14px;font-weight:bold;">${timeStr}</div>${nearestHTML || `<div class="crosshair-row">Value: ${val.toFixed(2)}</div>`}`;
+  readout.classList.add('visible');
+}
+
+function hideCrosshair() {
+  const r = document.getElementById('crosshairReadout');
+  if (r) r.classList.remove('visible');
+}
+
+function handleMouseDown(e) {
+  const { padding, gw } = graphState;
+  if (annotationMode) return;
+  const canvas = document.getElementById('graphCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (mx < padding || mx > padding + gw) return;
+  isDragging = true;
+  dragStart = { x: mx, y: my };
+  dragEnd = null;
+}
+
+function handleMouseUp(e) {
+  const { xStart, xEnd, padding, gw } = graphState;
+  if (!isDragging) return;
+  isDragging = false;
+  const canvas = document.getElementById('graphCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  if (dragStart && dragEnd && Math.abs(mx - dragStart.x) > 20) {
+    const t1 = xStart + (Math.min(dragStart.x, dragEnd.x) - padding) / gw * (xEnd - xStart);
+    const t2 = xStart + (Math.max(dragStart.x, dragEnd.x) - padding) / gw * (xEnd - xStart);
+    zoomState = { startTime: t1, endTime: t2 };
+    const resetBtn = document.getElementById('resetZoomBtn');
+    if (resetBtn) resetBtn.style.display = '';
+    const zi = document.getElementById('zoomIndicator');
+    if (zi) zi.classList.add('visible');
+    dragStart = null; dragEnd = null;
+    updateGraph();
+  } else {
+    dragStart = null; dragEnd = null;
+  }
+}
+
+function resetZoom() {
+  zoomState = null;
+  const resetBtn = document.getElementById('resetZoomBtn');
+  if (resetBtn) resetBtn.style.display = 'none';
+  const zi = document.getElementById('zoomIndicator');
+  if (zi) zi.classList.remove('visible');
+  updateGraph();
+}
+
+function handleCanvasClick(e) {
+  const { xStart, xEnd, adjMin, adjMax, padding, gw, gh } = graphState;
+  const canvas = document.getElementById('graphCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  if (annotationMode) {
+    if (mx < padding || mx > padding + gw) return;
+    const tMs = xStart + (mx - padding) / gw * (xEnd - xStart);
+    const label = prompt('Annotation label (leave blank to cancel):');
+    if (label === null) return;
+    annotations.push({ id: Date.now(), timestamp: tMs, text: label || '' });
+    renderAnnotationList();
+    updateGraph();
+    return;
+  }
+
+  for (const pt of graphDataPoints) {
+    const d = Math.sqrt(Math.pow(mx - pt.x, 2) + Math.pow(my - pt.y, 2));
+    if (d <= pt.radius) { showDataPointTooltip(pt, e.clientX, e.clientY); return; }
+  }
+  hideDataPointTooltip();
+}
+
+document.addEventListener('click', e => {
+  const canvas = document.getElementById('graphCanvas');
+  if (e.target !== canvas) hideDataPointTooltip();
+});
+
+// ─── Annotation Mode ──────────────────────────────────────────────────
+function toggleAnnotationMode() {
+  annotationMode = !annotationMode;
+  const btn = document.getElementById('annotateBtn');
+  const canvas = document.getElementById('graphCanvas');
+  if (annotationMode) {
+    if (btn) { btn.style.borderColor = 'var(--amber)'; btn.style.color = 'var(--amber)'; btn.textContent = '✎ Annotating'; }
+    if (canvas) canvas.style.cursor = 'crosshair';
+  } else {
+    if (btn) { btn.style.borderColor = ''; btn.style.color = ''; btn.textContent = '✎ Annotate'; }
+    if (canvas) canvas.style.cursor = 'default';
+  }
+}
+
+function clearAllAnnotations() {
+  annotations = [];
+  renderAnnotationList();
+  updateGraph();
+}
+
+function deleteAnnotation(id) {
+  annotations = annotations.filter(a => a.id !== id);
+  renderAnnotationList();
+  updateGraph();
+}
+
+function renderAnnotationList() {
+  const panel = document.getElementById('annotationPanel');
+  const list = document.getElementById('annotationList');
+  if (!panel || !list) return;
+  if (annotations.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = '';
+  annotations.forEach(ann => {
+    const d = document.createElement('div');
+    d.className = 'annotation-item';
+    const t = new Date(ann.timestamp).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
+    d.innerHTML = `<span class="ann-time">${t}</span><span class="ann-text">${ann.text || '(no label)'}</span><button class="ann-delete" onclick="deleteAnnotation(${ann.id})">✕</button>`;
+    list.appendChild(d);
+  });
+}
+
+// ─── Tooltip ──────────────────────────────────────────────────────────
+function showDataPointTooltip(pointData, screenX, screenY) {
+  hideDataPointTooltip();
+  const tooltip = document.createElement('div');
+  tooltip.id = 'dataPointTooltip';
+  const bgColor = cssVar('--bg-deep');
+  const textColor = cssVar('--text-primary');
+  const mutedColor = cssVar('--text-muted');
+  tooltip.style.cssText = `
+    position:fixed; background:${bgColor}; color:${textColor};
+    padding:14px 18px; border-radius:8px; font-family:'Courier New',monospace;
+    font-size:12px; letter-spacing:0.5px; z-index:10001;
+    box-shadow:0 4px 24px rgba(0,0,0,0.4); border:1px solid ${pointData.seriesColor};
+    max-width:280px; pointer-events:none;`;
+  const timeStr = pointData.data.timestamp.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
+  const val = pointData.data.pointType === 'boolean'
+? `<strong>Value:</strong> ${pointData.data.displayValue || (pointData.data.value === 1 ? 'ON' : 'OFF')}`
+    : `<strong>Value:</strong> ${pointData.data.value.toFixed ? pointData.data.value.toFixed(pointData.seriesDecimals ?? 2) : pointData.data.value} ${pointData.data.dataUnit || ''}`;
+  tooltip.innerHTML = `
+    <div style="font-weight:bold;color:${pointData.seriesColor};margin-bottom:8px;letter-spacing:1px;text-transform:uppercase;font-size:11px;">${pointData.seriesName}</div>
+    <div style="margin-bottom:4px;color:${mutedColor};">${val}</div>
+    <div style="margin-bottom:4px;color:${mutedColor};"><strong>Type:</strong> ${pointData.data.pointType === 'boolean' ? 'Boolean' : 'Numeric'}</div>
+    <div style="margin-bottom:4px;color:${mutedColor};"><strong>Time:</strong> ${timeStr}</div>
+    <div style="margin-bottom:4px;color:${mutedColor};"><strong>Point:</strong> ${cleanDisplayName(pointData.data.pointName)}</div>
+    <div style="font-size:10px;color:${mutedColor};margin-top:10px;letter-spacing:1px;">CLICK ELSEWHERE TO CLOSE</div>`;
+  document.body.appendChild(tooltip);
+  const tr = tooltip.getBoundingClientRect();
+  let left = screenX + 15, top = screenY - 15;
+  if (left + tr.width > window.innerWidth) left = screenX - tr.width - 15;
+  if (top < 0) top = screenY + 15;
+  if (top + tr.height > window.innerHeight) top = window.innerHeight - tr.height - 10;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+  setTimeout(() => hideDataPointTooltip(), 8000);
+}
+
+function hideDataPointTooltip() {
+  const t = document.getElementById('dataPointTooltip');
+  if (t) t.remove();
+}
+
+// ─── Legend ───────────────────────────────────────────────────────────
+function updateGraphLegend(allSeriesData) {
+  const container = document.getElementById('legendItems');
+  if (!container) return;
+  container.innerHTML = '';
+  allSeriesData.forEach(({ series, data }) => {
+    if (data.length === 0) return;
+    const isVisible = seriesVisibility[series.id] !== false;
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `
+      <span class="legend-color" style="background:${series.color};opacity:${isVisible ? 1 : 0.3};"></span>
+      <span style="opacity:${isVisible ? 1 : 0.4};">${cleanDisplayName(series.unit)} — ${cleanDisplayName(series.point)}</span>
+      <button class="legend-toggle" style="border-color:${series.color};color:${series.color};opacity:${isVisible ? 1 : 0.5};"
+        onclick="toggleSeriesVisibility('${series.id}')">${isVisible ? 'Hide' : 'Show'}</button>`;
+    container.appendChild(item);
+  });
+}
+
+function toggleSeriesVisibility(seriesId) {
+  seriesVisibility[seriesId] = !seriesVisibility[seriesId];
+  if (allLoadedSeriesData.length > 0) {
+    drawMultiSeriesGraph(allLoadedSeriesData, document.getElementById('timeRangeSelector') ? document.getElementById('timeRangeSelector').value : 'all');
+  }
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────
+function updateGraphStats(allSeriesData) {
+  const container = document.getElementById('statsItems');
+  if (!container) return;
+  let html = '';
+  allSeriesData.forEach(({ series, data }) => {
+    if (data.length === 0 || seriesVisibility[series.id] === false) return;
+    const vals = data.map(d => d.value);
+    const d = series.decimals ?? 2;
+    const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const current = vals[vals.length - 1];
+    const unit = data[0].dataUnit || '';
+    const variance = vals.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / vals.length;
+    const stdDev = Math.sqrt(variance);
+    html += `
+      <div class="stat-group" style="border-left-color:${series.color};">
+        <div style="font-family:var(--font-head);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:${series.color};margin-bottom:6px;">${series.label}</div>
+        <div class="stat-cards">
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${data.length}</div><div class="stat-label">Points</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${avg.toFixed(d)} ${unit}</div><div class="stat-label">Average</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${current.toFixed(d)} ${unit}</div><div class="stat-label">Last</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${min.toFixed(d)} ${unit}</div><div class="stat-label">Min</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${max.toFixed(d)} ${unit}</div><div class="stat-label">Max</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${series.color};">${stdDev.toFixed(d)} ${unit}</div><div class="stat-label">Std Dev</div></div>
+        </div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ─── Graph Loading States ─────────────────────────────────────────────
+function showGraphLoading(show) {
+  const canvas = document.getElementById('graphCanvas');
+  const nm = document.getElementById('noDataMessage');
+  if (show) {
+    if (canvas) canvas.style.opacity = '0.5';
+    if (nm) { nm.textContent = 'Loading data from Niagara histories…'; nm.style.display = 'block'; nm.style.color = 'var(--accent)'; }
+  } else {
+    if (canvas) canvas.style.opacity = '1';
+    if (nm && nm.textContent.includes('Loading')) nm.style.display = 'none';
+  }
+}
+
+function showGraphError(msg) {
+  const canvas = document.getElementById('graphCanvas');
+  const nm = document.getElementById('noDataMessage');
+  if (canvas) canvas.style.display = 'none';
+  if (nm) { nm.textContent = `Error: ${msg}`; nm.style.display = 'block'; nm.style.color = 'var(--red)'; }
+}
+
+function clearGraph() {
+  const canvas = document.getElementById('graphCanvas');
+  const nm = document.getElementById('noDataMessage');
+  if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.style.display = 'none'; }
+  if (nm) { nm.textContent = 'Select a unit and point to view graph data.'; nm.style.display = 'block'; nm.style.color = 'var(--text-muted)'; }
+  document.getElementById('legendItems').innerHTML = '';
+  document.getElementById('statsItems').innerHTML = '';
+  graphDataPoints = [];
+  hideDataPointTooltip();
+}
+
+function forceRefreshGraph() { updateGraph(); }
+
+// ─── Export ───────────────────────────────────────────────────────────
+function openExportModal() { document.getElementById('exportModal').classList.add('active'); }
+function closeExportModal() { document.getElementById('exportModal').classList.remove('active'); }
+
+function exportCSV() {
+  closeExportModal();
+  if (allLoadedSeriesData.length === 0) { showNotification('No Data', 'Load graph data first', 'warning'); return; }
+  const rows = ['Timestamp,Series,Unit,Point,Value,Unit_of_Measure'];
+  allLoadedSeriesData.forEach(({ series, data }) => {
+    data.forEach(pt => {
+      rows.push([`"${pt.timestamp.toLocaleString()}"`, `"${series.label}"`, `"${series.unit}"`, `"${series.point}"`, pt.value, pt.dataUnit || ''].join(','));
+    });
+  });
+  downloadFile(rows.join('\n'), `histories_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+  showNotification('Exported', 'CSV downloaded', 'success');
+}
+
+function exportPDF() {
+  closeExportModal();
+  if (allLoadedSeriesData.length === 0) { showNotification('No Data', 'Load graph data first', 'warning'); return; }
+  const canvas = document.getElementById('graphCanvas');
+  const dateStr = document.getElementById('dateInput') ? document.getElementById('dateInput').value : new Date().toISOString().split('T')[0];
+  const canvasImg = (canvas && canvas.style.display !== 'none') ? canvas.toDataURL('image/png') : null;
+
+  let tableRows = '';
+  allLoadedSeriesData.forEach(({ series, data }) => {
+    if (data.length === 0) return;
+    const vals = data.map(d => d.value);
+    const avg = (vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2);
+    const min = Math.min(...vals).toFixed(2);
+    const max = Math.max(...vals).toFixed(2);
+    const last = vals[vals.length - 1].toFixed(2);
+    const variance = vals.reduce((s, v) => s + Math.pow(v - avg, 2), 0) / vals.length;
+    const stdDev = Math.sqrt(variance).toFixed(2);
+    const unit = data[0].dataUnit || '';
+    tableRows += `<tr>
+      <td><span style="display:inline-block;width:12px;height:12px;background:${series.color};border-radius:2px;margin-right:6px;"></span>${cleanDisplayName(series.unit)} — ${cleanDisplayName(series.point)}</td>
+      <td>${data.length}</td>
+      <td>${avg} ${unit}</td>
+      <td>${min} ${unit}</td>
+      <td>${max} ${unit}</td>
+      <td>${last} ${unit}</td>
+      <td>${stdDev} ${unit}</td>
+    </tr>`;
+  });
+
+  let dataTables = '';
+  allLoadedSeriesData.forEach(({ series, data }) => {
+    if (data.length === 0) return;
+    const unit = data[0].dataUnit || '';
+    let rows = data.map(pt => `<tr><td>${pt.timestamp.toLocaleString()}</td><td>${pt.value} ${unit}</td></tr>`).join('');
+    dataTables += `
+      <h3 style="color:${series.color};font-family:Courier New,monospace;font-size:13px;letter-spacing:1px;margin:24px 0 8px;text-transform:uppercase;">
+        ${cleanDisplayName(series.unit)} — ${cleanDisplayName(series.point)}
+      </h3>
+      <table><thead><tr><th>Timestamp</th><th>Value</th></tr></thead><tbody>${rows}</tbody></table>`;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Murphy Control — Numerical History Report — ${dateStr}</title>
+  <style>
+    body { font-family: 'Courier New', monospace; background: #fff; color: #1a1a2e; margin: 32px; }
+    h1 { font-size: 20px; letter-spacing: 2px; color: #0a4f7a; border-bottom: 2px solid #00c8ff; padding-bottom: 8px; margin-bottom: 4px; }
+    .meta { font-size: 11px; color: #666; margin-bottom: 24px; letter-spacing: 1px; }
+    img { width: 100%; max-width: 1100px; border: 1px solid #cce4f0; border-radius: 6px; margin-bottom: 24px; }
+    h2 { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #0a4f7a; margin-bottom: 10px; }
+    h3 { font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 11px; }
+    th { background: #e8f4fb; color: #0a4f7a; padding: 7px 10px; text-align: left; border: 1px solid #c0dcea; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; }
+    td { padding: 5px 10px; border: 1px solid #e0eef5; }
+    tr:nth-child(even) td { background: #f5fbff; }
+    .page-break { page-break-before: always; }
+    @media print { body { margin: 16px; } }
+  </style></head><body>
+  <h1>Murphy Control — Numerical History Report</h1>
+  <div class="meta">Date: ${dateStr} &nbsp;|&nbsp; Generated: ${new Date().toLocaleString()} &nbsp;|&nbsp; Points: ${allLoadedSeriesData.length}</div>
+  ${canvasImg ? `<img src="${canvasImg}" alt="Graph">` : '<p><em>No graph image available.</em></p>'}
+  <h2>Summary Statistics</h2>
+  <table><thead><tr><th>Series</th><th>Points</th><th>Average</th><th>Min</th><th>Max</th><th>Last</th><th>Std Dev</th></tr></thead>
+  <tbody>${tableRows}</tbody></table>
+  <div class="page-break"></div>
+  <h2>Raw Data</h2>
+  ${dataTables}
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+  else { showNotification('Popup Blocked', 'Allow popups to generate PDF', 'warning'); }
+  showNotification('PDF Ready', 'Print dialog opened — Save as PDF', 'success');
+}
+
+function exportPNG() {
+  closeExportModal();
+  const canvas = document.getElementById('graphCanvas');
+  if (!canvas || canvas.style.display === 'none') { showNotification('No Graph', 'Render graph data first', 'warning'); return; }
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `graph_${new Date().toISOString().split('T')[0]}.png`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  showNotification('Saved', 'PNG downloaded', 'success');
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ─── Series Card Visibility Toggle ───────────────────────────────────
+function toggleSeriesVisibilityFromCard(seriesId) {
+  const isVisible = seriesVisibility[seriesId] !== false;
+  seriesVisibility[seriesId] = !isVisible;
+  const btn = document.getElementById(`visBtn-${seriesId}`);
+  const card = document.getElementById(`series-${seriesId}`);
+  const series = activeSeries.find(s => s.id == seriesId);
+  if (!series) return;
+  if (seriesVisibility[seriesId]) {
+    if (btn) { btn.textContent = '👁 ON'; btn.style.borderColor = series.color; btn.style.color = series.color; btn.style.opacity = '1'; }
+    if (card) { card.style.opacity = '1'; }
+  } else {
+    if (btn) { btn.textContent = '🚫 OFF'; btn.style.borderColor = 'var(--text-muted)'; btn.style.color = 'var(--text-muted)'; btn.style.opacity = '0.6'; }
+    if (card) { card.style.opacity = '0.5'; }
+  }
+  if (allLoadedSeriesData.length > 0) {
+    drawMultiSeriesGraph(allLoadedSeriesData, document.getElementById('timeRangeSelector') ? document.getElementById('timeRangeSelector').value : 'all');
+  }
+}
+
+// ─── Notifications ────────────────────────────────────────────────────
+function showNotification(title, message, type = 'info') {
+  const colors = { success: 'var(--green)', error: 'var(--red)', info: 'var(--accent)', warning: 'var(--amber)' };
+  const n = document.createElement('div');
+  const bg = cssVar('--bg-panel');
+  n.style.cssText = `position:fixed;top:80px;right:20px;background:${bg};border:1px solid ${colors[type]||colors.info};color:${colors[type]||colors.info};padding:14px 20px;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.3);z-index:10000;max-width:300px;font-family:'Courier New',monospace;font-size:12px;letter-spacing:0.5px;opacity:0;transform:translateX(100%);transition:all 0.3s ease;`;
+  n.innerHTML = `<div style="font-weight:bold;margin-bottom:5px;letter-spacing:1px;text-transform:uppercase;">${title}</div><div style="color:var(--text-muted);">${message}</div>`;
+  document.body.appendChild(n);
+  setTimeout(() => { n.style.opacity = '1'; n.style.transform = 'translateX(0)'; }, 100);
+  setTimeout(() => { n.style.opacity = '0'; n.style.transform = 'translateX(100%)'; setTimeout(() => { if (n.parentNode) n.parentNode.removeChild(n); }, 300); }, 5000);
+}
+</script>
+
+</body>
+</html>
