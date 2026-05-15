@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - AHU Monitoring</title>
+
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0b0f1a;
+  --surface:   #111827;
+  --surface2:  #1a2235;
+  --border:    #1f2d42;
+  --border2:   #2a3d56;
+  --accent:    #00c2ff;
+  --accent2:   #7c3aed;
+  --accent3:   #10b981;
+  --warn:      #f59e0b;
+  --danger:    #ef4444;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --label:     #94a3b8;
+  --radius:    6px;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.topbar-sep { width: 1px; height: 24px; background: var(--border2); }
+.topbar-title {
+  font-size: 13px;
+  color: var(--label);
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: #33ccff; box-shadow: 0 0 16px rgba(0,194,255,0.35); }
+
+.btn-purple {
+  background: var(--accent2);
+  color: #fff;
+  border-color: var(--accent2);
+}
+.btn-purple:hover { background: #8b5cf6; box-shadow: 0 0 16px rgba(124,58,237,0.35); }
+
+.btn-green {
+  background: var(--accent3);
+  color: #000;
+  border-color: var(--accent3);
+}
+.btn-green:hover { background: #34d399; box-shadow: 0 0 16px rgba(16,185,129,0.35); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.12); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--label);
+  border-color: var(--border2);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+.btn-icon { padding: 5px 8px; font-size: 14px; }
+
+/* ── LAYOUT ── */
+.main-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 52px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  position: sticky;
+  top: 52px;
+  height: calc(100vh - 52px);
+  overflow-y: auto;
+}
+.sidebar-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  padding: 8px 16px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--label);
+  font-size: 12px;
+  font-weight: 600;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(0,194,255,0.07);
+}
+.nav-item .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.nav-badge.has-data { background: rgba(0,194,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+/* ── CONTENT ── */
+.content {
+  padding: 24px;
+  overflow-y: auto;
+}
+.panel {
+  display: none;
+}
+.panel.active { display: block; }
+
+/* ── PANEL HEADER ── */
+.panel-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+}
+.panel-header p { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.card-header {
+  padding: 12px 16px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  gap: 10px;
+}
+.card-header:hover { background: #1e2d44; }
+.card-header-left { display: flex; align-items: center; gap: 10px; }
+.card-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.card-subtitle { font-size: 11px; color: var(--muted); }
+.card-chevron { color: var(--muted); font-size: 11px; transition: transform 0.2s; }
+.card.collapsed .card-chevron { transform: rotate(-90deg); }
+.card-body { padding: 16px; }
+.card.collapsed .card-body { display: none; }
+
+/* ── FORM ELEMENTS ── */
+.field { margin-bottom: 12px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--label);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="password"],
+.field select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,194,255,0.12);
+}
+
+input[type="text"], input[type="number"], input[type="password"], select {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 7px 11px;
+  transition: all 0.15s;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,194,255,0.12);
+}
+select { cursor: pointer; }
+select option { background: var(--surface2); }
+
+/* ── EQUIPMENT GRID ── */
+.equip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.equip-card {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.equip-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.equip-card input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.equip-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,194,255,0.12);
+}
+
+/* VAV / FCU / FTU cards with floor assignment */
+.equip-card-full {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.equip-card-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 6px;
+}
+.equip-card-row > .flex-2 { flex: 2; }
+.equip-card-row > .flex-1 { flex: 1; }
+.equip-card-row input {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.equip-card-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0,194,255,0.12);
+}
+.side-checks {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+.side-checks label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--label);
+  cursor: pointer;
+}
+.side-checks input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.field-mini-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 3px;
+}
+
+/* ── COUNT ROW ── */
+.count-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.count-row label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.count-row input[type="number"] {
+  width: 80px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.count-row .count-info {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+/* ── USERS ── */
+.user-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: end;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+
+/* ── FILE MANAGEMENT ── */
+.file-mgmt {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.file-btn-card {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.file-btn-card:hover { border-color: var(--accent); background: rgba(0,194,255,0.05); }
+.file-btn-card .icon { font-size: 24px; margin-bottom: 6px; }
+.file-btn-card .label { font-size: 12px; font-weight: 700; color: var(--text); }
+.file-btn-card .desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── IMAGE DROP ── */
+.drop-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--muted);
+  font-size: 12px;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(0,194,255,0.05);
+  color: var(--text);
+}
+.drop-zone .icon { font-size: 28px; margin-bottom: 8px; }
+
+.image-preview-block {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.image-preview-block img {
+  max-width: 140px;
+  max-height: 100px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.image-meta { flex: 1; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.image-meta strong { color: var(--text); display: block; margin-bottom: 4px; font-family: var(--sans); font-size: 12px; }
+
+/* ── FLOOR PLANS ── */
+.floor-item {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.floor-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.floor-item-header .floor-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(0,194,255,0.1);
+  border: 1px solid rgba(0,194,255,0.2);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.floor-item-header .floor-name-display { font-size: 12px; font-weight: 700; color: var(--text); flex: 1; }
+.floor-item-body { padding: 12px 14px; }
+.floor-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.floor-controls label { font-size: 11px; color: var(--label); }
+.floor-controls select {
+  padding: 5px 8px; font-size: 11px;
+}
+.split-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--label);
+  cursor: pointer;
+}
+.split-toggle input[type="checkbox"] { accent-color: var(--accent); }
+.floor-images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+.floor-img-slot {
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+  padding: 10px;
+  text-align: center;
+}
+.floor-img-slot.east { border-color: rgba(16,185,129,0.4); }
+.floor-img-slot.west { border-color: rgba(0,194,255,0.4); }
+.floor-img-slot .wing-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.floor-img-slot.east .wing-label { color: var(--accent3); }
+.floor-img-slot.west .wing-label { color: var(--accent); }
+.floor-img-slot img { max-width: 100%; max-height: 80px; border-radius: 4px; margin-bottom: 6px; display: block; margin: 0 auto 6px; }
+.floor-upload-label {
+  display: inline-block;
+  padding: 5px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--label);
+  transition: all 0.15s;
+}
+.floor-upload-label:hover { border-color: var(--accent); color: var(--accent); }
+.floor-single-img { margin-top: 8px; }
+.no-img-placeholder { color: var(--muted); font-size: 11px; padding: 8px 0; }
+
+/* ── FLOOR NAMES GRID ── */
+.floor-names-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.floor-name-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.floor-name-item .floor-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--mono);
+  white-space: nowrap;
+  min-width: 44px;
+}
+.floor-name-item input { font-size: 12px; padding: 5px 8px; width: 100%; }
+
+/* ── STATUS BAR ── */
+.statusbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  z-index: 100;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.status-dot.success { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
+.status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.status-msg { color: var(--label); flex: 1; }
+.status-msg.success { color: var(--accent3); }
+.status-msg.error { color: var(--danger); }
+.status-stats {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+}
+.stat-item { display: flex; gap: 5px; align-items: center; }
+.stat-item .stat-val { color: var(--text); font-weight: 600; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  top: 64px;
+  right: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 12px;
+  z-index: 200;
+  max-width: 320px;
+  transform: translateX(360px);
+  transition: transform 0.2s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.toast.show { transform: translateX(0); }
+.toast.success { border-color: var(--accent3); color: var(--accent3); }
+.toast.error { border-color: var(--danger); color: var(--danger); }
+
+/* ── MISC ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+.text-muted { color: var(--muted); font-size: 11px; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+}
+.badge.cyan { background: rgba(0,194,255,0.1); border-color: rgba(0,194,255,0.3); color: var(--accent); }
+.badge.green { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--accent3); }
+
+.inline-flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.w-full { width: 100%; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* paddings bottom for status bar */
+.content { padding-bottom: 60px; }
+
+.no-img-placeholder {
+  color: var(--muted);
+  font-size: 11px;
+  font-style: italic;
+  padding: 6px 0;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">⚙ SysCfgMgr</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-title" id="topbarBuilding">No building selected</div>
+  <div class="topbar-actions">
+    <button class="btn btn-green" onclick="exportConfiguration()">📤 Export JSON</button>
+    <button class="btn btn-purple" onclick="document.getElementById('globalJsonInput').click()">📥 Global.json</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('jsonFileInput').click()">📂 Import Config</button>
+    <button class="btn btn-danger btn-sm" onclick="clearConfiguration()">🗑 Clear</button>
+  </div>
+</div>
+
+<!-- HIDDEN FILE INPUTS -->
+<input type="file" id="jsonFileInput"   accept=".json" style="display:none" onchange="importConfiguration(this)">
+<input type="file" id="globalJsonInput" accept=".json" style="display:none" onchange="loadGlobalJson(this)">
+<input type="file" id="imageFileInput"  accept=".png,image/png" style="display:none">
+
+<!-- LAYOUT -->
+<div class="main-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section-title">General</div>
+    <div class="nav-item active" onclick="switchPanel('site')" data-panel="site">
+      <span class="nav-icon">🏢</span> Site Info
+    </div>
+    <div class="nav-item" onclick="switchPanel('image')" data-panel="image">
+      <span class="nav-icon">🖼</span> Background
+    </div>
+    <div class="nav-item" onclick="switchPanel('floors')" data-panel="floors">
+      <span class="nav-icon">📋</span> Floor Plans
+      <span class="nav-badge" id="badge-floors">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('users')" data-panel="users">
+      <span class="nav-icon">👤</span> Users
+      <span class="nav-badge" id="badge-users">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('filepath')" data-panel="filepath">
+      <span class="nav-icon">📁</span> File Path
+    </div>
+
+    <div class="sidebar-section-title" style="margin-top:8px">Air Systems</div>
+    <div class="nav-item" onclick="switchPanel('vav')" data-panel="vav">
+      <span class="nav-icon">🌀</span> VAVs
+      <span class="nav-badge" id="badge-vav">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('ahu')" data-panel="ahu">
+      <span class="nav-icon">🌬</span> AHUs
+      <span class="nav-badge" id="badge-ahu">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('fcu')" data-panel="fcu">
+      <span class="nav-icon">💨</span> FCUs
+      <span class="nav-badge" id="badge-fcu">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('rtu')" data-panel="rtu">
+      <span class="nav-icon">🏠</span> RTUs
+      <span class="nav-badge" id="badge-rtu">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('ftu')" data-panel="ftu">
+      <span class="nav-icon">🔧</span> FTUs
+      <span class="nav-badge" id="badge-ftu">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('exhaust')" data-panel="exhaust">
+      <span class="nav-icon">💨</span> Exhaust Fans
+      <span class="nav-badge" id="badge-exhaust">0</span>
+    </div>
+
+    <div class="sidebar-section-title" style="margin-top:8px">Mechanical</div>
+    <div class="nav-item" onclick="switchPanel('chiller')" data-panel="chiller">
+      <span class="nav-icon">❄</span> Chillers
+      <span class="nav-badge" id="badge-chiller">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('tower')" data-panel="tower">
+      <span class="nav-icon">🗼</span> Cooling Towers
+      <span class="nav-badge" id="badge-tower">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('fc')" data-panel="fc">
+      <span class="nav-icon">💧</span> Fluid Coolers
+      <span class="nav-badge" id="badge-fc">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('boiler')" data-panel="boiler">
+      <span class="nav-icon">🔥</span> Boilers
+      <span class="nav-badge" id="badge-boiler">0</span>
+    </div>
+    <div class="nav-item" onclick="switchPanel('vfd')" data-panel="vfd">
+      <span class="nav-icon">⚡</span> VFDs
+      <span class="nav-badge" id="badge-vfd">0</span>
+    </div>
+  </nav>
+
+  <!-- CONTENT PANELS -->
+  <div class="content">
+
+    <!-- SITE INFO -->
+    <div class="panel active" id="panel-site">
+      <div class="panel-header">
+        <h2>🏢 Site Information</h2>
+        <p>Job site or building name used in exported file naming.</p>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="field">
+            <label>Job Site / Building Name</label>
+            <input type="text" id="jobBuilding" placeholder="e.g. Main Office Building, Manufacturing Plant A"
+              oninput="globalConfig.JobBuilding = this.value; document.getElementById('topbarBuilding').textContent = this.value || 'No building selected'; updateConfigStatus()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKGROUND IMAGE -->
+    <div class="panel" id="panel-image">
+      <div class="panel-header">
+        <h2>🖼 Background Image</h2>
+        <p>PNG only, max 5MB. Used as the dashboard background.</p>
+      </div>
+      <div id="imageDropZone" class="drop-zone">
+        <div class="icon">📁</div>
+        <div>Drop a PNG here or <strong>click to browse</strong></div>
+        <div style="font-size:11px;margin-top:4px;color:var(--muted)">PNG only · max 5MB</div>
+      </div>
+      <div id="imagePreviewContainer"></div>
+    </div>
+
+    <!-- FLOOR PLANS -->
+    <div class="panel" id="panel-floors">
+      <div class="panel-header">
+        <h2>📋 Floor Plans</h2>
+        <p>Up to 15 floors. Each floor can be single or split (East/West) with optional PNG images.</p>
+      </div>
+      <div class="inline-flex mb-12">
+        <button class="btn btn-green btn-sm" onclick="addFloorPlan()">➕ Add Floor</button>
+        <span class="text-muted" id="floorCountLabel">0 / 15 floors</span>
+      </div>
+      <div id="floorPlansContainer"></div>
+    </div>
+
+    <!-- USERS -->
+    <div class="panel" id="panel-users">
+      <div class="panel-header">
+        <h2>👤 User Management</h2>
+        <p>Manage user accounts and access roles.</p>
+      </div>
+      <div class="mb-12">
+        <button class="btn btn-green btn-sm" onclick="addUser()">➕ Add User</button>
+      </div>
+      <div id="userList"></div>
+    </div>
+
+    <!-- FILE PATH -->
+    <div class="panel" id="panel-filepath">
+      <div class="panel-header">
+        <h2>📁 Base File Path</h2>
+        <p>Template path for VAV point references. Must include <code style="color:var(--accent);font-family:var(--mono)">{headerName}</code> and <code style="color:var(--accent);font-family:var(--mono)">{pointName}</code>.</p>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="field">
+            <label>VAV Base File Path Template</label>
+            <input type="text" id="baseFilePath"
+              value="station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}"
+              oninput="globalConfig.baseFilePath = this.value; updateConfigStatus()"
+              style="font-family:var(--mono);font-size:12px">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VAV -->
+    <div class="panel" id="panel-vav">
+      <div class="panel-header">
+        <h2>🌀 VAV Configuration</h2>
+        <p>VAVs auto-populate from Global.json. Assign floor numbers and optional East/West split.</p>
+      </div>
+
+      <div class="card mb-12">
+        <div class="card-header" onclick="toggleCard(this)">
+          <div class="card-header-left">
+            <span>🏷</span>
+            <div>
+              <div class="card-title">Floor Names</div>
+              <div class="card-subtitle">Label each floor number for display</div>
+            </div>
+          </div>
+          <span class="card-chevron">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-8">
+            <button class="btn btn-ghost btn-sm" onclick="addFloor()">➕ Add Floor</button>
+          </div>
+          <div id="floorNamesContainer" class="floor-names-grid"></div>
+        </div>
+      </div>
+
+      <div id="vavGroups"></div>
+    </div>
+
+    <!-- AHU -->
+    <div class="panel" id="panel-ahu">
+      <div class="panel-header">
+        <h2>🌬 AHU Configuration</h2>
+        <p>Air Handling Units with optional floor assignment.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="ahuCount" min="0" max="50" value="2" onchange="updateAhuList()">
+        <span class="count-info" id="ahuCountInfo">2 units</span>
+      </div>
+      <div id="ahuList" class="equip-grid"></div>
+    </div>
+
+    <!-- FCU -->
+    <div class="panel" id="panel-fcu">
+      <div class="panel-header">
+        <h2>💨 FCU Configuration</h2>
+        <p>Fan Coil Units with floor number and optional East/West assignment.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="fcuCount" min="0" max="35" value="1" onchange="updateFcuList()">
+        <span class="count-info" id="fcuCountInfo">1 unit</span>
+      </div>
+      <div id="fcuList"></div>
+    </div>
+
+    <!-- RTU -->
+    <div class="panel" id="panel-rtu">
+      <div class="panel-header">
+        <h2>🏠 RTU Configuration</h2>
+        <p>Rooftop Units with optional floor assignment.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="rtuCount" min="0" max="50" value="2" onchange="updateRtuList()">
+        <span class="count-info" id="rtuCountInfo">2 units</span>
+      </div>
+      <div id="rtuList" class="equip-grid"></div>
+    </div>
+
+    <!-- FTU -->
+    <div class="panel" id="panel-ftu">
+      <div class="panel-header">
+        <h2>🔧 FTU Configuration</h2>
+        <p>Fan Terminal Units with floor assignment.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="FTUCount" min="0" max="35" value="1" onchange="updateFTUList()">
+        <span class="count-info" id="ftuCountInfo">1 unit</span>
+      </div>
+      <div id="FTUList"></div>
+    </div>
+
+    <!-- EXHAUST -->
+    <div class="panel" id="panel-exhaust">
+      <div class="panel-header">
+        <h2>💨 Exhaust Fan Configuration</h2>
+        <p>Exhaust fan units.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="ExhaustFanCount" min="0" max="35" value="1" onchange="updateExhaustFanList()">
+        <span class="count-info" id="exhaustCountInfo">1 unit</span>
+      </div>
+      <div id="ExhaustFanList" class="equip-grid"></div>
+    </div>
+
+    <!-- CHILLER -->
+    <div class="panel" id="panel-chiller">
+      <div class="panel-header">
+        <h2>❄ Chiller Configuration</h2>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="ChillerCount" min="0" max="50" value="2" onchange="updateChillerList()">
+        <span class="count-info" id="chillerCountInfo">2 units</span>
+      </div>
+      <div id="ChillerList" class="equip-grid"></div>
+    </div>
+
+    <!-- TOWER -->
+    <div class="panel" id="panel-tower">
+      <div class="panel-header">
+        <h2>🗼 Cooling Tower Configuration</h2>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="TowerCount" min="0" max="50" value="2" onchange="updateTowerList()">
+        <span class="count-info" id="towerCountInfo">2 units</span>
+      </div>
+      <div id="TowerList" class="equip-grid"></div>
+    </div>
+
+    <!-- FLUID COOLER -->
+    <div class="panel" id="panel-fc">
+      <div class="panel-header">
+        <h2>💧 Fluid Cooler Configuration</h2>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="fcCount" min="0" max="10" value="1" onchange="updateFcList()">
+        <span class="count-info" id="fcCountInfo">1 unit</span>
+      </div>
+      <div id="fcList" class="equip-grid"></div>
+    </div>
+
+    <!-- BOILER -->
+    <div class="panel" id="panel-boiler">
+      <div class="panel-header">
+        <h2>🔥 Boiler Configuration</h2>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="BoilerCount" min="0" max="35" value="1" onchange="updateBoilerList()">
+        <span class="count-info" id="boilerCountInfo">1 unit</span>
+      </div>
+      <div id="BoilerList" class="equip-grid"></div>
+    </div>
+
+    <!-- VFD -->
+    <div class="panel" id="panel-vfd">
+      <div class="panel-header">
+        <h2>⚡ VFD Configuration</h2>
+        <p>Variable Frequency Drives.</p>
+      </div>
+      <div class="count-row">
+        <label>Count</label>
+        <input type="number" id="VFDCount" min="0" max="35" value="1" onchange="updateVFDList()">
+        <span class="count-info" id="vfdCountInfo">1 unit</span>
+      </div>
+      <div id="VFDList" class="equip-grid"></div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end main-layout -->
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <div class="status-dot" id="statusDot"></div>
+  <div class="status-msg" id="statusMsg">Ready</div>
+  <div class="status-stats" id="statusStats"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- POPUP SCRIPT -->
+<script>
+window.addEventListener('load', function() {
+    if (confirm("Have you finished point setup?")) {
+        alert("Click Load from Global.json to fill information");
+    } else {
+        if (confirm("Do you wish to set up points set up first to auto fill Home page?")) {
+            window.location.href = "Global_Pts.html";
+        }
+    }
+});
+</script>
+
+<script>
+// ── NAVIGATION ──
+function switchPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    document.querySelector(`[data-panel="${name}"]`).classList.add('active');
+}
+
+function toggleCard(header) {
+    header.closest('.card').classList.toggle('collapsed');
+}
+
+// ── GLOBAL CONFIG ──
+let globalConfig = {
+    baseFilePath: "station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}",
+    VAVs: [],
+    JobBuilding: [],
+    AHUs: [
+        { name: "AHU_1", FLNUM: "", Floornumber_NAME: "" },
+        { name: "AHU_2", FLNUM: "", Floornumber_NAME: "" }
+    ],
+    RTUs: [
+        { name: "RTU_1", FLNUM: "", Floornumber_NAME: "" },
+        { name: "RTU_2", FLNUM: "", Floornumber_NAME: "" }
+    ],
+    Chillers: ["Chiller_1", "Chiller_2"],
+    Towers: ["Tower_1", "Tower_2"],
+    FCUs: [],
+    FluidCooler: ["Fluid_Cooler_1"],
+    VFD: ["VFD_1"],
+    FTU: [],
+    Boilers: ["Boiler_1"],
+    ExhaustFans: ["Exhaust_Fan_1"],
+    Users: [],
+    backgroundimage: null,
+    floorPlans: {},
+    FloorNUM: null,
+    floorNames: ["Floor 0"]
+};
+
+// ── TOAST / STATUS ──
+let toastTimer;
+function showStatus(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+
+    const dot = document.getElementById('statusDot');
+    const msg = document.getElementById('statusMsg');
+    dot.className = 'status-dot ' + type;
+    msg.className = 'status-msg ' + type;
+    msg.textContent = message;
+}
+
+function updateConfigStatus() {
+    const floorPlansCount = globalConfig.floorPlans ? Object.keys(globalConfig.floorPlans).length : 0;
+    const badgeMap = {
+        'badge-floors': floorPlansCount,
+        'badge-users':  globalConfig.Users ? globalConfig.Users.length : 0,
+        'badge-vav':    globalConfig.VAVs ? globalConfig.VAVs.length : 0,
+        'badge-ahu':    globalConfig.AHUs ? globalConfig.AHUs.length : 0,
+        'badge-fcu':    globalConfig.FCUs ? globalConfig.FCUs.length : 0,
+        'badge-rtu':    globalConfig.RTUs ? globalConfig.RTUs.length : 0,
+        'badge-ftu':    globalConfig.FTU ? globalConfig.FTU.length : 0,
+        'badge-exhaust':globalConfig.ExhaustFans ? globalConfig.ExhaustFans.length : 0,
+        'badge-chiller':globalConfig.Chillers ? globalConfig.Chillers.length : 0,
+        'badge-tower':  globalConfig.Towers ? globalConfig.Towers.length : 0,
+        'badge-fc':     globalConfig.FluidCooler ? globalConfig.FluidCooler.length : 0,
+        'badge-boiler': globalConfig.Boilers ? globalConfig.Boilers.length : 0,
+        'badge-vfd':    globalConfig.VFD ? globalConfig.VFD.length : 0,
+    };
+    for (const [id, val] of Object.entries(badgeMap)) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = val;
+            el.className = 'nav-badge' + (val > 0 ? ' has-data' : '');
+        }
+    }
+    const fcl = document.getElementById('floorCountLabel');
+    if (fcl) fcl.textContent = `${floorPlansCount} / 15 floors`;
+
+    const countInfoMap = {
+        'ahuCountInfo':     [globalConfig.AHUs, 'unit'],
+        'rtuCountInfo':     [globalConfig.RTUs, 'unit'],
+        'fcuCountInfo':     [globalConfig.FCUs, 'unit'],
+        'ftuCountInfo':     [globalConfig.FTU, 'unit'],
+        'exhaustCountInfo': [globalConfig.ExhaustFans, 'unit'],
+        'chillerCountInfo': [globalConfig.Chillers, 'unit'],
+        'towerCountInfo':   [globalConfig.Towers, 'unit'],
+        'fcCountInfo':      [globalConfig.FluidCooler, 'unit'],
+        'boilerCountInfo':  [globalConfig.Boilers, 'unit'],
+        'vfdCountInfo':     [globalConfig.VFD, 'unit'],
+    };
+    for (const [id, [arr, unit]] of Object.entries(countInfoMap)) {
+        const el = document.getElementById(id);
+        if (el && arr) {
+            const n = arr.length;
+            el.textContent = `${n} ${unit}${n !== 1 ? 's' : ''}`;
+        }
+    }
+
+    const stats = document.getElementById('statusStats');
+    const total = (globalConfig.VAVs?.length||0) + (globalConfig.AHUs?.length||0) +
+                  (globalConfig.RTUs?.length||0) + (globalConfig.FCUs?.length||0) +
+                  (globalConfig.FTU?.length||0);
+    if (stats) {
+        stats.innerHTML = `
+            <span class="stat-item">VAVs <span class="stat-val">${globalConfig.VAVs?.length||0}</span></span>
+            <span class="stat-item">AHUs <span class="stat-val">${globalConfig.AHUs?.length||0}</span></span>
+            <span class="stat-item">RTUs <span class="stat-val">${globalConfig.RTUs?.length||0}</span></span>
+            <span class="stat-item">FCUs <span class="stat-val">${globalConfig.FCUs?.length||0}</span></span>
+            <span class="stat-item">Total <span class="stat-val">${total}</span></span>
+        `;
+    }
+}
+
+// ── IMAGE SYSTEM ──
+function initializeImageDropZone() {
+    const dropZone = document.getElementById('imageDropZone');
+    const fileInput = document.getElementById('imageFileInput');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => handleImageFile(e.target.files[0]));
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) handleImageFile(e.dataTransfer.files[0]);
+    });
+    if (globalConfig.backgroundimage) displayImagePreview(globalConfig.backgroundimage, 'Loaded from configuration');
+}
+
+function handleImageFile(file) {
+    if (!file) { showStatus('No file selected!', 'error'); return; }
+    if (!file.type.startsWith('image/png')) { showStatus('PNG files only!', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showStatus('Max 5MB!', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        globalConfig.backgroundimage = e.target.result;
+        displayImagePreview(e.target.result, `${file.name} (${formatFileSize(file.size)})`);
+        showStatus(`Image "${file.name}" loaded!`, 'success');
+        updateConfigStatus();
+    };
+    reader.readAsDataURL(file);
+}
+
+function displayImagePreview(base64, label) {
+    document.getElementById('imagePreviewContainer').innerHTML = `
+        <div class="image-preview-block">
+            <img src="${base64}" alt="Preview">
+            <div class="image-meta">
+                <strong>${label}</strong>
+                Size: ${formatFileSize(base64.length)} chars
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="removeBackgroundImage()">🗑 Remove</button>
+        </div>`;
+}
+
+function removeBackgroundImage() {
+    globalConfig.backgroundimage = null;
+    document.getElementById('imagePreviewContainer').innerHTML = '';
+    showStatus('Background image removed', 'success');
+    updateConfigStatus();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024, sizes = ['B','KB','MB','GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// ── FLOOR PLANS ──
+function addFloorPlan() {
+    if (!globalConfig.floorPlans) globalConfig.floorPlans = {};
+    const currentCount = Object.keys(globalConfig.floorPlans).length;
+    if (currentCount >= 15) { showStatus('Maximum 15 floors!', 'error'); return; }
+    const FloorNUM = currentCount;
+    const floorName = `Floor${FloorNUM}`;
+    globalConfig.floorPlans[floorName] = {
+        name: floorName, FloorNUM, Type: 'VAV', wing: 'N/A',
+        data: null, originalFileName: null, size: 0,
+        dataEast: null, originalFileNameEast: null, sizeEast: 0,
+        dataWest: null, originalFileNameWest: null, sizeWest: 0
+    };
+    displayFloorPlans();
+    updateConfigStatus();
+    showStatus(`${floorName} added!`, 'success');
+}
+
+function handleSplitFloorChange(floorKey, isChecked) {
+    if (!globalConfig.floorPlans?.[floorKey]) return;
+    const f = globalConfig.floorPlans[floorKey];
+    if (!isChecked) {
+        f.wing = 'N/A';
+        f.dataEast = f.originalFileNameEast = null; f.sizeEast = 0;
+        f.dataWest = f.originalFileNameWest = null; f.sizeWest = 0;
+    } else {
+        f.wing = 'Split';
+        f.data = f.originalFileName = null; f.size = 0;
+    }
+    displayFloorPlans();
+    updateConfigStatus();
+}
+
+function handleFloorPlanImageUploadSplit(floorKey, file, wing) {
+    if (!file || !file.type.startsWith('image/png')) { showStatus('PNG only!', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showStatus('Max 5MB!', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        const f = globalConfig.floorPlans[floorKey];
+        if (wing === 'East') { f.dataEast = e.target.result; f.originalFileNameEast = file.name; f.sizeEast = file.size; }
+        else { f.dataWest = e.target.result; f.originalFileNameWest = file.name; f.sizeWest = file.size; }
+        displayFloorPlans(); updateConfigStatus();
+        showStatus(`${wing} image loaded for ${f.name}!`, 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeFloorPlanImageSplit(floorKey, wing) {
+    const f = globalConfig.floorPlans?.[floorKey];
+    if (!f) return;
+    if (wing === 'East') { f.dataEast = f.originalFileNameEast = null; f.sizeEast = 0; }
+    else { f.dataWest = f.originalFileNameWest = null; f.sizeWest = 0; }
+    displayFloorPlans(); updateConfigStatus();
+}
+
+function handleFloorTypeChange(floorKey, el) {
+    if (globalConfig.floorPlans?.[floorKey]) {
+        globalConfig.floorPlans[floorKey].Type = el.value;
+        updateConfigStatus();
+    }
+}
+
+function handleFloorPlanImageUpload(floorKey, file) {
+    if (!file || !file.type.startsWith('image/png')) { showStatus('PNG only!', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showStatus('Max 5MB!', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        const f = globalConfig.floorPlans[floorKey];
+        f.data = e.target.result; f.originalFileName = file.name; f.size = file.size;
+        displayFloorPlans(); updateConfigStatus();
+        showStatus(`Image loaded for ${f.name}!`, 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeFloorPlanImage(floorKey) {
+    const f = globalConfig.floorPlans?.[floorKey];
+    if (!f) return;
+    f.data = f.originalFileName = null; f.size = 0;
+    displayFloorPlans(); updateConfigStatus();
+}
+
+function removeFloor(floorKey) {
+    if (!globalConfig.floorPlans?.[floorKey]) return;
+    delete globalConfig.floorPlans[floorKey];
+    const sorted = Object.entries(globalConfig.floorPlans).sort((a,b) => a[1].FloorNUM - b[1].FloorNUM);
+    const newFP = {};
+    sorted.forEach(([,floor], i) => {
+        const k = `Floor${i}`;
+        newFP[k] = { ...floor, name: k, FloorNUM: i };
+    });
+    globalConfig.floorPlans = newFP;
+    displayFloorPlans(); updateConfigStatus();
+    showStatus('Floor removed and renumbered.', 'success');
+}
+
+function displayFloorPlans() {
+    const container = document.getElementById('floorPlansContainer');
+    if (!globalConfig.floorPlans || Object.keys(globalConfig.floorPlans).length === 0) {
+        container.innerHTML = '<div class="text-muted" style="padding:16px 0">No floors added yet. Click "Add Floor" to begin.</div>';
+        updateConfigStatus(); return;
+    }
+    const sorted = Object.entries(globalConfig.floorPlans).sort((a,b) => a[1].FloorNUM - b[1].FloorNUM);
+    let html = '';
+    sorted.forEach(([floorKey, floor]) => {
+        const isSplit = floor.wing === 'Split';
+        html += `<div class="floor-item">
+            <div class="floor-item-header">
+                <span class="floor-num">FL${floor.FloorNUM}</span>
+                <span class="floor-name-display">${floor.name}</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <label style="font-size:11px;color:var(--label)">Type:</label>
+                    <select onchange="handleFloorTypeChange('${floorKey}',this)" style="padding:4px 8px;font-size:11px">
+                        <option value="VAV" ${floor.Type==='VAV'?'selected':''}>VAV</option>
+                        <option value="FTU" ${floor.Type==='FTU'?'selected':''}>FTU</option>
+                        <option value="FCU" ${floor.Type==='FCU'?'selected':''}>FCU</option>
+                    </select>
+                    <label class="split-toggle">
+                        <input type="checkbox" ${isSplit?'checked':''} onchange="handleSplitFloorChange('${floorKey}',this.checked)">
+                        Split floor
+                    </label>
+                    <button class="btn btn-danger btn-sm" onclick="removeFloor('${floorKey}')">🗑</button>
+                </div>
+            </div>
+            <div class="floor-item-body">`;
+        if (isSplit) {
+            const hasE = !!floor.dataEast, hasW = !!floor.dataWest;
+            html += `<div class="floor-images">
+                <div class="floor-img-slot east">
+                    <div class="wing-label">East Wing</div>
+                    ${hasE ? `<img src="${floor.dataEast}"><div style="font-size:10px;color:var(--muted);margin:4px 0">${floor.originalFileNameEast}</div>` : '<div class="no-img-placeholder">No image</div>'}
+                    <label class="floor-upload-label" for="floorImgE_${floorKey}">📁 ${hasE?'Change':'Upload'}</label>
+                    <input type="file" id="floorImgE_${floorKey}" accept=".png,image/png" style="display:none" onchange="handleFloorPlanImageUploadSplit('${floorKey}',this.files[0],'East')">
+                    ${hasE ? `<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="removeFloorPlanImageSplit('${floorKey}','East')">🗑 Remove</button>` : ''}
+                </div>
+                <div class="floor-img-slot west">
+                    <div class="wing-label">West Wing</div>
+                    ${hasW ? `<img src="${floor.dataWest}"><div style="font-size:10px;color:var(--muted);margin:4px 0">${floor.originalFileNameWest}</div>` : '<div class="no-img-placeholder">No image</div>'}
+                    <label class="floor-upload-label" for="floorImgW_${floorKey}">📁 ${hasW?'Change':'Upload'}</label>
+                    <input type="file" id="floorImgW_${floorKey}" accept=".png,image/png" style="display:none" onchange="handleFloorPlanImageUploadSplit('${floorKey}',this.files[0],'West')">
+                    ${hasW ? `<button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="removeFloorPlanImageSplit('${floorKey}','West')">🗑 Remove</button>` : ''}
+                </div>
+            </div>`;
+        } else {
+            const hasImg = !!floor.data;
+            html += `<div class="floor-single-img" style="display:flex;gap:12px;align-items:flex-start">
+                ${hasImg ? `<img src="${floor.data}" style="max-width:120px;max-height:80px;border-radius:4px;border:1px solid var(--border)">
+                    <div>
+                        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:var(--mono)">${floor.originalFileName}</div>
+                        <button class="btn btn-danger btn-sm" onclick="removeFloorPlanImage('${floorKey}')">🗑 Remove</button>
+                    </div>` :
+                    `<div>
+                        <div class="no-img-placeholder">No image</div>
+                        <label class="floor-upload-label mt-8" for="floorImg_${floorKey}">📁 Upload PNG</label>
+                        <input type="file" id="floorImg_${floorKey}" accept=".png,image/png" style="display:none" onchange="handleFloorPlanImageUpload('${floorKey}',this.files[0])">
+                    </div>`}
+                ${hasImg ? `<label class="floor-upload-label" for="floorImg_${floorKey}" style="align-self:flex-end">📁 Change</label>
+                    <input type="file" id="floorImg_${floorKey}" accept=".png,image/png" style="display:none" onchange="handleFloorPlanImageUpload('${floorKey}',this.files[0])">` : ''}
+            </div>`;
+        }
+        html += `</div></div>`;
+    });
+    container.innerHTML = html;
+    updateConfigStatus();
+}
+
+function initializeFloorPlansDropZone() {
+    if (!globalConfig.floorPlans) globalConfig.floorPlans = {};
+    displayFloorPlans();
+}
+
+// ── DOM READY ──
+document.addEventListener('DOMContentLoaded', function() {
+    loadConfiguration();
+    initializeVavGroups();
+    updateAhuList();
+    updateRtuList();
+    updateFcuList();
+    updateFcList();
+    updateTowerList();
+    updateChillerList();
+    updateVFDList();
+    updateFTUList();
+    updateExhaustFanList();
+    updateBoilerList();
+    initializeUsers();
+    setTimeout(() => {
+        initializeImageDropZone();
+        initializeFloorPlansDropZone();
+    }, 100);
+    updateConfigStatus();
+});
+
+// ── USERS ──
+function initializeUsers() {
+    const container = document.getElementById('userList');
+    container.innerHTML = '';
+    if (globalConfig.Users?.length > 0) {
+        globalConfig.Users.forEach((user, i) => addUserElement(user.name, user.role, user.password||'', i));
+    }
+}
+
+function addUser() {
+    if (!globalConfig.Users) globalConfig.Users = [];
+    globalConfig.Users.push({ name: 'NewUser', role: 'technician', password: '' });
+    addUserElement('NewUser', 'technician', '', globalConfig.Users.length - 1);
+    updateConfigStatus();
+}
+
+function addUserElement(name, role, password, index) {
+    const container = document.getElementById('userList');
+    const d = document.createElement('div');
+    d.className = 'user-row';
+    d.innerHTML = `
+        <div>
+            <div class="field-mini-label">Username</div>
+            <input type="text" value="${name}" oninput="updateUser(${index},'name',this.value)" style="width:100%">
+        </div>
+        <div>
+            <div class="field-mini-label">Role</div>
+            <select onchange="updateUser(${index},'role',this.value)" style="width:100%">
+                <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+                <option value="technician" ${role==='technician'?'selected':''}>Technician</option>
+                <option value="manager" ${role==='manager'?'selected':''}>Manager</option>
+                <option value="engineer" ${role==='engineer'?'selected':''}>Engineer</option>
+            </select>
+        </div>
+        <div>
+            <div class="field-mini-label">Password</div>
+            <input type="password" value="${password}" oninput="updateUser(${index},'password',this.value)" style="width:100%">
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeUser(${index})" style="align-self:flex-end">🗑</button>
+    `;
+    container.appendChild(d);
+}
+
+function updateUser(i, prop, val) { globalConfig.Users[i][prop] = val; updateConfigStatus(); }
+function removeUser(i) { globalConfig.Users.splice(i,1); initializeUsers(); updateConfigStatus(); }
+
+// ── LOAD / EXPORT / IMPORT ──
+function loadConfiguration() {
+    document.getElementById('jobBuilding').value = globalConfig.JobBuilding || '';
+    document.getElementById('topbarBuilding').textContent = globalConfig.JobBuilding || 'No building selected';
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    const setCount = (id, arr) => { const el = document.getElementById(id); if(el && arr) el.value = arr.length; };
+    setCount('ahuCount', globalConfig.AHUs);
+    setCount('rtuCount', globalConfig.RTUs);
+    setCount('fcCount', globalConfig.FluidCooler);
+    setCount('ChillerCount', globalConfig.Chillers);
+    setCount('TowerCount', globalConfig.Towers);
+    setCount('fcuCount', globalConfig.FCUs);
+    setCount('FTUCount', globalConfig.FTU);
+    setCount('BoilerCount', globalConfig.Boilers);
+    setCount('ExhaustFanCount', globalConfig.ExhaustFans);
+    setCount('VFDCount', globalConfig.VFD);
+}
+
+function exportConfiguration() {
+    globalConfig.JobBuilding = document.getElementById('jobBuilding').value.trim();
+    globalConfig.baseFilePath = document.getElementById('baseFilePath').value;
+    const configJSON = JSON.stringify(globalConfig, null, 2);
+    const blob = new Blob([configJSON], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const jobName = globalConfig.JobBuilding ? globalConfig.JobBuilding.replace(/[^a-zA-Z0-9]/g,'_') : 'HomeConfig';
+    a.download = `${jobName}_Config.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    const imgNote = globalConfig.backgroundimage ? ' (with background image)' : '';
+    showStatus(`Exported ${jobName}_Config.json${imgNote}`, 'success');
+    updateConfigStatus();
+}
+
+function saveConfiguration() {
+    const userInput = document.getElementById('baseFilePath').value.trim();
+    if (!userInput || !userInput.includes('{headerName}') || !userInput.includes('{pointName}')) {
+        showStatus('Template must include {headerName} and {pointName}!', 'error');
+        return;
+    }
+    globalConfig.JobBuilding = document.getElementById('jobBuilding').value.trim();
+    globalConfig.baseFilePath = userInput;
+    exportConfiguration();
+}
+
+function importConfiguration(input) {
+    const file = input.files[0];
+    if (!file) { showStatus('No file selected!', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const imp = JSON.parse(e.target.result);
+            if (!imp.baseFilePath) throw new Error('Missing baseFilePath');
+            globalConfig = { ...globalConfig, ...imp };
+            document.getElementById('jobBuilding').value = globalConfig.JobBuilding || '';
+            document.getElementById('topbarBuilding').textContent = globalConfig.JobBuilding || 'No building selected';
+            document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+            const setCount = (id, arr) => { const el = document.getElementById(id); if(el && arr) el.value = arr.length; };
+            setCount('ahuCount', globalConfig.AHUs);
+            setCount('rtuCount', globalConfig.RTUs);
+            setCount('fcuCount', globalConfig.FCUs);
+            setCount('fcCount', globalConfig.FluidCooler);
+            setCount('ChillerCount', globalConfig.Chillers);
+            setCount('TowerCount', globalConfig.Towers);
+            setCount('VFDCount', globalConfig.VFD);
+            setCount('FTUCount', globalConfig.FTU);
+            setCount('BoilerCount', globalConfig.Boilers);
+            setCount('ExhaustFanCount', globalConfig.ExhaustFans);
+            initializeVavGroups(); updateAhuList(); updateRtuList(); updateFcList();
+            updateChillerList(); updateFcuList(); updateTowerList(); updateVFDList();
+            updateFTUList(); updateBoilerList(); updateExhaustFanList(); initializeUsers();
+            const ip = document.getElementById('imagePreviewContainer');
+            if (globalConfig.backgroundimage) displayImagePreview(globalConfig.backgroundimage, 'Imported from JSON');
+            else ip.innerHTML = '';
+            if (globalConfig.floorPlans && Object.keys(globalConfig.floorPlans).length > 0) displayFloorPlans();
+            updateConfigStatus();
+            showStatus('Configuration imported!', 'success');
+        } catch(err) { showStatus('Import error: ' + err.message, 'error'); }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+function clearConfiguration() {
+    if (!confirm('Clear all configuration? This cannot be undone.')) return;
+    globalConfig = {
+        JobBuilding: '',
+        baseFilePath: 'station:|slot:/Drivers/BcpBacnetNetwork/{headerName}/points/{pointName}',
+        VAVs: [], AHUs: [], RTUs: [], FCUs: [], Chillers: [], Towers: [],
+        FluidCooler: [], VFD: [], FTU: [], Boilers: [], ExhaustFans: [],
+        Users: [], backgroundimage: null, floorPlans: {}, floorNames: ['Floor 0']
+    };
+    document.getElementById('jobBuilding').value = '';
+    document.getElementById('topbarBuilding').textContent = 'No building selected';
+    document.getElementById('baseFilePath').value = globalConfig.baseFilePath;
+    ['ahuCount','rtuCount','fcCount','fcuCount','ChillerCount','TowerCount','VFDCount','FTUCount','BoilerCount','ExhaustFanCount']
+        .forEach(id => { const el = document.getElementById(id); if(el) el.value = 0; });
+    document.getElementById('imagePreviewContainer').innerHTML = '';
+    document.getElementById('floorPlansContainer').innerHTML = '';
+    initializeVavGroups(); updateAhuList(); updateRtuList(); updateFcList();
+    updateFcuList(); updateChillerList(); updateTowerList(); updateVFDList();
+    updateFTUList(); updateBoilerList(); updateExhaustFanList(); initializeUsers();
+    updateConfigStatus();
+    showStatus('Configuration cleared!', 'success');
+}
+
+// ── GLOBAL.JSON LOADER ──
+function loadGlobalJson(input) {
+    const file = input.files[0];
+    if (!file) { showStatus('No file selected!', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const globalData = JSON.parse(e.target.result);
+            if (!globalData.globalVariables) { showStatus('Invalid Global.json: missing globalVariables', 'error'); return; }
+            const eq = { AHU:[], RTU:[], FTU:[], VFD:[], FCU:[], VAV:[], Chiller:[], Tower:[], Boiler:[], ExhaustFan:[], FluidCooler:[] };
+            Object.keys(globalData.globalVariables).forEach(n => {
+                const l = n.toLowerCase();
+                if (l.startsWith('vav')||l.includes('vav')) eq.VAV.push(n);
+                else if (l.startsWith('ahu')||l.includes('ahu')) eq.AHU.push(n);
+                else if (l.startsWith('fcu')) eq.FCU.push(n);
+                else if (l.startsWith('rtu')||l.includes('rtu')) eq.RTU.push(n);
+                else if (l.startsWith('ftu')||l.startsWith('ft')||l.includes('ftu')) eq.FTU.push(n);
+                else if (l.startsWith('vfd')||l.startsWith('rf')||l.startsWith('ef')||l.startsWith('sf')) eq.VFD.push(n);
+                else if (l.includes('chiller')) eq.Chiller.push(n);
+                else if (l.includes('tower')||l.startsWith('cooling')) eq.Tower.push(n);
+                else if (l.includes('boiler')) eq.Boiler.push(n);
+                else if (l.includes('exhaust')||l.includes('exh')) eq.ExhaustFan.push(n);
+                else if (l.includes('fluid')||l.includes('cooler')) eq.FluidCooler.push(n);
+            });
+            if (eq.VAV.length > 0) {
+                globalConfig.VAVs = eq.VAV.map(n => ({ name: n, floornumber: guessFloorFromVAVName(n), FLNUM: guessFloorFromVAVName(n) }));
+                updateVAVList();
+            }
+            // AHUs — load as objects with FLNUM
+            if (eq.AHU.length > 0) {
+                globalConfig.AHUs = eq.AHU.map(n => ({ name: n, FLNUM: '', Floornumber_NAME: '' }));
+                document.getElementById('ahuCount').value = eq.AHU.length;
+                updateAhuList();
+            }
+            // RTUs — load as objects with FLNUM (same as AHU)
+            if (eq.RTU.length > 0) {
+                globalConfig.RTUs = eq.RTU.map(n => ({ name: n, FLNUM: '', Floornumber_NAME: '' }));
+                document.getElementById('rtuCount').value = eq.RTU.length;
+                updateRtuList();
+            }
+            const mapSimple = (arr, key, countId, updateFn) => {
+                if (arr.length > 0) { globalConfig[key] = arr; document.getElementById(countId).value = arr.length; updateFn(); }
+            };
+            mapSimple(eq.VFD, 'VFD', 'VFDCount', updateVFDList);
+            mapSimple(eq.Chiller, 'Chillers', 'ChillerCount', updateChillerList);
+            mapSimple(eq.Tower, 'Towers', 'TowerCount', updateTowerList);
+            mapSimple(eq.Boiler, 'Boilers', 'BoilerCount', updateBoilerList);
+            mapSimple(eq.ExhaustFan, 'ExhaustFans', 'ExhaustFanCount', updateExhaustFanList);
+            mapSimple(eq.FluidCooler, 'FluidCooler', 'fcCount', updateFcList);
+            if (eq.FCU.length > 0) {
+                globalConfig.FCUs = eq.FCU.map(n => ({ name: n, FLNUM: guessFloorFromFCUName(n), Floornumber_NAME: '' }));
+                document.getElementById('fcuCount').value = eq.FCU.length;
+                updateFcuList();
+            }
+            if (eq.FTU.length > 0) {
+                globalConfig.FTU = eq.FTU.map(n => ({ name: n, FLNUM: guessFloorFromName(n), Floornumber_NAME: '' }));
+                document.getElementById('FTUCount').value = eq.FTU.length;
+                updateFTUList();
+            }
+            updateConfigStatus();
+            const total = Object.values(eq).reduce((s,a) => s+a.length, 0);
+            showStatus(`Loaded ${total} equipment items from Global.json`, 'success');
+        } catch(err) { showStatus('Error: ' + err.message, 'error'); }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+// ── VAV ──
+function initializeVavGroups() {
+    if (!globalConfig.VAVs) globalConfig.VAVs = [];
+    if (!globalConfig.floorNames) globalConfig.floorNames = ['Floor 0'];
+    if (globalConfig.VAVs.length > 0 && globalConfig.VAVs[0].group !== undefined) convertOldVAVFormat();
+    updateVAVList();
+    updateConfigStatus();
+}
+
+function convertOldVAVFormat() {
+    const newVAVs = [];
+    globalConfig.VAVs.forEach(vav => {
+        const fl = vav.floornumber || vav.group;
+        for (let i = 1; i <= vav.count; i++) newVAVs.push({ name:`VAV_${vav.group}_${i}`, floornumber: fl, FLNUM: fl });
+    });
+    globalConfig.VAVs = newVAVs;
+}
+
+function updateVAVList() {
+    const container = document.getElementById('vavGroups');
+    if (!globalConfig.VAVs) globalConfig.VAVs = [];
+    if (!globalConfig.floorNames) globalConfig.floorNames = ['Floor 0'];
+
+    globalConfig.VAVs = globalConfig.VAVs.map(item => {
+        if (typeof item === 'string') { const g = guessFloorFromVAVName(item); return { name:item, floornumber:g, FLNUM:g }; }
+        if (item.FLNUM !== undefined && item.floornumber === undefined) item.floornumber = item.FLNUM;
+        if (item.floornumber !== undefined && item.FLNUM === undefined) item.FLNUM = item.floornumber;
+        return item;
+    });
+    updateAllVAVFloorNames();
+
+    container.innerHTML = `
+        <div class="count-row" style="margin-bottom:16px">
+            <label>Total VAV Units</label>
+            <span class="count-info">${globalConfig.VAVs.length} units (auto-populated from Global.json)</span>
+        </div>
+        <div id="floorNamesContainer" class="floor-names-grid"></div>
+        <div id="vavListContainer" style="margin-top:14px"></div>
+    `;
+
+    updateFloorNamesList();
+
+    const listContainer = document.getElementById('vavListContainer');
+    if (globalConfig.VAVs.length > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'equip-grid';
+        globalConfig.VAVs.forEach((v, i) => {
+            const cur = String(v.floornumber || '');
+            const base = cur.replace(/_[EW]$/, '');
+            const isE = cur.endsWith('_E'), isW = cur.endsWith('_W');
+            const d = document.createElement('div');
+            d.className = 'equip-card-full';
+            d.innerHTML = `
+                <div class="equip-card-label">VAV ${i+1}</div>
+                <div class="equip-card-row">
+                    <div class="flex-2">
+                        <div class="field-mini-label">Device Name</div>
+                        <input type="text" value="${v.name}" onchange="updateVAVName(${i},this.value)" style="width:100%;font-family:var(--mono);font-size:11px">
+                    </div>
+                    <div class="flex-1">
+                        <div class="field-mini-label">Floor #</div>
+                        <input type="text" value="${base}" placeholder="0" onchange="updateVAVFloor(${i},this.value)" style="width:100%;font-family:var(--mono)">
+                    </div>
+                </div>
+                <div class="side-checks">
+                    <label><input type="checkbox" id="vav_west_${i}" ${isW?'checked':''} onchange="updateVAVSide(${i},'W',this.checked)"> West</label>
+                    <label><input type="checkbox" id="vav_east_${i}" ${isE?'checked':''} onchange="updateVAVSide(${i},'E',this.checked)"> East</label>
+                </div>
+            `;
+            grid.appendChild(d);
+        });
+        listContainer.appendChild(grid);
+    } else {
+        listContainer.innerHTML = '<div class="text-muted" style="padding:10px 0">No VAVs loaded. Drop a Global.json file to auto-populate.</div>';
+    }
+    updateConfigStatus();
+}
+
+function updateFloorNamesList() {
+    const container = document.getElementById('floorNamesContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    globalConfig.floorNames.forEach((name, i) => {
+        const d = document.createElement('div');
+        d.className = 'floor-name-item';
+        d.innerHTML = `<span class="floor-label">FL ${i}</span>
+            <input type="text" value="${name}" onchange="updateFloorName(${i},this.value)" placeholder="Floor ${i}" style="font-size:12px;padding:5px 8px">`;
+        container.appendChild(d);
+    });
+}
+
+function addFloor() {
+    const n = globalConfig.floorNames.length;
+    globalConfig.floorNames.push(`Floor ${n}`);
+    updateFloorNamesList();
+    updateConfigStatus();
+}
+
+function updateFloorName(i, v) {
+    globalConfig.floorNames[i] = v;
+    updateAllVAVFloorNames();
+    updateAllFTUFloorNames();
+    updateAllFCUFloorNames();
+    updateAllAHUFloorNames();
+    updateAllRTUFloorNames();
+    updateConfigStatus();
+}
+
+function updateAllVAVFloorNames() {
+    globalConfig.VAVs.forEach(v => {
+        const fl = parseInt(String(v.floornumber||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) v.Floornumber_NAME = globalConfig.floorNames[fl];
+    });
+}
+function updateAllFTUFloorNames() {
+    if (!globalConfig.FTU) return;
+    globalConfig.FTU.forEach(f => {
+        const fl = parseInt(String(f.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) f.Floornumber_NAME = globalConfig.floorNames[fl];
+    });
+}
+function updateAllFCUFloorNames() {
+    if (!globalConfig.FCUs) return;
+    globalConfig.FCUs.forEach(f => {
+        const fl = parseInt(String(f.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) f.Floornumber_NAME = globalConfig.floorNames[fl];
+    });
+}
+function updateAllAHUFloorNames() {
+    if (!globalConfig.AHUs) return;
+    globalConfig.AHUs.forEach(a => {
+        if (typeof a !== 'object') return;
+        const fl = parseInt(String(a.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) a.Floornumber_NAME = globalConfig.floorNames[fl];
+    });
+}
+// ── NEW: RTU floor name sync ──
+function updateAllRTUFloorNames() {
+    if (!globalConfig.RTUs) return;
+    globalConfig.RTUs.forEach(r => {
+        if (typeof r !== 'object') return;
+        const fl = parseInt(String(r.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) r.Floornumber_NAME = globalConfig.floorNames[fl];
+    });
+}
+
+function guessFloorFromVAVName(name) {
+    let d = name;
+    if (name.includes('$')) d = name.replace(/\$([0-9a-fA-F]{2})/g, (_,h) => String.fromCharCode(parseInt(h,16)));
+    const m1 = d.match(/VAV[\s_\-](\d+)[\s_\-]/i);
+    if (m1) return m1[1];
+    const m2 = d.match(/VAV(\d+)/i);
+    if (m2) return m2[1];
+    return '';
+}
+
+function updateVAVName(i, v) {
+    globalConfig.VAVs[i].name = v;
+    const g = guessFloorFromVAVName(v);
+    if (g) {
+        const suf = String(globalConfig.VAVs[i].floornumber||'').match(/_[EW]$/)?.[0] || '';
+        const fv = g + suf;
+        globalConfig.VAVs[i].floornumber = fv;
+        globalConfig.VAVs[i].FLNUM = fv;
+        const fn = parseInt(g);
+        if (!isNaN(fn) && globalConfig.floorNames?.[fn]) globalConfig.VAVs[i].Floornumber_NAME = globalConfig.floorNames[fn];
+        updateVAVList();
+    }
+    updateConfigStatus();
+}
+function updateVAVFloor(i, v) {
+    const base = String(v).trim();
+    const suf = String(globalConfig.VAVs[i].floornumber||'').match(/_[EW]$/)?.[0] || '';
+    const fv = base + suf;
+    globalConfig.VAVs[i].floornumber = fv;
+    globalConfig.VAVs[i].FLNUM = fv;
+    const fn = parseInt(base);
+    if (!isNaN(fn) && globalConfig.floorNames?.[fn]) globalConfig.VAVs[i].Floornumber_NAME = globalConfig.floorNames[fn];
+    updateConfigStatus();
+}
+function updateVAVSide(i, side, checked) {
+    const base = String(globalConfig.VAVs[i].floornumber||'').replace(/_[EW]$/,'');
+    const fv = checked ? base+'_'+side : base;
+    globalConfig.VAVs[i].floornumber = fv;
+    globalConfig.VAVs[i].FLNUM = fv;
+    if (checked) {
+        const oid = `vav_${side==='E'?'west':'east'}_${i}`;
+        const oel = document.getElementById(oid);
+        if (oel) oel.checked = false;
+    }
+    updateConfigStatus();
+}
+
+// ── AHU ──
+function updateAhuList() {
+    const count = parseInt(document.getElementById('ahuCount').value) || 0;
+    if (!globalConfig.AHUs) globalConfig.AHUs = [];
+    globalConfig.AHUs = globalConfig.AHUs.map(item => {
+        if (typeof item === 'string') return { name:item, FLNUM:'', Floornumber_NAME:'' };
+        const fl = parseInt(String(item.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) item.Floornumber_NAME = globalConfig.floorNames[fl];
+        return item;
+    });
+    const cur = globalConfig.AHUs.length;
+    if (count > cur) for (let i = cur; i < count; i++) globalConfig.AHUs.push({ name:`AHU_${i+1}`, FLNUM:'', Floornumber_NAME:'' });
+    else if (count < cur) globalConfig.AHUs = globalConfig.AHUs.slice(0, count);
+    const container = document.getElementById('ahuList');
+    container.innerHTML = '';
+    if (count > 0) {
+        globalConfig.AHUs.forEach((a, i) => {
+            const d = document.createElement('div');
+            d.className = 'equip-card-full';
+            const base = String(a.FLNUM||'').replace(/_[EW]$/,'');
+            d.innerHTML = `
+                <div class="equip-card-label">AHU ${i+1}</div>
+                <div class="equip-card-row">
+                    <div class="flex-2">
+                        <div class="field-mini-label">Device Name</div>
+                        <input type="text" value="${a.name}" onchange="updateEquipmentName('AHUs',${i},this.value)" style="width:100%;font-family:var(--mono);font-size:11px">
+                    </div>
+                    <div class="flex-1">
+                        <div class="field-mini-label">Floor #</div>
+                        <input type="text" value="${base}" placeholder="0" onchange="updateAHUFloor(${i},this.value)" style="width:100%;font-family:var(--mono)">
+                    </div>
+                </div>
+            `;
+            container.appendChild(d);
+        });
+    }
+    updateConfigStatus();
+}
+function updateAHUFloor(i, v) {
+    const base = String(v).trim();
+    globalConfig.AHUs[i].FLNUM = base;
+    const fn = parseInt(base);
+    globalConfig.AHUs[i].Floornumber_NAME = (!isNaN(fn) && globalConfig.floorNames?.[fn]) ? globalConfig.floorNames[fn] : '';
+    updateConfigStatus();
+}
+
+// ── RTU ──
+function updateRtuList() {
+    const count = parseInt(document.getElementById('rtuCount').value) || 0;
+    if (!globalConfig.RTUs) globalConfig.RTUs = [];
+    // Normalize any plain strings to objects
+    globalConfig.RTUs = globalConfig.RTUs.map(item => {
+        if (typeof item === 'string') return { name: item, FLNUM: '', Floornumber_NAME: '' };
+        const fl = parseInt(String(item.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) item.Floornumber_NAME = globalConfig.floorNames[fl];
+        return item;
+    });
+    const cur = globalConfig.RTUs.length;
+    if (count > cur) for (let i = cur; i < count; i++) globalConfig.RTUs.push({ name: `RTU_${i+1}`, FLNUM: '', Floornumber_NAME: '' });
+    else if (count < cur) globalConfig.RTUs = globalConfig.RTUs.slice(0, count);
+    const container = document.getElementById('rtuList');
+    container.innerHTML = '';
+    if (count > 0) {
+        globalConfig.RTUs.forEach((r, i) => {
+            const d = document.createElement('div');
+            d.className = 'equip-card-full';
+            const base = String(r.FLNUM||'').replace(/_[EW]$/,'');
+            d.innerHTML = `
+                <div class="equip-card-label">RTU ${i+1}</div>
+                <div class="equip-card-row">
+                    <div class="flex-2">
+                        <div class="field-mini-label">Device Name</div>
+                        <input type="text" value="${r.name}" onchange="updateEquipmentName('RTUs',${i},this.value)" style="width:100%;font-family:var(--mono);font-size:11px">
+                    </div>
+                    <div class="flex-1">
+                        <div class="field-mini-label">Floor #</div>
+                        <input type="text" value="${base}" placeholder="0" onchange="updateRTUFloor(${i},this.value)" style="width:100%;font-family:var(--mono)">
+                    </div>
+                </div>
+            `;
+            container.appendChild(d);
+        });
+    }
+    updateConfigStatus();
+}
+function updateRTUFloor(i, v) {
+    const base = String(v).trim();
+    globalConfig.RTUs[i].FLNUM = base;
+    const fn = parseInt(base);
+    globalConfig.RTUs[i].Floornumber_NAME = (!isNaN(fn) && globalConfig.floorNames?.[fn]) ? globalConfig.floorNames[fn] : '';
+    updateConfigStatus();
+}
+
+// ── SIMPLE EQUIPMENT LIST RENDERER ──
+function renderSimpleList(arrKey, containerID, labelPrefix) {
+    const container = document.getElementById(containerID);
+    container.innerHTML = '';
+    const arr = globalConfig[arrKey];
+    if (!arr || arr.length === 0) return;
+    arr.forEach((item, i) => {
+        const name = typeof item === 'object' ? item.name : item;
+        const d = document.createElement('div');
+        d.className = 'equip-card';
+        d.innerHTML = `
+            <div class="equip-card-label">${labelPrefix} ${i+1}</div>
+            <input type="text" value="${name}" onchange="updateEquipmentName('${arrKey}',${i},this.value)" style="font-family:var(--mono);font-size:11px">
+        `;
+        container.appendChild(d);
+    });
+}
+
+function updateChillerList() {
+    const count = parseInt(document.getElementById('ChillerCount').value) || 0;
+    if (!globalConfig.Chillers) globalConfig.Chillers = [];
+    const cur = globalConfig.Chillers.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.Chillers.push(`Chiller_${i}`);
+    else if (count < cur) globalConfig.Chillers = globalConfig.Chillers.slice(0, count);
+    renderSimpleList('Chillers', 'ChillerList', 'Chiller');
+    updateConfigStatus();
+}
+function updateTowerList() {
+    const count = parseInt(document.getElementById('TowerCount').value) || 0;
+    if (!globalConfig.Towers) globalConfig.Towers = [];
+    const cur = globalConfig.Towers.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.Towers.push(`Tower_${i}`);
+    else if (count < cur) globalConfig.Towers = globalConfig.Towers.slice(0, count);
+    renderSimpleList('Towers', 'TowerList', 'Tower');
+    updateConfigStatus();
+}
+function updateFcList() {
+    const count = parseInt(document.getElementById('fcCount').value) || 0;
+    if (!globalConfig.FluidCooler) globalConfig.FluidCooler = [];
+    const cur = globalConfig.FluidCooler.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.FluidCooler.push(`Fluid_Cooler_${i}`);
+    else if (count < cur) globalConfig.FluidCooler = globalConfig.FluidCooler.slice(0, count);
+    renderSimpleList('FluidCooler', 'fcList', 'Fluid Cooler');
+    updateConfigStatus();
+}
+function updateVFDList() {
+    const count = parseInt(document.getElementById('VFDCount').value) || 0;
+    if (!globalConfig.VFD) globalConfig.VFD = [];
+    const cur = globalConfig.VFD.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.VFD.push(`VFD_${i}`);
+    else if (count < cur) globalConfig.VFD = globalConfig.VFD.slice(0, count);
+    renderSimpleList('VFD', 'VFDList', 'VFD');
+    updateConfigStatus();
+}
+function updateBoilerList() {
+    const count = parseInt(document.getElementById('BoilerCount').value) || 0;
+    if (!globalConfig.Boilers) globalConfig.Boilers = [];
+    const cur = globalConfig.Boilers.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.Boilers.push(`Boiler_${i}`);
+    else if (count < cur) globalConfig.Boilers = globalConfig.Boilers.slice(0, count);
+    renderSimpleList('Boilers', 'BoilerList', 'Boiler');
+    updateConfigStatus();
+}
+function updateExhaustFanList() {
+    const count = parseInt(document.getElementById('ExhaustFanCount').value) || 0;
+    if (!globalConfig.ExhaustFans) globalConfig.ExhaustFans = [];
+    const cur = globalConfig.ExhaustFans.length;
+    if (count > cur) for (let i = cur+1; i <= count; i++) globalConfig.ExhaustFans.push(`Exhaust_Fan_${i}`);
+    else if (count < cur) globalConfig.ExhaustFans = globalConfig.ExhaustFans.slice(0, count);
+    renderSimpleList('ExhaustFans', 'ExhaustFanList', 'Exhaust Fan');
+    updateConfigStatus();
+}
+
+// ── FCU ──
+function guessFloorFromFCUName(name) {
+    let d = name;
+    if (name.includes('$')) d = name.replace(/\$([0-9a-fA-F]{2})/g, (_,h) => String.fromCharCode(parseInt(h,16)));
+    const m1 = d.match(/FCU[\s_\-](\d+)[\s_\-]/i);
+    if (m1) return m1[1];
+    const m2 = d.match(/FCU(\d+)/i);
+    if (m2) return m2[1];
+    return '';
+}
+function updateFcuList() {
+    const count = parseInt(document.getElementById('fcuCount').value) || 0;
+    if (!globalConfig.FCUs) globalConfig.FCUs = [];
+    globalConfig.FCUs = globalConfig.FCUs.map(item => {
+        if (typeof item === 'string') { const g = guessFloorFromFCUName(item); return { name:item, FLNUM:g, Floornumber_NAME:'' }; }
+        const fl = parseInt(String(item.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) item.Floornumber_NAME = globalConfig.floorNames[fl];
+        return item;
+    });
+    const cur = globalConfig.FCUs.length;
+    if (count > cur) for (let i = cur; i < count; i++) globalConfig.FCUs.push({ name:`FCU_${i+1}`, FLNUM:'', Floornumber_NAME:'' });
+    else if (count < cur) globalConfig.FCUs = globalConfig.FCUs.slice(0, count);
+    updateAllFCUFloorNames();
+    renderFCUList();
+    updateConfigStatus();
+}
+function renderFCUList() {
+    const container = document.getElementById('fcuList');
+    container.innerHTML = '';
+    if (globalConfig.FCUs.length > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'equip-grid';
+        globalConfig.FCUs.forEach((f, i) => {
+            const cur = String(f.FLNUM||'');
+            const base = cur.replace(/_[EW]$/,'');
+            const isE = cur.endsWith('_E'), isW = cur.endsWith('_W');
+            const d = document.createElement('div');
+            d.className = 'equip-card-full';
+            d.innerHTML = `
+                <div class="equip-card-label">FCU ${i+1}</div>
+                <div class="equip-card-row">
+                    <div class="flex-2">
+                        <div class="field-mini-label">Device Name</div>
+                        <input type="text" value="${f.name}" onchange="updateFCUName(${i},this.value)" style="width:100%;font-family:var(--mono);font-size:11px">
+                    </div>
+                    <div class="flex-1">
+                        <div class="field-mini-label">Floor #</div>
+                        <input type="text" value="${base}" placeholder="0" onchange="updateFCUFloor(${i},this.value)" style="width:100%;font-family:var(--mono)">
+                    </div>
+                </div>
+                <div class="side-checks">
+                    <label><input type="checkbox" id="fcu_west_${i}" ${isW?'checked':''} onchange="updateFCUSide(${i},'W',this.checked)"> West</label>
+                    <label><input type="checkbox" id="fcu_east_${i}" ${isE?'checked':''} onchange="updateFCUSide(${i},'E',this.checked)"> East</label>
+                </div>
+            `;
+            grid.appendChild(d);
+        });
+        container.appendChild(grid);
+    }
+}
+function updateFCUName(i, v) {
+    globalConfig.FCUs[i].name = v;
+    const g = guessFloorFromFCUName(v);
+    if (g) {
+        const suf = String(globalConfig.FCUs[i].FLNUM||'').match(/_[EW]$/)?.[0]||'';
+        globalConfig.FCUs[i].FLNUM = g+suf;
+        const fn = parseInt(g);
+        if (!isNaN(fn) && globalConfig.floorNames?.[fn]) globalConfig.FCUs[i].Floornumber_NAME = globalConfig.floorNames[fn];
+        renderFCUList();
+    }
+    updateConfigStatus();
+}
+function updateFCUFloor(i, v) {
+    const base = String(v).trim();
+    const suf = String(globalConfig.FCUs[i].FLNUM||'').match(/_[EW]$/)?.[0]||'';
+    globalConfig.FCUs[i].FLNUM = base+suf;
+    const fn = parseInt(base);
+    globalConfig.FCUs[i].Floornumber_NAME = (!isNaN(fn) && globalConfig.floorNames?.[fn]) ? globalConfig.floorNames[fn] : '';
+    updateConfigStatus();
+}
+function updateFCUSide(i, side, checked) {
+    const base = String(globalConfig.FCUs[i].FLNUM||'').replace(/_[EW]$/,'');
+    globalConfig.FCUs[i].FLNUM = checked ? base+'_'+side : base;
+    if (checked) {
+        const oid = `fcu_${side==='E'?'west':'east'}_${i}`;
+        const oel = document.getElementById(oid);
+        if (oel) oel.checked = false;
+    }
+    updateConfigStatus();
+}
+
+// ── FTU ──
+function guessFloorFromName(name) {
+    let d = name;
+    if (name.includes('$')) d = name.replace(/\$([0-9a-fA-F]{2})/g, (_,h) => String.fromCharCode(parseInt(h,16)));
+    const m1 = d.match(/FTU?[\s_\-](\d+)[\s_\-]/i);
+    if (m1) return m1[1];
+    const m2 = d.match(/FTU?(\d+)/i);
+    if (m2) return m2[1];
+    return '';
+}
+function updateFTUList() {
+    const count = parseInt(document.getElementById('FTUCount').value) || 0;
+    if (!globalConfig.FTU) globalConfig.FTU = [];
+    globalConfig.FTU = globalConfig.FTU.map(item => {
+        if (typeof item === 'string') { const g = guessFloorFromName(item); return { name:item, FLNUM:g, Floornumber_NAME:'' }; }
+        const fl = parseInt(String(item.FLNUM||'').replace(/_[EW]$/,''));
+        if (!isNaN(fl) && globalConfig.floorNames?.[fl]) item.Floornumber_NAME = globalConfig.floorNames[fl];
+        return item;
+    });
+    const cur = globalConfig.FTU.length;
+    if (count > cur) for (let i = cur; i < count; i++) globalConfig.FTU.push({ name:`FTU_${i+1}`, FLNUM:'', Floornumber_NAME:'' });
+    else if (count < cur) globalConfig.FTU = globalConfig.FTU.slice(0, count);
+    updateAllFTUFloorNames();
+    renderFTUList();
+    updateConfigStatus();
+}
+function renderFTUList() {
+    const container = document.getElementById('FTUList');
+    container.innerHTML = '';
+    if (globalConfig.FTU.length > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'equip-grid';
+        globalConfig.FTU.forEach((f, i) => {
+            const cur = String(f.FLNUM||'');
+            const base = cur.replace(/_[EW]$/,'');
+            const isE = cur.endsWith('_E'), isW = cur.endsWith('_W');
+            const d = document.createElement('div');
+            d.className = 'equip-card-full';
+            d.innerHTML = `
+                <div class="equip-card-label">FTU ${i+1}</div>
+                <div class="equip-card-row">
+                    <div class="flex-2">
+                        <div class="field-mini-label">Device Name</div>
+                        <input type="text" value="${f.name}" onchange="updateFTUName(${i},this.value)" style="width:100%;font-family:var(--mono);font-size:11px">
+                    </div>
+                    <div class="flex-1">
+                        <div class="field-mini-label">Floor #</div>
+                        <input type="text" value="${base}" placeholder="0" onchange="updateFTUFloor(${i},this.value)" style="width:100%;font-family:var(--mono)">
+                    </div>
+                </div>
+                <div class="side-checks">
+                    <label><input type="checkbox" id="ftu_west_${i}" ${isW?'checked':''} onchange="updateFTUSide(${i},'W',this.checked)"> West</label>
+                    <label><input type="checkbox" id="ftu_east_${i}" ${isE?'checked':''} onchange="updateFTUSide(${i},'E',this.checked)"> East</label>
+                </div>
+            `;
+            grid.appendChild(d);
+        });
+        container.appendChild(grid);
+    }
+}
+function updateFTUName(i, v) {
+    globalConfig.FTU[i].name = v;
+    const g = guessFloorFromName(v);
+    if (g) {
+        const suf = String(globalConfig.FTU[i].FLNUM||'').match(/_[EW]$/)?.[0]||'';
+        globalConfig.FTU[i].FLNUM = g+suf;
+        const fn = parseInt(g);
+        if (!isNaN(fn) && globalConfig.floorNames?.[fn]) globalConfig.FTU[i].Floornumber_NAME = globalConfig.floorNames[fn];
+        renderFTUList();
+    }
+    updateConfigStatus();
+}
+function updateFTUFloor(i, v) {
+    const base = String(v).trim();
+    const suf = String(globalConfig.FTU[i].FLNUM||'').match(/_[EW]$/)?.[0]||'';
+    globalConfig.FTU[i].FLNUM = base+suf;
+    const fn = parseInt(base);
+    globalConfig.FTU[i].Floornumber_NAME = (!isNaN(fn) && globalConfig.floorNames?.[fn]) ? globalConfig.floorNames[fn] : '';
+    updateConfigStatus();
+}
+function updateFTUSide(i, side, checked) {
+    const base = String(globalConfig.FTU[i].FLNUM||'').replace(/_[EW]$/,'');
+    globalConfig.FTU[i].FLNUM = checked ? base+'_'+side : base;
+    if (checked) {
+        const oid = `ftu_${side==='E'?'west':'east'}_${i}`;
+        const oel = document.getElementById(oid);
+        if (oel) oel.checked = false;
+    }
+    updateConfigStatus();
+}
+
+// ── GENERIC UPDATE ──
+function updateEquipmentName(type, i, v) {
+    if (!v.trim()) {
+        showStatus('Name cannot be empty!', 'error');
+        return;
+    }
+    if (typeof globalConfig[type][i] === 'object') globalConfig[type][i].name = v.trim();
+    else globalConfig[type][i] = v.trim();
+    updateConfigStatus();
+}
+
+// ── GETTERS ──
+function getGlobalConfig() { return globalConfig; }
+function getJobBuilding() { return globalConfig.JobBuilding; }
+function getVAVConfig() { return globalConfig.VAVs; }
+function getAHUConfig() { return globalConfig.AHUs; }
+function getRTUConfig() { return globalConfig.RTUs; }
+function getChillerConfig() { return globalConfig.Chillers; }
+function getTowerConfig() { return globalConfig.Towers; }
+function getFCUConfigu() { return globalConfig.FCUs; }
+function getFluidCoolerConfig() { return globalConfig.FluidCooler; }
+function getVFDConfig() { return globalConfig.VFD; }
+function getFTUConfig() { return globalConfig.FTU; }
+function getBoilerConfig() { return globalConfig.Boilers; }
+function getExhaustFanConfig() { return globalConfig.ExhaustFans; }
+function getBaseFilePath() { return globalConfig.baseFilePath; }
+function getBackgroundImage() { return globalConfig.backgroundimage; }
+function getFloorPlans() { return globalConfig.floorPlans || {}; }
+function loadConfigFromJSON(jsonData) {
+    try { globalConfig = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData; return globalConfig; }
+    catch(e) { console.error(e); return null; }
+}
+</script>
+
+</body>
+</html>

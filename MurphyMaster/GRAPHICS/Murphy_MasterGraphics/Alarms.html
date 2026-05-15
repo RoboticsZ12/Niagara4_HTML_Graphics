@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Alarm Monitoring</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: rgba(13,17,23,0.97);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  gap: 8px;
+}
+.top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  pointer-events: none;
+}
+
+/* hamburger */
+.hamburger {
+  width: 36px; height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line {
+  width: 18px; height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: var(--transition);
+}
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* left slot — hamburger */
+.top-bar-left {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+
+/* center slot — titles */
+.top-center {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+.site-label {
+  font-family: var(--font-head);
+  font-size: clamp(11px, 1.6vw, 22px);
+  letter-spacing: clamp(1px, 0.4vw, 4px);
+  color: var(--accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.page-title {
+  font-family: var(--font-head);
+  font-size: clamp(10px, 1.2vw, 18px);
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* right slot */
+.top-right {
+  display: flex; align-items: center; gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.user-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: clamp(10px, 0.85vw, 14px);
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.user-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* PX Alarm Console button */
+.px-console-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  padding: 6px clamp(8px, 1vw, 16px);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: clamp(9px, 0.75vw, 13px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+  text-decoration: none;
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.px-console-btn:hover {
+  background: rgba(0,200,255,0.1);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.px-console-btn:active { transform: translateY(0); }
+
+/* ── Back-to-table button (admin only; shown when console view is active) */
+.back-to-table-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px clamp(8px, 1vw, 16px);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: clamp(9px, 0.75vw, 13px);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+  display: none;          /* JS sets to 'flex' when console is open */
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.back-to-table-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel {
+  position: fixed;
+  top: 0; left: -300px;
+  width: 280px; height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  z-index: 300;
+  transition: left 0.3s ease;
+  padding: 80px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+
+.side-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.side-panel-header h2 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: normal;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.side-nav-section-label {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 14px 20px 10px;
+  letter-spacing: 0.5px;
+}
+
+.side-panel-nav { display: flex; flex-direction: column; }
+
+.side-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  text-decoration: none;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: var(--transition);
+  position: relative;
+}
+.side-nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+.side-nav-link:hover { background: rgba(0,200,255,0.07); color: var(--text-primary); padding-left: 26px; }
+.side-nav-link:hover::before { transform: scaleY(1); }
+
+.side-nav-icon { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.side-nav-icon svg { width: 36px; height: 36px; }
+.side-nav-label { font-family: var(--font-head); font-size: 14px; letter-spacing: 0.5px; }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding: 28px 28px 0;
+  overflow-y: auto;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── PX CONSOLE PANEL (same layout as main-content) ───────────────── */
+.px-console-panel {
+  flex: 1;
+  padding: 28px 28px 0;
+  overflow-y: auto;
+  display: none;          /* toggled by JS */
+}
+.px-console-panel::-webkit-scrollbar { width: 6px; }
+.px-console-panel::-webkit-scrollbar-track { background: transparent; }
+.px-console-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* iframe container */
+.px-iframe-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(22,27,39,0.85);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+  margin-bottom: 28px;
+  position: relative;
+}
+.px-iframe-bar {
+  background: rgba(0,200,255,0.06);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.px-iframe-bar-title {
+  font-family: var(--font-head); font-size: 12px;
+  letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+}
+.px-iframe-bar-url {
+  font-family: var(--font-head); font-size: 11px; color: var(--text-muted);
+  letter-spacing: 0.5px; word-break: break-all;
+}
+.px-reload-btn {
+  background: none; border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text-muted); padding: 4px 12px; cursor: pointer;
+  font-family: var(--font-head); font-size: 11px; letter-spacing: 1px;
+  transition: var(--transition); white-space: nowrap;
+}
+.px-reload-btn:hover { border-color: var(--accent); color: var(--accent); }
+.px-iframe-overlay {
+  position: absolute; inset: 52px 0 0 0;
+  background: rgba(13,17,23,0.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10; font-family: var(--font-head); font-size: 13px;
+  letter-spacing: 2px; color: var(--text-muted); gap: 10px;
+}
+.px-spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid rgba(0,200,255,0.2); border-top-color: var(--accent);
+  border-radius: 50%; animation: pxSpin 0.8s linear infinite;
+}
+@keyframes pxSpin { to { transform: rotate(360deg); } }
+
+/* ─── PAGE HEADER ───────────────────────────────────────────────────── */
+.page-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 24px;
+}
+.page-header .line {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.page-header h2 {
+  font-family: var(--font-head);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* ─── SYSTEM STATUS CARD ────────────────────────────────────────────── */
+#system-status {
+  margin-bottom: 24px;
+}
+
+.overall-summary {
+  background: rgba(22,27,39,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+}
+
+.status-indicator {
+  font-family: var(--font-head);
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 14px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.status-indicator.status-ok {
+  background: rgba(0,230,118,0.08);
+  color: var(--green);
+  border: 1px solid rgba(0,230,118,0.3);
+}
+.status-indicator.status-error {
+  background: rgba(255,68,68,0.08);
+  color: var(--red);
+  border: 1px solid rgba(255,68,68,0.3);
+  animation: statusPulse 2s infinite;
+}
+.status-indicator.status-acknowledged {
+  background: rgba(255,171,0,0.08);
+  color: var(--amber);
+  border: 1px solid rgba(255,171,0,0.3);
+}
+@keyframes statusPulse {
+  0%,100% { box-shadow: none; }
+  50% { box-shadow: 0 0 20px rgba(255,68,68,0.2); }
+}
+
+.status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+  animation: dotBlink 1.5s infinite;
+}
+@keyframes dotBlink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ─── TABLE CONTAINER ───────────────────────────────────────────────── */
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(22,27,39,0.85);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+  margin-bottom: 28px;
+}
+
+/* ─── TABLE ─────────────────────────────────────────────────────────── */
+.alarm-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.alarm-table thead tr {
+  background: rgba(0,200,255,0.06);
+  border-bottom: 1px solid var(--border);
+}
+.alarm-table thead th {
+  padding: 14px 18px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: normal;
+  text-align: left;
+}
+
+.alarm-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: var(--transition);
+}
+.alarm-table tbody tr:last-child { border-bottom: none; }
+
+.alarm-table td {
+  padding: 13px 18px;
+  vertical-align: middle;
+  font-size: 16px;
+}
+
+/* ─── HIERARCHY ROWS ────────────────────────────────────────────────── */
+
+/* Level 1 — Equipment Type */
+.equipment-type-row {
+  background: rgba(0,200,255,0.05);
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid var(--accent);
+}
+.equipment-type-row:hover { background: rgba(0,200,255,0.09); }
+.equipment-type-name {
+  padding: 16px 18px !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+.equipment-arrow, .device-arrow, .point-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.equipment-count, .device-count, .folder-count {
+  margin-left: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-family: var(--font-head);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+
+/* alarm states on folder rows */
+.equipment-type-row.equipment-alarm  { border-left-color: var(--red); background: rgba(255,68,68,0.06); animation: rowPulse 2s infinite; }
+.equipment-type-row.equipment-acknowledged { border-left-color: var(--amber); background: rgba(255,171,0,0.06); }
+@keyframes rowPulse { 0%,100% { box-shadow: none; } 50% { box-shadow: inset 0 0 20px rgba(255,68,68,0.08); } }
+
+/* Level 2 — Device Folder */
+.device-folder-row {
+  background: rgba(22,27,39,0.6);
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid rgba(0,200,255,0.35);
+}
+.device-folder-row:hover { background: rgba(0,200,255,0.05); }
+.device-folder-name {
+  padding: 13px 18px 13px 36px !important;
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+.device-folder-row.device-alarm  { border-left-color: var(--red); background: rgba(255,68,68,0.05); animation: rowPulse 2s infinite; }
+.device-folder-row.device-acknowledged { border-left-color: var(--amber); background: rgba(255,171,0,0.05); }
+
+/* Level 3 — Point Folder */
+.point-folder-row {
+  background: rgba(13,17,23,0.5);
+  cursor: pointer;
+  transition: var(--transition);
+  border-left: 3px solid rgba(255,255,255,0.08);
+}
+.point-folder-row:hover { background: rgba(0,200,255,0.04); }
+.point-folder-name {
+  padding: 11px 18px 11px 54px !important;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.point-folder-row.folder-alarm { border-left-color: var(--red); background: rgba(255,68,68,0.05); }
+.point-folder-row.folder-acknowledged { border-left-color: var(--amber); background: rgba(255,171,0,0.04); }
+
+/* Level 4 — Individual Point Row */
+.child-row {
+  background: rgba(13,17,23,0.3);
+  border-left: 3px solid rgba(255,255,255,0.04);
+  transition: var(--transition);
+}
+.child-row:hover { background: rgba(0,200,255,0.04); }
+.child-row td { padding: 12px 18px 12px 72px !important; }
+
+/* collapsed */
+.collapsed { display: none !important; }
+
+/* ─── CELL STYLES ───────────────────────────────────────────────────── */
+.device-name {
+  font-family: var(--font-head);
+  font-size: 15px;
+  color: var(--accent);
+  letter-spacing: 0.5px;
+}
+.point-name {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+/* ─── ALARM STATE BADGES ────────────────────────────────────────────── */
+.alarm-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: normal;
+  border: 1px solid;
+}
+.alarm-state.normal {
+  background: rgba(0,230,118,0.08);
+  color: var(--green);
+  border-color: rgba(0,230,118,0.3);
+}
+.alarm-state.alarm {
+  background: rgba(255,68,68,0.1);
+  color: var(--red);
+  border-color: rgba(255,68,68,0.4);
+  animation: badgePulse 1.5s infinite;
+}
+.alarm-state.acknowledged {
+  background: rgba(255,171,0,0.08);
+  color: var(--amber);
+  border-color: rgba(255,171,0,0.3);
+}
+.alarm-state.unknown {
+  background: rgba(122,132,153,0.1);
+  color: var(--text-muted);
+  border-color: rgba(122,132,153,0.2);
+}
+/* Unacked alarm — distinct amber pulsing badge */
+.alarm-state.unacked {
+  background: rgba(255,171,0,0.12);
+  color: var(--amber);
+  border-color: rgba(255,171,0,0.5);
+  animation: badgePulse 2s infinite;
+}
+/* Down / fault — crimson badge */
+.alarm-state.down {
+  background: rgba(220,20,60,0.12);
+  color: #dc143c;
+  border-color: rgba(220,20,60,0.5);
+  animation: badgePulse 2s infinite;
+}
+@keyframes badgePulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ─── OUT SLOT ──────────────────────────────────────────────────────── */
+.out-slot { line-height: 1.4; }
+.out-value {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.out-status {
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 3px;
+}
+.out-slot.normal .out-status { background: rgba(0,230,118,0.1); color: var(--green); }
+.out-slot.alarm  .out-status { background: rgba(255,68,68,0.1);  color: var(--red); }
+.out-slot.fault  .out-status { background: rgba(255,171,0,0.1);  color: var(--amber); }
+.out-slot.disabled .out-status { background: rgba(122,132,153,0.1); color: var(--text-muted); }
+.out-slot.unknown  .out-status { background: rgba(122,132,153,0.1); color: var(--text-muted); }
+
+/* ─── STATUS CELL ───────────────────────────────────────────────────── */
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.status-icon { font-size: 15px; }
+
+/* ─── ACK BUTTON ────────────────────────────────────────────────────── */
+.ack-button {
+  background: none;
+  border: 1px solid var(--amber);
+  border-radius: 6px;
+  color: var(--amber);
+  padding: 7px 16px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.ack-button:hover {
+  background: rgba(255,171,0,0.1);
+  box-shadow: 0 0 12px rgba(255,171,0,0.2);
+  transform: translateY(-1px);
+}
+.ack-button:active { transform: translateY(0); }
+
+/* ─── ACKNOWLEDGED BADGE ────────────────────────────────────────────── */
+.acknowledged-badge {
+  background: rgba(255,171,0,0.15);
+  color: var(--amber);
+  border: 1px solid rgba(255,171,0,0.3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  letter-spacing: 1px;
+  margin-right: 6px;
+}
+
+/* ─── NOTES ─────────────────────────────────────────────────────────── */
+.notes-cell { padding: 10px 18px 10px 72px !important; }
+.notes-container { display: flex; flex-direction: column; gap: 6px; }
+
+.alarm-notes-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  resize: vertical;
+  min-height: 48px;
+  transition: var(--transition);
+}
+.alarm-notes-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.alarm-notes-input::placeholder { color: var(--text-muted); }
+
+.save-notes-btn {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1px;
+  transition: var(--transition);
+}
+.save-notes-btn:hover {
+  background: rgba(0,200,255,0.08);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+/* ─── LOADING ───────────────────────────────────────────────────────── */
+.loading-row td {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+
+/* ─── SCAN PROGRESS BAR ─────────────────────────────────────────────── */
+.scan-bar-wrap {
+  background: rgba(13,17,23,0.97);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: opacity 0.5s ease, max-height 0.5s ease;
+  max-height: 60px;
+  overflow: hidden;
+}
+.scan-bar-wrap.scan-done {
+  opacity: 0;
+  max-height: 0;
+  padding: 0 24px;
+  border-bottom: none;
+  pointer-events: none;
+}
+.scan-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+.scan-bar-label { color: var(--accent); }
+.scan-bar-pct   { color: var(--text-primary); font-size: 13px; font-weight: bold; }
+.scan-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.scan-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #7b5ea7);
+  box-shadow: 0 0 8px var(--accent-glow);
+  transition: width 0.3s ease;
+}
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: rgba(13,17,23,0.97);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  height: 50px;
+  flex-shrink: 0;
+  position: relative;
+}
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.datetime-display {
+  font-family: var(--font-head);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.logoff-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .alarm-table th:nth-child(7),
+  .alarm-table td:nth-child(7) { display: none; }
+}
+@media (max-width: 700px) {
+  .alarm-table th:nth-child(6),
+  .alarm-table td:nth-child(6),
+  .alarm-table th:nth-child(7),
+  .alarm-table td:nth-child(7) { display: none; }
+
+  .main-content { padding: 14px 10px 0; }
+  .page-header h2 { font-size: 13px; letter-spacing: 2px; }
+  .status-details { flex-direction: column; gap: 4px; }
+}
+@media (max-width: 500px) {
+  .alarm-table th:nth-child(3),
+  .alarm-table td:nth-child(3),
+  .alarm-table th:nth-child(4),
+  .alarm-table td:nth-child(4) { display: none; }
+
+  .top-bar { height: auto; min-height: 54px; padding: 6px 10px; }
+  .site-label  { letter-spacing: 1px; }
+  .px-console-btn { font-size: 9px; padding: 5px 8px; }
+  .user-badge  { padding: 4px 8px; }
+}
+
+.table-container { overflow-x: auto; }
+.alarm-table { min-width: 420px; }
+</style>
+</head>
+<body>
+
+<!-- overlays -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" class="side-nav-link" data-ahu="Home">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link" data-ahu="FloorPlan">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+          <line x1="22" y1="20" x2="28" y2="20" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link" data-ahu="Alarms">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link" data-ahu="Users">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link" data-ahu="LoggingNum">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link" data-ahu="Schedules">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="28" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="12" cy="30" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="30" r="1.5" fill="#00c8ff"/>
+          <circle cx="28" cy="30" r="1.5" fill="#c8cfe0"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Alarm Monitoring</span>
+  </div>
+
+  <div class="top-right">
+    <!-- PX Alarm Console — admin scrolls to iframe view; non-admin grayed out -->
+    <button class="px-console-btn" id="pxConsoleBtn" title="Open Niagara PX Alarm Console">
+      🖥️ PX Alarm Console
+    </button>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCAN PROGRESS BAR ────────────────────────────────────────────── -->
+<div class="scan-bar-wrap" id="scanBarWrap">
+  <div class="scan-bar-header">
+    <span class="scan-bar-label">⟳ SCANNING ALARM POINTS</span>
+    <span class="scan-bar-pct" id="scanBarPct">0%</span>
+  </div>
+  <div class="scan-bar-track">
+    <div class="scan-bar-fill" id="scanBarFill"></div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT — Alarm Table (default, visible to all users) ──── -->
+<div class="main-content" id="alarmTablePanel">
+
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>⚠ Real-Time Alarm Console</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <div id="system-status">
+    <div class="overall-summary">
+      <div class="loading">Initializing alarm monitoring<span class="loading-dots"></span></div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="alarm-table" id="alarm-table">
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>Point</th>
+          <th>Out</th>
+          <th>Status</th>
+          <th>Alarm State</th>
+          <th>Action</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="alarm-tbody">
+        <tr class="loading-row">
+          <td colspan="7">Scanning alarm points…</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ─── PX ALARM CONSOLE IFRAME (admin only, hidden until button clicked) ── -->
+  <div id="pxConsoleContainer" style="display:none; margin-bottom:28px;">
+
+    <!-- status banner -->
+    <div style="margin-bottom:20px;">
+      <div class="overall-summary">
+        <div class="status-indicator" id="pxStatusBanner" style="background:rgba(0,200,255,0.06);color:var(--accent);border:1px solid rgba(0,200,255,0.3);">
+          <span class="status-dot" style="background:var(--accent);"></span>
+          🖥️ Loading PX Alarm Console…
+        </div>
+        <div class="status-details">
+          <span id="pxUrlDisplay">—</span>
+          <span id="pxLoadedTime">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- iframe wrap -->
+    <div style="
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      overflow:hidden;
+      background:rgba(22,27,39,0.85);
+      backdrop-filter:blur(16px);
+      box-shadow:0 0 40px rgba(0,200,255,0.05);
+      position:relative;
+    ">
+      <!-- header bar -->
+      <div style="
+        background:rgba(0,200,255,0.06);
+        border-bottom:1px solid var(--border);
+        padding:10px 18px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+      ">
+        <span style="font-family:var(--font-head);font-size:12px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">
+          🖥 Niagara PX Alarm Console
+        </span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span id="pxIframeUrlLabel" style="font-family:var(--font-head);font-size:11px;color:var(--text-muted);letter-spacing:0.5px;word-break:break-all;"></span>
+          <button onclick="reloadPxIframe()" style="
+            background:none;border:1px solid var(--border);border-radius:5px;
+            color:var(--text-muted);padding:4px 12px;cursor:pointer;
+            font-family:var(--font-head);font-size:11px;letter-spacing:1px;
+            transition:var(--transition);
+          " onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+            ⟳ Reload
+          </button>
+        </div>
+      </div>
+
+      <!-- loading overlay -->
+      <div id="pxLoadOverlay" style="
+        position:absolute;inset:52px 0 0 0;
+        background:rgba(13,17,23,0.85);
+        display:flex;align-items:center;justify-content:center;
+        z-index:10;font-family:var(--font-head);font-size:13px;
+        letter-spacing:2px;color:var(--text-muted);gap:10px;
+      ">
+        <span class="spinner"></span> LOADING CONSOLE…
+      </div>
+
+      <!-- non-admin message -->
+      <div id="pxNoAccess" style="
+        display:none;padding:60px;text-align:center;
+        font-family:var(--font-head);font-size:13px;
+        letter-spacing:2px;color:var(--text-muted);
+      ">
+        🔒 ADMIN ACCESS REQUIRED
+      </div>
+
+      <!-- ─── the iframe — clipped ~15% from left to hide Niagara nav tree ─── -->
+      <div style="overflow:hidden;position:relative;height:680px;">
+        <iframe
+          id="pxConsoleIframe"
+          src="about:blank"
+          style="width:102%;height:100%;border:none;display:block;background:#fff;margin-left:-2.25%;position:absolute;top:0;left:0;"
+          title="Niagara PX Alarm Console"
+          onload="onPxIframeLoad()"
+        ></iframe>
+      </div>
+
+    </div>
+
+  </div>
+
+</div><!-- /alarmTablePanel -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric',
+                 hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent =
+    now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- PX ALARM CONSOLE BUTTON — same pattern as AuditHistory iframe container -->
+<script>
+(async function () {
+  const btn        = document.getElementById('pxConsoleBtn');
+  const container  = document.getElementById('pxConsoleContainer');
+  const frame      = document.getElementById('pxConsoleIframe');
+  const urlLabel   = document.getElementById('pxIframeUrlLabel');
+  const urlDisplay = document.getElementById('pxUrlDisplay');
+  const loadedTime = document.getElementById('pxLoadedTime');
+
+  function buildPxUrl() {
+    const host = window.location.hostname;
+    return 'https://' + host + '/ord/station:%7Cslot:/Services/AlarmService/ConsoleRecipient%7Cview:alarm:AlarmUxConsole';
+  }
+
+  async function isAdmin() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+      const res = await fetch('HomeConfig.json');
+      if (!res.ok) return false;
+      const config = await res.json();
+      const user = (config.Users || []).find(u => u.name === username);
+      return user && user.role.toLowerCase() === 'admin';
+    } catch(e) {
+      console.warn('HomeConfig.json role check failed:', e);
+      return false;
+    }
+  }
+
+  const admin = await isAdmin();
+
+  if (admin) {
+    const url = buildPxUrl();
+
+    // Populate URL labels
+    if (urlLabel)   urlLabel.textContent   = url;
+    if (urlDisplay) urlDisplay.textContent = 'ORD: ' + url;
+
+    // Show container and load iframe
+    if (container) container.style.display = 'block';
+    if (frame)     frame.src = url;
+
+    // Button: scroll to container + reload iframe (same as AuditHistory)
+    if (btn) {
+      btn.addEventListener('click', function () {
+        if (frame) frame.src = buildPxUrl();
+        if (container) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      btn.title = 'Open PX Alarm Console';
+    }
+
+    if (loadedTime) {
+      loadedTime.textContent = 'LOADED: ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+    }
+
+  } else {
+    // Non-admin — gray out button, leave container hidden
+    if (btn) {
+      btn.disabled             = true;
+      btn.title                = 'Admin access required';
+      btn.style.opacity        = '0.35';
+      btn.style.cursor         = 'not-allowed';
+      btn.style.borderColor    = 'rgba(122,132,153,0.3)';
+      btn.style.color          = 'var(--text-muted)';
+      btn.style.boxShadow      = 'none';
+      btn.style.transform      = 'none';
+      btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); });
+    }
+  }
+})();
+
+function onPxIframeLoad() {
+  const overlay    = document.getElementById('pxLoadOverlay');
+  const banner     = document.getElementById('pxStatusBanner');
+  const loadedTime = document.getElementById('pxLoadedTime');
+  if (overlay) overlay.style.display = 'none';
+  if (loadedTime) loadedTime.textContent = 'LOADED: ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  if (banner && !banner.classList.contains('status-error')) {
+    banner.style.background  = 'rgba(0,230,118,0.08)';
+    banner.style.color       = 'var(--green)';
+    banner.style.borderColor = 'rgba(0,230,118,0.3)';
+    banner.innerHTML = '<span class="status-dot" style="background:var(--green);"></span>✅ PX Alarm Console Loaded';
+  }
+}
+
+function reloadPxIframe() {
+  const frame   = document.getElementById('pxConsoleIframe');
+  const overlay = document.getElementById('pxLoadOverlay');
+  const banner  = document.getElementById('pxStatusBanner');
+  if (overlay) overlay.style.display = 'flex';
+  if (banner) {
+    banner.style.background  = 'rgba(0,200,255,0.06)';
+    banner.style.color       = 'var(--accent)';
+    banner.style.borderColor = 'rgba(0,200,255,0.3)';
+    banner.innerHTML = '<span class="status-dot" style="background:var(--accent);"></span>🖥️ Reloading PX Alarm Console…';
+  }
+  if (frame) {
+    const src = frame.src;
+    frame.src = 'about:blank';
+    setTimeout(() => { frame.src = src; }, 100);
+  }
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ALARM LOGIC — slot-based alarm detection
+     Instead of reading "Alarm: yes" from JSON, every point from
+     Global.json is resolved, its slots are iterated, and any slot
+     whose name contains "alarm" (case-insensitive) is treated as an
+     alarm extension.  The Out status of the POINT itself drives the
+     displayed state:
+       - status contains "alarm" but NOT "unacked/unacknowledged" → ALARM
+       - status contains "unacked" or "unacknowledged"             → UNACKED
+       - otherwise                                                  → NORMAL
+══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!', 'baja!control:StringOverride'], function (baja) {
+    'use strict';
+
+    // ─── State ────────────────────────────────────────────────────────
+    var acknowledgedAlarms  = {};
+    var resolvedStringPoints = {};
+    var stringPointsMap      = {};
+    var resolvedAlarmPoints  = {};
+    var monitorPoints        = [];   // populated after slot-scan
+
+    // Notification / sound guards
+    var isAlarmNotifying    = false;
+    var hasNotifiedInitialAlarm = false;
+    var isAlarmSoundPlaying = false;
+
+    // Inactivity
+    var inactivityTimer;
+    const INACTIVITY_TIMEOUT = 60000;
+
+    // ─── Scan progress bar ────────────────────────────────────────────
+    var scanTotal = 0, scanDone = 0;
+
+    function setScanTotal(n) {
+        scanTotal = n;
+        scanDone  = 0;
+        updateScanBar();
+    }
+
+    function incrementScan() {
+        scanDone++;
+        updateScanBar();
+    }
+
+    function updateScanBar() {
+        const pct  = scanTotal > 0 ? Math.round((scanDone / scanTotal) * 100) : 0;
+        const fill = document.getElementById('scanBarFill');
+        const lbl  = document.getElementById('scanBarPct');
+        const wrap = document.getElementById('scanBarWrap');
+        const hdr  = wrap ? wrap.querySelector('.scan-bar-label') : null;
+        if (fill) fill.style.width = pct + '%';
+        if (lbl)  lbl.textContent  = pct + '%';
+        if (hdr)  hdr.textContent  = '⟳ SCANNING ALARM POINTS — ' + scanDone + ' / ' + scanTotal;
+    }
+
+    function completeScanBar(foundCount) {
+        const wrap = document.getElementById('scanBarWrap');
+        const lbl  = document.getElementById('scanBarPct');
+        const hdr  = wrap ? wrap.querySelector('.scan-bar-label') : null;
+        const fill = document.getElementById('scanBarFill');
+        if (fill) fill.style.width = '100%';
+        if (lbl)  lbl.textContent  = '100%';
+        if (hdr)  hdr.textContent  = '✓ SCAN COMPLETE — ' + foundCount + ' ALARM POINT' + (foundCount !== 1 ? 'S' : '') + ' FOUND';
+        if (lbl)  lbl.style.color  = 'var(--green)';
+        // Fade out after a short pause
+        setTimeout(() => { if (wrap) wrap.classList.add('scan-done'); }, 1800);
+    }
+
+
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+
+    // ─── Alarm sound ──────────────────────────────────────────────────
+    function playAlarmSound() {
+        if (isAlarmSoundPlaying) return;
+        isAlarmSoundPlaying = true;
+        try {
+            const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+            const osc  = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 800; osc.type = 'sine';
+            const t = ctx.currentTime;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.3, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+            osc.start(t); osc.stop(t + 0.5);
+        } catch(e) { console.error('Alarm sound error:', e); }
+        setTimeout(() => { isAlarmSoundPlaying = false; }, 600);
+    }
+
+    function showAlarmNotification(count) {
+        if (isAlarmNotifying) return;
+        isAlarmNotifying = true;
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const n = new Notification('🚨 ALARM DETECTED!', {
+                body: count + ' active alarm' + (count > 1 ? 's' : '') + ' detected!',
+                requireInteraction: true, tag: 'alarm-notification'
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+        }
+        setTimeout(() => { isAlarmNotifying = false; }, 5000);
+    }
+
+    // ─── Inactivity ───────────────────────────────────────────────────
+    function resetInactivityTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => location.reload(), INACTIVITY_TIMEOUT);
+    }
+    function initializeActivityMonitoring() {
+        ['mousedown','mousemove','keypress','scroll','touchstart','click'].forEach(ev => {
+            document.addEventListener(ev, resetInactivityTimer, true);
+        });
+        resetInactivityTimer();
+    }
+
+    // ─── Out-slot helper ──────────────────────────────────────────────
+    function getOutSlotDetails(point) {
+        try {
+            const out = point.getOut();
+            if (!out) return { value: 'N/A', status: 'No Out', statusClass: 'unknown' };
+            const value = out.getValueDisplay ? out.getValueDisplay() : out.toString();
+            const status = out.getStatus();
+            let statusText = 'UNKNOWN', statusClass = 'unknown';
+            if (status) {
+                if (status.isAlarm && status.isAlarm())           { statusText = 'ALARM';    statusClass = 'alarm';    }
+                else if (status.isFault && status.isFault())       { statusText = 'FAULT';    statusClass = 'fault';    }
+                else if (status.isDisabled && status.isDisabled()) { statusText = 'DISABLED'; statusClass = 'disabled'; }
+                else if (status.isOk && status.isOk())             { statusText = 'OK';       statusClass = 'normal';   }
+                else statusText = status.toString();
+            }
+            return { value, status: statusText, statusClass };
+        } catch(e) {
+            return { value: 'Error', status: e.message, statusClass: 'unknown' };
+        }
+    }
+
+    // ─── Decode Niagara $xx names ─────────────────────────────────────
+    function decodeDisplayName(name) {
+        if (!name) return name;
+        return name
+            .replace(/\$20/g,' ').replace(/\$2d/g,'-').replace(/\$2E/g,'.')
+            .replace(/\$2F/g,'/').replace(/\$5F/g,'_').replace(/\$28/g,'(')
+            .replace(/\$29/g,')').replace(/\$2C/g,',').replace(/\$3a/g,':')
+            .replace(/\$21/g,'!').replace(/\$23/g,'#').replace(/\$25/g,'%')
+            .replace(/\$26/g,'&').replace(/\$27/g,"'").replace(/\$2A/g,'*')
+            .replace(/\$2B/g,'+').replace(/\$3D/g,'=').replace(/\$3F/g,'?')
+            .replace(/\$40/g,'@').replace(/\$5B/g,'[').replace(/\$5D/g,']')
+            .replace(/\$5C/g,'\\').replace(/\$7B/g,'{').replace(/\$7D/g,'}')
+            .replace(/\$7C/g,'|');
+    }
+
+    // ─── Normalise name for key lookups ───────────────────────────────
+    function normalizePointName(name) {
+        return name.toLowerCase().replace(/\s+/g,'').replace(/_/g,'').replace(/[^a-z0-9]/g,'');
+    }
+
+    // ─── Extract equipment-type prefix from device name ───────────────
+    function extractEquipmentType(deviceName) {
+        const match = deviceName.match(/^([A-Za-z]+)[-_\s]?\d*$/);
+        if (match) return match[1].toUpperCase() + 's';
+        const lm = deviceName.match(/^([A-Za-z]+)/);
+        if (lm) return lm[1].toUpperCase() + 's';
+        return 'Other Equipment';
+    }
+
+    // ─── Four-level grouping ──────────────────────────────────────────
+    function groupPointsByEquipmentType(pts) {
+        const groups = {};
+        pts.forEach(p => {
+            const eType = extractEquipmentType(p.deviceName);
+            const eKey  = normalizePointName(eType);
+            if (!groups[eKey]) groups[eKey] = { displayName: eType, normalizedName: eKey, devices: {} };
+
+            const dKey = normalizePointName(p.deviceName);
+            if (!groups[eKey].devices[dKey])
+                groups[eKey].devices[dKey] = { displayName: p.deviceName, normalizedName: dKey, pointGroups: {} };
+
+            const pKey = normalizePointName(p.pointName);
+            if (!groups[eKey].devices[dKey].pointGroups[pKey])
+                groups[eKey].devices[dKey].pointGroups[pKey] = { displayName: p.pointName, normalizedName: pKey, points: [] };
+
+            groups[eKey].devices[dKey].pointGroups[pKey].points.push(p);
+        });
+        return groups;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  SLOT-BASED ALARM DISCOVERY
+    // ══════════════════════════════════════════════════════════════════
+    async function discoverAlarmPointsViaSlots() {
+        console.log('=== SLOT-BASED ALARM DISCOVERY ===');
+
+        let allEntries = [];
+        try {
+            const storedConfig = localStorage.getItem('globalVariablesConfig');
+            const config = storedConfig ? JSON.parse(storedConfig) : await fetch('./Global.json').then(r => r.json());
+            Object.keys(config.globalVariables).forEach(deviceName => {
+                const deviceCfg = config.globalVariables[deviceName];
+                if (!deviceCfg.points) return;
+                deviceCfg.points.forEach(p => {
+                    allEntries.push({
+                        deviceName: decodeDisplayName(deviceName),
+                        pointName:  decodeDisplayName(p.name),
+                        fullPath:   p.fullPath,
+                        id:         p.id || null
+                    });
+                });
+            });
+        } catch(e) {
+            console.error('Failed to load Global.json for slot discovery:', e);
+            return [];
+        }
+
+        console.log(`Scanning ${allEntries.length} total points for alarm slots…`);
+
+        const discovered = [];
+        let pointId = 1;
+
+        setScanTotal(allEntries.length);
+
+        const BATCH = 50;
+        for (let i = 0; i < allEntries.length; i += BATCH) {
+            const batch = allEntries.slice(i, i + BATCH);
+            await Promise.all(batch.map(async entry => {
+                try {
+                    const pt = await baja.Ord.make(entry.fullPath).get();
+                    const hasAlarmSlot = pointHasAlarmSlot(pt);
+                    if (hasAlarmSlot) {
+                        const idx = pointId - 1;
+                        discovered.push({
+                            id:          'point' + pointId,
+                            path:        entry.fullPath,
+                            deviceName:  entry.deviceName,
+                            pointName:   entry.pointName,
+                            alarmIndex:  idx
+                        });
+                        resolvedAlarmPoints['point' + pointId] = pt;
+                        pointId++;
+                        console.log(`✓ Alarm slot found: ${entry.deviceName} → ${entry.pointName}`);
+                    }
+                } catch(e) {
+                    // Point not resolvable — skip silently
+                } finally {
+                    incrementScan();
+                }
+            }));
+        }
+
+        console.log(`Slot scan complete. ${discovered.length} alarm-monitored points found.`);
+        completeScanBar(discovered.length);
+        return discovered;
+    }
+
+    function pointHasAlarmSlot(component) {
+        try {
+            if (component && component.getSlots) {
+                const slots = component.getSlots();
+                if (slots && slots.list) {
+                    for (const slot of slots.list()) {
+                        if (slot.getName().toLowerCase().includes('alarm')) return true;
+                    }
+                }
+            }
+            try {
+                const raw = component.getOut().getStatus().toString().toLowerCase();
+                if ((raw.includes('fault') && raw.includes('down')) || raw.includes('stale')) return true;
+            } catch(e) { /* ignore */ }
+        } catch(e) { /* ignore */ }
+        return false;
+    }
+
+    // ─── StringWritable notes points ──────────────────────────────────
+    async function initializeStringWritablePoints(count) {
+        const promises = [];
+        for (let i = 0; i < count; i++) {
+            const name = i === 0 ? 'StringWritable' : 'StringWritable' + i;
+            const path = 'station:|slot:/Home/Alarm_Notes/' + name;
+            stringPointsMap[i] = { name, path };
+            promises.push(
+                baja.Ord.make(path).get()
+                    .then(pt => { resolvedStringPoints[i] = pt; })
+                    .catch(err => { console.warn('StringWritable ' + i + ' not found:', err); })
+            );
+        }
+        await Promise.all(promises);
+    }
+
+    function performStringOverride(pointIndex, textValue) {
+        const point = resolvedStringPoints[pointIndex];
+        if (!point) { alert('Unable to save note - point not available'); return; }
+        try {
+            const overrideParam = baja.$('control:StringOverride');
+            overrideParam.setValue(textValue);
+            point.invoke({ slot: 'override', value: overrideParam })
+                .then(() => {
+                    const ta = document.getElementById('notes-' + pointIndex);
+                    if (ta) { ta.style.borderColor = '#00e676'; setTimeout(() => { ta.style.borderColor = ''; }, 1000); }
+                })
+                .catch(() => alert('Failed to save note'));
+        } catch(e) { alert('Error saving note'); }
+    }
+
+    function loadInitialStringDisplay(pointIndex) {
+        const point = resolvedStringPoints[pointIndex];
+        const ta    = document.getElementById('notes-' + pointIndex);
+        if (!point || !ta) return;
+        try { ta.value = point.getOut().getValueDisplay() || ''; } catch(e) {}
+    }
+
+    window.saveAlarmNotes = function(idx) {
+        const ta = document.getElementById('notes-' + idx);
+        if (ta) performStringOverride(idx, ta.value);
+    };
+
+    // ─── Classify alarm state ─────────────────────────────────────────
+    function classifyAlarmState(point) {
+        try {
+            const out    = point.getOut();
+            const status = out ? out.getStatus() : null;
+            if (!status) return 'UNKNOWN';
+
+            const raw = status.toString().toLowerCase();
+
+            if ((raw.includes('fault') && raw.includes('down')) || raw.includes('stale')) return 'DOWN';
+            if (raw.includes('unackedalarm') || raw.includes('unacked')) return 'UNACKED';
+            if (raw.includes('alarm') || raw.includes('offnormal')) return 'ALARM';
+            if (status.isOk && status.isOk()) return 'NORMAL';
+            return 'UNKNOWN';
+        } catch(e) { return 'UNKNOWN'; }
+    }
+
+    // ─── Display a point row ───────────────────────────────────────────
+    function displaySystemStatus(pointConfig) {
+        const row   = document.getElementById('row-' + pointConfig.id);
+        const point = resolvedAlarmPoints[pointConfig.id];
+        if (!row) return;
+
+        const equipmentTypeName = row.dataset.equipmentType;
+        const deviceName        = row.dataset.device;
+        const pointGroupName    = row.dataset.pointGroup;
+
+        const outInfo    = point ? getOutSlotDetails(point) : null;
+        const state      = point ? classifyAlarmState(point) : 'UNKNOWN';
+        const ackInfo    = acknowledgedAlarms[pointConfig.id];
+        const isAcked    = ackInfo && ackInfo.acknowledged;
+
+        let statusIcon, statusText, alarmStateClass, alarmStateLabel, showAckButton = false;
+
+        if (state === 'DOWN') {
+            statusIcon      = '⛔';
+            statusText      = 'Unit Down / Fault';
+            alarmStateClass = 'down';
+            alarmStateLabel = 'DOWN';
+        } else if (state === 'ALARM') {
+            statusIcon      = '🚨';
+            statusText      = 'ALARM ACTIVE';
+            alarmStateClass = 'alarm';
+            alarmStateLabel = 'ALARM';
+            showAckButton   = true;
+        } else if (state === 'UNACKED') {
+            statusIcon      = '🔔';
+            statusText      = 'Unacknowledged';
+            alarmStateClass = 'unacked';
+            alarmStateLabel = 'UNACKED';
+            showAckButton   = true;
+        } else if (state === 'NORMAL') {
+            statusIcon      = '✅';
+            statusText      = 'Normal Operation';
+            alarmStateClass = 'normal';
+            alarmStateLabel = 'NORMAL';
+        } else {
+            statusIcon      = '❓';
+            statusText      = 'No data available';
+            alarmStateClass = 'unknown';
+            alarmStateLabel = 'UNKNOWN';
+        }
+
+        const ackButtonHtml   = showAckButton
+            ? `<button class="ack-button" onclick="handleAcknowledgment('${pointConfig.id}')">🔔 Acknowledge</button>`
+            : '';
+        const ackedBadgeHtml  = isAcked
+            ? `<span class="acknowledged-badge">ACK</span>`
+            : '';
+
+        row.innerHTML = `
+            <td class="device-name">${pointConfig.deviceName}</td>
+            <td class="point-name">${pointConfig.pointName}</td>
+            <td class="out-slot ${outInfo ? outInfo.statusClass : 'unknown'}">
+                <div class="out-value">${outInfo ? outInfo.value : 'N/A'}</div>
+                <div class="out-status">${outInfo ? outInfo.status : 'UNKNOWN'}</div>
+            </td>
+            <td class="status-cell">
+                <span class="status-icon">${statusIcon}</span>
+                <span>${statusText}</span>
+            </td>
+            <td>
+                <span class="alarm-state ${alarmStateClass}">
+                    ${ackedBadgeHtml}${alarmStateLabel}
+                </span>
+            </td>
+            <td>${ackButtonHtml}</td>
+            <td class="notes-cell">
+                <div class="notes-container">
+                    <textarea id="notes-${pointConfig.alarmIndex}" class="alarm-notes-input"
+                        placeholder="Add notes..." rows="2"></textarea>
+                    <button class="save-notes-btn"
+                        onclick="saveAlarmNotes(${pointConfig.alarmIndex})">💾 Save</button>
+                </div>
+            </td>
+        `;
+
+        updatePointFolderAppearance(equipmentTypeName, deviceName, pointGroupName);
+    }
+
+    // ─── Acknowledgment ───────────────────────────────────────────────
+    window.handleAcknowledgment = function(pointId) {
+        const cfg = monitorPoints.find(p => p.id === pointId);
+        if (!cfg) return;
+        acknowledgedAlarms[pointId] = {
+            acknowledged: true,
+            timestamp: new Date(),
+            user: sessionStorage.getItem('username') || 'Unknown'
+        };
+        acknowledgeAlarmInWorkbench(cfg);
+        displaySystemStatus(cfg);
+        setTimeout(updateOverallStatus, 100);
+    };
+
+    function acknowledgeAlarmInWorkbench(pointConfig) {
+        const point = resolvedAlarmPoints[pointConfig.id];
+        if (!point) return;
+        try {
+            if (point.getSlots) {
+                for (const slot of point.getSlots().list()) {
+                    const n = slot.getName();
+                    if (n.toLowerCase().includes('alarm')) {
+                        try {
+                            const alarmComp = point.get(n);
+                            if (alarmComp) {
+                                if (typeof alarmComp.acknowledge === 'function') {
+                                    alarmComp.acknowledge();
+                                    console.log('Acknowledged via slot:', n);
+                                    return;
+                                }
+                                try { alarmComp.set('ack', true); return; } catch(e2) {}
+                                try { alarmComp.set('acknowledged', true); return; } catch(e3) {}
+                                if (typeof alarmComp.invoke === 'function') {
+                                    try { alarmComp.invoke('acknowledge'); return; } catch(e4) {}
+                                }
+                            }
+                        } catch(slotErr) { /* try next slot */ }
+                    }
+                }
+            }
+        } catch(e) { console.error('Workbench ack error:', e); }
+    }
+
+    // ─── Folder appearance helpers ────────────────────────────────────
+    function updatePointFolderAppearance(equipmentTypeName, deviceName, pointGroupName) {
+        const folderRow = document.querySelector(
+            `.point-folder-row[data-equipment-type="${equipmentTypeName}"][data-device="${deviceName}"][data-point-group="${pointGroupName}"]`
+        );
+        if (!folderRow) return;
+
+        const childRows = document.querySelectorAll(
+            `.child-row[data-equipment-type="${equipmentTypeName}"][data-device="${deviceName}"][data-point-group="${pointGroupName}"]`
+        );
+        let hasAlarm = false, hasUnacked = false, hasDown = false;
+        childRows.forEach(r => {
+            const badge = r.querySelector('.alarm-state');
+            if (badge) {
+                if (badge.classList.contains('alarm'))   hasAlarm   = true;
+                if (badge.classList.contains('unacked')) hasUnacked = true;
+                if (badge.classList.contains('down'))    hasDown    = true;
+            }
+        });
+
+        folderRow.classList.remove('folder-alarm','folder-acknowledged');
+        if (hasAlarm || hasDown) folderRow.classList.add('folder-alarm');
+        else if (hasUnacked)     folderRow.classList.add('folder-acknowledged');
+
+        updateDeviceFolderAppearance(equipmentTypeName, deviceName);
+    }
+
+    function updateDeviceFolderAppearance(equipmentTypeName, deviceName) {
+        const deviceRow = document.querySelector(
+            `.device-folder-row[data-equipment-type="${equipmentTypeName}"][data-device="${deviceName}"]`
+        );
+        if (!deviceRow) return;
+
+        const folderRows = document.querySelectorAll(
+            `.point-folder-row[data-equipment-type="${equipmentTypeName}"][data-device="${deviceName}"]`
+        );
+        let hasAlarm = false, hasUnacked = false;
+        folderRows.forEach(r => {
+            if (r.classList.contains('folder-alarm'))        hasAlarm   = true;
+            if (r.classList.contains('folder-acknowledged')) hasUnacked = true;
+        });
+
+        deviceRow.classList.remove('device-alarm','device-acknowledged');
+        if (hasAlarm)        deviceRow.classList.add('device-alarm');
+        else if (hasUnacked) deviceRow.classList.add('device-acknowledged');
+
+        updateEquipmentTypeFolderAppearance(equipmentTypeName);
+    }
+
+    function updateEquipmentTypeFolderAppearance(equipmentTypeName) {
+        const etRow = document.querySelector(
+            `.equipment-type-row[data-equipment-type="${equipmentTypeName}"]`
+        );
+        if (!etRow) return;
+
+        const deviceRows = document.querySelectorAll(
+            `.device-folder-row[data-equipment-type="${equipmentTypeName}"]`
+        );
+        let hasAlarm = false, hasUnacked = false;
+        deviceRows.forEach(r => {
+            if (r.classList.contains('device-alarm'))        hasAlarm   = true;
+            if (r.classList.contains('device-acknowledged')) hasUnacked = true;
+        });
+
+        etRow.classList.remove('equipment-alarm','equipment-acknowledged');
+        if (hasAlarm)        etRow.classList.add('equipment-alarm');
+        else if (hasUnacked) etRow.classList.add('equipment-acknowledged');
+    }
+
+    function updateFolderColors() {
+        const groups = groupPointsByEquipmentType(monitorPoints);
+        Object.values(groups).forEach(et => {
+            Object.values(et.devices).forEach(dev => {
+                Object.values(dev.pointGroups).forEach(pg => {
+                    updatePointFolderAppearance(et.normalizedName, dev.normalizedName, pg.normalizedName);
+                });
+            });
+        });
+    }
+
+    // ─── Build grouped table ──────────────────────────────────────────
+    function createGroupedTableRows(equipmentGroups) {
+        const tbody = document.getElementById('alarm-tbody');
+        tbody.innerHTML = '';
+
+        Object.values(equipmentGroups).forEach(equipmentType => {
+
+            // Level 1 — Equipment Type
+            const etRow = document.createElement('tr');
+            etRow.className = 'equipment-type-row';
+            etRow.dataset.equipmentType = equipmentType.normalizedName;
+            const totalDevices = Object.keys(equipmentType.devices).length;
+            const totalPoints  = Object.values(equipmentType.devices).reduce((s, d) =>
+                s + Object.values(d.pointGroups).reduce((ss, pg) => ss + pg.points.length, 0), 0);
+            etRow.innerHTML = `<td colspan="7" class="equipment-type-name">
+                <span class="equipment-arrow">▶</span>
+                🏭 ${equipmentType.displayName}
+                <span class="equipment-count">${totalDevices} devices · ${totalPoints} points</span>
+            </td>`;
+            tbody.appendChild(etRow);
+
+            Object.values(equipmentType.devices).forEach(device => {
+
+                // Level 2 — Device Folder
+                const devRow = document.createElement('tr');
+                devRow.className = 'device-folder-row collapsed';
+                devRow.dataset.equipmentType = equipmentType.normalizedName;
+                devRow.dataset.device        = device.normalizedName;
+                const totalDevPts = Object.values(device.pointGroups).reduce((s, pg) => s + pg.points.length, 0);
+                devRow.innerHTML = `<td colspan="7" class="device-folder-name">
+                    <span class="device-arrow">▶</span>
+                    🏢 ${device.displayName}
+                    <span class="device-count">${totalDevPts} points</span>
+                </td>`;
+                tbody.appendChild(devRow);
+
+                Object.values(device.pointGroups).forEach(pointGroup => {
+
+                    // Level 3 — Point Folder
+                    const pgRow = document.createElement('tr');
+                    pgRow.className = 'point-folder-row collapsed';
+                    pgRow.dataset.equipmentType = equipmentType.normalizedName;
+                    pgRow.dataset.device        = device.normalizedName;
+                    pgRow.dataset.pointGroup    = pointGroup.normalizedName;
+                    pgRow.innerHTML = `<td colspan="7" class="point-folder-name">
+                        <span class="point-arrow">▶</span>
+                        📁 ${pointGroup.displayName}
+                        <span class="folder-count">${pointGroup.points.length}</span>
+                    </td>`;
+                    tbody.appendChild(pgRow);
+
+                    // Level 4 — Individual Points
+                    pointGroup.points.forEach(pointConfig => {
+                        const row = document.createElement('tr');
+                        row.id        = 'row-' + pointConfig.id;
+                        row.className = 'child-row collapsed';
+                        row.dataset.equipmentType = equipmentType.normalizedName;
+                        row.dataset.device        = device.normalizedName;
+                        row.dataset.pointGroup    = pointGroup.normalizedName;
+                        row.innerHTML = `
+                            <td class="device-name">${pointConfig.deviceName}</td>
+                            <td class="point-name">${pointConfig.pointName}</td>
+                            <td><span class="alarm-state unknown">UNKNOWN</span></td>
+                            <td class="status-cell"><span class="status-icon">⏳</span> Initializing...</td>
+                            <td></td><td></td>
+                            <td class="notes-cell">
+                                <div class="notes-container">
+                                    <textarea id="notes-${pointConfig.alarmIndex}"
+                                        class="alarm-notes-input" placeholder="Add notes..." rows="2"></textarea>
+                                    <button class="save-notes-btn"
+                                        onclick="saveAlarmNotes(${pointConfig.alarmIndex})">💾 Save</button>
+                                </div>
+                            </td>`;
+                        tbody.appendChild(row);
+                    });
+
+                    // Point folder toggle
+                    pgRow.addEventListener('click', () => {
+                        const arrow = pgRow.querySelector('.point-arrow');
+                        const open  = arrow.textContent === '▶';
+                        arrow.textContent = open ? '▼' : '▶';
+                        pointGroup.points.forEach(p => {
+                            const r = document.getElementById('row-' + p.id);
+                            if (r) r.classList.toggle('collapsed');
+                        });
+                    });
+                });
+
+                // Device folder toggle
+                devRow.addEventListener('click', () => {
+                    const arrow  = devRow.querySelector('.device-arrow');
+                    const isOpen = arrow.textContent === '▶';
+                    arrow.textContent = isOpen ? '▼' : '▶';
+                    const pgRows = tbody.querySelectorAll(
+                        `.point-folder-row[data-equipment-type="${equipmentType.normalizedName}"][data-device="${device.normalizedName}"]`
+                    );
+                    pgRows.forEach(r => {
+                        if (isOpen) {
+                            r.classList.remove('collapsed');
+                        } else {
+                            r.classList.add('collapsed');
+                            const pa = r.querySelector('.point-arrow');
+                            if (pa) pa.textContent = '▶';
+                        }
+                    });
+                    if (!isOpen) {
+                        tbody.querySelectorAll(
+                            `.child-row[data-equipment-type="${equipmentType.normalizedName}"][data-device="${device.normalizedName}"]`
+                        ).forEach(r => r.classList.add('collapsed'));
+                    }
+                });
+            });
+
+            // Equipment type toggle
+            etRow.addEventListener('click', () => {
+                const arrow  = etRow.querySelector('.equipment-arrow');
+                const isOpen = arrow.textContent === '▶';
+                arrow.textContent = isOpen ? '▼' : '▶';
+                const devRows = tbody.querySelectorAll(
+                    `.device-folder-row[data-equipment-type="${equipmentType.normalizedName}"]`
+                );
+                devRows.forEach(r => {
+                    if (isOpen) {
+                        r.classList.remove('collapsed');
+                    } else {
+                        r.classList.add('collapsed');
+                        const da = r.querySelector('.device-arrow');
+                        if (da) da.textContent = '▶';
+                    }
+                });
+                if (!isOpen) {
+                    tbody.querySelectorAll(
+                        `.point-folder-row[data-equipment-type="${equipmentType.normalizedName}"]`
+                    ).forEach(r => { r.classList.add('collapsed'); const pa=r.querySelector('.point-arrow'); if(pa) pa.textContent='▶'; });
+                    tbody.querySelectorAll(
+                        `.child-row[data-equipment-type="${equipmentType.normalizedName}"]`
+                    ).forEach(r => r.classList.add('collapsed'));
+                }
+            });
+        });
+    }
+
+    // ─── Update all rows ──────────────────────────────────────────────
+    function updateAllAlarmDisplays() {
+        monitorPoints.forEach(cfg => {
+            if (resolvedAlarmPoints[cfg.id]) displaySystemStatus(cfg);
+        });
+        setTimeout(() => { updateOverallStatus(); updateFolderColors(); }, 100);
+    }
+
+    function loadAllStringDisplays() {
+        monitorPoints.forEach(cfg => loadInitialStringDisplay(cfg.alarmIndex));
+    }
+
+    // ─── Overall status banner ────────────────────────────────────────
+    function updateOverallStatus() {
+        const el = document.getElementById('system-status');
+        if (!el) return;
+
+        let alarmCount = 0, unackedCount = 0, downCount = 0, total = monitorPoints.length;
+
+        monitorPoints.forEach(cfg => {
+            const row = document.getElementById('row-' + cfg.id);
+            if (row) {
+                const badge = row.querySelector('.alarm-state');
+                if (badge) {
+                    if (badge.classList.contains('alarm'))   alarmCount++;
+                    if (badge.classList.contains('unacked')) unackedCount++;
+                    if (badge.classList.contains('down'))    downCount++;
+                }
+            }
+        });
+
+        localStorage.setItem('activeAlarmCount',     alarmCount);
+        localStorage.setItem('acknowledgedAlarmCount', unackedCount);
+        localStorage.setItem('downCount',             downCount);
+        localStorage.setItem('totalPoints',           total);
+
+        const hasIssue = alarmCount > 0 || downCount > 0;
+        let overallClass, overallTitle;
+
+        if (hasIssue) {
+            overallClass = 'status-error';
+            const parts = [];
+            if (alarmCount > 0) parts.push(alarmCount + ' ACTIVE ALARM' + (alarmCount > 1 ? 'S' : ''));
+            if (downCount  > 0) parts.push(downCount  + ' UNIT' + (downCount  > 1 ? 'S' : '') + ' DOWN');
+            if (unackedCount > 0) parts.push(unackedCount + ' UNACKED');
+            overallTitle = parts.join(' · ');
+        } else if (unackedCount > 0) {
+            overallClass = 'status-acknowledged';
+            overallTitle = unackedCount + ' UNACKNOWLEDGED ALARM' + (unackedCount > 1 ? 'S' : '');
+        } else {
+            overallClass = 'status-ok';
+            overallTitle = 'ALL SYSTEMS NOMINAL';
+        }
+
+        const dotColor = hasIssue ? 'var(--red)' : (unackedCount > 0 ? 'var(--amber)' : 'var(--green)');
+        const icon     = hasIssue ? '🚨' : (unackedCount > 0 ? '🔔' : '✅');
+
+        el.innerHTML = `
+            <div class="overall-summary">
+                <div class="status-indicator ${overallClass}">
+                    <span class="status-dot" style="background:${dotColor};"></span>
+                    ${icon} ${overallTitle}
+                </div>
+                <div class="status-details">
+                    <span>ACTIVE: ${alarmCount} &nbsp;|&nbsp; DOWN: ${downCount} &nbsp;|&nbsp; UNACKED: ${unackedCount} &nbsp;|&nbsp; TOTAL POINTS: ${total}</span>
+                    <span>UPDATED: ${new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true})}</span>
+                </div>
+            </div>`;
+
+        updateFolderColors();
+
+        if (hasIssue && !hasNotifiedInitialAlarm) {
+            playAlarmSound();
+            showAlarmNotification(alarmCount + downCount);
+            hasNotifiedInitialAlarm = true;
+        }
+    }
+
+    // ─── Main init ────────────────────────────────────────────────────
+    async function initializeSystem() {
+        console.log('=== ALARM SYSTEM INITIALIZATION (slot-based) ===');
+        try {
+            monitorPoints = await discoverAlarmPointsViaSlots();
+
+            console.log(`${monitorPoints.length} alarm points discovered via slot scan.`);
+
+            if (monitorPoints.length === 0) {
+                document.getElementById('alarm-tbody').innerHTML =
+                    '<tr class="loading-row"><td colspan="7">No alarm-capable points found in station.</td></tr>';
+                document.getElementById('system-status').innerHTML =
+                    '<div class="overall-summary"><div class="status-indicator status-ok"><span class="status-dot" style="background:var(--green);"></span>✅ ALL SYSTEMS NOMINAL</div></div>';
+                return;
+            }
+
+            monitorPoints.forEach(p => { p.displayName = p.deviceName + ' - ' + p.pointName; });
+
+            await initializeStringWritablePoints(monitorPoints.length);
+
+            const groups = groupPointsByEquipmentType(monitorPoints);
+            createGroupedTableRows(groups);
+
+            setTimeout(() => {
+                updateAllAlarmDisplays();
+                loadAllStringDisplays();
+                initializeActivityMonitoring();
+            }, 500);
+
+        } catch(error) {
+            console.error('Alarm system init failed:', error);
+            const tbody = document.getElementById('alarm-tbody');
+            if (tbody) tbody.innerHTML = `<tr class="loading-row"><td colspan="7">❌ Failed to initialize: ${error.message}</td></tr>`;
+        }
+    }
+
+    initializeSystem();
+});
+</script>
+
+</body>
+</html>

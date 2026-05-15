@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Niagara Presentation XML -->
+<px version="1.0" media="workbench:WbPxMedia">
+<import>
+  <module name="baja"/>
+  <module name="bajaui"/>
+  <module name="converters"/>
+  <module name="gx"/>
+  <module name="kitPx"/>
+</import>
+<content>
+<ScrollPane>
+
+  <CanvasPane name="content" viewSize="400.0,200.0" scale="fitRatio" minScaleFactor="3.0" maxScaleFactor="3.0" background="black">
+
+    <BoundLabel layout="30.0,40.0,340.0,110.0" image="file:^murphylogo_Transparent.png" background="#e0e0e0" border="2.0 solid #004000">
+      <BoundLabelBinding ord="station:|slot:/Drivers/NiagaraNetwork/ClaycoRBBFirstFloor">
+        <ObjectToString name="text" format=""/>
+      </BoundLabelBinding>
+      <WsAnnotation name="wsAnnotation" value="2,2,8"/>
+    </BoundLabel>
+
+    <ImageButton layout="140.0,125.0,120.0,20.0" text="Clayco Graphics">
+      <ValueBinding hyperlink="https://10.2.13.70/file/Clayco_Graphics/Home.html"/>
+      <WsAnnotation name="wsAnnotation" value="10,10,8"/>
+    </ImageButton>
+
+  </CanvasPane>
+
+</ScrollPane>
+</content>
+</px>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - User Directory</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --lime:         #aaff00;
+  --lime-glow:    rgba(170,255,0,0.22);
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body { height: 100%; font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); }
+body { display: flex; flex-direction: column; min-height: 100vh; opacity: 0; transition: opacity 0.6s ease; }
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; padding: 0 14px; height: 64px; flex-shrink: 0;
+  position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px;
+}
+.top-bar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none;
+}
+.hamburger {
+  width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; overflow: hidden; }
+.site-label { font-family: var(--font-head); font-size: clamp(11px,1.6vw,22px); letter-spacing: clamp(1px,0.4vw,4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+.page-title { font-family: var(--font-head); font-size: clamp(10px,1.2vw,18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: clamp(10px,0.85vw,14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; }
+.user-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+.px-console-btn {
+  background: none; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent);
+  padding: 6px clamp(8px,1vw,16px); cursor: pointer; font-family: var(--font-head);
+  font-size: clamp(9px,0.75vw,13px); letter-spacing: 1px; text-transform: uppercase;
+  transition: var(--transition); white-space: nowrap; display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.px-console-btn:hover { background: rgba(0,200,255,0.1); box-shadow: 0 0 12px var(--accent-glow); transform: translateY(-1px); }
+.px-console-btn:active { transform: translateY(0); }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); z-index: 300; transition: left 0.3s ease; padding: 80px 0 20px; overflow-y: auto; }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 20px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 14px; letter-spacing: 2px; color: var(--accent); font-weight: normal; }
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.side-nav-section-label { font-family: var(--font-head); font-size: 13px; font-weight: bold; color: var(--text-primary); padding: 14px 20px 10px; letter-spacing: 0.5px; }
+.side-panel-nav { display: flex; flex-direction: column; }
+.side-nav-link { display: flex; align-items: center; gap: 14px; padding: 13px 20px; text-decoration: none; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.05); transition: var(--transition); position: relative; }
+.side-nav-link::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; transform: scaleY(0); transition: transform 0.2s ease; }
+.side-nav-link:hover { background: rgba(0,200,255,0.07); color: var(--text-primary); padding-left: 26px; }
+.side-nav-link:hover::before { transform: scaleY(1); }
+.side-nav-icon { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.side-nav-icon svg { width: 36px; height: 36px; }
+.side-nav-label { font-family: var(--font-head); font-size: 14px; letter-spacing: 0.5px; }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content { flex: 1; padding: 28px 28px 0; overflow-y: auto; }
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── PAGE HEADER ───────────────────────────────────────────────────── */
+.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.page-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.page-header h2 { font-family: var(--font-head); font-size: 18px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── STATS ROW ─────────────────────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+.stat-card {
+  background: rgba(22,27,39,0.85); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; backdrop-filter: blur(16px); box-shadow: 0 0 30px rgba(0,200,255,0.04);
+  display: flex; flex-direction: column; gap: 5px; transition: var(--transition);
+}
+.stat-card:hover { border-color: var(--border-hover); box-shadow: 0 0 18px var(--accent-glow); }
+.stat-card-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); }
+.stat-card-value { font-family: var(--font-head); font-size: 30px; color: var(--accent); letter-spacing: 1px; line-height: 1; }
+.stat-card-sub   { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); }
+
+/* ─── TOOLBAR ───────────────────────────────────────────────────────── */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 15px; pointer-events: none; line-height: 1; }
+.search-input {
+  width: 100%; padding: 9px 12px 9px 32px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-primary);
+  font-family: var(--font-head); font-size: 13px; letter-spacing: 0.5px; transition: var(--transition);
+}
+.search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.search-input::placeholder { color: var(--text-muted); }
+
+.filter-tabs { display: flex; gap: 6px; }
+.filter-tab {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 6px 14px; font-family: var(--font-head); font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer; transition: var(--transition); white-space: nowrap;
+}
+.filter-tab:hover { border-color: var(--accent); color: var(--text-primary); }
+.filter-tab.active      { background: rgba(0,200,255,0.1);  border-color: var(--accent); color: var(--accent); }
+.filter-tab.active-lime { background: rgba(170,255,0,0.1);  border-color: var(--lime);   color: var(--lime); }
+.filter-tab.active-amber{ background: rgba(255,171,0,0.1);  border-color: var(--amber);  color: var(--amber); }
+
+.sort-btn {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; font-family: var(--font-head); font-size: 11px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text-muted); cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.sort-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sort-arrow { transition: transform 0.2s ease; display: inline-block; }
+.sort-arrow.desc { transform: rotate(180deg); }
+
+.results-label { font-family: var(--font-head); font-size: 11px; letter-spacing: 1px; color: var(--text-muted); white-space: nowrap; margin-left: auto; }
+
+/* ─── TABLE CONTAINER ───────────────────────────────────────────────── */
+.table-container {
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  background: rgba(22,27,39,0.85); backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05); margin-bottom: 28px; overflow-x: auto;
+}
+.user-table { width: 100%; border-collapse: collapse; table-layout: auto; min-width: 420px; }
+.user-table thead tr { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); }
+.user-table thead th { padding: 14px 20px; font-family: var(--font-head); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); font-weight: normal; text-align: left; white-space: nowrap; }
+.user-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: var(--transition); }
+.user-table tbody tr:last-child { border-bottom: none; }
+.user-table tbody tr:hover { background: rgba(0,200,255,0.04); }
+.user-table td { padding: 15px 20px; vertical-align: middle; }
+
+/* ─── AVATAR ────────────────────────────────────────────────────────── */
+.user-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-head); font-size: 14px; font-weight: bold; border: 1px solid; flex-shrink: 0; }
+.avatar-admin { background: rgba(170,255,0,0.1); color: var(--lime);  border-color: rgba(170,255,0,0.35); }
+.avatar-tech  { background: rgba(255,171,0,0.1); color: var(--amber); border-color: rgba(255,171,0,0.3); }
+
+.user-cell { display: flex; align-items: center; gap: 13px; }
+.user-name { font-family: var(--font-head); font-size: 14px; letter-spacing: 0.5px; color: var(--text-primary); }
+.user-name-current { color: var(--accent); }
+.current-tag { display: inline-block; background: rgba(0,200,255,0.1); border: 1px solid rgba(0,200,255,0.3); color: var(--accent); font-family: var(--font-head); font-size: 10px; letter-spacing: 2px; padding: 2px 7px; border-radius: 20px; margin-left: 8px; text-transform: uppercase; vertical-align: middle; }
+
+.copy-hint { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 3px; opacity: 0; transition: opacity 0.2s ease; }
+.user-table tbody tr:hover .copy-hint { opacity: 1; }
+.copy-flash { color: var(--green) !important; opacity: 1 !important; }
+
+/* ─── ROLE BADGES ───────────────────────────────────────────────────── */
+.role-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; border: 1px solid; white-space: nowrap; }
+.role-badge.admin      { background: rgba(170,255,0,0.08); color: var(--lime);  border-color: rgba(170,255,0,0.35); }
+.role-badge.technician { background: rgba(255,171,0,0.08); color: var(--amber); border-color: rgba(255,171,0,0.3); }
+.role-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 4px currentColor; }
+
+.access-cell  { font-family: var(--font-head); font-size: 12px; letter-spacing: 0.5px; color: var(--text-muted); }
+.loaded-cell  { font-family: var(--font-head); font-size: 11px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+/* ─── STATES ────────────────────────────────────────────────────────── */
+.no-results  { text-align: center; padding: 48px; color: var(--text-muted); font-family: var(--font-head); font-size: 12px; letter-spacing: 2px; }
+.loading-cell{ text-align: center; padding: 48px; color: var(--text-muted); font-family: var(--font-head); font-size: 12px; letter-spacing: 3px; }
+
+@keyframes rowFadeIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+.anim-row { animation: rowFadeIn 0.3s ease both; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 50px; flex-shrink: 0; position: relative; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.back-btn  { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 16px; cursor: pointer; font-size: 14px; font-family: var(--font-head); letter-spacing: 1px; display: flex; align-items: center; gap: 8px; transition: var(--transition); }
+.back-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.datetime-display { font-family: var(--font-head); font-size: 14px; color: var(--text-muted); letter-spacing: 1px; }
+.logoff-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 16px; cursor: pointer; font-size: 14px; font-family: var(--font-head); letter-spacing: 1px; display: flex; align-items: center; gap: 8px; transition: var(--transition); }
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 800px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 600px) {
+  .main-content { padding: 14px 10px 0; }
+  .user-table th:nth-child(4), .user-table td:nth-child(4) { display: none; }
+  .filter-tabs { display: none; }
+}
+@media (max-width: 420px) { .stats-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ───────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="28" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="12" cy="30" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="30" r="1.5" fill="#00c8ff"/>
+          <circle cx="28" cy="30" r="1.5" fill="#c8cfe0"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">User Directory</span>
+  </div>
+  <div class="top-right">
+    <button class="px-console-btn" id="userServiceBtn" title="Open Niagara User Service Manager">
+      👤 User Service
+    </button>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>👤 System User Directory</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-label">Total Users</div>
+      <div class="stat-card-value" id="statTotal">—</div>
+      <div class="stat-card-sub">Registered accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Administrators</div>
+      <div class="stat-card-value" id="statAdmins" style="color:var(--lime);">—</div>
+      <div class="stat-card-sub">Full system access</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Technicians</div>
+      <div class="stat-card-value" id="statTechs" style="color:var(--amber);">—</div>
+      <div class="stat-card-sub">Read + control</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Directory Age</div>
+      <div class="stat-card-value" id="statAge" style="font-size:18px;padding-top:6px;">—</div>
+      <div class="stat-card-sub">Since last reload</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search users…" autocomplete="off">
+    </div>
+    <div class="filter-tabs" id="filterTabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="admin">Admin</button>
+      <button class="filter-tab" data-filter="technician">Technician</button>
+    </div>
+    <button class="sort-btn" id="sortBtn">
+      ↕ Sort: Name <span class="sort-arrow" id="sortArrow">↑</span>
+    </button>
+    <span class="results-label" id="resultsLabel"></span>
+  </div>
+
+  <!-- User table -->
+  <div class="table-container">
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Access Level</th>
+          <th>Loaded At</th>
+        </tr>
+      </thead>
+      <tbody id="user-tbody">
+        <tr><td colspan="4" class="loading-cell">Loading user directory…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<!-- FADE -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric',
+                 hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent =
+    now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- USER SERVICE BUTTON — admin-gated, IP from hostname -->
+<script>
+(async function () {
+  const btn = document.getElementById('userServiceBtn');
+  async function isAdmin() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+      const r = await fetch('HomeConfig.json');
+      if (!r.ok) return false;
+      const config = await r.json();
+      const user = (config.Users || []).find(u => u.name === username);
+      return user && user.role.toLowerCase() === 'admin';
+    } catch(e) { return false; }
+  }
+  const admin = await isAdmin();
+  if (admin) {
+    btn.addEventListener('click', () => {
+      const host = window.location.hostname;
+      window.open('https://' + host + '/ord/station:%7Cslot:/Services/UserService%7Cview:webEditors:UserManager', '_blank');
+    });
+  } else {
+    btn.disabled = true;
+    btn.title = 'Admin access required';
+    btn.style.opacity     = '0.35';
+    btn.style.cursor      = 'not-allowed';
+    btn.style.borderColor = 'rgba(122,132,153,0.3)';
+    btn.style.color       = 'var(--text-muted)';
+    btn.style.boxShadow   = 'none';
+    btn.style.transform   = 'none';
+    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+  }
+})();
+</script>
+
+<!-- USER DIRECTORY — read-only, with search / filter / sort / copy-on-click -->
+<script>
+(async function () {
+  const tbody       = document.getElementById('user-tbody');
+  const searchInput = document.getElementById('searchInput');
+  const filterTabs  = document.getElementById('filterTabs');
+  const sortBtn     = document.getElementById('sortBtn');
+  const sortArrow   = document.getElementById('sortArrow');
+  const resultsLbl  = document.getElementById('resultsLabel');
+  const statTotal   = document.getElementById('statTotal');
+  const statAdmins  = document.getElementById('statAdmins');
+  const statTechs   = document.getElementById('statTechs');
+  const statAge     = document.getElementById('statAge');
+  const currentUser = sessionStorage.getItem('username') || '';
+
+  // Role metadata — no "user" role
+  const ROLE_META = {
+    admin:      { label: 'Administrator', cls: 'admin',      avatarCls: 'avatar-admin', access: 'Full System Access' },
+    technician: { label: 'Technician',    cls: 'technician', avatarCls: 'avatar-tech',  access: 'Read + Control'     },
+  };
+  function getMeta(role) {
+    return ROLE_META[(role || '').toLowerCase()] ||
+           { label: role || 'Unknown', cls: 'technician', avatarCls: 'avatar-tech', access: 'Limited Access' };
+  }
+  function initials(name) { return name.trim().slice(0, 2).toUpperCase(); }
+
+  let allUsers     = [];
+  let sortAsc      = true;
+  let activeFilter = 'all';
+  let loadedAt     = null;
+
+  // ── Directory age ticker ──────────────────────────────────────────
+  setInterval(() => {
+    if (!loadedAt) return;
+    const secs = Math.floor((Date.now() - loadedAt) / 1000);
+    const m = Math.floor(secs / 60), s = secs % 60;
+    statAge.textContent = m > 0 ? m + 'm ' + s + 's' : s + 's';
+  }, 1000);
+
+  // ── Copy username on row click ────────────────────────────────────
+  function attachCopyHandlers() {
+    tbody.querySelectorAll('tr[data-username]').forEach(row => {
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => {
+        const name = row.dataset.username;
+        if (!name) return;
+        navigator.clipboard.writeText(name).catch(() => {});
+        const hint = row.querySelector('.copy-hint');
+        if (hint) {
+          hint.textContent = '✓ Copied to clipboard';
+          hint.classList.add('copy-flash');
+          setTimeout(() => {
+            hint.textContent = 'Click row to copy username';
+            hint.classList.remove('copy-flash');
+          }, 1500);
+        }
+      });
+    });
+  }
+
+  // ── Build visible rows ────────────────────────────────────────────
+  function buildRows(users) {
+    tbody.innerHTML = '';
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-results">NO MATCHING USERS FOUND</td></tr>';
+      resultsLbl.textContent = '0 results';
+      return;
+    }
+    resultsLbl.textContent = users.length + ' of ' + allUsers.length + ' user' + (allUsers.length !== 1 ? 's' : '');
+    const loadTime = loadedAt ? new Date(loadedAt).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}) : '—';
+    users.forEach((u, i) => {
+      const meta      = getMeta(u.role);
+      const isCurrent = u.name === currentUser;
+      const tr        = document.createElement('tr');
+      tr.classList.add('anim-row');
+      tr.dataset.username       = u.name;
+      tr.style.animationDelay   = (i * 40) + 'ms';
+      tr.innerHTML = `
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar ${meta.avatarCls}">${initials(u.name)}</div>
+            <div>
+              <div class="user-name ${isCurrent ? 'user-name-current' : ''}">
+                ${u.name}${isCurrent ? '<span class="current-tag">You</span>' : ''}
+              </div>
+              <div class="copy-hint">Click row to copy username</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="role-badge ${meta.cls}">
+            <span class="role-dot"></span>${meta.label}
+          </span>
+        </td>
+        <td class="access-cell">${meta.access}</td>
+        <td class="loaded-cell">${loadTime}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    attachCopyHandlers();
+  }
+
+  // ── Apply search + filter + sort ──────────────────────────────────
+  function applyFiltersAndSort() {
+    let list = allUsers.slice();
+    if (activeFilter !== 'all') {
+      list = list.filter(u => (u.role || '').toLowerCase() === activeFilter);
+    }
+    const q = (searchInput.value || '').trim().toLowerCase();
+    if (q) {
+      list = list.filter(u =>
+        u.name.toLowerCase().includes(q) || (u.role || '').toLowerCase().includes(q)
+      );
+    }
+    list.sort((a, b) => {
+      const cmp = a.name.localeCompare(b.name);
+      return sortAsc ? cmp : -cmp;
+    });
+    buildRows(list);
+  }
+
+  // ── Filter tabs ───────────────────────────────────────────────────
+  filterTabs.addEventListener('click', e => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) return;
+    filterTabs.querySelectorAll('.filter-tab').forEach(t => t.className = 'filter-tab');
+    activeFilter = tab.dataset.filter;
+    if      (activeFilter === 'admin')       tab.classList.add('active-lime');
+    else if (activeFilter === 'technician')  tab.classList.add('active-amber');
+    else                                     tab.classList.add('active');
+    applyFiltersAndSort();
+  });
+
+  // ── Search ────────────────────────────────────────────────────────
+  searchInput.addEventListener('input', applyFiltersAndSort);
+
+  // ── Sort toggle ───────────────────────────────────────────────────
+  sortBtn.addEventListener('click', () => {
+    sortAsc = !sortAsc;
+    sortArrow.textContent = sortAsc ? '↑' : '↓';
+    sortArrow.classList.toggle('desc', !sortAsc);
+    applyFiltersAndSort();
+  });
+
+  // ── Load from HomeConfig.json ─────────────────────────────────────
+  try {
+    const r = await fetch('HomeConfig.json');
+    if (!r.ok) throw new Error('HomeConfig.json not found');
+    const config = await r.json();
+    allUsers  = config.Users || [];
+    loadedAt  = Date.now();
+
+    if (allUsers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-results">NO USERS FOUND IN HomeConfig.json</td></tr>';
+      statTotal.textContent = statAdmins.textContent = statTechs.textContent = '0';
+      return;
+    }
+
+    statTotal.textContent  = allUsers.length;
+    statAdmins.textContent = allUsers.filter(u => (u.role||'').toLowerCase() === 'admin').length;
+    statTechs.textContent  = allUsers.filter(u => (u.role||'').toLowerCase() === 'technician').length;
+
+    applyFiltersAndSort();
+
+  } catch(e) {
+    console.error('Failed to load HomeConfig.json:', e);
+    tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">❌ Failed to load directory: ${e.message}</td></tr>`;
+    [statTotal, statAdmins, statTechs].forEach(el => el.textContent = '—');
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nav version='1.0'>
+<node name='Clayco Graphics' ord='file:^HTML_Login.px' icon='module://icons/x16/home.png'>
+  <node name='GRAPHICS' ord='https://10.2.13.70/file/Clayco_Graphics/Home.html' icon='module://icons/x16/folder.png'/>
+</node>
+</nav>

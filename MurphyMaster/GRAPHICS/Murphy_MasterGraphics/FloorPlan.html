@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Floor Plans</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #080d14;
+      --surface:      #0d1520;
+      --surface-2:    #111c2b;
+      --border:       rgba(0,180,255,0.12);
+      --border-hover: rgba(0,180,255,0.45);
+      --accent:       #00b4ff;
+      --accent-dim:   rgba(0,180,255,0.18);
+      --accent-glow:  rgba(0,180,255,0.35);
+      --amber:        #ffab00;
+      --green:        #00e676;
+      --text:         #c8d8ea;
+      --text-dim:     #5a7080;
+      --text-muted:   #334455;
+      --font-ui:      'Rajdhani', sans-serif;
+      --font-mono:    'Share Tech Mono', monospace;
+      --font-body:    'Inter', sans-serif;
+      --top-h:        54px;
+      --bot-h:        44px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body.light-mode {
+      --bg:        #eef2f7;
+      --surface:   #ffffff;
+      --surface-2: #f4f7fc;
+      --border:    rgba(0,100,180,0.14);
+      --border-hover: rgba(0,100,180,0.45);
+      --text:      #1a2535;
+      --text-dim:  #6080a0;
+      --text-muted:#a0b0c0;
+      --accent-dim: rgba(0,120,200,0.1);
+    }
+
+    /* fade transitions */
+    body { opacity:0; transition: opacity .35s ease; }
+    body.fade-in  { opacity:1; }
+    body.fade-out { opacity:0; }
+
+    /* ── OVERLAY ──────────────────────────────────────── */
+    .overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      backdrop-filter:blur(2px); z-index:100;
+      opacity:0; pointer-events:none;
+      transition: opacity .3s;
+    }
+    .overlay.active { opacity:1; pointer-events:all; }
+
+    /* ── SIDE PANEL ───────────────────────────────────── */
+    .side-panel {
+      position:fixed; top:0; left:-280px; width:260px; height:100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      z-index:200; transition: left .3s cubic-bezier(.4,0,.2,1);
+      display:flex; flex-direction:column;
+    }
+    .side-panel.active { left:0; }
+
+    .side-panel-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .side-panel-header h2 {
+      font-family: var(--font-ui);
+      font-size: 1.8rem; font-weight:700;
+      color: var(--accent); letter-spacing:.1em;
+    }
+    .side-panel-header p {
+      font-size: .7rem; color: var(--text-dim);
+      letter-spacing:.12em; text-transform:uppercase; margin-top:2px;
+    }
+
+    .side-panel-nav { padding:12px 0; }
+
+    .side-nav-section-label {
+      font-size:.85rem; letter-spacing:.18em; text-transform:uppercase;
+      color: var(--text-muted); padding: 8px 20px 4px;
+    }
+
+    .side-nav-link {
+      display:flex; align-items:center; gap:25px;
+      padding:10px 20px; text-decoration:none;
+      color: var(--text); transition: background .18s, color .18s;
+      font-family: var(--font-ui); font-size:1rem; font-weight:500;
+      letter-spacing:.04em;
+    }
+    .side-nav-link:hover {
+      background: var(--accent-dim); color: var(--accent);
+    }
+    .side-nav-icon { width:26px; height:26px; flex-shrink:0; }
+    .side-nav-icon svg { width:100%; height:100%; }
+
+    /* ── TOP BAR ──────────────────────────────────────── */
+    .top-bar {
+      position:fixed; top:0; left:0; right:0; height:var(--top-h);
+      background: rgba(8,13,20,.92);
+      backdrop-filter:blur(12px);
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; z-index:50;
+    }
+    body.light-mode .top-bar {
+      background: rgba(238,242,247,.92);
+    }
+
+    .hamburger {
+      width:36px; height:36px; cursor:pointer;
+      display:flex; flex-direction:column; justify-content:center;
+      gap:5px; padding:4px;
+    }
+    .hamburger-line {
+      height:2px; background:var(--text); border-radius:2px;
+      transition: transform .25s, opacity .25s, width .25s;
+    }
+    .hamburger:hover .hamburger-line { background: var(--accent); }
+    .hamburger.active .hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.active .hamburger-line:nth-child(2) { opacity:0; }
+    .hamburger.active .hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .top-center {
+      position:absolute; left:50%; transform:translateX(-50%);
+      text-align:center; pointer-events:none;
+    }
+    .site-label {
+      display:block; font-family:var(--font-ui);
+      font-size:.95rem; font-weight:600;
+      letter-spacing:.28em; text-transform:uppercase;
+      color: var(--accent);
+    }
+    .page-title {
+      display:block; font-family:var(--font-ui);
+      font-size:.95rem; font-weight:500;
+      letter-spacing:.18em; text-transform:uppercase;
+      color: var(--text);
+    }
+
+    .top-right {
+      display:flex; align-items:center; gap:16px;
+    }
+    .toggle-container {
+      display:flex; align-items:center; gap:8px;
+    }
+    .toggle-label {
+      font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--text-dim);
+    }
+    .toggle-switch {
+      width:40px; height:22px; background:var(--surface-2);
+      border:1px solid var(--border); border-radius:11px;
+      cursor:pointer; position:relative; transition:background .2s;
+    }
+    .toggle-switch.active { background: rgba(0,180,255,.25); }
+    .toggle-slider {
+      width:16px; height:16px; background:var(--text-dim);
+      border-radius:50%; position:absolute; top:2px; left:2px;
+      transition:transform .25s, background .2s;
+    }
+    .toggle-switch.active .toggle-slider {
+      transform:translateX(18px); background:var(--accent);
+    }
+
+    .user-badge {
+      display:flex; align-items:center; gap:7px;
+      background: var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:20px; padding:4px 12px 4px 8px;
+    }
+    .user-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 6px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100%{opacity:1} 50%{opacity:.5}
+    }
+    #userDisplay {
+      font-size:.72rem; font-family:var(--font-mono);
+      color:var(--text); letter-spacing:.05em;
+    }
+
+    /* ── MAIN CONTENT ─────────────────────────────────── */
+    .main-content {
+      padding: calc(var(--top-h) + 28px) 32px calc(var(--bot-h) + 28px);
+      max-width: 1500px; margin:0 auto;
+    }
+
+    /* ── PAGE HEADER ──────────────────────────────────── */
+    .page-header {
+      display:flex; align-items:center; gap:16px;
+      margin-bottom: 36px;
+    }
+    .page-header h2 {
+      font-family: var(--font-ui);
+      font-size:1.55rem; font-weight:600;
+      letter-spacing:.22em; text-transform:uppercase;
+      color: var(--text-dim); white-space:nowrap;
+    }
+    .page-header .line {
+      flex:1; height:1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .page-header .line:first-child {
+      background: linear-gradient(270deg, var(--border), transparent);
+    }
+
+    /* ── SECTION CARD ─────────────────────────────────── */
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius:10px;
+      margin-bottom:24px;
+      overflow:hidden;
+    }
+
+    .section-header {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 22px;
+      border-bottom:1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .section-header-badge {
+      width:6px; height:6px; border-radius:50%;
+      background: var(--accent);
+      box-shadow:0 0 8px var(--accent);
+      flex-shrink:0;
+    }
+    .section-header-badge.amber { background:var(--amber); box-shadow:0 0 8px var(--amber); }
+    .section-header h3 {
+      font-family: var(--font-ui);
+      font-size:.95rem; font-weight:600;
+      letter-spacing:.22em; text-transform:uppercase;
+      color: var(--text);
+    }
+    .section-header-count {
+      margin-left:auto;
+      font-family:var(--font-mono);
+      font-size:.85rem; color:var(--text-dim);
+      background: var(--accent-dim);
+      border:1px solid var(--border);
+      border-radius:10px; padding:2px 9px;
+    }
+
+    /* ── FLOOR GRID ───────────────────────────────────── */
+    .floor-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap:12px;
+      padding:20px 22px;
+    }
+
+    /* ── FLOOR TILE ───────────────────────────────────── */
+    .floor-tile {
+      position:relative; display:flex;
+      flex-direction:column; justify-content:space-between;
+      padding:16px 18px 14px;
+      background: var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:8px;
+      text-decoration:none;
+      color: var(--text);
+      overflow:hidden;
+      cursor:pointer;
+      transition: border-color .2s, box-shadow .2s, background .2s, transform .18s;
+    }
+    .floor-tile::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity:0; transition:opacity .2s;
+    }
+    .floor-tile:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 0 24px var(--accent-glow), 0 4px 16px rgba(0,0,0,.3);
+      background: rgba(0,180,255,.05);
+      transform: translateY(-2px);
+    }
+    .floor-tile:hover::before { opacity:1; }
+    .floor-tile:active { transform: translateY(0); }
+
+    /* split wing modifier */
+    .floor-tile.wing { border-left-width:3px; border-left-color: var(--accent); }
+    .floor-tile.wing-east { border-left-color: var(--accent); }
+    .floor-tile.wing-west { border-left-color: var(--amber); }
+
+    .tile-floor-num {
+      font-family: var(--font-mono);
+      font-size:.58rem; color:var(--text-dim);
+      letter-spacing:.1em;
+      margin-bottom:6px;
+      text-transform:uppercase;
+    }
+    .tile-name {
+      font-family: var(--font-ui);
+      font-size:1.15rem; font-weight:600;
+      letter-spacing:.04em;
+      line-height:1.2;
+      color: var(--text);
+    }
+    .tile-wing-badge {
+      display:inline-block;
+      margin-top:10px;
+      font-family:var(--font-mono);
+      font-size:.75rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      padding:2px 8px;
+      border-radius:3px;
+      background:var(--accent-dim);
+      color:var(--accent);
+      border:1px solid rgba(0,180,255,.25);
+    }
+    .tile-wing-badge.west {
+      background:rgba(255,171,0,.12);
+      color:var(--amber);
+      border-color:rgba(255,171,0,.25);
+    }
+
+    .tile-arrow {
+      position:absolute; bottom:14px; right:14px;
+      width:18px; height:18px; opacity:0;
+      transition:opacity .2s, transform .2s;
+      color: var(--accent);
+    }
+    .floor-tile:hover .tile-arrow { opacity:1; transform:translate(2px,-2px); }
+
+    /* empty state */
+    .empty-state {
+      padding:32px 22px;
+      text-align:center;
+      font-size:.75rem;
+      color:var(--text-muted);
+      font-family:var(--font-mono);
+      letter-spacing:.1em;
+    }
+
+    /* ── BOTTOM BAR ───────────────────────────────────── */
+    .bottom-bar {
+      position:fixed; bottom:0; left:0; right:0; height:var(--bot-h);
+      background: rgba(8,13,20,.92);
+      backdrop-filter:blur(12px);
+      border-top:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; z-index:50;
+    }
+    body.light-mode .bottom-bar {
+      background: rgba(238,242,247,.92);
+    }
+
+    .back-btn, .logoff-btn {
+      background:none; border:1px solid var(--border);
+      color:var(--text-dim); font-family:var(--font-ui);
+      font-size:.78rem; font-weight:600;
+      letter-spacing:.1em; text-transform:uppercase;
+      padding:5px 14px; border-radius:5px; cursor:pointer;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .back-btn:hover {
+      border-color:var(--accent); color:var(--accent);
+      background:var(--accent-dim);
+    }
+    .logoff-btn:hover {
+      border-color:#ff5252; color:#ff5252;
+      background:rgba(255,82,82,.1);
+    }
+
+    .datetime-display {
+      font-family:var(--font-mono);
+      font-size:.68rem; color:var(--text-dim);
+      letter-spacing:.08em;
+    }
+
+    /* ── STAGGER ANIMATION ────────────────────────────── */
+    .floor-tile {
+      opacity:0;
+      animation: tileIn .35s ease forwards;
+    }
+    @keyframes tileIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    /* delays set via JS */
+
+    /* responsive */
+    @media(max-width:600px){
+      .main-content { padding-left:16px; padding-right:16px; }
+      .floor-grid { grid-template-columns: 1fr 1fr; gap:8px; padding:14px; }
+    }
+    
+    /* ── TILE THUMBNAIL ─────────────────────────────────── */
+.tile-thumb {
+  width:100%; height:110px; object-fit:cover; object-position:center;
+  border-bottom:1px solid var(--border); display:block; background:#0a1118;
+}
+.tile-thumb-placeholder {
+  width:100%; height:110px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  background:#0a1118; color:var(--text-muted);
+  font-family:var(--font-mono); font-size:.65rem; letter-spacing:.1em;
+}
+
+/* ── TILE BODY ──────────────────────────────────────── */
+.tile-body { padding:14px 16px 12px; flex:1; display:flex; flex-direction:column; gap:8px; }
+
+/* ── EQUIPMENT BADGES ───────────────────────────────── */
+.tile-equipment { display:flex; flex-wrap:wrap; gap:5px; }
+.equip-badge {
+  font-family:var(--font-mono); font-size:.65rem; letter-spacing:.08em;
+  padding:2px 7px; border-radius:3px;
+}
+.equip-vav { background:rgba(0,180,255,.12); color:var(--accent);  border:1px solid rgba(0,180,255,.22); }
+.equip-rtu { background:rgba(255,171,0,.12); color:var(--amber);   border:1px solid rgba(255,171,0,.22); }
+.equip-ahu { background:rgba(0,230,118,.10); color:var(--green);   border:1px solid rgba(0,230,118,.20); }
+.equip-ftu { background:rgba(180,100,255,.10); color:#c07fff;      border:1px solid rgba(180,100,255,.20); }
+
+/* ── UNIT COUNT ROW ─────────────────────────────────── */
+.tile-unit-row {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:auto; padding-top:8px; border-top:1px solid var(--border);
+}
+.unit-count { font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); }
+  </style>
+</head>
+<body>
+
+<!-- overlay -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+          <line x1="22" y1="20" x2="28" y2="20" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="#c8cfe0" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="28" cy="23" r="1.5" fill="#c8cfe0"/>
+          <circle cx="12" cy="30" r="1.5" fill="#c8cfe0"/>
+          <circle cx="20" cy="30" r="1.5" fill="#00c8ff"/>
+          <circle cx="28" cy="30" r="1.5" fill="#c8cfe0"/>
+        </svg>
+      </span>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- top bar -->
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Floor Plans</span>
+  </div>
+
+  <div class="top-right">
+    <div class="toggle-container">
+      <span class="toggle-label">Light</span>
+      <div id="toggleSwitch" class="toggle-switch">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- main content -->
+<div class="main-content">
+
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>Floor Plan Graphics</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <!-- VAV Section -->
+  <div class="section-card" id="vavSection">
+    <div class="section-header">
+      <span class="section-header-badge"></span>
+      <h3> Floor Plans</h3>
+      <span class="section-header-count" id="vavCount">0 floors</span>
+    </div>
+    <div class="floor-grid" id="vavGrid">
+      <div class="empty-state">Loading floor plans…</div>
+    </div>
+  </div>
+
+  <!-- FTU Section -->
+  <div class="section-card" id="ftuSection">
+    <div class="section-header">
+      <span class="section-header-badge amber"></span>
+      <h3> Floor Plans</h3>
+      <span class="section-header-count" id="ftuCount">0 floors</span>
+    </div>
+    <div class="floor-grid" id="ftuGrid">
+      <div class="empty-state">Loading floor plans…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- bottom bar -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════════════════ -->
+
+<!-- FADE IN -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = `${username}`;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- DATETIME -->
+<script>
+(function startClock() {
+  function tick() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric',
+                   hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent =
+      now.toLocaleString('en-US', opts).replace(',','');
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+const body = document.body;
+const currentTheme = localStorage.getItem('theme') || 'dark';
+if (currentTheme === 'light') {
+  body.classList.add('light-mode');
+  toggleSwitch.classList.add('active');
+}
+toggleSwitch.addEventListener('click', function() {
+  body.classList.toggle('light-mode');
+  toggleSwitch.classList.toggle('active');
+  localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- FLOOR PLAN LOGIC -->
+<script>
+let homeConfigData = null;
+
+function buildFloorNameMap() {
+    const map = {};
+    if (homeConfigData?.floorNames && Array.isArray(homeConfigData.floorNames)) {
+        homeConfigData.floorNames.forEach((name, index) => { map[index] = name; });
+    }
+    if (homeConfigData?.VAVs) {
+        homeConfigData.VAVs.forEach(vav => {
+            if (vav.floornumber !== undefined && vav.Floornumber_NAME && !map[vav.floornumber])
+                map[vav.floornumber] = vav.Floornumber_NAME;
+        });
+    }
+    if (homeConfigData?.FTUs) {
+        homeConfigData.FTUs.forEach(ftu => {
+            if (ftu.floornumber !== undefined && ftu.Floornumber_NAME && !map[ftu.floornumber])
+                map[ftu.floornumber] = ftu.Floornumber_NAME;
+        });
+    }
+    return map;
+}
+
+function makeTile(href, floorNum, label, wingType = null, thumbData = null, equipCounts = {}) {
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'floor-tile' + (wingType ? ` wing wing-${wingType.toLowerCase()}` : '');
+
+    // ── Thumbnail ──────────────────────────────────────────
+    if (thumbData) {
+        const img = document.createElement('img');
+        img.src = thumbData;
+        img.className = 'tile-thumb';
+        img.alt = `Floor ${floorNum} plan`;
+        img.loading = 'lazy';
+        a.appendChild(img);
+    } else {
+        const ph = document.createElement('div');
+        ph.className = 'tile-thumb-placeholder';
+        ph.innerHTML = `<svg width="80" height="50" viewBox="0 0 80 50" style="opacity:.3;">
+            <rect x="4" y="4" width="30" height="42" fill="none" stroke="currentColor" stroke-width="1"/>
+            <rect x="40" y="4" width="36" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+            <rect x="40" y="30" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/>
+            <rect x="60" y="30" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1"/>
+        </svg><span style="position:absolute;bottom:6px;right:8px;font-size:.55rem;letter-spacing:.08em;opacity:.4;">NO PREVIEW</span>`;
+        ph.style.position = 'relative';
+        a.appendChild(ph);
+    }
+
+    // ── Body ───────────────────────────────────────────────
+    const body = document.createElement('div');
+    body.className = 'tile-body';
+
+    const numEl = document.createElement('div');
+    numEl.className = 'tile-floor-num';
+    numEl.textContent = `Floor ${String(floorNum).padStart(2,'0')}`;
+    body.appendChild(numEl);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'tile-name';
+    nameEl.textContent = label;
+    body.appendChild(nameEl);
+
+    // Equipment badges
+    const equip = { VAV: equipCounts.vav||0, RTU: equipCounts.rtu||0, AHU: equipCounts.ahu||0, FTU: equipCounts.ftu||0 };
+    const equipTypes = [
+        { key:'VAV', cls:'equip-vav' },
+        { key:'RTU', cls:'equip-rtu' },
+        { key:'AHU', cls:'equip-ahu' },
+        { key:'FTU', cls:'equip-ftu' },
+    ];
+    const hasEquip = Object.values(equip).some(v => v > 0);
+    if (hasEquip) {
+        const row = document.createElement('div');
+        row.className = 'tile-equipment';
+        equipTypes.forEach(({ key, cls }) => {
+            if (equip[key] > 0) {
+                const b = document.createElement('span');
+                b.className = `equip-badge ${cls}`;
+                b.textContent = `${key} ×${equip[key]}`;
+                row.appendChild(b);
+            }
+        });
+        body.appendChild(row);
+    }
+
+    // Footer row: unit count + optional wing badge
+    const unitRow = document.createElement('div');
+    unitRow.className = 'tile-unit-row';
+    const total = Object.values(equip).reduce((s,v) => s+v, 0);
+    const countEl = document.createElement('span');
+    countEl.className = 'unit-count';
+    countEl.textContent = total > 0 ? `${total} unit${total!==1?'s':''} total` : '';
+    unitRow.appendChild(countEl);
+
+    if (wingType) {
+        const badge = document.createElement('span');
+        badge.className = 'tile-wing-badge' + (wingType === 'West' ? ' west' : '');
+        badge.textContent = wingType + ' Wing';
+        unitRow.appendChild(badge);
+    }
+    body.appendChild(unitRow);
+    a.appendChild(body);
+
+    // Arrow icon
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arrow.setAttribute('viewBox','0 0 16 16'); arrow.setAttribute('fill','none');
+    arrow.classList.add('tile-arrow');
+    arrow.innerHTML = '<path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+    a.appendChild(arrow);
+
+    return a;
+}
+
+function buildEquipmentMap() {
+    const map = {};  // floorNum -> { vav, rtu, ahu, ftu }
+    const add = (arr, key) => {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(item => {
+            const f = parseInt(item.floornumber ?? item.FLNUM ?? item.FloorNUM ?? 0);
+            if (!map[f]) map[f] = { vav:0, rtu:0, ahu:0, ftu:0 };
+            map[f][key]++;
+        });
+    };
+    add(homeConfigData?.VAVs, 'vav');
+    add(homeConfigData?.RTUs, 'rtu');
+    add(homeConfigData?.AHUs, 'ahu');
+    add(homeConfigData?.FTUs, 'ftu');
+    return map;
+}
+
+function generateFloorPlanBubbles() {
+    if (!homeConfigData?.floorPlans) return;
+
+    const vavGrid  = document.getElementById('vavGrid');
+    const ftuGrid  = document.getElementById('ftuGrid');
+    const vavCount = document.getElementById('vavCount');
+    const ftuCount = document.getElementById('ftuCount');
+    const vavSec   = document.getElementById('vavSection');
+    const ftuSec   = document.getElementById('ftuSection');
+
+    vavGrid.innerHTML = ''; ftuGrid.innerHTML = '';
+    const floorPlans   = homeConfigData.floorPlans;
+    const floorNameMap = buildFloorNameMap();
+    const equipMap     = buildEquipmentMap();
+
+    let vavN = 0, ftuN = 0;
+
+    for (const [key, value] of Object.entries(floorPlans)) {
+        const floorNum    = value.FloorNUM !== undefined ? value.FloorNUM : parseInt((value.name||key).replace(/\D/g,''));
+        const displayName = floorNameMap[floorNum] || value.name || key;
+        const isFTU       = value.Type === 'FTU';
+        const grid        = isFTU ? ftuGrid : vavGrid;
+        const equip       = equipMap[floorNum] || {};
+
+        if (value.wing === 'Split') {
+            const hasE = value.dataEast  && value.originalFileNameEast  && value.originalFileNameEast  !== 'null';
+            const hasW = value.dataWest  && value.originalFileNameWest  && value.originalFileNameWest  !== 'null';
+            if (!hasE && !hasW) continue;
+            if (hasE) {
+                const href = 'Floor_Plans/' + displayName.replace(/\s+/g,'_') + '_Floor' + floorNum + '_East.html';
+                grid.appendChild(makeTile(href, floorNum, displayName, 'East', value.dataEast, equip));
+                isFTU ? ftuN++ : vavN++;
+            }
+            if (hasW) {
+                const href = 'Floor_Plans/' + displayName.replace(/\s+/g,'_') + '_Floor' + floorNum + '_West.html';
+                grid.appendChild(makeTile(href, floorNum, displayName, 'West', value.dataWest, equip));
+                isFTU ? ftuN++ : vavN++;
+            }
+        } else {
+            if (!value.originalFileName || value.originalFileName === 'null') continue;
+            const href = 'Floor_Plans/' + displayName.replace(/\s+/g,'_') + '_Floor' + floorNum + '.html';
+            grid.appendChild(makeTile(href, floorNum, displayName, null, value.data, equip));
+            isFTU ? ftuN++ : vavN++;
+        }
+    }
+
+    [...vavGrid.querySelectorAll('.floor-tile'), ...ftuGrid.querySelectorAll('.floor-tile')]
+        .forEach((t,i) => t.style.animationDelay = `${i*50}ms`);
+
+    vavCount.textContent = `${vavN} floor${vavN!==1?'s':''}`;
+    ftuCount.textContent = `${ftuN} floor${ftuN!==1?'s':''}`;
+
+    if (vavN === 0) { vavGrid.innerHTML = '<div class="empty-state">No VAV floor plans configured.</div>'; vavSec.style.display='none'; }
+    if (ftuN === 0) { ftuGrid.innerHTML = '<div class="empty-state">No FTU floor plans configured.</div>'; ftuSec.style.display='none'; }
+
+    console.log(`Rendered ${vavN} VAV, ${ftuN} FTU tiles`);
+}
+
+async function loadHomeConfig() {
+    try {
+        const res = await fetch('HomeConfig.json');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        homeConfigData = await res.json();
+        if (!homeConfigData.floorPlans) throw new Error('floorPlans missing');
+        generateFloorPlanBubbles();
+    } catch (err) {
+        console.error('HomeConfig load error:', err);
+        document.getElementById('vavGrid').innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+        document.getElementById('ftuGrid').innerHTML = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadHomeConfig);
+</script>
+
+</body>
+</html>
