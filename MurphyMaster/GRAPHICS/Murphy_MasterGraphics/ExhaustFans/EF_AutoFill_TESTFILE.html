@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Exhaust Fan Monitoring</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body { height: 100%; font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); }
+body { display: flex; flex-direction: column; min-height: 100vh; opacity: 0; transition: opacity 0.6s ease; }
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.4s ease; }
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.logo-wrapper { display: flex; align-items: center; gap: 18px; margin-bottom: 15px; }
+.loader-m { width: 80px; height: 80px; }
+.loader-m path { stroke-dasharray: 500; stroke-dashoffset: 500; animation: drawM 1.6s ease-out forwards, glowPulse 2s ease-in-out infinite 1.6s; }
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+@keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 4px #00A86B); } 50% { filter: drop-shadow(0 0 18px #00ff99); } }
+.loader-wordmark { font-size: 42px; font-weight: 700; letter-spacing: 2px; color: #111; background: linear-gradient(90deg, #111, #222); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.loader-text { margin-top: 10px; font-size: 14px; letter-spacing: 1px; opacity: 0.7; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 11px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 9px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px, 0.7vw, 11px); letter-spacing: clamp(1px, 0.3vw, 4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#ahu-header { font-family: var(--font-head); font-size: clamp(12px, 1.4vw, 18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+.top-right-controls { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls .divider { width: 1px; height: 20px; background: var(--border); }
+.top-right-controls span { font-family: var(--font-head); font-size: clamp(8px, 0.6vw, 10px); letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px, 0.8vw, 14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* ─── TOPBAR OVERRIDES BUTTON + DROPDOWN ────────────────────────────── */
+#topbar-or-btn {
+  background: rgba(255,171,0,0.06);
+  border: 1px solid rgba(255,171,0,0.2);
+  color: rgba(255,171,0,0.4);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: default;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+#topbar-or-btn:not([disabled]) { background: rgba(255,171,0,0.12); border-color: rgba(255,171,0,0.45); color: var(--amber); cursor: pointer; }
+#topbar-or-btn:not([disabled]):hover { background: rgba(255,171,0,0.25); border-color: var(--amber); box-shadow: 0 0 10px rgba(255,171,0,0.3); }
+#topbar-or-dropdown {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,171,0,0.35);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,171,0,0.08);
+  min-width: 200px;
+  max-width: 340px;
+}
+#topbar-or-dropdown.open { display: block; }
+#topbar-or-chips { display: flex; flex-direction: column; gap: 6px; }
+.topbar-or-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,171,0,0.07); border: 1px solid rgba(255,171,0,0.2); border-radius: 7px; padding: 6px 10px; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.topbar-or-chip:hover { background: rgba(255,171,0,0.18); border-color: var(--amber); }
+.topbar-or-chip.overridden { border-color: rgba(213,22,223,0.4); background: rgba(213,22,223,0.06); }
+.topbar-or-chip-name { font-family: var(--font-head); font-size: 11px; letter-spacing: 0.5px; color: var(--text-primary); text-transform: uppercase; }
+.topbar-or-chip-value { font-family: var(--font-head); font-size: 13px; font-weight: bold; color: var(--amber); }
+.topbar-or-chip.overridden .topbar-or-chip-value { color: var(--purple); }
+
+/* ─── UNIT DATA TOPBAR DROPDOWN ─────────────────────────────────────── */
+#unitdata-topbar-dropdown {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,200,255,0.06);
+    min-width: 320px;
+    max-width: 480px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+#unitdata-topbar-dropdown.open { display: block; }
+#unitDataButton-top {
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-family: var(--font-head);
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+#unitDataButton-top:hover { border-color: var(--accent); color: var(--accent); }
+#unitDataButton-top.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.08); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content { flex: 1; position: relative; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto;
+  background: radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+              radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+              radial-gradient(ellipse at 60% 85%, rgba(0,180,220,0.07) 0%, transparent 45%),
+              linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed; }
+
+/* ─── AHU CONTAINER ─────────────────────────────────────────────────── */
+.ahu-container { display: flex; flex-direction: column; width: 100%; max-width: auto; gap: 16px; padding: 16px; }
+
+/* ─── GRAPHIC CARD ──────────────────────────────────────────────────── */
+.bubbleSP { width: 100%; background: #0a0f1a; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; box-shadow: 0 0 40px rgba(0,200,255,0.06), 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(8px); transition: box-shadow 0.3s ease; overflow: hidden; }
+.bubbleSP::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(0,80,140,0.18) 0%, transparent 65%), radial-gradient(ellipse at 75% 30%, rgba(0,40,80,0.14) 0%, transparent 60%), repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,200,255,0.012) 18px, rgba(0,200,255,0.012) 19px); pointer-events: none; z-index: 0; }
+.bubbleSP:hover { box-shadow: 0 0 50px rgba(0,200,255,0.1), 0 8px 40px rgba(0,0,0,0.7); }
+
+/* ─── ON-GRAPHIC POINT PILLS ─────────────────────────────────────────── */
+.point-display { position: absolute; z-index: 5; cursor: pointer; font-family: var(--font-head); font-size: clamp(9px, 0.85vw, 13px); white-space: nowrap; }
+.point-display-inner { background: rgba(10,15,25,0.88); border: 1px solid rgba(0,200,255,0.25); border-radius: 6px; padding: clamp(3px, 0.35vw, 5px) clamp(5px, 0.6vw, 10px); display: flex; flex-direction: column; gap: 1px; backdrop-filter: blur(8px); transition: var(--transition); }
+.point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+.pill-label { font-size: clamp(7px, 0.60vw, 15px); color: #fff; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.pill-value { font-size: clamp(9px, 0.9vw, 14px); font-family: var(--font-head); font-weight: bold; white-space: nowrap; line-height: 1.3; text-shadow: 0 0 8px rgba(0,200,255,0.4); }
+.data-value { font-family: var(--font-head); font-weight: bold; }
+.data-value.status-on,  .pill-value.status-on   { color: var(--green); }
+.data-value.status-off, .pill-value.status-off  { color: var(--text-muted); }
+.data-value.override-on, .data-value.override-active, .pill-value.override-active { color: var(--purple) !important; }
+.data-value.status-fault, .pill-value.status-fault { color: var(--red); }
+
+/* ─── OR CIRCLE BUTTON ──────────────────────────────────────────────── */
+.or-btn-inline {
+  display: none;
+  width: clamp(16px, 1.4vw, 22px);
+  height: clamp(16px, 1.4vw, 22px);
+  min-width: clamp(16px, 1.4vw, 22px);
+  background: rgba(255,171,0,0.18);
+  border: 1px solid rgba(255,171,0,0.55);
+  color: var(--amber);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(6px, 0.5vw, 8px);
+  font-weight: bold;
+  cursor: pointer;
+  font-family: var(--font-head);
+  transition: all 0.2s;
+  flex-shrink: 0;
+  user-select: none;
+}
+.or-btn-inline.or-ready { display: flex; }
+.or-btn-inline:hover { transform: scale(1.15); background: rgba(255,171,0,0.35); box-shadow: 0 0 8px rgba(255,171,0,0.55); }
+.or-btn-inline.or-active { background: rgba(213,22,223,0.25) !important; border-color: var(--purple) !important; color: var(--purple) !important; animation: orPulse 1.8s ease-in-out infinite; }
+.or-btn-inline.or-active:hover { background: rgba(213,22,223,0.45) !important; box-shadow: 0 0 12px rgba(213,22,223,0.7) !important; }
+@keyframes orPulse { 0%, 100% { box-shadow: 0 0 4px rgba(213,22,223,0.5); } 50% { box-shadow: 0 0 14px rgba(213,22,223,0.9), 0 0 28px rgba(213,22,223,0.4); } }
+.or-btn-inline.or-fault { background: rgba(255,68,68,0.25) !important; border-color: var(--red) !important; color: var(--red) !important; animation: orFaultPulse 1.2s ease-in-out infinite; }
+@keyframes orFaultPulse { 0%, 100% { box-shadow: 0 0 4px rgba(255,68,68,0.6); } 50% { box-shadow: 0 0 14px rgba(255,68,68,1.0), 0 0 28px rgba(255,68,68,0.5); } }
+
+/* Pill wrapper */
+.pill-wrap { position: relative; display: flex; align-items: flex-start; gap: 3px; }
+.pill-wrap .point-display { position: relative; z-index: auto; cursor: pointer; font-family: var(--font-head); font-size: clamp(9px, 0.85vw, 13px); white-space: nowrap; }
+.pill-wrap .or-btn-inline { position: relative; z-index: auto; align-self: flex-start; margin-top: 2px; }
+.pill-wrap .point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+
+/* ─── OVERRIDE STATUS BADGE ──────────────────────────────────────────── */
+.or-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: bold; transition: all 0.3s ease; }
+.or-status-badge.badge-auto { background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.35); color: var(--green); }
+.or-status-badge.badge-overridden { background: rgba(213,22,223,0.15); border: 1px solid rgba(213,22,223,0.55); color: var(--purple); animation: badgePulse 2s ease-in-out infinite; }
+.or-status-badge.badge-fault { background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.55); color: var(--red); animation: badgeFaultPulse 1.2s ease-in-out infinite; }
+@keyframes badgeFaultPulse { 0%, 100% { box-shadow: 0 0 0px rgba(255,68,68,0); } 50% { box-shadow: 0 0 10px rgba(255,68,68,0.6); } }
+@keyframes badgePulse { 0%, 100% { box-shadow: 0 0 0px rgba(213,22,223,0); } 50% { box-shadow: 0 0 10px rgba(213,22,223,0.5); } }
+
+.modal-content.is-overridden { border-color: rgba(213,22,223,0.6) !important; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(213,22,223,0.15), 0 0 30px rgba(213,22,223,0.1) !important; }
+.modal-content.is-overridden .modal-header { border-bottom-color: rgba(213,22,223,0.4) !important; }
+.modal-content.is-overridden .modal-header h2 { color: var(--purple) !important; }
+.modal-content.is-fault { border-color: rgba(255,68,68,0.6) !important; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,68,68,0.15), 0 0 30px rgba(255,68,68,0.1) !important; }
+.modal-content.is-fault .modal-header { border-bottom-color: rgba(255,68,68,0.4) !important; }
+.modal-content.is-fault .modal-header h2 { color: var(--red) !important; }
+
+/* ─── UNIT DATA PANEL ───────────────────────────────────────────────── */
+#unit-data-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+#unit-data-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; cursor: pointer; user-select: none; transition: var(--transition); }
+#unit-data-panel-header:hover { background: var(--bg-card-hover); }
+#unit-data-panel-title { font-family: var(--font-head); font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
+#unit-data-panel-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.3s ease; }
+#unit-data-panel.open #unit-data-panel-chevron { transform: rotate(180deg); }
+#unit-data-panel-body { display: none; padding: 0 16px 14px; }
+#unit-data-panel.open #unit-data-panel-body { display: block; }
+#unit-data-inner-table { width: 100%; border-collapse: collapse; font-family: var(--font-head); }
+#unit-data-inner-table th { text-align: left; padding: 6px 8px; color: var(--accent); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+#unit-data-inner-table td { padding: 5px 8px; color: var(--text-primary); font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+#unit-data-inner-table tr:last-child td { border-bottom: none; }
+#unit-data-inner-table tr:hover td { background: rgba(0,200,255,0.04); }
+
+/* ─── OR MODAL ──────────────────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--bg-panel); border: 1px solid rgba(255,171,0,0.45); border-radius: 14px; padding: 28px; width: 75%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,171,0,0.1); animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes modalIn { from { transform: scale(0.92) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255,171,0,0.3); }
+.modal-header h2 { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--amber); font-weight: normal; text-transform: uppercase; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-point-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.modal-point-name { font-family: var(--font-head); font-size: 14px; color: var(--amber); }
+.modal-live-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.modal-live-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.modal-point-value { font-family: var(--font-head); font-size: 28px; font-weight: bold; color: var(--text-primary); transition: color 0.3s ease; }
+.modal-point-value.status-on      { color: var(--green); }
+.modal-point-value.status-off     { color: var(--text-muted); }
+.modal-point-value.status-override { color: var(--purple); }
+.modal-point-value.status-fault   { color: var(--red); }
+.modal-controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+.control-group label { font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.control-group input, .control-group select { padding: 10px 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-head); font-size: 14px; transition: var(--transition); }
+.control-group input:focus, .control-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.modal-buttons { display: flex; gap: 10px; }
+.modal-btn { flex: 1; padding: 11px 16px; border: none; border-radius: 6px; font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: var(--transition); }
+.modal-btn-override { background: rgba(255,171,0,0.15); color: var(--amber); border: 1px solid rgba(255,171,0,0.4); }
+.modal-btn-override:hover { background: rgba(255,171,0,0.3); }
+.modal-btn-release { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+.modal-btn-release:hover { background: rgba(255,68,68,0.3); }
+.modal-btn-cancel { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
+.modal-btn-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+/* ─── GRAPH POPUP ───────────────────────────────────────────────────── */
+.graph-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(10px); z-index: 9999; justify-content: center; align-items: center; }
+.graph-popup-container { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; width: 94vw; max-width: 1400px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,200,255,0.08); }
+.graph-popup-header { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.graph-popup-title { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--accent); font-weight: normal; text-transform: uppercase; margin: 0; }
+.graph-popup-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 34px; height: 34px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; }
+.graph-popup-close:hover { border-color: var(--red); color: var(--red); }
+.graph-popup-body { flex: 1; padding: 24px; overflow: hidden; background: var(--bg-card); display: flex; flex-direction: column; min-height: 0; }
+.graph-canvas-container { flex: 1; position: relative; min-height: 0; width: 100%; }
+.graph-canvas-container canvas { width: 100% !important; height: 100% !important; }
+.graph-loading { display: flex; justify-content: center; align-items: center; height: 100%; color: var(--accent); font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; }
+.graph-info { margin-top: 12px; padding: 10px 16px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-muted); font-family: var(--font-head); flex-shrink: 0; }
+
+/* ─── PDF BUTTON ────────────────────────────────────────────────────── */
+#pdf-button-container button { background: rgba(0,200,255,0.1) !important; border: 1px solid var(--border) !important; color: var(--accent) !important; font-family: var(--font-head) !important; border-radius: 8px !important; }
+#pdf-button-container button:hover { background: rgba(0,200,255,0.2) !important; border-color: var(--accent) !important; }
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; position: sticky; bottom: 0; z-index: 1000; gap: 8px; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1; }
+.date-time strong { color: var(--text-primary); display: block; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode {
+  --bg-deep: #b8c2d8; --bg-panel: #cdd4e4; --bg-card: #dce2ef; --bg-card-hover: #d0d8eb;
+  --accent: #003580; --accent-glow: rgba(0,53,128,0.2); --green: #006b2f; --red: #b00020;
+  --amber: #b06000; --purple: #7a10a0; --text-primary: #0a1428; --text-muted: #3a4a6a;
+  --border: rgba(0,35,100,0.35);
+}
+body.light-mode .main-content { background: radial-gradient(ellipse at 15% 50%, rgba(0,53,128,0.07) 0%, transparent 55%), linear-gradient(135deg, #bdc6da 0%, #c8d0e2 40%, #c2cbdd 100%); }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background: rgba(180,190,215,0.98); }
+body.light-mode .bubbleSP { background: #1a1f2e; border: 2px solid rgba(0,35,100,0.5); }
+body.light-mode .point-display-inner { background: rgba(240,244,255,0.93); border: 1px solid rgba(0,35,100,0.55); }
+body.light-mode .pill-label { color: #3a4a6a; }
+body.light-mode .pill-value { color: #003580; text-shadow: none; }
+body.light-mode .pill-value.status-on { color: #006b2f; }
+body.light-mode .pill-value.status-off { color: #5a6a8a; }
+body.light-mode .pill-value.status-fault { color: #b00020; }
+
+/* ─── EXHAUST FAN GRID ──────────────────────────────────────────────── */
+.ef-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ef-cols, 2), 1fr);
+  gap: 16px;
+  width: 100%;
+}
+@media (max-width: 900px) { .ef-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .ef-grid { grid-template-columns: 1fr; } }
+
+/* ─── EF PANEL ──────────────────────────────────────────────────────── */
+.ef-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  background: #0a0f1a;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0,200,255,0.06), 0 8px 32px rgba(0,0,0,0.6);
+  transition: box-shadow 0.3s ease;
+}
+.ef-panel:hover { box-shadow: 0 0 50px rgba(0,200,255,0.1), 0 8px 40px rgba(0,0,0,0.7); }
+
+/* ─── PANEL TITLE — matches section heading style ───────────────────── */
+.ef-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,200,255,0.04);
+  position: relative;
+}
+.ef-panel-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  pointer-events: none;
+}
+.ef-panel-title .ef-title-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.ef-panel-title .ef-title-line.right { background: linear-gradient(90deg, transparent, var(--border)); }
+.ef-panel-title h3 {
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* ─── PANEL BODY ────────────────────────────────────────────────────── */
+.ef-panel-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+/* ─── IMAGE WRAP ─────────────────────────────────────────────────────── */
+.ef-img-wrap { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; }
+.ef-base-img { width: 100%; max-width: auto; height: auto; display: block; object-fit: contain; margin: 0 auto; }
+.ef-grid.single-fan .ef-panel { max-width: 100%; margin: 0 auto; }
+.ef-anim-img { width: 15.5%; height: auto; position: absolute; top: 49.85%; left: 40.85%; z-index: 5; pointer-events: none; }
+
+/* ─── PILLS FLOW ─────────────────────────────────────────────────────── */
+.ef-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  position: relative;
+  z-index: 5;
+}
+
+/* ─── PER-PANEL UNIT DATA TABLE ─────────────────────────────────────── */
+.ef-unit-section {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.ef-unit-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+.ef-unit-section-title {
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.ef-unit-chevron { font-size: 9px; color: var(--text-muted); transition: transform 0.25s ease; }
+.ef-unit-section.open .ef-unit-chevron { transform: rotate(180deg); }
+.ef-unit-table-wrap { display: none; padding-top: 6px; }
+.ef-unit-section.open .ef-unit-table-wrap { display: block; }
+.ef-unit-table { width: 100%; border-collapse: collapse; font-family: var(--font-head); }
+.ef-tbl-name { padding: 4px 8px; color: var(--text-muted); font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.04); width: 55%; }
+.ef-tbl-val  { padding: 4px 8px; color: var(--text-primary); font-size: 12px; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.ef-unit-table tr:last-child td { border-bottom: none; }
+.ef-unit-table tr:hover td { background: rgba(0,200,255,0.04); }
+
+/* ─── PER-PANEL OVERRIDES STRIP ─────────────────────────────────────── */
+.ef-or-section {
+  border-top: 1px solid rgba(255,171,0,0.18);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.ef-or-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.ef-or-section-label {
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.ef-or-chips { display: flex; flex-direction: column; gap: 5px; }
+.ef-or-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: rgba(255,171,0,0.07);
+  border: 1px solid rgba(255,171,0,0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.ef-or-chip:hover { background: rgba(255,171,0,0.16); border-color: var(--amber); }
+.ef-or-chip.overridden { border-color: rgba(213,22,223,0.4); background: rgba(213,22,223,0.06); }
+.ef-or-chip-name { font-family: var(--font-head); font-size: 11px; letter-spacing: 0.5px; color: var(--text-primary); text-transform: uppercase; flex: 1; }
+.ef-or-chip-value { font-family: var(--font-head); font-size: 12px; font-weight: bold; color: var(--amber); }
+.ef-or-chip.overridden .ef-or-chip-value { color: var(--purple); }
+.ef-or-chip-or-btn {
+  width: 18px; height: 18px;
+  background: rgba(255,171,0,0.18);
+  border: 1px solid rgba(255,171,0,0.55);
+  color: var(--amber);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px; font-weight: bold;
+  font-family: var(--font-head);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.ef-or-chip:hover .ef-or-chip-or-btn { transform: scale(1.15); background: rgba(255,171,0,0.35); box-shadow: 0 0 8px rgba(255,171,0,0.55); }
+.ef-or-chip.overridden .ef-or-chip-or-btn { background: rgba(213,22,223,0.25); border-color: var(--purple); color: var(--purple); animation: orPulse 1.8s ease-in-out infinite; }
+
+/* ─── OVERRIDE COUNTDOWN TIMER ─────────────────────────────────────── */
+.or-countdown {
+    display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px;
+    background: rgba(213,22,223,0.15); border: 1px solid rgba(213,22,223,0.45);
+    border-radius: 20px; font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 11px);
+    color: var(--purple); white-space: nowrap; animation: orPulse 1.8s ease-in-out infinite; flex-shrink: 0;
+}
+.or-countdown.expiring { background: rgba(255,68,68,0.18); border-color: rgba(255,68,68,0.55); color: var(--red); animation: orFaultPulse 1.2s ease-in-out infinite; }
+
+#ef-grid-loading { display: flex; align-items: center; justify-content: center; height: 180px; font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; color: var(--accent); }
+
+
+.ef-or-section.open .ef-or-chips { display: flex !important; flex-direction: column; }
+.ef-or-section .ef-unit-chevron { transition: transform 0.25s ease; }
+.ef-or-section.open .ef-unit-chevron { transform: rotate(180deg); }
+/* ─── LOADER — Customer + Murphy branding ───────────────────────────── */
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn {
+  to { transform: scaleX(1); }
+}
+.loader-murphy-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m {
+  width: 30px;
+  height: 30px;
+}
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #888;
+  text-transform: uppercase;
+}
+.loader-murphy-label strong {
+  color: #00A86B;
+  letter-spacing: 2px;
+  font-weight: normal;
+}
+.loader-content .loader-text {
+  margin-top: 18px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.5s ease-out 1.4s forwards;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170"
+          fill="none" stroke="#00A86B" stroke-width="18"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading system data…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>Navigation</h2>
+    <p>Murphy Control Panel</p>
+  </div>
+  <div class="nav-section-label">System Views</div>
+  <div class="nav-image-grid">
+    <a href="../Home.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+    <a href="../FloorPlan.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+    <a href="../Alarms.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="30" r="1.8" fill="var(--amber)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+    <a href="../Users.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+    <a href="../LogsNUMERIC.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/><rect x="8" y="20" width="5" height="14" fill="#e05252" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent)" rx="1"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+    <a href="../Shedules.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+    <div id="topbar-overrides" style="position:relative;">
+      <button id="topbar-or-btn" onclick="toggleTopbarOverrides(event)" disabled title="No overridable points loaded yet">⚡ Overrides</button>
+      <div id="topbar-or-dropdown">
+        <div id="topbar-or-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span id="ahu-header">Loading...</span>
+  </div>
+
+  <div class="top-right">
+    <div class="top-right-controls">
+      <button id="unitDataButton-top" onclick="toggleUnitDataPanelDropdown(event)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="9" x2="9" y2="21"/>
+        </svg>
+        Unit Data
+      </button>
+      <div class="divider"></div>
+      <span>☀</span>
+      <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+        <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Data Topbar Dropdown -->
+<div id="unitdata-topbar-dropdown">
+    <div style="padding:10px 16px 6px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-family:var(--font-head);font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;">Unit Data</span>
+        <span onclick="closeUnitDataDropdown()" style="cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;transition:var(--transition);" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+    </div>
+    <div style="padding:0 16px 14px;">
+        <table id="unit-data-inner-table-top" style="width:100%;border-collapse:collapse;font-family:var(--font-head);">
+            <thead><tr>
+                <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Name</th>
+                <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Value</th>
+            </tr></thead>
+            <tbody id="unit-data-tbody-top"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="ahu-container">
+
+    <div class="section-heading">
+      <div class="line"></div>
+      <h2>Exhaust Fan Monitoring</h2>
+      <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+    </div>
+
+    <!-- PDF button -->
+    <div id="pdf-button-container" style="display:flex; justify-content:flex-end; margin-bottom:4px;"></div>
+
+    <!-- Dynamic exhaust fan grid -->
+    <div class="ef-grid" id="ef-grid">
+      <div id="ef-grid-loading">Discovering exhaust fans…</div>
+    </div>
+
+    <!-- Hidden unit data tbody for topbar dropdown sync -->
+    <div style="display:none;">
+      <tbody id="unit-data-tbody"></tbody>
+    </div>
+
+    <!-- OR MODAL -->
+    <div class="modal-overlay" id="or-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="or-modal-title">Point Override</h2>
+          <button class="modal-close" id="or-modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-point-info">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div class="modal-point-name" id="or-modal-point-name">No Point Selected</div>
+            <span class="or-status-badge badge-auto" id="or-modal-status-badge">⬤ AUTO</span>
+          </div>
+          <div class="modal-live-row">
+            <span class="modal-live-label">Current Output:</span>
+            <div class="modal-point-value" id="or-modal-point-value">N/A</div>
+          </div>
+          <div id="or-modal-countdown-row" style="display:none; margin-top:6px;">
+            <span class="modal-live-label">Override Expires:</span>
+            <span id="or-modal-countdown-display" style="font-family:var(--font-head);font-size:16px;font-weight:bold;color:var(--purple);animation:orPulse 1.8s ease-in-out infinite;"></span>
+          </div>
+        </div>
+        <div class="modal-controls">
+          <div class="control-group" id="or-numeric-control" style="display:none;">
+            <label>Override Value:</label>
+            <input type="number" id="or-modal-numeric-input" placeholder="Enter value" step="0.1">
+          </div>
+          <div class="control-group" id="or-boolean-control" style="display:none;">
+            <label>Command:</label>
+            <select id="or-modal-command-dropdown">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+              <option value="auto">AUTO</option>
+            </select>
+          </div>
+          <div class="control-group" id="or-enum-control" style="display:none;">
+            <label>Select Value:</label>
+            <select id="or-modal-enum-dropdown"></select>
+          </div>
+          <div class="control-group">
+            <label>Duration:</label>
+            <select id="or-modal-duration-dropdown">
+              <option value="permanent">Permanent</option>
+              <option value="1min">1 Minute</option>
+              <option value="5min" selected>5 Minutes</option>
+              <option value="30min">30 Minutes</option>
+              <option value="1hour">1 Hour</option>
+              <option value="2hours">2 Hours</option>
+              <option value="4hours">4 Hours</option>
+              <option value="8hours">8 Hours</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-override" id="or-modal-override-btn">Apply Override</button>
+          <button class="modal-btn modal-btn-release" id="or-modal-release-btn">Release to Auto</button>
+          <button class="modal-btn modal-btn-cancel" id="or-modal-cancel-btn">Cancel</button>
+        </div>
+        <div style="margin-top:-8px;">
+          <button class="modal-btn" onclick="manualORModalRefresh()" style="width:100%;background:rgba(0,200,255,0.06);color:var(--text-muted);border:1px solid var(--border);font-size:10px;letter-spacing:2px;padding:7px;">
+            ↻ REFRESH STATUS
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">← Back</button>
+  <div class="date-time">
+    <strong>Current Date &amp; Time</strong>
+    <span id="currentDateTime">Loading...</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div style="text-align:right; font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+      Controls by:<br>
+      <span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+    </div>
+    <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+(async function() {
+  try {
+    const response = await fetch('../HomeConfig.json');
+    const data = await response.json();
+    const jobName = (data.JobBuilding || 'Control Panel').toUpperCase();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = jobName;
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+<!-- FADE IN/OUT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+    document.body.addEventListener("click", function(e) {
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 300);
+    });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- PANEL TOGGLE + UNIT DATA TOPBAR DROPDOWN -->
+<script>
+function toggleUnitDataPanelDropdown(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (!dd || !btn) return;
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); btn.classList.remove('active'); return; }
+    const srcTbody  = document.getElementById('unit-data-tbody');
+    const destTbody = document.getElementById('unit-data-tbody-top');
+    if (srcTbody && destTbody) destTbody.innerHTML = srcTbody.innerHTML;
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    dd.style.left = 'auto';
+    dd.classList.add('open');
+    btn.classList.add('active');
+}
+function closeUnitDataDropdown() {
+    document.getElementById('unitdata-topbar-dropdown')?.classList.remove('open');
+    document.getElementById('unitDataButton-top')?.classList.remove('active');
+}
+document.addEventListener('click', function(e) {
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd && !dd.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        dd.classList.remove('open');
+        btn?.classList.remove('active');
+    }
+});
+</script>
+
+<!-- TOPBAR OVERRIDES DROPDOWN -->
+<script>
+function toggleTopbarOverrides(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('topbar-or-dropdown');
+    const btn = document.getElementById('topbar-or-btn');
+    if (!dd || !btn) return;
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('topbar-or-dropdown');
+    if (dd && !dd.contains(e.target) && e.target.id !== 'topbar-or-btn') dd.classList.remove('open');
+});
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- AUTH CHECK -->
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+    document.getElementById("userDisplay").textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + ':8443/logout';
+}</script>
+
+<!-- LOADER SAFETY NET -->
+<script>
+setTimeout(function() {
+    const loader = document.getElementById("page-loader");
+    if (loader && !loader.classList.contains("hidden")) { loader.classList.add("hidden"); }
+}, 12000);
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     GRAPH POPUP  — fixed: spanId lookup uses fullPath registry
+══════════════════════════════════════════════════════════════════════ -->
+<script>
+// Registry: spanId → fullPath, populated by the monitoring script
+window.spanIdToPathRegistry = {};
+window.spanIdToLabelRegistry = {};
+
+let graphPopupConfig = null;
+
+async function loadGraphPopupConfig() {
+    if (graphPopupConfig) return graphPopupConfig;
+    try {
+        const fullFilename = window.location.pathname.split('/').pop();
+        const headerName   = fullFilename.replace('.html','');
+        const response     = await fetch('../Global.json');
+        const jsonData     = await response.json();
+        graphPopupConfig   = { headerName, globalVars: jsonData.globalVariables || {} };
+        return graphPopupConfig;
+    } catch(err) { console.error('Config load failed:', err); throw err; }
+}
+
+function createGraphPopup() {
+    let popup = document.getElementById('graph-popup-overlay');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'graph-popup-overlay';
+        popup.className = 'graph-popup-overlay';
+        popup.innerHTML = `
+            <div class="graph-popup-container">
+                <div class="graph-popup-header">
+                    <h2 class="graph-popup-title" id="graph-popup-title">24-Hour History</h2>
+                    <button class="graph-popup-close" onclick="closeGraphPopup()">×</button>
+                </div>
+                <div class="graph-popup-body">
+                    <div class="graph-loading" id="graph-loading">Loading historical data...</div>
+                    <div id="graph-canvas-container" style="display:none;flex:1;min-height:0;flex-direction:column;">
+                        <canvas id="history-graph-canvas" style="flex:1;min-height:0;display:block;width:100%;"></canvas>
+                        <div class="graph-info" id="graph-info"></div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(popup);
+        popup.addEventListener('click', e => { if (e.target === popup) closeGraphPopup(); });
+    }
+    return popup;
+}
+
+window.closeGraphPopup = function() {
+    const p = document.getElementById('graph-popup-overlay');
+    if (p) p.style.display = 'none';
+};
+
+function drawHistoryGraph(canvas, data, pointLabel, unit) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const cssWidth  = rect.width, cssHeight = rect.height - 60;
+    canvas.width  = cssWidth  * dpr; canvas.height = cssHeight * dpr;
+    canvas.style.width = cssWidth+'px'; canvas.style.height = cssHeight+'px';
+    ctx.scale(dpr, dpr);
+    const W = cssWidth, H = cssHeight;
+    const pad = { top:40, right:40, bottom:60, left:80 };
+    const gW = W-pad.left-pad.right, gH = H-pad.top-pad.bottom;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#161b27'; ctx.fillRect(pad.left,pad.top,gW,gH);
+    if (!data.length) { ctx.fillStyle='#7a8499'; ctx.font='14px "Courier New"'; ctx.textAlign='center'; ctx.fillText('No data available',W/2,H/2); return; }
+    const values = data.map(d => typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+    const minV = Math.min(...values), maxV = Math.max(...values), rangeV = maxV-minV||1;
+    const yScale = v => pad.top+gH-((v-minV)/rangeV)*gH;
+    const xScale = i => pad.left+(i/(data.length-1))*gW;
+    ctx.strokeStyle='rgba(0,200,255,0.15)'; ctx.lineWidth=1;
+    for (let i=0;i<=5;i++) { const y=pad.top+(gH/5)*i; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+gW,y); ctx.stroke(); ctx.fillStyle='#7a8499'; ctx.font='11px "Courier New"'; ctx.textAlign='right'; ctx.fillText((maxV-(rangeV/5)*i).toFixed(1)+(unit?' '+unit:''),pad.left-10,y+4); }
+    ctx.fillStyle='#7a8499'; ctx.font='11px "Courier New"'; ctx.textAlign='center';
+    for (let i=0;i<6;i++) { const di=Math.floor((i/5)*(data.length-1)); ctx.fillText(data[di].timestamp.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),xScale(di),H-pad.bottom+20); }
+    ctx.strokeStyle='#00c8ff'; ctx.lineWidth=2; ctx.beginPath();
+    data.forEach((pt,i) => { const v=typeof pt.value==='boolean'?(pt.value?1:0):parseFloat(pt.value); if(isNaN(v))return; i===0?ctx.moveTo(xScale(i),yScale(v)):ctx.lineTo(xScale(i),yScale(v)); }); ctx.stroke();
+    ctx.fillStyle='#1e88e5'; data.forEach((pt,i) => { const v=typeof pt.value==='boolean'?(pt.value?1:0):parseFloat(pt.value); if(isNaN(v))return; ctx.beginPath(); ctx.arc(xScale(i),yScale(v),3,0,Math.PI*2); ctx.fill(); });
+    ctx.strokeStyle='rgba(0,200,255,0.4)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(pad.left,pad.top); ctx.lineTo(pad.left,pad.top+gH); ctx.stroke(); ctx.beginPath(); ctx.moveTo(pad.left,pad.top+gH); ctx.lineTo(pad.left+gW,pad.top+gH); ctx.stroke();
+    ctx.fillStyle='#00c8ff'; ctx.font='bold 14px "Courier New"'; ctx.textAlign='center'; ctx.fillText(pointLabel+' — Last 24 Hours',W/2,26);
+}
+
+// Main entry called by pill onclick — looks up path from registry first
+window.openGraphPopupBySpanId = async function(spanId, customLabel) {
+    try {
+        // 1. Check registry (populated when monitoring script subscribes)
+        let pointPath = window.spanIdToPathRegistry[spanId];
+        let pointLabel = customLabel || window.spanIdToLabelRegistry[spanId] || spanId.split('__').pop().replace(/_/g,' ');
+
+        // 2. Fallback: scan global.json for a matching point
+        if (!pointPath) {
+            if (!graphPopupConfig) await loadGraphPopupConfig();
+            const gv = graphPopupConfig.globalVars;
+            outer: for (const devKey of Object.keys(gv)) {
+                const pts = gv[devKey]?.points || [];
+                for (const p of pts) {
+                    const candidateId = `${devKey}__${(p.id||'').trim()}`;
+                    const candidateN  = `${devKey}__${p.name}`;
+                    if (candidateId === spanId || candidateN === spanId) {
+                        pointPath  = p.fullPath;
+                        pointLabel = customLabel || p.name.replace(/_/g,' ');
+                        break outer;
+                    }
+                }
+            }
+        }
+
+        if (!pointPath) { alert(`Could not find history path for: ${spanId}`); return; }
+        await openGraphPopup(pointPath, pointLabel, '');
+    } catch(err) { alert('Failed to open graph: ' + err.message); }
+};
+
+async function openGraphPopup(pointPath, pointLabel, unit) {
+    const popup = createGraphPopup();
+    popup.style.display = 'flex';
+    document.getElementById('graph-popup-title').textContent = pointLabel + ' — 24 Hour History';
+    const loadingEl  = document.getElementById('graph-loading');
+    const canvasWrap = document.getElementById('graph-canvas-container');
+    loadingEl.style.display = 'flex'; canvasWrap.style.display = 'none';
+    try {
+        const end = new Date(), start = new Date(end.getTime()-86400000);
+        const data = await loadAHUHistoryData(pointPath, start, end, 2000);
+        if (!data.length) { loadingEl.innerHTML = '<p style="color:var(--text-muted);font-family:var(--font-head)">No data for last 24 hours</p>'; return; }
+        loadingEl.style.display = 'none'; canvasWrap.style.display = 'flex'; canvasWrap.style.flexDirection = 'column'; canvasWrap.style.flex = '1'; canvasWrap.style.minHeight = '0';
+        await new Promise(r => setTimeout(r,50));
+        drawHistoryGraph(document.getElementById('history-graph-canvas'), data, pointLabel, unit);
+        const vals = data.map(d=>typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+        const stats = vals.length ? { min:Math.min(...vals), max:Math.max(...vals), avg:vals.reduce((a,b)=>a+b,0)/vals.length, count:data.length } : { min:0, max:0, avg:0, count:data.length };
+        const u = unit?' '+unit:'';
+        document.getElementById('graph-info').innerHTML = `<strong>Statistics:</strong> Min: ${stats.min.toFixed(2)}${u} | Avg: ${stats.avg.toFixed(2)}${u} | Max: ${stats.max.toFixed(2)}${u} | Points: ${stats.count}<br><strong>Range:</strong> ${start.toLocaleString()} → ${end.toLocaleString()}`;
+    } catch(err) { loadingEl.innerHTML = `<p style="color:var(--red);font-family:var(--font-head)">Error: ${err.message}</p>`; }
+}
+
+setTimeout(async () => { try { await loadGraphPopupConfig(); } catch(e) {} }, 200);
+</script>
+
+<script>
+window.safeOpenORModal = function(ptId) {
+    if (typeof openORModal === 'function') {
+        openORModal(ptId);
+    } else {
+        var attempts = 0;
+        var interval = setInterval(function() {
+            attempts++;
+            if (typeof openORModal === 'function') {
+                clearInterval(interval);
+                openORModal(ptId);
+            } else if (attempts > 20) {
+                clearInterval(interval);
+                console.warn('openORModal never loaded for:', ptId);
+            }
+        }, 300);
+    }
+};
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     OVERRIDE SCRIPT  — device-key aware; wires per-panel OR chips
+══════════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!control:EnumOverride'], function(baja) {
+'use strict';
+
+async function isAuthorizedUser() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+        const resp = await fetch('../HomeConfig.json');
+        if (!resp.ok) throw new Error('Config load failed');
+        const config = await resp.json();
+        const user = config.Users.find(u => u.name.toLowerCase() === username.toLowerCase());
+        return user && user.role.toLowerCase() === 'admin';
+    } catch(e) { return false; }
+}
+
+(async () => {
+    const authorized = await isAuthorizedUser();
+    if (!authorized) {
+        alert('🚫 You do not have Admin rights. User Overrides LOCKED!');
+        document.getElementById('page-loader')?.classList.add('hidden');
+        throw new Error('Unauthorized');
+    }
+
+    function decodeNiagaraName(name) {
+        if (!name) return name;
+        return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+    }
+
+    function isEFDevice(key) {
+        const u = key.toUpperCase();
+        return u.startsWith('EF') || u.startsWith('EXHAUST') || u.startsWith('FAN');
+    }
+
+    const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+
+    let allMeta       = [];
+    let resolvedById  = {};
+    let currentPtId   = null;
+    let enumFacets    = {};
+
+    async function loadMeta() {
+        try {
+            const resp = await fetch('../Global.json');
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            const gv   = data.globalVariables || {};
+            Object.keys(gv).forEach(devKey => {
+                if (!isEFDevice(devKey)) return;
+                const pts = gv[devKey]?.points || [];
+                pts.forEach(p => {
+                    const idVal  = (p.id  || '').trim();
+                    const id2Val = (p.id2 || '').trim();
+                    const spTag  = SP_TAGS.has(idVal) ? idVal : SP_TAGS.has(id2Val) ? id2Val : null;
+                    if (!spTag) return;
+                    const type      = spTag === 'SP-Numeric' ? 'numeric' : spTag === 'SP-Boolean' ? 'boolean' : 'enum';
+                    const rawRealId = (idVal === spTag ? id2Val : idVal).trim();
+                    const pointId   = `${devKey}__${p.name}`;
+                    // graphicTargetId: the span that should show the override colour (if any)
+                    const graphicTargetId = (rawRealId && rawRealId !== 'N/A') ? `${devKey}__${rawRealId}` : null;
+                    allMeta.push({ pointId, pointName: p.name, fullPath: p.fullPath, type, rawRealId, graphicTargetId, devKey });
+                });
+            });
+        } catch(e) { console.error('OR meta load error:', e); }
+    }
+
+    await loadMeta();
+
+    const orModal            = document.getElementById('or-modal');
+    const orModalCloseBtn    = document.getElementById('or-modal-close-btn');
+    const orModalCancelBtn   = document.getElementById('or-modal-cancel-btn');
+    const orModalTitle       = document.getElementById('or-modal-title');
+    const orModalPointName   = document.getElementById('or-modal-point-name');
+    const orModalPointValue  = document.getElementById('or-modal-point-value');
+    const orNumericControl   = document.getElementById('or-numeric-control');
+    const orBooleanControl   = document.getElementById('or-boolean-control');
+    const orEnumControl      = document.getElementById('or-enum-control');
+    const orModalNumericIn   = document.getElementById('or-modal-numeric-input');
+    const orModalCommandDr   = document.getElementById('or-modal-command-dropdown');
+    const orModalEnumDr      = document.getElementById('or-modal-enum-dropdown');
+    const orModalDurationDr  = document.getElementById('or-modal-duration-dropdown');
+    const orModalOverrideBtn = document.getElementById('or-modal-override-btn');
+    const orModalReleaseBtn  = document.getElementById('or-modal-release-btn');
+
+    function checkIfOverridden(point) {
+        try {
+            const s = point.getOut().getStatus()?.toString().toLowerCase() || '';
+            if (!s.trim()) return null;
+            if (s.includes('overridden') || s.includes('manual')) return 'OVERRIDDEN';
+            if (s.includes('fault') || s.includes('alarm') || s.includes('down')) return 'FAULT';
+            return null;
+        } catch(e) { return null; }
+    }
+
+function parseFacetsFromPoint(point, pointName) {
+    const options = [];
+    try {
+        // Method 1: direct facets on the point → range → getSize loop
+        const facets = point.getFacets ? point.getFacets() : null;
+        if (facets) {
+            const range = facets.get ? facets.get('range') : null;
+            if (range) {
+                if (typeof range.getSize === 'function') {
+                    for (let i = 0; i < range.getSize(); i++) {
+                        const entry = range.get(i);
+                        options.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || (entry.getTag && entry.getTag()) || String(entry.getOrdinal()) });
+                    }
+                    if (options.length) return options;
+                }
+                // Method 2: parse toString() of range
+                const r1 = parseFacetString(range.toString(), pointName);
+                if (r1.length) return r1;
+            }
+        }
+    } catch(e) {}
+
+    try {
+        // Method 3: out.getFacets() → range (most reliable for many Niagara point types)
+        const out = point.getOut ? point.getOut() : null;
+        if (out) {
+            const outFacets = out.getFacets ? out.getFacets() : null;
+            if (outFacets) {
+                const range = outFacets.get ? outFacets.get('range') : null;
+                if (range) {
+                    const r2 = parseFacetString(range.toString(), pointName);
+                    if (r2.length) return r2;
+                }
+            }
+            // Method 4: out.getValue().getType().getFacets() → range
+            try {
+                const val = out.getValue ? out.getValue() : null;
+                if (val && val.getType) {
+                    const valType = val.getType();
+                    const typeFacets = valType.getFacets ? valType.getFacets() : null;
+                    if (typeFacets) {
+                        const range = typeFacets.get ? typeFacets.get('range') : null;
+                        if (range) {
+                            if (typeof range.getSize === 'function') {
+                                const opts = [];
+                                for (let i = 0; i < range.getSize(); i++) {
+                                    const entry = range.get(i);
+                                    opts.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || (entry.getTag && entry.getTag()) || String(entry.getOrdinal()) });
+                                }
+                                if (opts.length) return opts;
+                            }
+                            const r3 = parseFacetString(range.toString(), pointName);
+                            if (r3.length) return r3;
+                        }
+                    }
+                }
+            } catch(e3) {}
+        }
+    } catch(e2) {}
+
+    return options;
+}
+
+function parseFacetString(s, pointName) {
+    const opts = [];
+    const pairs = s.replace(/[{}]/g, '').match(/([^,=]+)=(\d+)/g);
+    if (pairs) pairs.forEach(p => { const [l, o] = p.split('='); opts.push({ ordinal: parseInt(o, 10), label: l.trim() }); });
+    return opts;
+}
+
+    const orSub = new baja.Subscriber();
+    orSub.attach('changed', function(prop) {
+        if (prop.getName() !== 'out') return;
+        const ptId = this._orPointId;
+        if (!ptId) return;
+        const info = resolvedById[ptId];
+        if (!info) return;
+        const out = this.getOut(), dv = out.getValueDisplay(), rv = out.getValue(), isOvr = this.getStatus().isOverridden();
+
+        // Update per-panel chip
+        const valEl = document.getElementById(`ef-or-val-${CSS.escape(ptId)}`);
+        if (valEl) valEl.textContent = dv || '—';
+        const chip = document.getElementById(`ef-or-chip-${CSS.escape(ptId)}`);
+        if (chip) chip.classList.toggle('overridden', isOvr);
+
+        // Update linked graphic span
+        if (info.graphicTargetId) {
+            const span = document.getElementById(info.graphicTargetId);
+            if (span) {
+                span.className = span.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value)\b/g,'').trim();
+                if (isOvr) { span.className='pill-value override-active'; span.textContent=`${dv} ◈`; }
+                else { const on=String(rv||'').toLowerCase().includes('on')||String(rv||'')===''+'true'||parseFloat(rv)>0; span.className=`pill-value ${on?'status-on':'status-off'}`; span.textContent=dv; }
+            }
+        }
+
+        if (orModal?.classList.contains('active') && currentPtId === ptId) updateORModalDisplay(this, info.name, info.type, ptId);
+    });
+
+    async function resolveAllPoints() {
+        await Promise.all(allMeta.map(async meta => {
+            try {
+                const point = await baja.Ord.make(meta.fullPath).get({ subscriber: orSub });
+                point._orPointId = meta.pointId;
+                resolvedById[meta.pointId] = { point, name: meta.pointName, type: meta.type, graphicTargetId: meta.graphicTargetId, devKey: meta.devKey };
+                if (meta.type === 'enum') enumFacets[meta.pointId] = parseFacetsFromPoint(point);
+            } catch(e) { console.warn(`OR resolve failed "${meta.pointName}":`, e.message); }
+        }));
+
+        // Wire chips into per-panel OR sections (800ms grace for DOM paint)
+        setTimeout(() => {
+            Object.entries(resolvedById).forEach(([ptId, info]) => {
+                // Initial value + state update for chip
+                const valEl = document.getElementById(`ef-or-val-${CSS.escape(ptId)}`);
+                if (valEl) { try { valEl.textContent = info.point.getOut().getValueDisplay() || '—'; } catch(e){} }
+                const chip = document.getElementById(`ef-or-chip-${CSS.escape(ptId)}`);
+                if (chip) { const isOvr = checkIfOverridden(info.point); chip.classList.toggle('overridden', isOvr === 'OVERRIDDEN'); }
+            });
+            buildTopbarOverrides();
+        }, 800);
+
+        initListeners();
+        startLiveUpdate();
+        document.getElementById('page-loader')?.classList.add('hidden');
+    }
+
+    resolveAllPoints();
+
+    function buildTopbarOverrides() {
+        // Topbar shows ALL EF override points as a summary
+        const chips = document.getElementById('topbar-or-chips');
+        const btn   = document.getElementById('topbar-or-btn');
+        if (!chips) return;
+        chips.innerHTML = '';
+        const entries = Object.entries(resolvedById);
+        entries.forEach(([ptId, info]) => {
+            let cv = '—';
+            try { cv = info.point?.getOut().getValueDisplay() || '—'; } catch(e){}
+            const isOvr = info.point ? checkIfOverridden(info.point) : null;
+            const chip = document.createElement('div');
+            chip.className = 'topbar-or-chip' + (isOvr?' overridden':'');
+            chip.dataset.pointId = ptId;
+            chip.addEventListener('click', () => { openORModal(ptId); document.getElementById('topbar-or-dropdown')?.classList.remove('open'); });
+            chip.innerHTML = `<span class="topbar-or-chip-name">${decodeNiagaraName(info.name)}</span><span class="topbar-or-chip-value" id="topbar-or-val-${CSS.escape(ptId)}">${cv}</span>`;
+            chips.appendChild(chip);
+        });
+        if (btn && entries.length > 0) { btn.removeAttribute('disabled'); btn.title = `${entries.length} overridable point(s)`; }
+    }
+
+    function startLiveUpdate() {
+        setInterval(() => {
+            Object.entries(resolvedById).forEach(([ptId, info]) => {
+                const isOvr = checkIfOverridden(info.point);
+                const valEl = document.getElementById(`ef-or-val-${CSS.escape(ptId)}`);
+                if (valEl) { try { valEl.textContent = info.point.getOut().getValueDisplay() || '—'; } catch(e){} }
+                const chip = document.getElementById(`ef-or-chip-${CSS.escape(ptId)}`);
+                if (chip) chip.classList.toggle('overridden', isOvr === 'OVERRIDDEN');
+                const topVal = document.getElementById(`topbar-or-val-${CSS.escape(ptId)}`);
+                if (topVal) { try { topVal.textContent = info.point.getOut().getValueDisplay() || '—'; } catch(e){} }
+            });
+        }, 2000);
+    }
+
+    window.manualORModalRefresh = function() {
+        if (!currentPtId) return;
+        const info = resolvedById[currentPtId];
+        if (info) updateORModalDisplay(info.point, info.name, info.type, currentPtId);
+    };
+
+    window.openORModal = function(ptId) {
+        const info = resolvedById[ptId];
+        if (!info || !info.point) { alert('Override point not yet loaded. Please wait.'); return; }
+        currentPtId = ptId;
+        updateORModalDisplay(info.point, info.name, info.type, ptId);
+        orModal.classList.add('active');
+        document.getElementById('topbar-or-dropdown')?.classList.remove('open');
+        if (window.restoreORCountdownDisplay) window.restoreORCountdownDisplay(ptId);
+    };
+
+    function updateORModalDisplay(point, pointName, pointType, ptId) {
+        if (!point) return;
+        const isOvr   = checkIfOverridden(point);
+        const decoded = decodeNiagaraName(pointName);
+        if (orModalTitle)     orModalTitle.textContent = `Override — ${decoded}`;
+        if (orModalPointName) orModalPointName.textContent = decoded;
+        const badge = document.getElementById('or-modal-status-badge');
+        if (badge) {
+            if (isOvr==='OVERRIDDEN')     { badge.textContent='◈ OVERRIDDEN'; badge.className='or-status-badge badge-overridden'; }
+            else if (isOvr==='FAULT')     { badge.textContent='⚠ FAULT / ALARM'; badge.className='or-status-badge badge-fault'; }
+            else                          { badge.textContent='⬤ AUTO'; badge.className='or-status-badge badge-auto'; }
+        }
+        const mc = document.querySelector('.modal-content');
+        if (mc) { mc.classList.remove('is-overridden','is-fault'); if (isOvr==='OVERRIDDEN') mc.classList.add('is-overridden'); else if (isOvr==='FAULT') mc.classList.add('is-fault'); }
+        if (orModalPointValue) {
+            try {
+                const val = point.getOut().getValueDisplay();
+                orModalPointValue.textContent = val ?? '—';
+                orModalPointValue.className   = 'modal-point-value';
+                if (isOvr==='OVERRIDDEN') orModalPointValue.classList.add('status-override');
+                else if (isOvr==='FAULT') orModalPointValue.classList.add('status-fault');
+                else { const rv=String(point.getOut().getValue()??'').toLowerCase(); orModalPointValue.classList.add(rv.includes('on')||rv==='true'||parseFloat(rv)>0?'status-on':'status-off'); }
+            } catch(e) { orModalPointValue.textContent='Error'; orModalPointValue.className='modal-point-value status-fault'; }
+        }
+        if (orNumericControl) orNumericControl.style.display='none';
+        if (orBooleanControl) orBooleanControl.style.display='none';
+        if (orEnumControl)    orEnumControl.style.display='none';
+if (pointType === 'numeric') {
+    if (orNumericControl) orNumericControl.style.display = 'flex';
+    if (orModalNumericIn) {
+        try {
+            const cur = point.getOut().getValueDisplay();
+            const facets = point.getFacets ? point.getFacets() : null;
+            const unitFacet = facets ? (facets.get ? facets.get('units') : null) : null;
+            const unitStr = unitFacet ? ` (${unitFacet.toString()})` : '';
+            orModalNumericIn.placeholder = cur ? `Current: ${cur}${unitStr}` : 'Enter value';
+        } catch(e) { orModalNumericIn.placeholder = 'Enter value'; }
+        orModalNumericIn.value = '';
+    }
+} else if (pointType === 'boolean') {
+    if (orBooleanControl) orBooleanControl.style.display = 'flex';
+    if (orModalCommandDr) {
+        try {
+            const isOvrState = checkIfOverridden(point);
+            const rv = String(point.getOut().getValue() ?? '').toLowerCase();
+            if (isOvrState === 'OVERRIDDEN') {
+                orModalCommandDr.value = (rv.includes('on') || rv === 'true') ? 'on' : 'off';
+            } else {
+                orModalCommandDr.value = 'auto';
+            }
+        } catch(e) { orModalCommandDr.value = 'on'; }
+    }
+}
+else if (pointType==='enum')    { if(orEnumControl) orEnumControl.style.display='flex'; populateEnumDropdown(ptId); }
+    }
+
+    function populateEnumDropdown(ptId) {
+        if (!orModalEnumDr) return;
+        orModalEnumDr.innerHTML = '';
+        let opts = enumFacets[ptId] || [];
+        if (!opts.length) { const info=resolvedById[ptId]; if(info?.point){opts=parseFacetsFromPoint(info.point);if(opts.length)enumFacets[ptId]=opts;} }
+        if (!opts.length) { const o=document.createElement('option'); o.textContent='⚠ No options found'; orModalEnumDr.appendChild(o); return; }
+        [...opts].sort((a,b)=>a.ordinal-b.ordinal).forEach(({ordinal,label})=>{ const o=document.createElement('option'); o.value=ordinal; o.textContent=label; orModalEnumDr.appendChild(o); });
+    }
+
+    function initListeners() {
+        if (orModalCloseBtn)  orModalCloseBtn.addEventListener('click',  ()=>orModal.classList.remove('active'));
+        if (orModalCancelBtn) orModalCancelBtn.addEventListener('click', ()=>orModal.classList.remove('active'));
+        if (orModal) orModal.addEventListener('click', e=>{ if(e.target===orModal)orModal.classList.remove('active'); });
+
+        if (orModalOverrideBtn) {
+            orModalOverrideBtn.addEventListener('click', () => {
+                if (!currentPtId) return;
+                const info = resolvedById[currentPtId];
+                if (!info?.point) return;
+                const dur = orModalDurationDr.value;
+const durSec = dur==='permanent'?null:{'1min':60,'5min':300,'30min':1800,'1hour':3600,'2hours':7200,'4hours':14400,'8hours':28800}[dur];
+                if (info.type==='numeric')      { const v=parseFloat(orModalNumericIn.value); if(isNaN(v)){alert('Enter a valid number.');return;} performNumericOR(info.point,v,durSec); }
+                else if (info.type==='boolean') { const cmd=orModalCommandDr.value; if(cmd==='on')performActiveOR(info.point,durSec); else if(cmd==='off')performInactiveOR(info.point,durSec); else{releaseAuto(info.point);if(window.stopORCountdown)window.stopORCountdown(currentPtId);} }
+                else if (info.type==='enum')    { const ord=parseInt(orModalEnumDr.value,10); if(isNaN(ord)){alert('Select a valid option.');return;} performEnumOR(info.point,ord,durSec); }
+                if (durSec && window.startORCountdown) window.startORCountdown(currentPtId, durSec, info.graphicTargetId);
+            });
+        }
+        if (orModalReleaseBtn) {
+            orModalReleaseBtn.addEventListener('click', () => {
+                const info = resolvedById[currentPtId];
+                if (info?.point) { releaseAuto(info.point); if(window.stopORCountdown)window.stopORCountdown(currentPtId); }
+            });
+        }
+    }
+
+    function performNumericOR(point, value, s=null) {
+        const p=baja.$('control:NumericOverride'); p.setValue(value);
+        if(s!==null)p.setDuration(baja.RelTime.make({seconds:s}));
+        point.invoke({slot:'override',value:p}).catch(e=>console.warn(e.message));
+    }
+    function performActiveOR(point, s=null) {
+        const p=baja.$('control:Override');
+        if(s!==null)p.setDuration(baja.RelTime.make({seconds:s}));
+        point.invoke({slot:'active',value:p}).catch(e=>console.error(e));
+    }
+    function performInactiveOR(point, s=null) {
+        const p=baja.$('control:Override');
+        if(s!==null)p.setDuration(baja.RelTime.make({seconds:s}));
+        point.invoke({slot:'inactive',value:p}).catch(e=>console.error(e));
+    }
+    function performEnumOR(point, ordinal, s=null) {
+        let d=null;
+        if(baja.DynamicEnum&&typeof baja.DynamicEnum.make==='function'){try{d=baja.DynamicEnum.make(ordinal);}catch(e){}}
+        if(!d){d=baja.$('baja:DynamicEnum');if(typeof d.setOrdinal==='function')d.setOrdinal(ordinal);}
+        const p=baja.$('control:EnumOverride'); p.setValue(d);
+        if(s!==null)p.setDuration(baja.RelTime.make({seconds:s}));
+        point.invoke({slot:'override',value:p}).catch(e=>console.warn(e.message));
+    }
+    function releaseAuto(point) { point.invoke({slot:'auto'}).catch(e=>console.error(e)); }
+
+    window.addEventListener('beforeunload', ()=>{ try{orSub.unsubscribeAll();}catch(e){} });
+})();
+});
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     EXHAUST FAN DATA MONITORING
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!'], function(baja) {
+'use strict';
+
+const EF_IMG_BASE = './EXHAUST_IMAGES/';
+const EF_BASE_IMG = EF_IMG_BASE + 'Exhaust-Fan_DCRD-Series0000.png';
+const EF_FAN_ON   = EF_IMG_BASE + 'Fan.gif';
+
+function decodeNiagaraName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+function isEFDevice(key) {
+    const u = key.toUpperCase();
+    return u.startsWith('EF') || u.startsWith('EXHAUST') || u.startsWith('FAN');
+}
+
+function collectEFDevices(globalVariables) {
+    const devices = {};
+    Object.keys(globalVariables).forEach(k => {
+        if (!isEFDevice(k)) return;
+        const d = globalVariables[k];
+        if (d && Array.isArray(d.points)) devices[k] = d.points;
+    });
+    return devices;
+}
+
+const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+const EXCLUDED = new Set(['Note1','Note2','Note3','StringWritable']);
+
+function classifyPoint(point) {
+    const idVal  = (point.id  || '').trim();
+    const id2Val = (point.id2 || '').trim();
+    const spTag  = SP_TAGS.has(idVal) ? idVal : SP_TAGS.has(id2Val) ? id2Val : null;
+    if (spTag) { const type = spTag==='SP-Numeric'?'numeric':spTag==='SP-Boolean'?'boolean':'enum'; return {role:'override',type}; }
+    if (idVal==='N/A' || (!idVal && !id2Val)) return {role:'table'};
+    return {role:'pill'};
+}
+
+function buildSpanId(deviceKey, point) {
+    const idVal = (point.id || '').trim();
+    const token = (idVal && idVal!=='N/A') ? idVal : decodeNiagaraName(point.name).replace(/\s+/g,'-');
+    return `${deviceKey}__${token}`;
+}
+
+// ── Header ──────────────────────────────────────────────────────────
+const fullFilename = window.location.pathname.split('/').pop();
+const filenameBase = fullFilename.replace('.html', '');
+const headerEl     = document.getElementById('ahu-header');
+if (headerEl) headerEl.textContent = decodeNiagaraName(filenameBase);
+
+// ── Build HTML for one EF panel ─────────────────────────────────────
+function buildEFPanel(deviceKey, points) {
+    const label = decodeNiagaraName(deviceKey).replace(/_/g,' ');
+
+    const pillPoints  = [], spPoints = [], tablePoints = [];
+    points.forEach(p => {
+        if (EXCLUDED.has(p.name)) return;
+        const cls = classifyPoint(p);
+        if (cls.role==='override') spPoints.push({point:p,type:cls.type});
+        else if (cls.role==='table') tablePoints.push(p);
+        else pillPoints.push(p);
+    });
+
+    // Pills
+    const pillsHtml = pillPoints.map(p => {
+        const spanId = buildSpanId(deviceKey, p);
+        const label  = decodeNiagaraName(p.name);
+        return `
+          <div class="pill-wrap" data-spanid="${spanId}">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${spanId}','${label}')">
+              <div class="point-display-inner">
+                <span class="pill-label">${label}</span>
+                <span id="${spanId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>`;
+    }).join('');
+
+    // Per-panel override chips — rendered inline in panel
+    const orChipsHtml = spPoints.map(({point}) => {
+        const ptId  = `${deviceKey}__${point.name}`;
+        const clbl  = decodeNiagaraName(point.name);
+        return `
+          <div class="ef-or-chip" id="ef-or-chip-${CSS.escape(ptId)}" onclick="safeOpenORModal('${ptId}')"
+ title="Override: ${clbl}">
+            <span class="ef-or-chip-name">${clbl}</span>
+            <span class="ef-or-chip-value" id="ef-or-val-${CSS.escape(ptId)}">—</span>
+            <div class="ef-or-chip-or-btn">OR</div>
+          </div>`;
+    }).join('');
+
+const orSectionHtml = spPoints.length ? `
+  <div class="ef-or-section">
+    <div class="ef-or-section-header" onclick="this.parentElement.classList.toggle('open')" style="cursor:pointer;">
+      <span class="ef-or-section-label">⚡ Overrides</span>
+      <span class="ef-unit-chevron">▼</span>
+    </div>
+    <div class="ef-or-chips" style="display:none;margin-top:6px;">${orChipsHtml}</div>
+  </div>` : '';
+
+    // Per-panel collapsible unit data table
+    const tableHtml = tablePoints.length ? `
+      <div class="ef-unit-section" id="ef-unit-sec-${deviceKey}">
+        <div class="ef-unit-section-header" onclick="toggleEFUnitSection('${deviceKey}')">
+          <span class="ef-unit-section-title">Unit Data</span>
+          <span class="ef-unit-chevron">▼</span>
+        </div>
+        <div class="ef-unit-table-wrap">
+          <table class="ef-unit-table">
+            <tbody>
+              ${tablePoints.map(p => `
+                <tr>
+                  <td class="ef-tbl-name">${decodeNiagaraName(p.name)}</td>
+                  <td class="ef-tbl-val" id="ef-tbl-val-${deviceKey}__${p.name}">—</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="ef-panel" id="panel-${deviceKey}">
+        <div class="ef-panel-title">
+          <div class="ef-title-line"></div>
+          <h3>${label}</h3>
+          <div class="ef-title-line right"></div>
+        </div>
+        <div class="ef-panel-body">
+          <div class="ef-img-wrap">
+            <img class="ef-base-img" src="${EF_BASE_IMG}" alt="${label}"/>
+            <img id="${deviceKey}__FanAnim" src="" style="width:15.5%;position:absolute;top:49.85%;left:40.85%;z-index:5;pointer-events:none;display:none;"/>
+          </div>
+          <div class="ef-pills-row">${pillsHtml}</div>
+          ${tableHtml}
+          ${orSectionHtml}
+        </div>
+      </div>`;
+}
+
+window.toggleEFUnitSection = function(deviceKey) {
+    const sec = document.getElementById(`ef-unit-sec-${deviceKey}`);
+    if (sec) sec.classList.toggle('open');
+};
+
+// ── Animation helper ─────────────────────────────────────────────────
+function updateFanAnim(rawVal, animId) {
+    const img = document.getElementById(animId);
+    if (!img) return;
+    const on = String(rawVal).toLowerCase().includes('on') || rawVal===true || parseFloat(rawVal)>0;
+    img.src = on ? EF_FAN_ON : '';
+    img.style.display = on ? '' : 'none';
+}
+
+function applyValueToSpan(el, dv, rv, isOverride, spanId) {
+    el.className = el.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value)\b/g,'').trim();
+    const base = 'pill-value';
+    if (isOverride) { el.className=`${base} override-active`; el.textContent=`${dv} ◈`; }
+    else if (spanId&&(spanId.includes('ALM')||spanId.includes('Alarm'))) { const active=String(rv||'').toLowerCase().includes('on')||parseFloat(rv)>0; el.className=`${base} ${active?'status-fault':'status-on'}`; el.textContent=dv; }
+    else { const isOn=String(rv||'').toLowerCase().includes('on')||String(rv||'').toLowerCase()==='true'||parseFloat(rv)>0; el.className=`${base} ${isOn?'status-on':'status-off'}`; el.textContent=dv; }
+}
+
+// ── Baja subscriber ──────────────────────────────────────────────────
+const subscriber = new baja.Subscriber();
+subscriber.attach('changed', function(prop) {
+    if (prop.getName()!=='out') return;
+    const info = this.userData; if (!info) return;
+    const out=this.getOut(), dv=out.getValueDisplay(), rv=out.getValue(), isOvr=this.getStatus().isOverridden();
+    if (info.fanAnimId) updateFanAnim(rv, info.fanAnimId);
+    if (info.spanEl)    applyValueToSpan(info.spanEl, dv, rv, isOvr, info.spanId);
+    if (info.cellEl)    info.cellEl.textContent = dv;
+});
+
+function subscribeToPoint(ordPath, info) {
+    baja.Ord.make(ordPath).get({ subscriber })
+        .then(point => {
+            point.userData = info;
+            const out=point.getOut(), dv=out.getValueDisplay(), rv=out.getValue(), isOvr=point.getStatus().isOverridden();
+            if (info.fanAnimId) updateFanAnim(rv, info.fanAnimId);
+            if (info.spanEl)    applyValueToSpan(info.spanEl, dv, rv, isOvr, info.spanId);
+            if (info.cellEl)    info.cellEl.textContent = dv;
+        })
+        .catch(err => {
+            if (info.spanEl) { info.spanEl.textContent='Err'; info.spanEl.className='pill-value status-fault'; }
+            if (info.cellEl) info.cellEl.textContent='Err';
+        });
+}
+
+// ── Main ─────────────────────────────────────────────────────────────
+async function initializeMonitoring() {
+    let globalConfig;
+    try {
+        const r = await fetch('../Global.json');
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        globalConfig = await r.json();
+    } catch(e) { showError('Failed to load Global.json: '+e.message); return; }
+
+    const efDevices  = collectEFDevices(globalConfig.globalVariables || {});
+    const deviceKeys = Object.keys(efDevices).sort((a,b) => decodeNiagaraName(a).localeCompare(decodeNiagaraName(b)));
+
+    if (!deviceKeys.length) { showError('No Exhaust Fan devices found (EF / Exhaust / Fan prefixes)'); return; }
+
+    const grid = document.getElementById('ef-grid');
+    if (!grid) return;
+
+    const cols = deviceKeys.length<=1?1:deviceKeys.length===2?2:deviceKeys.length===3?3:2;
+    grid.style.setProperty('--ef-cols', cols);
+    if (deviceKeys.length===1) grid.classList.add('single-fan');
+    grid.innerHTML = deviceKeys.map(k => buildEFPanel(k, efDevices[k])).join('');
+
+    deviceKeys.forEach(deviceKey => {
+        const points = efDevices[deviceKey];
+        points.forEach(point => {
+            if (EXCLUDED.has(point.name)) return;
+            const cls = classifyPoint(point);
+            if (cls.role==='table') {
+                const cellEl = document.getElementById(`ef-tbl-val-${deviceKey}__${point.name}`);
+                subscribeToPoint(point.fullPath, { spanId:null, spanEl:null, cellEl:cellEl||null, fanAnimId:null });
+                return;
+            }
+            if (cls.role==='override') return; // handled by OR script
+
+            const spanId = buildSpanId(deviceKey, point);
+            const spanEl = document.getElementById(spanId);
+
+            // Register in global registry for graph onclick lookups
+            window.spanIdToPathRegistry[spanId]  = point.fullPath;
+            window.spanIdToLabelRegistry[spanId] = decodeNiagaraName(point.name);
+
+            const idLow = (point.id||'').toLowerCase();
+            const isFan = idLow.includes('fan')||idLow.includes('stat');
+            subscribeToPoint(point.fullPath, {
+                spanId, spanEl: spanEl||null, cellEl:null,
+                fanAnimId: isFan ? `${deviceKey}__FanAnim` : null,
+            });
+        });
+    });
+
+    showSuccess(`Monitoring ${deviceKeys.length} Exhaust Fan unit${deviceKeys.length!==1?'s':''}`);
+    document.getElementById('page-loader')?.classList.add('hidden');
+}
+
+function showError(msg) {
+    const d=document.createElement('div');
+    d.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--red);border-radius:10px;padding:16px 24px;z-index:9999;font-family:var(--font-head);font-size:13px;color:var(--red);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);letter-spacing:1px;max-width:480px;';
+    d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),15000);
+}
+function showSuccess(msg) {
+    const d=document.createElement('div');
+    d.style.cssText='position:fixed;top:80px;right:20px;background:var(--bg-card);border:1px solid rgba(0,230,118,0.4);border-radius:8px;padding:10px 18px;z-index:9999;font-family:var(--font-head);font-size:12px;color:var(--green);letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+    d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),5000);
+}
+
+if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', initializeMonitoring);
+else setTimeout(initializeMonitoring, 100);
+window.addEventListener('beforeunload', ()=>{ try{subscriber.unsubscribeAll();}catch(e){} });
+});
+</script>
+
+
+<!-- ─── OVERRIDE COUNTDOWN TIMERS ───────────────────────────────────── -->
+<script>
+(function() {
+    const activeTimers = {};
+
+    window.startORCountdown = function(pointId, durationSec, graphicTargetId) {
+        if (!durationSec) return;
+        stopORCountdown(pointId);
+        const endTime = Date.now() + durationSec * 1000;
+        activeTimers[pointId] = { endTime, intervalId: null, domBadges: [] };
+
+        const modalRow     = document.getElementById('or-modal-countdown-row');
+        const modalDisplay = document.getElementById('or-modal-countdown-display');
+        if (modalRow && modalDisplay) { modalRow.style.display='flex'; modalDisplay.textContent=fmt(durationSec); modalDisplay.classList.remove('expiring'); }
+
+        const domBadges = [];
+        if (graphicTargetId) {
+            const container = document.querySelector(`.pill-wrap[data-spanid="${graphicTargetId}"]`);
+            if (container) { container.querySelectorAll('.or-countdown').forEach(b=>b.remove()); const b=mkBadge(fmt(durationSec)); container.appendChild(b); domBadges.push(b); }
+        }
+        const chip = document.getElementById(`ef-or-chip-${CSS.escape(pointId)}`);
+        if (chip) { chip.querySelectorAll('.or-countdown').forEach(b=>b.remove()); const b=mkBadge(fmt(durationSec)); chip.appendChild(b); domBadges.push(b); }
+        activeTimers[pointId].domBadges = domBadges;
+
+        const intervalId = setInterval(()=>{
+            const t = activeTimers[pointId]; if (!t){clearInterval(intervalId);return;}
+            const remaining = Math.max(0, Math.round((t.endTime-Date.now())/1000));
+            const ts = fmt(remaining);
+            if (modalDisplay && modalRow && modalRow.style.display!=='none') { modalDisplay.textContent=ts; if(remaining<=30)modalDisplay.classList.add('expiring'); else modalDisplay.classList.remove('expiring'); }
+            t.domBadges.forEach(b=>{try{b.textContent=ts;if(remaining<=30)b.classList.add('expiring');else b.classList.remove('expiring');}catch(e){}});
+            if (remaining<=0) stopORCountdown(pointId);
+        }, 1000);
+        activeTimers[pointId].intervalId = intervalId;
+    };
+
+    window.stopORCountdown = function(pointId) {
+        const t = activeTimers[pointId]; if (!t) return;
+        clearInterval(t.intervalId);
+        t.domBadges.forEach(b=>{try{b.remove();}catch(e){}});
+        const mr = document.getElementById('or-modal-countdown-row'); if(mr) mr.style.display='none';
+        delete activeTimers[pointId];
+    };
+
+    window.restoreORCountdownDisplay = function(pointId) {
+        const t = activeTimers[pointId];
+        const mr = document.getElementById('or-modal-countdown-row');
+        const md = document.getElementById('or-modal-countdown-display');
+        if (!mr || !md) return;
+        if (t) { const rem=Math.max(0,Math.round((t.endTime-Date.now())/1000)); mr.style.display='flex'; md.textContent=fmt(rem); if(rem<=30)md.classList.add('expiring'); else md.classList.remove('expiring'); }
+        else mr.style.display='none';
+    };
+
+    function mkBadge(text) { const b=document.createElement('span'); b.className='or-countdown'; b.textContent=text; return b; }
+    function fmt(sec) { if(sec>=3600){const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return`⏱ ${h}h ${m}m`;}else if(sec>=60){const m=Math.floor(sec/60),s=sec%60;return`⏱ ${m}:${String(s).padStart(2,'0')}`;}return`⏱ ${sec}s`; }
+})();
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     HISTORY LOADER  (shared by graph popup + PDF report)
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+let ahuExportHistoryCache = new Map();
+
+async function discoverAHUHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointOrd).get().then(e=>e.tags()).then(tagMap=>{
+                const tag = tagMap.get('n:history');
+                if (tag&&tag.toString().trim()) { let p=tag.toString(); if(!p.startsWith('history:'))p='history:'+p; resolve(p); }
+                else reject(new Error('No n:history tag on: '+pointOrd));
+            }).catch(e=>reject(new Error('Failed tags: '+e.message)));
+        });
+    });
+}
+
+async function loadAHUHistoryData(pointPath, startTime, endTime, maxPoints=2000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let histOrd = ahuExportHistoryCache.get(pointPath);
+            if (!histOrd) {
+                try { histOrd = await discoverAHUHistoryOrd(pointPath); ahuExportHistoryCache.set(pointPath, histOrd); }
+                catch(e) { resolve([]); return; }
+            }
+            require(['baja!'], function(baja) {
+                const q=`${histOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+                const pts=[];
+                baja.Ord.make(q).get({ cursor:{ limit:maxPoints, each:function(){ const row=this.get(), date=new Date(row.get("timestamp").getMillis()); pts.push({timestamp:date,timestampString:date.toLocaleString(),value:row.get("value")}); } } })
+                    .then(()=>resolve(pts)).catch(e=>reject(new Error('BQL failed: '+e.message)));
+            });
+        } catch(e) { reject(e); }
+    });
+}
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PDF REPORT GENERATOR  — 7-day, with inline graphs + collapsible data
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+function decodeASCIIName(n) { if(!n)return n; return n.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))); }
+
+function get7DayStart() {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function renderMiniChartToDataURL(data, label, color='#00c8ff') {
+    const canvas = document.createElement('canvas');
+canvas.width  = 600;
+canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    const W=600, H=200;
+    const pad={top:36,right:24,bottom:48,left:70};
+    const gW=W-pad.left-pad.right, gH=H-pad.top-pad.bottom;
+    ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#161b27'; ctx.fillRect(pad.left,pad.top,gW,gH);
+
+    if (!data.length) {
+        ctx.fillStyle='#7a8499'; ctx.font='14px "Courier New"'; ctx.textAlign='center'; ctx.fillText('No data',W/2,H/2);
+        return canvas.toDataURL('image/png');
+    }
+
+    const vals = data.map(d=>typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+    if (!vals.length) { ctx.fillStyle='#7a8499'; ctx.font='14px "Courier New"'; ctx.textAlign='center'; ctx.fillText('Non-numeric data',W/2,H/2); return canvas.toDataURL('image/png'); }
+
+    const minV=Math.min(...vals), maxV=Math.max(...vals), rangeV=maxV-minV||1;
+    const yScale=v=>pad.top+gH-((v-minV)/rangeV)*gH;
+    const xScale=i=>pad.left+(i/(data.length>1?data.length-1:1))*gW;
+
+    // Grid lines
+    ctx.strokeStyle='rgba(0,200,255,0.1)'; ctx.lineWidth=1;
+    for(let i=0;i<=5;i++){const y=pad.top+(gH/5)*i;ctx.beginPath();ctx.moveTo(pad.left,y);ctx.lineTo(pad.left+gW,y);ctx.stroke();ctx.fillStyle='#7a8499';ctx.font='10px "Courier New"';ctx.textAlign='right';ctx.fillText((maxV-(rangeV/5)*i).toFixed(1),pad.left-8,y+4);}
+
+    // X labels (6 ticks)
+    ctx.fillStyle='#7a8499'; ctx.font='10px "Courier New"'; ctx.textAlign='center';
+    for(let i=0;i<6;i++){const di=Math.floor((i/5)*(data.length-1));if(data[di]){const lbl=data[di].timestamp.toLocaleDateString([],{month:'short',day:'numeric'})+' '+data[di].timestamp.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});ctx.fillText(lbl,xScale(di),H-pad.bottom+14);}}
+
+    // Line
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
+    data.forEach((pt,i)=>{const v=typeof pt.value==='boolean'?(pt.value?1:0):parseFloat(pt.value);if(isNaN(v))return;i===0?ctx.moveTo(xScale(i),yScale(v)):ctx.lineTo(xScale(i),yScale(v));});
+    ctx.stroke();
+
+    // Axes
+    ctx.strokeStyle='rgba(0,200,255,0.4)'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(pad.left,pad.top);ctx.lineTo(pad.left,pad.top+gH);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pad.left,pad.top+gH);ctx.lineTo(pad.left+gW,pad.top+gH);ctx.stroke();
+
+    // Title
+    ctx.fillStyle=color; ctx.font='bold 13px "Courier New"'; ctx.textAlign='center';
+    ctx.fillText(label+' — 7 Day History',W/2,22);
+
+    return canvas.toDataURL('image/png');
+}
+
+async function generateEFWeeklyPDFReport(jsonConfigData) {
+    const container = document.getElementById('pdf-button-container');
+    const origHTML  = container.innerHTML;
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--accent);font-family:var(--font-head);font-size:12px;letter-spacing:2px;">⏳ Loading 7-day data, please wait…</div>';
+
+    try {
+        const startDate = get7DayStart();
+        const endDate   = new Date();
+
+        // Collect all pill points (non-SP, non-N/A) per device
+        const EXCLUDED = new Set(['Note1','Note2','Note3','StringWritable']);
+        const SP_TAGS  = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+
+        const deviceSections = [];
+        const devKeys = Object.keys(jsonConfigData).sort();
+
+        for (const devKey of devKeys) {
+            const pts = (jsonConfigData[devKey]?.points || []);
+            const pillPts = [];
+            const tablePts = [];
+            pts.forEach(p => {
+                if (EXCLUDED.has(p.name)) return;
+                const idVal  = (p.id  || '').trim();
+                const id2Val = (p.id2 || '').trim();
+                if (SP_TAGS.has(idVal)||SP_TAGS.has(id2Val)) return; // skip overrides
+                if (idVal==='N/A'||(!idVal&&!id2Val)) tablePts.push(p);
+                else pillPts.push(p);
+            });
+            deviceSections.push({ devKey, pillPts, tablePts });
+        }
+
+        // Load history for all pill points
+        const allPointHistory = [];
+        for (const sec of deviceSections) {
+            for (const p of sec.pillPts) {
+                if (!p.fullPath) continue;
+                const data = await loadAHUHistoryData(p.fullPath, startDate, endDate, 5000).catch(()=>[]);
+                allPointHistory.push({ devKey: sec.devKey, point: p, data });
+            }
+        }
+
+        // Build charts as data URLs
+        const chartMap = {};
+        for (const ph of allPointHistory) {
+            const key   = `${ph.devKey}__${ph.point.name}`;
+            const label = `${decodeASCIIName(ph.devKey)} — ${decodeASCIIName(ph.point.name)}`;
+            chartMap[key] = renderMiniChartToDataURL(ph.data, label);
+        }
+
+        // ── Compose HTML report ──────────────────────────────────────────
+        const reportDate = new Date().toLocaleString();
+        let sectionsHTML = '';
+
+        for (const sec of deviceSections) {
+            const devLabel = decodeASCIIName(sec.devKey).replace(/_/g,' ');
+            let deviceHTML = `<div class="device-block"><div class="device-title">${devLabel}</div>`;
+
+            // Charts
+            for (const p of sec.pillPts) {
+                const key    = `${sec.devKey}__${p.name}`;
+                const ptHist = allPointHistory.find(ph=>ph.devKey===sec.devKey&&ph.point===p)||{data:[]};
+                const vals   = ptHist.data.map(d=>typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+                const stats  = vals.length?{min:Math.min(...vals).toFixed(2),max:Math.max(...vals).toFixed(2),avg:(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2),count:ptHist.data.length}:null;
+                const imgSrc = chartMap[key]||'';
+                const ptLabel = decodeASCIIName(p.name);
+
+                deviceHTML += `
+                  <div class="chart-block">
+                    <div class="chart-title">${ptLabel}</div>
+${ptHist.data.length && vals.length ? `<img src="${imgSrc}" style="width:65%;height:auto;display:block;border-radius:6px;margin:0 auto 6px;" />` : '<div style="color:#555;font-size:9pt;padding:8px 0;font-style:italic;">No trend data available for this period.</div>'}
+                    ${stats ? `<div class="stats-row">Min: <b>${stats.min}</b> &nbsp; Avg: <b>${stats.avg}</b> &nbsp; Max: <b>${stats.max}</b> &nbsp; Records: <b>${stats.count}</b></div>` : '<div class="stats-row" style="color:#aaa;">No numeric data available</div>'}
+
+                    ${ptHist.data.length ? `
+                    <details class="data-table-details">
+                      <summary>▶ Raw Data (${ptHist.data.length} records)</summary>
+                      <table class="data-table">
+                        <thead><tr><th>Timestamp</th><th>Value</th></tr></thead>
+                        <tbody>
+                          ${ptHist.data.slice(-200).map(r=>`<tr><td>${r.timestampString}</td><td>${typeof r.value==='boolean'?(r.value?'TRUE':'FALSE'):r.value}</td></tr>`).join('')}
+                          ${ptHist.data.length>200?`<tr><td colspan="2" style="text-align:center;color:#888;font-style:italic;">Showing last 200 of ${ptHist.data.length} records</td></tr>`:''}
+                        </tbody>
+                      </table>
+                    </details>` : ''}
+                  </div>`;
+            }
+
+            // Unit-data table for this device
+            if (sec.tablePts.length) {
+                deviceHTML += `
+                  <details class="data-table-details" open>
+                    <summary>▶ Unit Data Points</summary>
+                    <table class="data-table">
+                      <thead><tr><th>Point Name</th><th>Path</th></tr></thead>
+                      <tbody>
+                        ${sec.tablePts.map(p=>`<tr><td>${decodeASCIIName(p.name)}</td><td style="font-size:9pt;color:#888;">${p.fullPath||'—'}</td></tr>`).join('')}
+                      </tbody>
+                    </table>
+                  </details>`;
+            }
+
+            deviceHTML += '</div>';
+            sectionsHTML += deviceHTML;
+        }
+
+        const pdfHTML = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Exhaust Fan 7-Day Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Courier New",monospace;background:#0d1117;color:#e8ecf4;padding:20px;font-size:10pt;}
+.report-header{text-align:center;margin-bottom:30px;padding-bottom:16px;border-bottom:2px solid #00c8ff;}
+.report-header h1{font-size:20pt;letter-spacing:4px;color:#00c8ff;margin-bottom:8px;}
+.report-header .meta{font-size:9pt;color:#7a8499;letter-spacing:1px;}
+.device-block{margin-bottom:36px;padding:20px;background:#161b27;border:1px solid rgba(0,200,255,0.15);border-radius:10px;}
+.device-title{font-size:14pt;letter-spacing:3px;color:#00c8ff;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(0,200,255,0.2);}
+.chart-block{margin-bottom:20px;padding:14px;background:#0a0f1a;border:1px solid rgba(0,200,255,0.1);border-radius:8px;}
+.chart-title{font-size:11pt;color:#e8ecf4;letter-spacing:1px;margin-bottom:8px;}
+.stats-row{font-size:9pt;color:#7a8499;margin-bottom:8px;padding:6px 10px;background:#161b27;border-radius:4px;}
+.stats-row b{color:#00c8ff;}
+details.data-table-details{margin-top:8px;}
+details summary{cursor:pointer;font-size:9pt;color:#00c8ff;letter-spacing:1px;padding:5px 0;user-select:none;}
+details summary:hover{color:#7b5ea7;}
+details[open] summary::first-letter{}
+.data-table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-top:8px;}
+.data-table th{background:#1e2535;color:#00c8ff;padding:6px 10px;text-align:left;border-bottom:1px solid rgba(0,200,255,0.2);letter-spacing:1px;}
+.data-table td{padding:4px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#e8ecf4;}
+.data-table tr:nth-child(even) td{background:rgba(0,200,255,0.03);}
+.no-print{position:fixed;top:12px;right:12px;display:flex;gap:8px;z-index:9999;}
+.no-print button{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-family:"Courier New",monospace;font-size:11px;letter-spacing:1px;}
+.btn-print{background:#00c8ff;color:#0d1117;}
+.btn-close{background:#1e2535;color:#7a8499;border:1px solid rgba(255,255,255,0.1);}
+@media print{body{background:#fff;color:#000;}.report-header{border-color:#00c8ff;}.device-block{background:#f9f9f9;border-color:#ccc;}.device-title{color:#003580;}.no-print{display:none;}.chart-block{break-inside:avoid;background:#f5f5f5;}}
+</style></head>
+<body>
+<div class="no-print">
+  <button class="btn-print" onclick="window.print()">🖨 Save / Print PDF</button>
+  <button class="btn-close" onclick="window.close()">✕ Close</button>
+</div>
+<div class="report-header">
+  <h1>Exhaust Fan Monitoring</h1>
+  <div class="meta">7-Day Performance Report &nbsp;|&nbsp; Generated: ${reportDate}</div>
+  <div class="meta">Period: ${startDate.toLocaleString()} → ${endDate.toLocaleString()}</div>
+  <div class="meta">${devKeys.length} Units &nbsp;|&nbsp; ${allPointHistory.length} Trend Points</div>
+</div>
+${sectionsHTML}
+</body></html>`;
+
+        container.innerHTML = origHTML;
+        const win = window.open('','_blank');
+        if (win) { win.document.write(pdfHTML); win.document.close(); }
+        else alert('Pop-up blocked — please allow pop-ups and try again.');
+    } catch(err) {
+        container.innerHTML = origHTML;
+        alert('Report generation failed: '+err.message);
+    }
+}
+
+// Create PDF button after config loads
+setTimeout(async () => {
+    try {
+        const fullFilename = window.location.pathname.split('/').pop();
+        const resp = await fetch('../Global.json');
+        const data = await resp.json();
+        const gv   = data.globalVariables || {};
+        // Collect all EF devices for PDF
+        const efConfig = {};
+        Object.keys(gv).forEach(k => {
+            const u=k.toUpperCase();
+            if (u.startsWith('EF')||u.startsWith('EXHAUST')||u.startsWith('FAN')) efConfig[k]=gv[k];
+        });
+        if (!Object.keys(efConfig).length) return;
+
+        const container = document.getElementById('pdf-button-container');
+        if (!container) return;
+        container.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.textContent = '📄 Weekly Exhaust Fan PDF Report (7 days)';
+        btn.style.cssText = 'padding:8px 18px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);border-radius:6px;color:var(--accent);cursor:pointer;font-family:var(--font-head);font-size:clamp(9px,0.7vw,12px);letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;';
+        btn.onclick = () => generateEFWeeklyPDFReport(efConfig);
+        btn.onmouseover = () => { btn.style.background='rgba(0,200,255,0.2)'; btn.style.borderColor='var(--accent)'; };
+        btn.onmouseout  = () => { btn.style.background='rgba(0,200,255,0.1)'; btn.style.borderColor='rgba(0,200,255,0.3)'; };
+        container.appendChild(btn);
+    } catch(e) { console.error('PDF button init:', e); }
+}, 200);
+</script>
+
+</body>
+</html>

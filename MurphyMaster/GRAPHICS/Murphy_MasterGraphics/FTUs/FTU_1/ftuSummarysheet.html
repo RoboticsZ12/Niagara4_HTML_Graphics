@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - FTU Summary</title>
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    <style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-deep:#0d1117;--bg-panel:#161b27;--bg-card:#1e2535;--bg-card-hover:#252d42;
+  --accent:#00c8ff;--accent-glow:rgba(0,200,255,0.25);
+  --green:#00e676;--red:#ff4444;--amber:#ffab00;
+  --text-primary:#e8ecf4;--text-muted:#7a8499;
+  --border:rgba(0,200,255,0.15);
+  --font-head:'Courier New',Courier,monospace;--font-body:Georgia,'Times New Roman',serif;
+  --transition:0.22s cubic-bezier(0.4,0,0.2,1);
+  --tbl-border:#2a3550;--tbl-head-bg:#0f1825;--tbl-row-even:#141c2e;--tbl-row-odd:#1a2438;--tbl-row-hover:#1e2d45;
+  --thresh-over:#e67e00;--thresh-under:#0e7a8a;
+  --thresh-over-bg:rgba(230,126,0,0.18);--thresh-under-bg:rgba(14,122,138,0.22);
+}
+body.light-mode {
+  --bg-deep:#f0f4f8;--bg-panel:#ffffff;--bg-card:#e8edf5;--bg-card-hover:#dce4f0;
+  --accent:#dc143c;--accent-glow:rgba(220,20,60,0.18);
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;
+  --text-primary:#1a1e2a;--text-muted:#4b5563;
+  --border:rgba(220,20,60,0.18);
+  --tbl-border:#c5cedc;--tbl-head-bg:#dce4f0;--tbl-row-even:#f5f8fc;--tbl-row-odd:#eef2f8;--tbl-row-hover:#e2e9f4;
+}
+html{height:100%;overflow:hidden;}
+body{height:100%;font-family:var(--font-body);background:var(--bg-deep);color:var(--text-primary);display:flex;flex-direction:column;overflow:hidden;opacity:0;transition:opacity 0.6s ease,background 0.3s ease,color 0.3s ease;}
+body.fade-in{opacity:1;}body.fade-out{opacity:0;transition:opacity 0.3s ease;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:200;opacity:0;visibility:hidden;transition:var(--transition);}
+.overlay.active{opacity:1;visibility:visible;}
+.side-panel{position:fixed;top:0;left:-300px;width:280px;height:100vh;background:var(--bg-panel);border-right:1px solid var(--border);z-index:300;transition:left 0.3s ease;padding:80px 0 20px;overflow-y:auto;}
+.side-panel.active{left:0;}
+.side-panel-header{padding:20px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+.side-panel-header h2{font-family:var(--font-head);font-size:14px;letter-spacing:2px;color:var(--accent);font-weight:normal;}
+.side-panel-header p{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.nav-image-grid{padding:10px 14px;display:flex;flex-direction:column;gap:7px;}
+.nav-image-btn{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;cursor:pointer;text-decoration:none;transition:var(--transition);position:relative;overflow:hidden;color:var(--text-primary);}
+.nav-image-btn::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity 0.2s;}
+.nav-image-btn:hover{border-color:var(--accent);background:var(--bg-card-hover);transform:translateX(3px);}
+.nav-image-btn:hover::before{opacity:1;}
+.nav-btn-icon{width:40px;height:40px;border-radius:8px;background:rgba(0,200,255,0.08);border:1px solid rgba(0,200,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;}
+body.light-mode .nav-btn-icon{background:rgba(220,20,60,0.08);border-color:rgba(220,20,60,0.15);}
+.nav-btn-text{display:flex;flex-direction:column;gap:2px;}
+.nav-btn-label{font-family:var(--font-head);font-size:12px;color:var(--text-primary);letter-spacing:0.5px;}
+.nav-btn-sublabel{font-family:var(--font-head);font-size:10px;color:var(--text-muted);letter-spacing:0.5px;}
+.top-bar{background:rgba(13,17,23,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:64px;flex-shrink:0;position:relative;z-index:100;backdrop-filter:blur(12px);transition:background 0.3s ease;}
+body.light-mode .top-bar{background:rgba(255,255,255,0.97);box-shadow:0 1px 12px rgba(0,0,0,0.08);}
+.top-bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.hamburger{width:36px;height:36px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;transition:var(--transition);flex-shrink:0;}
+.hamburger:hover{border-color:var(--accent);background:var(--bg-card-hover);}
+.hamburger-line{width:18px;height:2px;background:var(--text-primary);border-radius:2px;transition:var(--transition);}
+.hamburger.active .hamburger-line:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
+.hamburger.active .hamburger-line:nth-child(2){opacity:0;}
+.hamburger.active .hamburger-line:nth-child(3){transform:rotate(-45deg) translate(5px,-5px);}
+.top-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
+.site-label{font-family:var(--font-head);font-size:12px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;}
+.page-title{font-family:var(--font-head);font-size:18px;font-weight:normal;letter-spacing:1px;color:var(--text-primary);}
+.top-right{display:flex;align-items:center;gap:12px;}
+.theme-toggle-wrap{display:flex;align-items:center;gap:8px;}
+.theme-label{font-family:var(--font-head);font-size:11px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;}
+.switch{position:relative;display:inline-block;width:42px;height:22px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg-card);border:1px solid var(--border);border-radius:34px;transition:0.3s;}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:2px;bottom:2px;background:var(--text-muted);border-radius:50%;transition:0.3s;}
+input:checked+.slider{background:var(--accent-glow);border-color:var(--accent);}
+input:checked+.slider:before{transform:translateX(20px);background:var(--accent);}
+.user-badge{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:8px;font-family:var(--font-head);}
+.user-dot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);}
+#userDisplay{color:var(--text-primary);}
+.main-content{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;}
+#ftu-export-controls{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;}
+#ftu-export-controls input[type="datetime-local"]{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);padding:8px 12px;font-family:var(--font-head);font-size:12px;letter-spacing:0.5px;transition:var(--transition);outline:none;cursor:pointer;}
+#ftu-export-controls input[type="datetime-local"]:focus,#ftu-export-controls input[type="datetime-local"]:hover{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow);}
+#ftu-export-controls input::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1) hue-rotate(160deg);cursor:pointer;}
+body.light-mode #ftu-export-controls input::-webkit-calendar-picker-indicator{filter:invert(0.3) sepia(1) hue-rotate(320deg);}
+.export-btn{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);padding:8px 18px;font-family:var(--font-head);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:8px;transition:var(--transition);white-space:nowrap;}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--bg-card-hover);box-shadow:0 0 12px var(--accent-glow);}
+.table-scroll-wrap{flex:1;overflow-x:auto;overflow-y:auto;min-height:0;min-width:0;-webkit-overflow-scrolling:touch;padding:24px 32px;}
+.table-scroll-wrap::-webkit-scrollbar{width:8px;height:8px;}
+.table-scroll-wrap::-webkit-scrollbar-track{background:var(--bg-panel);}
+.table-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(0,200,255,0.35);border-radius:4px;}
+.table-scroll-wrap::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+.table-scroll-wrap::-webkit-scrollbar-corner{background:var(--bg-panel);}
+#main-content{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;}
+.ftu-table{width:auto;min-width:860px;max-width:100%;margin:0 auto;border-collapse:separate;border-spacing:0;font-family:var(--font-head);font-size:15px;border:2px solid var(--tbl-border);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.ftu-table thead{position:sticky;top:0;z-index:10;}
+.ftu-table thead tr{background:var(--tbl-head-bg);}
+.ftu-table thead th{padding:13px 18px;font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:normal;text-align:center;border-bottom:2px solid var(--tbl-border);border-right:1px solid var(--tbl-border);white-space:nowrap;background:var(--tbl-head-bg);position:relative;}
+.ftu-table thead th:last-child{border-right:none;}
+.ftu-table thead th:first-child{text-align:left;}
+.ftu-table thead th.sortable{cursor:pointer;user-select:none;padding-right:30px;transition:background 0.15s,color 0.15s;}
+.ftu-table thead th.sortable:hover{background:rgba(0,200,255,0.12);color:#fff;}
+body.light-mode .ftu-table thead th.sortable:hover{background:rgba(220,20,60,0.10);}
+.ftu-table thead th.sortable::after{content:'⇅';position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:12px;opacity:0.35;transition:opacity 0.15s;}
+.ftu-table thead th.sortable:hover::after{opacity:0.75;}
+.ftu-table thead th.sort-asc::after{content:'▲';opacity:1;color:var(--accent);}
+.ftu-table thead th.sort-desc::after{content:'▼';opacity:1;color:var(--accent);}
+.ftu-table tbody tr:nth-child(even){background:var(--tbl-row-even);}
+.ftu-table tbody tr:nth-child(odd){background:var(--tbl-row-odd);}
+.ftu-table tbody tr:hover{background:var(--tbl-row-hover)!important;}
+.ftu-table td{
+  padding:11px 18px;text-align:center;border-bottom:1px solid var(--tbl-border);border-right:1px solid var(--tbl-border);
+  color:var(--text-primary);font-size:15px;vertical-align:middle;white-space:nowrap;
+  transition:background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ftu-table td:last-child{border-right:none;}
+.ftu-table tbody tr:last-child td{border-bottom:none;}
+.ftu-table td:first-child{text-align:left;}
+
+/* ── THRESHOLD COLORS ── */
+.temp-over-threshold{background-color:var(--thresh-over-bg)!important;color:var(--thresh-over)!important;font-weight:bold;}
+.temp-under-threshold{background-color:var(--thresh-under-bg)!important;color:#4dd8e8!important;font-weight:bold;}
+
+/* ── CELL ALARM STATE HIGHLIGHTS ── */
+.cell-alarm{
+  background-color:rgba(255,68,68,0.18)!important;
+  color:#ff6b6b!important;
+  font-weight:bold;
+  box-shadow:inset 0 0 0 2px rgba(255,68,68,0.7);
+  animation:cellAlarmPulse 1.8s ease-in-out infinite;
+  position:relative;
+}
+.cell-alarm::after{
+  content:'⚠';position:absolute;top:3px;right:5px;
+  font-size:9px;color:#ff4444;opacity:0.85;line-height:1;
+}
+@keyframes cellAlarmPulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(255,68,68,0.7),0 0 0 0 rgba(255,68,68,0);}
+  50%{box-shadow:inset 0 0 0 2px rgba(255,68,68,1),0 0 8px 2px rgba(255,68,68,0.3);}
+}
+
+.cell-override{
+  background-color:rgba(147,51,234,0.18)!important;
+  color:#c084fc!important;
+  font-weight:bold;
+  box-shadow:inset 0 0 0 2px rgba(147,51,234,0.6);
+  position:relative;
+}
+.cell-override::after{
+  content:'↑';position:absolute;top:3px;right:5px;
+  font-size:9px;color:#a855f7;opacity:0.85;font-weight:bold;line-height:1;
+}
+
+.cell-fault{
+  background-color:rgba(255,171,0,0.18)!important;
+  color:#ffcf40!important;
+  font-weight:bold;
+  box-shadow:inset 0 0 0 2px rgba(255,171,0,0.65);
+  animation:cellFaultPulse 2.4s ease-in-out infinite;
+  position:relative;
+}
+.cell-fault::after{
+  content:'⛔';position:absolute;top:3px;right:5px;
+  font-size:9px;opacity:0.85;line-height:1;
+}
+@keyframes cellFaultPulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(255,171,0,0.65),0 0 0 0 rgba(255,171,0,0);}
+  50%{box-shadow:inset 0 0 0 2px rgba(255,171,0,1),0 0 8px 2px rgba(255,171,0,0.28);}
+}
+
+body.light-mode .cell-alarm{background-color:rgba(220,38,38,0.12)!important;color:#b91c1c!important;box-shadow:inset 0 0 0 2px rgba(220,38,38,0.5);}
+body.light-mode .cell-override{background-color:rgba(126,34,206,0.10)!important;color:#7e22ce!important;box-shadow:inset 0 0 0 2px rgba(126,34,206,0.4);}
+body.light-mode .cell-fault{background-color:rgba(217,119,6,0.12)!important;color:#92400e!important;box-shadow:inset 0 0 0 2px rgba(217,119,6,0.5);}
+
+/* ── STATUS LEGEND ── */
+.status-legend{
+  display:flex;align-items:center;gap:20px;padding:9px 20px;
+  background:var(--bg-panel);border-bottom:1px solid var(--border);
+  flex-shrink:0;flex-wrap:wrap;
+}
+.legend-item{
+  display:flex;align-items:center;gap:7px;
+  font-family:var(--font-head);font-size:12px;font-weight:bold;
+  letter-spacing:1px;color:#ffffff;text-transform:uppercase;
+}
+.legend-swatch{width:16px;height:16px;border-radius:3px;flex-shrink:0;}
+.legend-swatch.alarm{background:rgba(255,68,68,0.25);box-shadow:inset 0 0 0 1.5px rgba(255,68,68,0.8);}
+.legend-swatch.override{background:rgba(147,51,234,0.25);box-shadow:inset 0 0 0 1.5px rgba(147,51,234,0.8);}
+.legend-swatch.fault{background:rgba(255,171,0,0.25);box-shadow:inset 0 0 0 1.5px rgba(255,171,0,0.8);}
+.legend-swatch.thresh-over{background:var(--thresh-over-bg);box-shadow:inset 0 0 0 1.5px var(--thresh-over);}
+.legend-swatch.thresh-under{background:var(--thresh-under-bg);box-shadow:inset 0 0 0 1.5px #4dd8e8;}
+
+.ftu-name{font-family:var(--font-head);font-size:15px;font-weight:bold;letter-spacing:0.5px;}
+.ftu-name a{color:var(--accent);text-decoration:none;transition:var(--transition);font-weight:bold;}
+.ftu-name a:hover{color:#fff;text-shadow:0 0 10px var(--accent);}
+.ftu-name a:visited{color:var(--accent);}
+body.light-mode .ftu-name a,body.light-mode .ftu-name a:visited{color:var(--accent);}
+body.light-mode .ftu-name a:hover{color:#1a1e2a;text-shadow:none;}
+.value-loading{color:var(--text-muted);font-style:italic;font-size:13px;letter-spacing:1px;}
+@keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...'}}
+.value-error{color:var(--red);font-size:14px;font-weight:bold;}
+.value-missing{color:var(--text-muted);font-size:13px;}
+.value-normal{color:var(--text-primary);font-family:var(--font-head);font-size:15px;}
+.value-active{color:var(--green);font-family:var(--font-head);font-weight:bold;font-size:15px;}
+.value-inactive{color:#8a9ab5;font-family:var(--font-head);font-weight:bold;font-size:15px;}
+.bottom-bar{background:rgba(13,17,23,0.97);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:50px;flex-shrink:0;position:relative;}
+body.light-mode .bottom-bar{background:rgba(255,255,255,0.97);box-shadow:0 -1px 12px rgba(0,0,0,0.06);}
+.bottom-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.back-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);padding:6px 16px;cursor:pointer;font-size:13px;font-family:var(--font-head);letter-spacing:1px;display:flex;align-items:center;gap:8px;transition:var(--transition);}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);}
+.datetime-display{font-family:var(--font-head);font-size:13px;color:var(--text-muted);letter-spacing:1px;}
+.logoff-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);padding:6px 16px;cursor:pointer;font-size:13px;font-family:var(--font-head);letter-spacing:1px;display:flex;align-items:center;gap:8px;transition:var(--transition);}
+.logoff-btn:hover{border-color:var(--red);color:var(--red);}
+.loading-msg{text-align:center;padding:60px 20px;color:var(--text-muted);font-family:var(--font-head);font-size:13px;letter-spacing:2px;}
+.error-msg{text-align:center;padding:60px 20px;color:var(--red);font-family:var(--font-head);font-size:13px;letter-spacing:1px;}
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header"><h2>NAV Sheet</h2><p>System Selection</p></div>
+  <div class="nav-image-grid">
+    <a href="../../Home.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/><rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+    <a href="../../FloorPlan.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+    <a href="../../Alarms.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="30" r="1.8" fill="var(--amber)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+    <a href="../../Users.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+    <a href="../../LogsNUMERIC.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/><rect x="8" y="20" width="5" height="14" fill="#e05252" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent)" rx="1"/><rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+    <a href="../../Shedules.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="26" height="26"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/><line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+  </div>
+</div>
+
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu"><div class="hamburger-line"></div><div class="hamburger-line"></div><div class="hamburger-line"></div></div>
+  <div class="top-center"><span class="site-label">Murphy Control</span><span class="page-title">FTU Summary Sheet</span></div>
+  <div class="top-right">
+    <div class="theme-toggle-wrap"><span class="theme-label">Light</span><label class="switch"><input type="checkbox" id="themeSwitch" onchange="toggleTheme()"><span class="slider"></span></label></div>
+    <div class="user-badge"><div class="user-dot"></div><span id="userDisplay">—</span></div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div id="main-content"><div class="loading-msg">Loading FTU data</div></div>
+</div>
+
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<script>
+function toggleTheme(){const c=document.getElementById('themeSwitch');document.body.classList.toggle('light-mode',c.checked);localStorage.setItem('theme',c.checked?'light':'dark');}
+document.addEventListener('DOMContentLoaded',function(){const s=localStorage.getItem('theme'),c=document.getElementById('themeSwitch');if(s==='light'){document.body.classList.add('light-mode');c.checked=true;}});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{document.body.classList.add('fade-in');document.body.addEventListener('click',e=>{const link=e.target.closest('a');if(!link||link.hostname!==window.location.hostname)return;e.preventDefault();const href=link.href;document.body.classList.remove('fade-in');document.body.classList.add('fade-out');setTimeout(()=>{window.location.href=href;},300);});});
+</script>
+<script>
+function updateDateTime(){const now=new Date(),opts={day:'2-digit',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true,timeZoneName:'short'};document.getElementById('currentDateTime').textContent=now.toLocaleString('en-US',opts).replace(',','');}
+updateDateTime();setInterval(updateDateTime,1000);
+</script>
+<script>
+window.onload=function(){const u=sessionStorage.getItem('username');if(u)document.getElementById('userDisplay').textContent=u;};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}</script>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const h=document.getElementById('hamburgerMenu'),s=document.getElementById('sidePanel'),o=document.getElementById('overlay');
+  h.addEventListener('click',()=>{h.classList.toggle('active');s.classList.toggle('active');o.classList.toggle('active');});
+  o.addEventListener('click',()=>{h.classList.remove('active');s.classList.remove('active');o.classList.remove('active');});
+});
+</script>
+
+<script>
+// SORT ENGINE
+const COL_NAME=0,COL_ST=1,COL_SP=2,COL_AF=3,COL_HEAT=4,COL_DAT=5,COL_DPR=6;
+let currentSortCol=null,currentSortDir=null;
+const SORTABLE_IDS={[COL_NAME]:'th-name',[COL_ST]:'th-space-temp',[COL_AF]:'th-air-flow',[COL_DAT]:'th-da-temp',[COL_DPR]:'th-dpr-pos'};
+function getNumericFromCell(td){const n=parseFloat(td.textContent.trim());return isNaN(n)?null:n;}
+function sortTable(colIndex){
+  const table=document.querySelector('.ftu-table');if(!table)return;
+  const tbody=table.querySelector('tbody');
+  const rows=Array.from(tbody.querySelectorAll('tr'));
+  if(currentSortCol===colIndex){currentSortDir=currentSortDir==='desc'?'asc':'desc';}else{currentSortCol=colIndex;currentSortDir='desc';}
+  rows.sort((a,b)=>{
+    const ca=a.querySelectorAll('td')[colIndex],cb=b.querySelectorAll('td')[colIndex];
+    if(!ca||!cb)return 0;
+    if(colIndex===COL_NAME){const ta=ca.textContent.trim().toLowerCase(),tb=cb.textContent.trim().toLowerCase();return currentSortDir==='desc'?-ta.localeCompare(tb):ta.localeCompare(tb);}
+    const na=getNumericFromCell(ca),nb=getNumericFromCell(cb);
+    if(na===null&&nb===null)return 0;if(na===null)return 1;if(nb===null)return -1;
+    return currentSortDir==='desc'?nb-na:na-nb;
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+  document.querySelectorAll('.ftu-table thead th.sortable').forEach(th=>th.classList.remove('sort-asc','sort-desc'));
+  const id=SORTABLE_IDS[colIndex];
+  if(id){const th=document.getElementById(id);if(th)th.classList.add(currentSortDir==='desc'?'sort-desc':'sort-asc');}
+}
+</script>
+
+<script>
+// FTU CORE
+let pointValues={},allFTUPoints={},subscriber;
+
+// ── RESOLVED POINT STORE (for status re-checks) ──
+const resolvedPoints={};
+
+function decodeFTUName(n){
+  return n.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))).replace(/\$20/gi,' ').replace(/\$2d/gi,'-').replace(/\$/g,'');
+}
+function stripStatusSuffix(str){if(typeof str!=='string')return str;return str.replace(/\s*\{[^}]*\}\s*$/,'').trim();}
+
+// function isAuthorizedUser(){const u=sessionStorage.getItem('username')||'murphy';return['murphy','admin'].includes(u.toLowerCase());}
+// if(!isAuthorizedUser()){document.getElementById('main-content').innerHTML='<div class="error-msg">Access Denied.</div>';throw new Error('Unauthorized');}
+
+function formatPointValue(value,pointId){
+  if(value===null||value===undefined||value==='N/A'||value==='Connection Error')return value==='Connection Error'?'Connection Error':'N/A';
+  if(typeof value==='string'&&value.startsWith('NO_'))return value;
+  if(typeof value==='string')value=stripStatusSuffix(value);
+  if(pointId==='Reheat1')return value?'Heat ON':'Heat OFF';
+  if(pointId==='Air-Flow'||pointId==='AirFlow-SP'){const n=typeof value==='number'?value:parseFloat(value);return isNaN(n)?String(value):Math.round(n)+' cfm';}
+  if(pointId==='DPR-Pos'){const n=typeof value==='number'?value:parseFloat(value);return isNaN(n)?String(value):Math.round(n)+'%';}
+  if(typeof value==='number')return value.toFixed(1)+'°F';
+  return String(value);
+}
+
+function getValueClass(value,pointId){
+  if(value===null||value===undefined||value==='N/A'||value==='Connection Error')return'value-error';
+  if(typeof value==='string'&&value.startsWith('NO_'))return'value-missing';
+  if(pointId==='Reheat1')return value?'value-active':'value-inactive';
+  return'value-normal';
+}
+
+function applyTempThresholdColor(ftuName){
+  const st=pointValues[ftuName]&&pointValues[ftuName]['Space-Temp'];
+  const sp=pointValues[ftuName]&&pointValues[ftuName]['Space-Setpoint'];
+  const cell=document.getElementById(`point-${ftuName}-Space-Temp`);
+  if(!cell)return;
+  if(!cell.classList.contains('cell-alarm')&&!cell.classList.contains('cell-fault')&&!cell.classList.contains('cell-override')){
+    cell.classList.remove('temp-over-threshold','temp-under-threshold');
+    if(typeof st!=='number'||typeof sp!=='number')return;
+    if(st>sp+3)cell.classList.add('temp-over-threshold');
+    else if(st<sp-3)cell.classList.add('temp-under-threshold');
+  }
+}
+
+function applyPointStatusHighlight(ftuName,pointId,point){
+  const cell=document.getElementById(`point-${ftuName}-${pointId}`);
+  if(!cell)return;
+  let raw='';
+  try{const status=point.getOut().getStatus();raw=status?status.toString().toLowerCase():'';}catch(e){raw='';}
+  cell.classList.remove('cell-alarm','cell-override','cell-fault');
+  cell.removeAttribute('title');
+  if(raw.includes('alarm')||raw.includes('offnormal')||raw.includes('unackedalarm')||raw.includes('unacked')){
+    cell.classList.add('cell-alarm');cell.title='STATUS: '+raw.toUpperCase();
+    cell.classList.remove('temp-over-threshold','temp-under-threshold');return;
+  }
+  if((raw.includes('fault')&&raw.includes('down'))||raw.includes('stale')||raw.includes('fault')||raw.includes('down')|| (raw.includes('fault')&&!raw.includes('override'))){
+    cell.classList.add('cell-fault');cell.title='STATUS: '+raw.toUpperCase();
+    cell.classList.remove('temp-over-threshold','temp-under-threshold');return;
+  }
+  if(raw.includes('overridden')){
+    cell.classList.add('cell-override');cell.title='STATUS: OVERRIDDEN';
+    cell.classList.remove('temp-over-threshold','temp-under-threshold');return;
+  }
+  if(pointId==='Space-Temp')applyTempThresholdColor(ftuName);
+}
+
+function updatePointValue(ftuName,pointId,value){
+  if(typeof value==='string')value=stripStatusSuffix(value);
+  const el=document.getElementById(`point-${ftuName}-${pointId}`);
+  if(el){
+    el.textContent=formatPointValue(value,pointId);
+    el.className=getValueClass(value,pointId);
+    if(resolvedPoints[ftuName]&&resolvedPoints[ftuName][pointId]){
+      applyPointStatusHighlight(ftuName,pointId,resolvedPoints[ftuName][pointId]);
+    }
+    if(!pointValues[ftuName])pointValues[ftuName]={};
+    pointValues[ftuName][pointId]=value;
+    if(pointId==='Space-Temp'||pointId==='Space-Setpoint')applyTempThresholdColor(ftuName);
+  }
+}
+
+try{
+  require(['baja!'],function(baja){
+    subscriber=new baja.Subscriber();
+    subscriber.attach('changed',function(prop){
+      if(prop.getName()==='out'){
+        const pi=this.userData;
+        if(pi){
+          const raw=this.getOut().getValue();
+          updatePointValue(pi.ftuName,pi.pointId,typeof raw==='string'?stripStatusSuffix(raw):raw);
+          applyPointStatusHighlight(pi.ftuName,pi.pointId,this);
+        }
+      }
+    });
+  });
+}catch(e){console.error('Subscriber init failed:',e);}
+
+function subscribeToPoint(ftuName,pointId,pointPath){
+  try{
+    require(['baja!'],function(baja){
+      baja.Ord.make(pointPath).get({subscriber:subscriber})
+        .then(point=>{
+          point.userData={ftuName,pointId,pointPath};
+          if(!resolvedPoints[ftuName])resolvedPoints[ftuName]={};
+          resolvedPoints[ftuName][pointId]=point;
+          const raw=point.getOut().getValue();
+          updatePointValue(ftuName,pointId,typeof raw==='string'?stripStatusSuffix(raw):raw);
+          applyPointStatusHighlight(ftuName,pointId,point);
+        })
+        .catch(()=>updatePointValue(ftuName,pointId,'Connection Error'));
+    });
+  }catch(e){updatePointValue(ftuName,pointId,'Connection Error');}
+}
+
+function createFTUDisplay(ftuData){
+  const mc=document.getElementById('main-content');
+  if(Object.keys(ftuData).length===0){mc.innerHTML='<div class="error-msg">No FTU configurations found.</div>';return;}
+
+  const legendHTML=`<div class="status-legend">
+    <span style="font-family:var(--font-head);font-size:11px;font-weight:bold;letter-spacing:2px;color:#ffffff;text-transform:uppercase;margin-right:4px;">Legend:</span>
+    <span class="legend-item"><span class="legend-swatch alarm"></span><span>⚠ In Alarm</span></span>
+    <span class="legend-item"><span class="legend-swatch fault"></span><span>⛔ Fault / Down</span></span>
+    <span class="legend-item"><span class="legend-swatch override"></span><span>↑ Overridden</span></span>
+    <span class="legend-item"><span class="legend-swatch thresh-over"></span><span>Too Hot (+3°F)</span></span>
+    <span class="legend-item"><span class="legend-swatch thresh-under"></span><span>Too Cold (−3°F)</span></span>
+  </div>`;
+
+  let html=`${legendHTML}<div class="table-scroll-wrap"><table class="ftu-table"><thead><tr>
+    <th id="th-name" class="sortable" onclick="sortTable(${COL_NAME})">Name</th>
+    <th id="th-space-temp" class="sortable" onclick="sortTable(${COL_ST})">Space Temp</th>
+    <th>Space Setpoint</th>
+    <th id="th-air-flow" class="sortable" onclick="sortTable(${COL_AF})">Air Flow</th>
+    <th>Heat Cmd</th>
+    <th id="th-da-temp" class="sortable" onclick="sortTable(${COL_DAT})">DA Temp</th>
+    <th id="th-dpr-pos" class="sortable" onclick="sortTable(${COL_DPR})">Damp Pos</th>
+  </tr></thead><tbody>`;
+
+const sortedNames=Object.keys(ftuData).sort((a,b)=>{
+  const da=decodeFTUName(a), db=decodeFTUName(b);
+  const ma=da.match(/(\d+)[^\d]*(\d+)\s*$/), mb=db.match(/(\d+)[^\d]*(\d+)\s*$/);
+  if(ma&&mb){
+    const p=parseInt(ma[1],10)-parseInt(mb[1],10);
+    if(p!==0)return p;
+    return parseInt(ma[2],10)-parseInt(mb[2],10);
+  }
+  const sa=da.match(/(\d+)\s*$/), sb=db.match(/(\d+)\s*$/);
+  if(sa&&sb)return parseInt(sa[1],10)-parseInt(sb[1],10);
+  return da.localeCompare(db);
+});  sortedNames.forEach(ftuName=>{
+    // const dn=decodeFTUName(ftuName),ftuLink=`../../FTUs/${ftuName}.html`;
+    
+   const dn=decodeFTUName(ftuName);
+const pathParts = window.location.pathname.split('/');
+const folderName = pathParts[pathParts.length - 2]; // e.g. "FTU_1"
+const htmlName = folderName.replace('_', ''); // "FTU_1" → "FTU1"
+const ftuLink=`${htmlName}.html?unit=${encodeURIComponent(ftuName)}`;
+    html+=`<tr>
+      <td class="ftu-name" id="ftu-name-${ftuName}"><a href="${ftuLink}">${dn}</a></td>
+      <td id="point-${ftuName}-Space-Temp" class="value-loading">Loading</td>
+      <td id="point-${ftuName}-Space-Setpoint" class="value-loading">Loading</td>
+      <td id="point-${ftuName}-Air-Flow" class="value-loading">Loading</td>
+      <td id="point-${ftuName}-Reheat1" class="value-loading">Loading</td>
+      <td id="point-${ftuName}-DA-T" class="value-loading">Loading</td>
+      <td id="point-${ftuName}-DPR-Pos" class="value-loading">Loading</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  mc.innerHTML=html;
+
+  const mn={'Space-Temp':'NO_Space Temp','Space-Setpoint':'NO_Space Setpoint','Air-Flow':'NO_Air Flow','Reheat1':'NO_Heat Command','DA-T':'NO_DA Temp','DPR-Pos':'NO_Damper Pos'};
+  sortedNames.forEach(ftuName=>{
+    const points=ftuData[ftuName];
+    const pm={'Space-Temp':points.find(p=>p.id==='Space-Temp'),'Space-Setpoint':points.find(p=>p.id==='Space-Setpoint'),'Air-Flow':points.find(p=>p.id==='Air-Flow'),'Reheat1':points.find(p=>p.id==='Reheat1'),'DA-T':points.find(p=>p.id==='DA-T'),'DPR-Pos':points.find(p=>p.id==='DPR-Pos')};
+    Object.keys(pm).forEach(pid=>{const pt=pm[pid];if(pt&&pt.status==='connected'&&pt.fullPath)subscribeToPoint(ftuName,pid,pt.fullPath);else updatePointValue(ftuName,pid,mn[pid]||'N/A');});
+  });
+}
+
+async function loadAndDisplayFTUPoints(){
+  try{
+    // 1. Get floor number from URL (e.g. /FTUs/FTU_3/ → "3")
+    const pathMatch = window.location.pathname.match(/\/FTUs\/FTU_(\d+)\//i);
+    if(!pathMatch) throw new Error('Could not determine FTU floor from URL path');
+    const currentFloor = pathMatch[1];
+    const normalizeFloor = f => f ? f.toString().replace(/_(E|W)$/i,'') : null;
+
+    // 2. Load HomeConfig to get only the FTUs on this floor
+    const hcr = await fetch('../../HomeConfig.json');
+    if(!hcr.ok) throw new Error(`Failed to load HomeConfig.json: ${hcr.status}`);
+    const hcd = await hcr.json();
+
+    const onFloor = (hcd.FTU || []).filter(v => {
+      const fn = v.FLNUM || v.floornumber;
+      const nv = normalizeFloor(fn);
+      const nA = String(nv).replace(/^0+/,'') || '0';
+      const nB = String(currentFloor).replace(/^0+/,'') || '0';
+      return nA === nB;
+    });
+
+    if(!onFloor.length){
+      document.getElementById('main-content').innerHTML =
+        `<div class="error-msg">No FTUs configured for floor ${currentFloor}.</div>`;
+      return;
+    }
+
+    // 3. Load Global.json and filter to only units on this floor
+    const gr = await fetch('../../Global.json');
+    if(!gr.ok) throw new Error(`Failed to load Global.json: ${gr.status}`);
+    const gd = await gr.json();
+
+    const ftuConfigs = {};
+    Object.keys(gd.globalVariables).forEach(key => {
+      const kl = key.toLowerCase();
+      if(kl.startsWith('ftu_') || kl.startsWith('ft_') || kl.includes('ftu') || kl.includes('terminalunit')){
+        const onThis = onFloor.some(v => {
+          if(!v.name) return false;
+          const cn = v.name.toUpperCase().replace(/[-_]/g,'_');
+          const gn = key.toUpperCase().replace(/[-_]/g,'_');
+          return gn === cn;
+        });
+        if(onThis){
+          const pts = gd.globalVariables[key].points.filter(p => p.status === 'connected');
+          if(pts.length > 0) ftuConfigs[key] = pts;
+        }
+      }
+    });
+
+    allFTUPoints = ftuConfigs;
+    createFTUDisplay(ftuConfigs);
+  }catch(e){
+    document.getElementById('main-content').innerHTML =
+      `<div class="error-msg">Error loading FTU data: ${e.message}</div>`;
+  }
+}
+function cleanup(){if(subscriber)subscriber.unsubscribeAll();}
+window.addEventListener('beforeunload',cleanup);
+loadAndDisplayFTUPoints();
+</script>
+
+<script>
+// HISTORY EXPORT
+let ftuHistoryCache=new Map();
+function decodeFTUNameExport(n){if(!n)return'';return n.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16)));}
+async function discoverFTUHistoryOrd(pointOrd){return new Promise((res,rej)=>{try{require(['baja!'],function(baja){baja.Ord.make(pointOrd).get().then(e=>e.tags()).then(tm=>{const ht=tm.get('n:history');if(ht&&ht.toString().trim()!==''){let hp=ht.toString();if(!hp.startsWith('history:'))hp='history:'+hp;res(hp);}else rej(new Error('No n:history tag'));}).catch(e=>rej(new Error('Failed to load point tags: '+e.message)));});}catch(e){rej(e);}});}
+async function loadFTUHistoryData(pointPath,startTime,endTime,maxPoints=1000){return new Promise(async(res,rej)=>{try{let ho=ftuHistoryCache.get(pointPath);if(!ho){try{ho=await discoverFTUHistoryOrd(pointPath);ftuHistoryCache.set(pointPath,ho);}catch(e){res([]);return;}}require(['baja!'],function(baja){const tc=`timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;const dp=[];baja.Ord.make(ho+'|bql:select timestamp, value where '+tc+' order by timestamp').get({cursor:{limit:maxPoints,each:function(){const r=this.get(),rt=r.get('timestamp'),v=r.get('value'),d=new Date(rt.getMillis());dp.push({timestamp:d,timestampString:d.toLocaleString(),value:v});}}}).then(()=>res(dp)).catch(e=>rej(new Error('Failed to load history: '+e.message)));});}catch(e){rej(e);}});}
+function getAllFTUPointPaths(){const paths=[];Object.keys(allFTUPoints).forEach(ftuName=>{const pts=allFTUPoints[ftuName];const pm={'Space-Temp':pts.find(p=>p.id==='Space-Temp'),'Space-Setpoint':pts.find(p=>p.id==='Space-Setpoint'),'Air-Flow':pts.find(p=>p.id==='Air-Flow'),'Reheat1':pts.find(p=>p.id==='Reheat1'),'DA-T':pts.find(p=>p.id==='DA-T'),'DPR-Pos':pts.find(p=>p.id==='DPR-Pos')};Object.keys(pm).forEach(pid=>{const pt=pm[pid];if(pt&&pt.status==='connected'&&pt.fullPath)paths.push({name:`${decodeFTUNameExport(ftuName)}_${pid}`,ftuName:decodeFTUNameExport(ftuName),pointId:pid,path:pt.fullPath});});});return paths;}
+
+async function exportFTUHistoryToCSV(){
+  const mc=document.getElementById('main-content'),oc=mc.innerHTML;
+  mc.innerHTML='<div class="loading-msg">Loading historical data for CSV export</div>';
+  try{
+    const sd=new Date(document.getElementById('ftu-start-datetime').value),ed=new Date(document.getElementById('ftu-end-datetime').value);
+    const ap=getAllFTUPointPaths();if(!ap.length){mc.innerHTML=oc;alert('No data points available');return;}
+    const ahd=await Promise.all(ap.map(p=>loadFTUHistoryData(p.path,sd,ed,1000).then(d=>({pointName:p.name,data:d}))));
+    const tm=new Map();ahd.forEach(ph=>ph.data.forEach(r=>{const ts=r.timestampString;if(!tm.has(ts))tm.set(ts,{timestamp:ts});tm.get(ts)[ph.pointName]=r.value;}));
+    const sortedData=Array.from(tm.values()).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+    if(!sortedData.length){mc.innerHTML=oc;alert('No historical data found for the selected time range');return;}
+    let csv=['Timestamp',...ap.map(p=>p.name)].join(',')+'\n';
+    sortedData.forEach(row=>{const st=`"${row.timestamp.replace(/"/g,'""')}"`;csv+=[st,...ap.map(p=>{const v=row[p.name];if(v===undefined||v===null)return'';const s=String(v);return(s.includes(',')||s.includes('"'))?`"${s.replace(/"/g,'""')}"`:s;})].join(',')+'\n';});
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),link=document.createElement('a'),url=URL.createObjectURL(blob);
+    link.setAttribute('href',url);link.setAttribute('download',`FTU_History_${sd.toISOString().slice(0,10)}_to_${ed.toISOString().slice(0,10)}.csv`);link.style.visibility='hidden';document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);
+    mc.innerHTML=oc;alert(`CSV exported successfully: ${sortedData.length} readings`);
+  }catch(e){mc.innerHTML=oc;alert('Failed to export CSV: '+e.message);}
+}
+
+// ── SVG CHART BUILDER ──
+function buildFTUSVGChart(data, label, unit, width, height) {
+  width = width || 860;
+  height = height || 200;
+  const pad = { top:32, right:24, bottom:44, left:68 };
+  const gW = width  - pad.left - pad.right;
+  const gH = height - pad.top  - pad.bottom;
+
+  const rawVals = data.map(d =>
+    typeof d.value === 'boolean' ? (d.value ? 1 : 0) : parseFloat(d.value)
+  ).filter(v => !isNaN(v));
+
+  if (!rawVals.length) {
+    return `<svg width="${width}" height="60" xmlns="http://www.w3.org/2000/svg">
+      <text x="${width/2}" y="36" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#999">No numeric data available</text>
+    </svg>`;
+  }
+
+  const minV  = Math.min(...rawVals);
+  const maxV  = Math.max(...rawVals);
+  const rangeV = maxV - minV || 1;
+  const times  = data.map(d => d.timestamp.getTime());
+  const minT   = Math.min(...times);
+  const maxT   = Math.max(...times);
+  const rangeT = maxT - minT || 1;
+
+  const xOf = t => pad.left + ((t - minT) / rangeT) * gW;
+  const yOf = v => pad.top  + gH - ((v - minV) / rangeV) * gH;
+
+  // Polyline points
+  const pts = data.map((d, i) => {
+    const v = typeof d.value === 'boolean' ? (d.value ? 1 : 0) : parseFloat(d.value);
+    if (isNaN(v)) return null;
+    return `${xOf(times[i]).toFixed(1)},${yOf(v).toFixed(1)}`;
+  }).filter(Boolean).join(' ');
+
+  // Y-axis ticks (5)
+  let yTicks = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = minV + (rangeV / 4) * i;
+    const y = yOf(v);
+    yTicks += `<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${pad.left + gW}" y2="${y.toFixed(1)}" stroke="#dde3ee" stroke-width="0.8"/>
+      <text x="${(pad.left - 6).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#556">${v.toFixed(1)}</text>`;
+  }
+
+  // X-axis ticks (5)
+  let xTicks = '';
+  for (let i = 0; i <= 4; i++) {
+    const t   = minT + (rangeT / 4) * i;
+    const x   = xOf(t);
+    const lbl = new Date(t).toLocaleString([], { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    xTicks += `<text x="${x.toFixed(1)}" y="${(pad.top + gH + 30).toFixed(1)}" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#556">${lbl}</text>`;
+  }
+
+  const avg = (rawVals.reduce((a, b) => a + b, 0) / rawVals.length).toFixed(2);
+  const u   = unit ? ` ${unit}` : '';
+  const avgY = yOf(parseFloat(avg));
+
+  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;display:block;">
+    <rect x="${pad.left}" y="${pad.top}" width="${gW}" height="${gH}" fill="#f7f9ff" stroke="#c8d4ee" stroke-width="0.8" rx="2"/>
+    <text x="${width / 2}" y="20" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#003580">${label}</text>
+    <text x="${pad.left - 8}" y="${pad.top - 6}" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#888">${u}</text>
+    ${yTicks}
+    ${xTicks}
+    <line x1="${pad.left}" y1="${avgY.toFixed(1)}" x2="${pad.left + gW}" y2="${avgY.toFixed(1)}" stroke="#ffab00" stroke-width="1.2" stroke-dasharray="5,3"/>
+    <text x="${(pad.left + gW + 4).toFixed(1)}" y="${(avgY + 4).toFixed(1)}" font-family="Arial,sans-serif" font-size="8" fill="#c07000">avg</text>
+    <polyline points="${pts}" fill="none" stroke="#003580" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + gH}" stroke="#8899cc" stroke-width="1.2"/>
+    <line x1="${pad.left}" y1="${pad.top + gH}" x2="${pad.left + gW}" y2="${pad.top + gH}" stroke="#8899cc" stroke-width="1.2"/>
+    <text x="${pad.left + gW}" y="${pad.top - 6}" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#556">
+      Min: ${Math.min(...rawVals).toFixed(2)}${u}  Avg: ${avg}${u}  Max: ${Math.max(...rawVals).toFixed(2)}${u}  n=${rawVals.length}
+    </text>
+  </svg>`;
+}
+
+// ── TIMESTAMP TABLE BUILDER ──
+function buildFTUTimestampTable(data, unit) {
+  if (!data.length) return `<p style="color:#999;font-size:8pt;font-family:Arial,sans-serif;padding:6px 0;">No records in this range.</p>`;
+  const u = unit ? ` ${unit}` : '';
+  let rows = '';
+  data.forEach((d, i) => {
+    const bg = i % 2 === 0 ? '#f4f6ff' : '#ffffff';
+    let v;
+    if (typeof d.value === 'boolean') {
+      v = d.value ? 'ON' : 'OFF';
+    } else {
+      const f = parseFloat(d.value);
+      v = isNaN(f) ? String(d.value) : f.toFixed(2) + u;
+    }
+    rows += `<tr style="background:${bg}">
+      <td style="padding:3px 8px;border:1px solid #dde;font-size:8pt;">${d.timestampString}</td>
+      <td style="padding:3px 8px;border:1px solid #dde;font-size:8pt;text-align:right;font-weight:bold;font-family:monospace;">${v}</td>
+    </tr>`;
+  });
+  return `<table style="width:100%;border-collapse:collapse;margin-top:4px;">
+    <thead>
+      <tr style="background:#003580;color:#fff;">
+        <th style="padding:5px 8px;text-align:left;font-size:8pt;font-weight:normal;letter-spacing:.5px;">Timestamp</th>
+        <th style="padding:5px 8px;text-align:right;font-size:8pt;font-weight:normal;letter-spacing:.5px;">Value${unit ? ' (' + unit + ')' : ''}</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── PDF REPORT with inline SVG charts ──
+async function generateFTUHistoryPDFReport(){
+  const mc=document.getElementById('main-content'),oc=mc.innerHTML;
+  mc.innerHTML='<div class="loading-msg">Loading historical data for PDF report</div>';
+  try{
+    const sd=new Date(document.getElementById('ftu-start-datetime').value);
+    const ed=new Date(document.getElementById('ftu-end-datetime').value);
+    const ap=getAllFTUPointPaths();
+    if(!ap.length){mc.innerHTML=oc;alert('No data points available');return;}
+
+    const POINT_META = {
+      'Space-Temp':    { label: 'Space Temperature', unit: '°F'  },
+      'Space-Setpoint':{ label: 'Space Setpoint',    unit: '°F'  },
+      'Air-Flow':      { label: 'Air Flow',           unit: 'CFM' },
+      'DPR-Pos':       { label: 'Damper Position',    unit: '%'   },
+      'Reheat1':       { label: 'Reheat Command',     unit: ''    },
+      'DA-T':          { label: 'Discharge Air Temp', unit: '°F'  },
+    };
+
+    // Load all history
+    const ahd = await Promise.all(
+      ap.map(p =>
+        loadFTUHistoryData(p.path, sd, ed, 2000)
+          .then(data => ({ ...p, data }))
+          .catch(()   => ({ ...p, data: [] }))
+      )
+    );
+
+    // Group by FTU name
+    const ftuGroups = {};
+    ahd.forEach(ph => {
+      if (!ftuGroups[ph.ftuName]) ftuGroups[ph.ftuName] = [];
+      ftuGroups[ph.ftuName].push(ph);
+    });
+
+    const sortedFTUNames = Object.keys(ftuGroups).sort();
+    const reportDate = new Date().toLocaleString();
+
+    // ── Summary stats table ──
+    let summaryHTML = `<div class="section">
+      <h2>Summary Statistics</h2>`;
+
+    sortedFTUNames.forEach(fn => {
+      const pts = ftuGroups[fn];
+      summaryHTML += `<h3>${fn}</h3>
+        <table>
+          <thead><tr>
+            <th>Point</th><th>Latest</th><th>Min</th><th>Avg</th><th>Max</th><th>Records</th>
+          </tr></thead>
+          <tbody>`;
+      pts.forEach((pt, i) => {
+        const meta = POINT_META[pt.pointId] || { label: pt.pointId, unit: '' };
+        const u    = meta.unit;
+        const bg   = i % 2 === 0 ? '#f5f7ff' : '#ffffff';
+        const vals = pt.data.map(d =>
+          typeof d.value === 'boolean' ? (d.value ? 1 : 0) : parseFloat(d.value)
+        ).filter(v => !isNaN(v));
+
+        if (!vals.length) {
+          summaryHTML += `<tr style="background:${bg}">
+            <td>${meta.label}</td>
+            <td colspan="5" style="text-align:center;color:#999;">No numeric data (${pt.data.length} records)</td>
+          </tr>`;
+        } else {
+          const min = Math.min(...vals), max = Math.max(...vals);
+          const avg = (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+          const latest = pt.data.length ? pt.data[pt.data.length-1].value : null;
+          let lv = 'N/A';
+          if (latest !== null) {
+            if (typeof latest === 'boolean') lv = latest ? 'ON' : 'OFF';
+            else { const f = parseFloat(latest); lv = isNaN(f) ? String(latest) : f.toFixed(2) + (u ? ' ' + u : ''); }
+          }
+          summaryHTML += `<tr style="background:${bg}">
+            <td style="font-weight:500;">${meta.label}</td>
+            <td><strong>${lv}</strong></td>
+            <td>${min.toFixed(2)}${u ? ' ' + u : ''}</td>
+            <td>${avg}${u ? ' ' + u : ''}</td>
+            <td>${max.toFixed(2)}${u ? ' ' + u : ''}</td>
+            <td style="text-align:center;">${vals.length}</td>
+          </tr>`;
+        }
+      });
+      summaryHTML += `</tbody></table>`;
+    });
+    summaryHTML += `</div>`;
+
+    // ── Per-point charts + timestamp tables ──
+    let detailHTML = `<div class="section page-break"><h2>Per-Point Charts &amp; Historical Data</h2>
+      <p class="sub-note">Each point shows an inline trend chart followed by the full timestamped log for the selected range.</p>`;
+
+    sortedFTUNames.forEach(fn => {
+      const pts = ftuGroups[fn];
+      detailHTML += `<div class="ftu-block"><h3>${fn}</h3>`;
+      pts.forEach(pt => {
+        const meta  = POINT_META[pt.pointId] || { label: pt.pointId, unit: '' };
+        const chart = buildFTUSVGChart(pt.data, `${fn} — ${meta.label}`, meta.unit, 860, 200);
+        const table = buildFTUTimestampTable(pt.data, meta.unit);
+        detailHTML += `
+          <div class="point-block">
+            <h4>${meta.label} <span class="rec-count">(${pt.data.length} records)</span></h4>
+            <div class="chart-wrap">${chart}</div>
+            <details>
+              <summary>▶ Show all ${pt.data.length} timestamp records</summary>
+              <div class="table-scroll">${table}</div>
+            </details>
+          </div>`;
+      });
+      detailHTML += `</div>`;
+    });
+    detailHTML += `</div>`;
+
+    // ── Assemble full PDF HTML ──
+    const pdfHTML = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>FTU Performance Report — ${reportDate}</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: Arial, sans-serif; padding: 12mm 15mm; font-size: 10pt; color: #111; background: #fff; }
+
+.report-header { text-align:center; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 3px solid #003580; }
+.report-header h1 { font-size: 22pt; color: #003580; margin-bottom: 6px; letter-spacing: 1px; }
+.report-header p  { font-size: 10pt; color: #556; }
+
+.info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #f0f4ff; border: 1px solid #b8caee; border-radius: 6px; padding: 12px; margin-bottom: 24px; }
+.info-item label { display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .5px; color: #667; margin-bottom: 3px; }
+.info-item span  { font-size: 11pt; font-weight: bold; color: #003580; }
+
+.section { margin-bottom: 32px; }
+.page-break { page-break-before: always; }
+h2 { font-size: 14pt; color: #003580; border-bottom: 2px solid #003580; padding-bottom: 6px; margin-bottom: 14px; }
+h3 { font-size: 11pt; color: #334; margin: 18px 0 8px; border-left: 4px solid #003580; padding-left: 10px; }
+h4 { font-size: 10pt; color: #003580; margin: 0 0 8px; }
+.rec-count { font-weight: normal; color: #888; font-size: 9pt; }
+.sub-note { font-size: 9pt; color: #778; margin-bottom: 16px; }
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 9pt; }
+thead { background: #003580; color: #fff; }
+th { padding: 6px 10px; text-align: left; font-weight: normal; letter-spacing: .4px; }
+td { padding: 5px 10px; border: 1px solid #dde; }
+
+.ftu-block { margin-bottom: 28px; }
+
+.point-block { border: 1px solid #c8d4ee; border-radius: 6px; padding: 14px; margin-bottom: 18px; background: #fafbff; page-break-inside: avoid; }
+
+.chart-wrap { margin: 8px 0 12px; overflow: hidden; }
+
+details { margin-top: 6px; }
+details summary { cursor: pointer; font-size: 9pt; color: #003580; padding: 4px 0; user-select: none; }
+.table-scroll { max-height: 360px; overflow-y: auto; margin-top: 6px; }
+
+.report-footer { margin-top: 32px; text-align: center; font-size: 8pt; color: #99a; border-top: 1px solid #e0e5f0; padding-top: 10px; }
+
+.no-print {
+  position: fixed; top: 12px; right: 12px;
+  background: #fff; border: 2px solid #003580; border-radius: 8px;
+  padding: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.2); z-index: 999;
+  font-family: Arial, sans-serif;
+}
+.no-print h4 { color: #003580; margin-bottom: 10px; font-size: 11pt; }
+.no-print button { display: block; width: 100%; margin-bottom: 6px; padding: 9px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 10pt; }
+.btn-print { background: #003580; color: #fff; }
+.btn-close  { background: #546e7a; color: #fff; }
+
+@media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="report-header">
+  <h1>📊 FTU Performance Report</h1>
+  <p>Murphy Control Panel — FTU Monitoring System</p>
+</div>
+
+<div class="info-grid">
+  <div class="info-item"><label>Report Generated</label><span>${reportDate}</span></div>
+  <div class="info-item"><label>Range Start</label><span>${sd.toLocaleString()}</span></div>
+  <div class="info-item"><label>Range End</label><span>${ed.toLocaleString()}</span></div>
+  <div class="info-item"><label>Total FTUs</label><span>${sortedFTUNames.length} units</span></div>
+  <div class="info-item"><label>Total Points</label><span>${ap.length} points</span></div>
+  <div class="info-item"><label>Total Records</label><span>${ahd.reduce((s,p)=>s+p.data.length,0)} readings</span></div>
+</div>
+
+${summaryHTML}
+${detailHTML}
+
+<div class="report-footer">
+  <p>Generated by Murphy Control Panel — FTU Monitoring System &nbsp;|&nbsp; ${reportDate}</p>
+</div>
+
+<div class="no-print">
+  <h4>FTU Report Ready</h4>
+  <button class="btn-print" onclick="window.print()">🖨️ Save as PDF</button>
+  <button class="btn-close"  onclick="window.close()">✕ Close</button>
+</div>
+
+</body></html>`;
+
+    mc.innerHTML=oc;
+    const pw=window.open('','_blank');
+    if(pw){pw.document.write(pdfHTML);pw.document.close();}
+    else alert('Pop-up blocked. Please allow pop-ups for this site.');
+  }catch(e){
+    console.error('Error generating PDF report:',e);
+    mc.innerHTML=oc;
+    alert('Failed to generate report: '+e.message);
+  }
+}
+
+function createFTUExportControls(){
+  const mc=document.getElementById('main-content');if(!mc)return;
+  const cd=document.createElement('div');cd.id='ftu-export-controls';
+  const now=new Date(),yd=new Date(now.getTime()-86400000);
+  const si=document.createElement('input');si.type='datetime-local';si.id='ftu-start-datetime';si.value=yd.toISOString().slice(0,16);
+  const ei=document.createElement('input');ei.type='datetime-local';ei.id='ftu-end-datetime';ei.value=now.toISOString().slice(0,16);
+  const cb=document.createElement('button');cb.className='export-btn';cb.innerHTML='📊 Export CSV';cb.onclick=exportFTUHistoryToCSV;
+  const pb=document.createElement('button');pb.className='export-btn';pb.innerHTML='📄 PDF Report';pb.onclick=generateFTUHistoryPDFReport;
+  cd.appendChild(si);cd.appendChild(ei);cd.appendChild(cb);cd.appendChild(pb);
+  mc.parentNode.insertBefore(cd,mc);
+}
+setTimeout(createFTUExportControls,250);
+</script>
+
+</body>
+</html>
