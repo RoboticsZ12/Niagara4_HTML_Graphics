@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!--<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">-->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    <style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Dark mode palette */
+  --bg-base: #0c0f14;
+  --bg-surface: #13181f;
+  --bg-elevated: #1a2130;
+  --bg-hover: #1f2840;
+
+  --accent: #3b82f6;
+  --accent-dim: rgba(59,130,246,0.12);
+  --accent-border: rgba(59,130,246,0.3);
+
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --purple: #8b5cf6;
+  --purple-dim: rgba(139,92,246,0.15);
+
+  --text-1: #f0f4f8;
+  --text-2: #8b95a8;
+  --text-3: #4e5668;
+
+  --border: rgba(255,255,255,0.06);
+  --border-md: rgba(255,255,255,0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --font-ui: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', monospace;
+  --transition: 0.18s ease;
+}
+
+body.light-mode {
+  --bg-base: #f5f0ef;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ede5e4;
+  --bg-hover: #e4d8d7;
+
+  /* Dark crimson red as the accent */
+  --accent: #8b1a1a;
+  --accent-dim: rgba(139,26,26,0.08);
+  --accent-border: rgba(139,26,26,0.35);
+
+  --green: #166534;
+  --green-dim: rgba(22,101,52,0.1);
+  --red: #991b1b;
+  --red-dim: rgba(153,27,27,0.08);
+  --amber: #92400e;
+  --amber-dim: rgba(146,64,14,0.1);
+  --purple: #6b21a8;
+  --purple-dim: rgba(107,33,168,0.1);
+
+  --text-1: #1c0a0a;
+  --text-2: #6b3a3a;
+  --text-3: #a87070;
+
+  --border: rgba(139,26,26,0.1);
+  --border-md: rgba(139,26,26,0.22);
+}
+
+html { height: 100%; overflow: hidden; }
+body {
+  height: 100%;
+  font-family: var(--font-ui);
+  background: var(--bg-base);
+  color: var(--text-1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease, background 0.25s, color 0.25s;
+}
+body.fade-in { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.2s ease; }
+
+/* ── OVERLAY ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  z-index: 200; opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ── SIDE PANEL ── */
+.side-panel {
+  position: fixed; top: 0; left: -300px; width: 270px; height: 100vh;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-md);
+  z-index: 300;
+  transition: left 0.28s cubic-bezier(0.4,0,0.2,1);
+  padding: 76px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 18px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+.side-panel-header h2 {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 3px;
+  color: var(--accent); font-weight: 500; text-transform: uppercase;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+.nav-image-grid { padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.nav-image-btn {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-md); cursor: pointer;
+  text-decoration: none; transition: var(--transition); color: var(--text-2);
+}
+.nav-image-btn:hover {
+  background: var(--bg-elevated); border-color: var(--border-md); color: var(--text-1);
+}
+.nav-btn-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.nav-btn-text { display: flex; flex-direction: column; gap: 1px; }
+.nav-btn-label { font-size: 13px; font-weight: 500; color: var(--text-1); }
+.nav-btn-sublabel { font-size: 11px; color: var(--text-2); }
+
+/* ── TOP BAR ── */
+.top-bar {
+  background: var(--bg-surface);
+  border-bottom: 2px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 60px; flex-shrink: 0;
+  position: relative; z-index: 100;
+}
+.top-center {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.site-label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 3px;
+  color: var(--accent); text-transform: uppercase; font-weight: 500;
+}
+.page-title {
+  font-size: 15px; font-weight: 500; color: var(--text-1); letter-spacing: 0.2px;
+}
+.hamburger {
+  width: 34px; height: 34px;
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); cursor: pointer;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center; gap: 4px;
+  transition: var(--transition); flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent-border); }
+.hamburger-line { width: 16px; height: 1.5px; background: var(--text-2); border-radius: 2px; transition: var(--transition); }
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(4px,4px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(4px,-4px); }
+.top-right { display: flex; align-items: center; gap: 10px; }
+.theme-toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.theme-label { font-size: 11px; letter-spacing: 1px; color: var(--text-3); font-family: var(--font-mono); text-transform: uppercase; }
+.switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: 34px; transition: 0.25s;
+}
+.slider:before {
+  position: absolute; content: ""; height: 14px; width: 14px;
+  left: 2px; bottom: 2px; background: var(--text-3);
+  border-radius: 50%; transition: 0.25s;
+}
+input:checked + .slider { background: var(--accent-dim); border-color: var(--accent-border); }
+input:checked + .slider:before { transform: translateX(18px); background: var(--accent); }
+.user-badge {
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--text-2);
+  display: flex; align-items: center; gap: 7px; font-family: var(--font-mono);
+}
+.user-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; }
+#userDisplay { color: var(--text-1); font-size: 12px; }
+
+/* ── MAIN CONTENT ── */
+.main-content { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+
+/* ── VIEW / EXPORT TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 20px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-md);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+
+/* View toggle */
+#view-toggle-bar {
+  display: none;
+  align-items: center; gap: 6px;
+}
+.view-btn {
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); color: var(--text-2);
+  padding: 6px 14px; font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); white-space: nowrap;
+}
+.view-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+.view-btn.active {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 500;
+}
+body.light-mode .view-btn.active { color: #fff; }
+
+/* Export controls */
+#device-export-controls {
+  display: none;
+  align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-left: auto;
+}
+#device-export-controls input[type="datetime-local"] {
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); color: var(--text-1);
+  padding: 6px 10px; font-family: var(--font-mono); font-size: 11px;
+  outline: none; cursor: pointer; transition: var(--transition);
+}
+#device-export-controls input[type="datetime-local"]:focus,
+#device-export-controls input[type="datetime-local"]:hover {
+  border-color: var(--accent-border);
+}
+#device-export-controls input::-webkit-calendar-picker-indicator {
+  filter: invert(0.5) sepia(0.5) hue-rotate(180deg); cursor: pointer;
+}
+body.light-mode #device-export-controls input::-webkit-calendar-picker-indicator {
+  filter: invert(0.2) sepia(1) hue-rotate(320deg) saturate(3); cursor: pointer;
+}
+.export-btn {
+  background: var(--bg-elevated); border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); color: var(--text-2);
+  padding: 6px 14px; font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); white-space: nowrap;
+}
+.export-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+
+/* ── TABLE SCROLL ── */
+.table-scroll-wrap {
+  flex: 1; overflow-x: auto; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 24px 28px;
+}
+.table-scroll-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-scroll-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-scroll-wrap::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 6px; }
+.table-scroll-wrap::-webkit-scrollbar-thumb:hover { background: var(--accent-border); }
+
+/* ── AHU TABLE ── */
+.ahu-table {
+  width: 100%; min-width: 600px;
+  margin: 0 auto;
+  border-collapse: separate; border-spacing: 0;
+  font-family: var(--font-ui); font-size: 13px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-md);
+}
+
+/* Header */
+.ahu-table thead { position: sticky; top: 0; z-index: 10; }
+.ahu-table thead tr { background: var(--bg-elevated); }
+.ahu-table thead th {
+  padding: 11px 16px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--accent); font-weight: 500;
+  text-align: center;
+  border-bottom: 2px solid var(--accent-border);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  background: var(--bg-elevated);
+}
+.ahu-table thead th:last-child { border-right: none; }
+.ahu-table thead th:first-child { text-align: left; }
+
+/* Body rows */
+.ahu-table tbody tr { transition: background var(--transition); }
+.ahu-table tbody tr:nth-child(even) { background: var(--bg-base); }
+.ahu-table tbody tr:nth-child(odd) { background: var(--bg-surface); }
+.ahu-table tbody tr:hover { background: var(--bg-hover) !important; }
+
+.ahu-table td {
+  padding: 10px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  color: var(--text-1); font-size: 13px;
+  vertical-align: middle; white-space: nowrap;
+}
+.ahu-table td:last-child { border-right: none; }
+.ahu-table tbody tr:last-child td { border-bottom: none; }
+.ahu-table td:first-child { text-align: left; }
+
+/* ── AHU NAME ── */
+.ahu-name { font-size: 13px; font-weight: 500; }
+.ahu-name a {
+  color: var(--accent); text-decoration: none;
+  transition: var(--transition); font-weight: 500;
+}
+.ahu-name a:hover { color: var(--text-1); }
+.ahu-name a:visited { color: var(--accent); }
+body.light-mode .ahu-name a,
+body.light-mode .ahu-name a:visited { color: var(--accent); }
+body.light-mode .ahu-name a:hover { color: var(--text-1); }
+
+/* ── VALUE STATES ── */
+.value-loading {
+  color: var(--text-3); font-family: var(--font-mono); font-size: 12px;
+  animation: loadingPulse 1.6s infinite;
+}
+@keyframes loadingPulse { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+
+.value-error {
+  color: var(--red); font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+}
+.value-missing { color: var(--text-3); font-size: 11px; }
+.value-normal {
+  color: var(--text-1); font-family: var(--font-mono); font-size: 13px;
+}
+.value-active {
+  color: var(--green); font-family: var(--font-mono);
+  font-weight: 500; font-size: 13px;
+}
+.value-inactive {
+  color: var(--text-3); font-family: var(--font-mono);
+  font-weight: 400; font-size: 13px;
+}
+.value-alarm {
+  color: #fff; background: var(--red); font-weight: 600;
+  padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  font-family: var(--font-mono);
+  animation: alarmBlink 1.4s ease-in-out infinite;
+}
+@keyframes alarmBlink { 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+.value-override {
+  background: var(--purple-dim) !important;
+  border: 1px solid rgba(139,92,246,0.4) !important;
+  color: var(--purple) !important;
+  font-weight: 600 !important; font-family: var(--font-mono) !important;
+  padding: 2px 8px; border-radius: 4px; font-size: 12px;
+}
+.override-indicator {
+  color: var(--purple); font-weight: 600; font-size: 10px;
+  margin-left: 4px; font-family: var(--font-mono); letter-spacing: 0.5px;
+}
+
+/* ── OVERRIDE BUTTON ── */
+.override-btn {
+  background: var(--purple-dim);
+  color: var(--purple);
+  border: 1px solid rgba(139,92,246,0.3);
+  padding: 3px 7px;
+  cursor: pointer; font-size: 12px;
+  transition: var(--transition);
+  display: inline-flex; align-items: center;
+  border-radius: 4px; margin-left: 6px;
+}
+.override-btn:hover {
+  background: var(--purple);
+  color: #fff; border-color: var(--purple);
+}
+
+/* ── CARD VIEW ── */
+.tablet-view {
+  display: none;
+  padding: 20px 24px 28px;
+  overflow-y: auto; overflow-x: hidden;
+}
+.device-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+/* Single device: go full width, 2-col point grid inside */
+.device-cards.single-device { grid-template-columns: 1fr; }
+.device-cards.single-device .device-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+.device-cards.single-device .point-row { border-right: 1px solid var(--border); }
+.device-cards.single-device .point-row:nth-child(odd):last-child { border-right: none; }
+
+.device-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-md);
+  border-top: 3px solid var(--accent-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  min-width: 0;
+}
+.device-card:hover {
+  border-top-color: var(--accent);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+body.light-mode .device-card:hover {
+  box-shadow: 0 4px 16px rgba(139,26,26,0.1);
+}
+.device-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-elevated);
+}
+.device-card-dot {
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--green-dim);
+}
+.device-card-header h3 {
+  font-size: 12px; font-weight: 600; color: var(--text-1); letter-spacing: 0.5px;
+  font-family: var(--font-mono); text-transform: uppercase;
+}
+.device-card-body { padding: 0; }
+
+.point-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 9px 16px; gap: 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.point-row:hover { background: var(--bg-hover); }
+.point-row:last-child { border-bottom: none; }
+
+.point-label {
+  font-size: 11px; font-weight: 400; color: var(--text-2);
+  font-family: var(--font-mono); text-transform: uppercase;
+  letter-spacing: 0.6px; flex: 1; min-width: 120px;
+  overflow-wrap: anywhere; line-height: 1.5;
+  padding-top: 3px;
+}
+.point-value-container { display: flex; align-items: flex-start; gap: 6px; flex-shrink: 0; }
+.point-value {
+  padding: 4px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 12px; font-family: var(--font-mono); font-weight: 500;
+  min-width: 80px; max-width: 220px;
+  text-align: right;
+  border-radius: 4px;
+  color: var(--text-1);
+  transition: var(--transition);
+  word-break: break-word; line-height: 1.5;
+}
+
+/* ── LOADING / ERROR ── */
+.loading-msg {
+  text-align: center; padding: 80px 20px;
+  color: var(--text-2); font-family: var(--font-mono);
+  font-size: 12px; letter-spacing: 2px;
+}
+.error-msg {
+  text-align: center; padding: 80px 20px;
+  color: var(--red); font-family: var(--font-mono);
+  font-size: 12px; letter-spacing: 1px;
+}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  background: var(--bg-surface); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 46px; flex-shrink: 0;
+}
+.back-btn, .logoff-btn {
+  background: transparent; border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); color: var(--text-2);
+  padding: 5px 14px; cursor: pointer; font-size: 12px;
+  font-family: var(--font-mono); letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 6px;
+  transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+.logoff-btn:hover { border-color: rgba(239,68,68,0.4); color: var(--red); }
+.datetime-display {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text-3); letter-spacing: 1px;
+}
+
+/* ── OVERRIDE MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px); z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.18s ease-out;
+}
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+.modal-content {
+  background: var(--bg-surface); border: 1px solid var(--border-md);
+  border-radius: var(--radius-lg); width: 90%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.25s ease-out;
+}
+@keyframes slideUp { from{transform:translateY(24px);opacity:0;} to{transform:translateY(0);opacity:1;} }
+.modal-header {
+  padding: 18px 22px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 14px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.5px; color: var(--text-1); }
+.modal-close-x {
+  width: 28px; height: 28px; border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); background: var(--bg-elevated);
+  color: var(--text-2); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: var(--transition);
+}
+.modal-close-x:hover { border-color: var(--accent-border); color: var(--text-1); }
+.modal-body { padding: 20px 22px; }
+.info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.info-row:last-of-type { border-bottom: none; }
+.info-row label { font-size: 11px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+.info-row span { color: var(--text-1); font-size: 13px; font-family: var(--font-mono); }
+.current-value {
+  background: var(--bg-elevated); padding: 4px 10px;
+  border: 1px solid var(--border-md); border-radius: 4px;
+  font-weight: 600; font-size: 14px !important; color: var(--text-1) !important;
+  font-family: var(--font-mono);
+}
+.divider { height: 1px; background: var(--border); margin: 18px 0; }
+.override-controls { display: flex; flex-direction: column; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 11px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+.form-group input, .form-group select {
+  padding: 9px 12px; border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm); font-size: 13px;
+  background: var(--bg-elevated); color: var(--text-1);
+  font-family: var(--font-mono); outline: none; transition: var(--transition);
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.form-group select option { background: var(--bg-elevated); color: var(--text-1); }
+.modal-footer {
+  padding: 14px 22px; background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px; justify-content: flex-end;
+}
+.btn {
+  padding: 8px 18px; border: none; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: var(--transition); font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-warning { background: var(--amber); color: #fff; }
+.btn-warning:hover { filter: brightness(1.1); }
+.btn-cancel { background: var(--bg-elevated); color: var(--text-2); border: 1px solid var(--border-md); }
+.btn-cancel:hover { color: var(--text-1); border-color: var(--border-md); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-border); }
+
+@media (max-width:768px) {
+  .page-title { font-size: 13px; }
+  .device-cards { grid-template-columns: 1fr; }
+  .modal-footer { flex-direction: column; }
+  .btn { width: 100%; }
+  .top-center { display: none; }
+}
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- Side Panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>Navigation</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="nav-image-grid" id="navImageGrid">
+    <a href="../Home.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+    <a href="../FloorPlan.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.5"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.5"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+    <a href="../Alarms.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><polygon points="20,5 37,34 3,34" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="24" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="29.5" r="1.5" fill="var(--amber)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+    <a href="../Users.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+    <a href="../LogsNUMERIC.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.5"/><rect x="8" y="20" width="5" height="14" fill="var(--red-dim)" stroke="var(--red)" stroke-width="1" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber-dim)" stroke="var(--amber)" stroke-width="1" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1" rx="1"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+    <a href="../Shedules.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" width="20" height="20"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="var(--accent-dim)"/><line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+  </div>
+</div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title" id="pageTitleEl">AHU Summary Sheet</span>
+  </div>
+  <div class="top-right">
+    <div class="theme-toggle-wrap">
+      <span class="theme-label">Light</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Unified toolbar: view toggle + export controls -->
+  <div class="toolbar" id="mainToolbar" style="display:none;">
+    <div id="view-toggle-bar">
+      <button id="table-view-btn" class="view-btn active" onclick="toggleView('table')">Table</button>
+      <button id="tablet-view-btn" class="view-btn" onclick="toggleView('tablet')">Cards</button>
+    </div>
+    <div id="device-export-controls"></div>
+  </div>
+
+  <div id="main-content"><div class="loading-msg">Scanning systems…</div></div>
+</div>
+
+<!-- Bottom Bar -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ── SCRIPTS ── -->
+<script>
+function toggleTheme(){
+  const c=document.getElementById('themeSwitch');
+  document.body.classList.toggle('light-mode',c.checked);
+  localStorage.setItem('theme',c.checked?'light':'dark');
+}
+document.addEventListener('DOMContentLoaded',function(){
+  const s=localStorage.getItem('theme'),c=document.getElementById('themeSwitch');
+  if(s==='light'){document.body.classList.add('light-mode');c.checked=true;}
+  document.body.classList.add('fade-in');
+});
+</script>
+
+<script>
+function updateDateTime(){
+  const now=new Date(),opts={day:'2-digit',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true,timeZoneName:'short'};
+  document.getElementById('currentDateTime').textContent=now.toLocaleString('en-US',opts).replace(',','');
+}
+updateDateTime();setInterval(updateDateTime,1000);
+</script>
+
+<script>
+window.onload=function(){
+  const u=sessionStorage.getItem('username');
+  if(!u){window.location.href='../LOGIN/Login.html';return;}
+  document.getElementById('userDisplay').textContent=u;
+};
+function handleLogoff(){sessionStorage.removeItem('username');window.location.href='../LOGIN/Login.html';}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const h=document.getElementById('hamburgerMenu'),s=document.getElementById('sidePanel'),o=document.getElementById('overlay');
+  h.addEventListener('click',()=>{h.classList.toggle('active');s.classList.toggle('active');o.classList.toggle('active');});
+  o.addEventListener('click',()=>{h.classList.remove('active');s.classList.remove('active');o.classList.remove('active');});
+});
+</script>
+
+<script>
+let pointSubscriptions=[];
+let pointValues={};
+let allDevicePoints={};
+let subscriber;
+let deviceType='';
+let deviceFolder='';
+let resolvedPoints={};
+let enumFacetsCache={};
+let currentView='table';
+let isAdminUser=false;
+let displayNames = {};   // key: "deviceName-pointName"  →  display name string
+
+function decodeNiagaraName(name){
+  if(!name)return name;
+  return name.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16)));
+}
+function getPointDisplayName(deviceName, pointName) {
+  const pk = `${deviceName}-${pointName}`;
+  return displayNames[pk] || decodeNiagaraName(pointName);
+}
+function getDeviceTypeFromFilename(){
+  const path=window.location.pathname;
+  const filename=path.substring(path.lastIndexOf('/')+1);
+  const nameWithoutExtension=filename.replace('.html','');
+  const decoded=decodeNiagaraName(nameWithoutExtension);
+  const spacedName=decoded.replace(/([A-Z])/g,' $1').trim();
+  return{raw:nameWithoutExtension,display:spacedName,folder:nameWithoutExtension};
+}
+const deviceInfo=getDeviceTypeFromFilename();
+deviceType=deviceInfo.display;
+deviceFolder=deviceInfo.folder;
+
+document.title=`${deviceType} Summary`;
+const pte=document.getElementById('pageTitleEl');
+if(pte)pte.textContent=`${deviceType} Summary Sheet`;
+
+function toggleView(view){
+  currentView=view;
+  const tv=document.getElementById('table-view');
+  const cv=document.getElementById('tablet-view');
+  const tb=document.getElementById('table-view-btn');
+  const cb=document.getElementById('tablet-view-btn');
+  if(!tv||!cv)return;
+  if(view==='table'){
+    tv.style.display='block';cv.style.display='none';
+    if(tb)tb.classList.add('active');if(cb)cb.classList.remove('active');
+  }else{
+    tv.style.display='none';cv.style.display='block';
+    if(tb)tb.classList.remove('active');if(cb)cb.classList.add('active');
+  }
+  localStorage.setItem('preferredView',view);
+}
+function loadViewPreference(){
+  const saved=localStorage.getItem('preferredView')||'table';
+  toggleView(saved);
+}
+
+function sortPointsByImportance(pointNames){
+  const priorityOrder=['occupancy','spacetemp','spacetemperature','roomtemp','occsp','occcoolsp','occheatsp','unoccsp','unocccoolsp','unoccheatsp','coolsp','heatsp','effectivesp','effectivecoolsp','effectiveheatsp','airflow','flowsp','staticpressure','ductpressure','supplytemp','dischargetemp','returntemp','mixedairtemp','outsidetemp','humidity','spacehumidity','rh','co2','voc','damper','damperposition','dampercommand','cooldemand','heatdemand','valve','valveposition','valvecommand','fanstat','fanstatus','fanspeed','fancommand','vfd','vfdfeedback','mode','fanmode','controlmode','enable','alarm','alert','fault','roomoccupancy'];
+  return pointNames.sort((a,b)=>{
+    const al=a.toLowerCase(),bl=b.toLowerCase();
+    let ap=priorityOrder.length,bp=priorityOrder.length;
+    for(let i=0;i<priorityOrder.length;i++){if(al.includes(priorityOrder[i])&&ap===priorityOrder.length)ap=i;if(bl.includes(priorityOrder[i])&&bp===priorityOrder.length)bp=i;}
+    if(ap!==bp)return ap-bp;
+    return a.localeCompare(b);
+  });
+}
+
+function formatPointValue(displayValue,rawValue,pointName){
+  if(displayValue!==null&&displayValue!==undefined&&displayValue!==''){return decodeNiagaraName(String(displayValue));}
+  if(rawValue===null||rawValue===undefined)return'N/A';
+  return decodeNiagaraName(String(rawValue));
+}
+
+async function isAuthorizedUser(){
+  const username=sessionStorage.getItem('username');
+  if(!username)return{authorized:false,isAdmin:false};
+  try{
+    const response=await fetch('../HomeConfig.json');
+    if(!response.ok)throw new Error(`Failed to load config: ${response.statusText}`);
+    const config=await response.json();
+    const user=config.Users.find(u=>u.name.toLowerCase()===username.toLowerCase());
+    if(!user)return{authorized:false,isAdmin:false};
+    return{authorized:true,isAdmin:user.role.toLowerCase()==='admin'};
+  }catch(error){return{authorized:false,isAdmin:false};}
+}
+
+function matchesDeviceType(deviceName){
+  const rawType=deviceInfo.raw;
+  const includePatterns=[new RegExp(`^${rawType}$`,'i'),new RegExp(`^${rawType}[-_]`,'i'),new RegExp(`[-_]${rawType}$`,'i')];
+  return includePatterns.some(p=>p.test(deviceName));
+}
+
+function getValueClass(displayValue,pointName,isOverridden=false){
+  if(isOverridden)return'value-override';
+  if(displayValue===null||displayValue===undefined||displayValue==='Connection Error')return'value-error';
+  if(typeof displayValue==='string'&&displayValue.startsWith('NO_'))return'value-missing';
+  const l=pointName.toLowerCase();const dv=String(displayValue||'').toLowerCase();
+  if(l.includes('alarm'))return dv.includes('alarm')||dv==='true'||dv==='1'?'value-alarm':'value-normal';
+  if(l.includes('stat')||l.includes('status'))return dv==='on'||dv==='true'||dv==='active'||dv==='running'||dv==='1'?'value-active':'value-inactive';
+  if(l.includes('occupancy'))return dv==='occupied'||dv==='true'||dv==='1'?'value-active':'value-inactive';
+  return'value-normal';
+}
+
+function updatePointValue(deviceName,pointName,displayValue,rawValue){
+  const tableEl=document.getElementById(`point-${deviceName}-${pointName}`);
+  const tabletEl=document.getElementById(`tablet-point-${deviceName}-${pointName}`);
+  const pointKey=`${deviceName}-${pointName}`;
+  const point=resolvedPoints[pointKey];
+  let isOverridden=false;
+  if(point){try{const outStatus=point.getOut().getStatus();const oss=outStatus?outStatus.toString():'';if(oss){const l=oss.toLowerCase();if((l.includes('override')||l.includes('overridden')||l.includes('manual'))&&!l.includes('alarm')&&!l.includes('fault')&&!l.includes('unackalarm'))isOverridden=true;}}catch(e){}}
+  const fv=formatPointValue(displayValue,rawValue,pointName);
+  const vc=getValueClass(displayValue,pointName,isOverridden);
+  function applyToEl(el,isTablet){
+    if(!el)return;
+    const existingBtn=el.querySelector('.override-btn');
+    el.textContent='';
+    el.className=isTablet?`point-value ${vc}`:vc;
+    const vs=document.createElement('span');vs.textContent=fv;el.appendChild(vs);
+    if(isOverridden){const oi=document.createElement('span');oi.className='override-indicator';oi.textContent=' [OVR]';oi.title='Overridden';el.appendChild(oi);}
+    if(existingBtn)el.appendChild(existingBtn);
+  }
+  applyToEl(tableEl,false);applyToEl(tabletEl,true);
+  if(!pointValues[deviceName])pointValues[deviceName]={};
+  pointValues[deviceName][pointName]=fv;
+}
+
+function parseFacetsFromPoint(point,pointName){
+  const options=[];
+  try{const facets=point.getFacets?point.getFacets():null;if(facets){const range=facets.get?facets.get('range'):null;if(range){if(typeof range.getSize==='function'){for(let i=0;i<range.getSize();i++){const entry=range.get(i);options.push({ordinal:entry.getOrdinal(),label:(entry.getDisplayName&&entry.getDisplayName())||(entry.getTag&&entry.getTag())||String(entry.getOrdinal())});}if(options.length)return options;}const r1=parseFacetString(range.toString());if(r1.length)return r1;}}}catch(e){}
+  try{const out=point.getOut?point.getOut():null;if(out){const outFacets=out.getFacets?out.getFacets():null;if(outFacets){const range=outFacets.get?outFacets.get('range'):null;if(range){const r2=parseFacetString(range.toString());if(r2.length)return r2;}}try{const val=out.getValue?out.getValue():null;if(val&&val.getType){const valType=val.getType();const typeFacets=valType.getFacets?valType.getFacets():null;if(typeFacets){const range=typeFacets.get?typeFacets.get('range'):null;if(range){if(typeof range.getSize==='function'){const opts=[];for(let i=0;i<range.getSize();i++){const entry=range.get(i);opts.push({ordinal:entry.getOrdinal(),label:(entry.getDisplayName&&entry.getDisplayName())||(entry.getTag&&entry.getTag())||String(entry.getOrdinal())});}if(opts.length)return opts;}const r3=parseFacetString(range.toString());if(r3.length)return r3;}}}}catch(e3){}}}catch(e2){}
+  return options;
+}
+function parseFacetString(s){const opts=[];const pairs=s.replace(/[{}]/g,'').match(/([^,=]+)=(\d+)/g);if(pairs)pairs.forEach(p=>{const[l,o]=p.split('=');opts.push({ordinal:parseInt(o,10),label:l.trim()});});return opts;}
+
+function performNumericOverride(point,value,durationSeconds=null){if(!isAdminUser){alert('🚫 Access Denied: Only administrators can override points.');return;}try{require(['baja!','baja!control:NumericOverride'],function(baja){const op=baja.$('control:NumericOverride');op.setValue(value);if(durationSeconds!==null)op.setDuration(baja.RelTime.make({seconds:durationSeconds}));point.invoke({slot:'override',value:op}).then(()=>console.log('✓ Numeric override:',value)).catch(e=>{alert('Override failed: '+e.message);});});}catch(e){console.error('Error numeric override:',e);}}
+function performActiveOverride(point,durationSeconds=null){if(!isAdminUser){alert('🚫 Access Denied');return;}require(['baja!','baja!control:Override'],function(baja){let op=baja.$("control:Override");if(durationSeconds!==null)op.setDuration(baja.RelTime.make({seconds:durationSeconds}));point.invoke({slot:'active',value:op}).then(()=>console.log('✓ ACTIVE override')).catch(e=>{alert('Override failed: '+e.message);});});}
+function performInactiveOverride(point,durationSeconds=null){if(!isAdminUser){alert('🚫 Access Denied');return;}require(['baja!','baja!control:Override'],function(baja){let op=baja.$("control:Override");if(durationSeconds!==null)op.setDuration(baja.RelTime.make({seconds:durationSeconds}));point.invoke({slot:'inactive',value:op}).then(()=>console.log('✓ INACTIVE override')).catch(e=>{alert('Override failed: '+e.message);});});}
+function performEnumOverride(point,ordinal,durationSeconds=null){if(!isAdminUser){alert('🚫 Access Denied');return;}require(['baja!','baja!control:EnumOverride'],function(baja){function makeDynEnum(ord){let d=null;if(baja.DynamicEnum&&typeof baja.DynamicEnum.make==='function'){try{d=baja.DynamicEnum.make(ord);}catch(e){}}if(!d){d=baja.$('baja:DynamicEnum');if(typeof d.setOrdinal==='function')d.setOrdinal(ord);}return d;}const p=baja.$('control:EnumOverride');p.setValue(makeDynEnum(ordinal));if(durationSeconds!==null)p.setDuration(baja.RelTime.make({seconds:durationSeconds}));point.invoke({slot:'override',value:p}).then(()=>console.log('✓ Enum override ordinal:',ordinal)).catch(e=>{alert('Enum override failed: '+e.message);});});}
+function releaseToAuto(point){if(!isAdminUser){alert('🚫 Access Denied');return;}point.invoke({slot:'auto'}).then(()=>console.log('✓ Released to AUTO')).catch(e=>{alert('Release to AUTO failed: '+e.message);});}
+
+function detectPointType(point){try{const val=point.getOut().getValue();if(val===null||val===undefined)return'numeric';if(typeof val==='boolean')return'boolean';if(typeof val==='number')return'numeric';if(val&&val.getType){const typeName=val.getType().getName?val.getType().getName():'';if(typeName.toLowerCase().includes('enum')||typeName.toLowerCase().includes('dynamicenum'))return'enum';}const facets=parseFacetsFromPoint(point,'auto-detect');if(facets.length>0)return'enum';return'numeric';}catch(e){return'numeric';}}
+
+function showOverrideModal(deviceName,pointName,pointConfig){
+  if(!isAdminUser){alert('🚫 Access Denied: Only administrators can override points.');return;}
+  const pointKey=`${deviceName}-${pointName}`;
+  const point=resolvedPoints[pointKey];
+  if(!point){alert('Point not available for override');return;}
+  let type='numeric';
+  if(pointConfig.id==='SP-Boolean'||pointConfig.id2==='SP-Boolean')type='boolean';
+  else if(pointConfig.id==='SP-Enum'||pointConfig.id2==='SP-Enum')type='enum';
+  else if(pointConfig.id==='SP-Numeric'||pointConfig.id2==='SP-Numeric')type='numeric';
+  else type=detectPointType(point);
+
+  let enumHtml='';
+  if(type==='enum'){let opts=enumFacetsCache[pointKey]||[];if(!opts.length){opts=parseFacetsFromPoint(point,pointName);if(opts.length)enumFacetsCache[pointKey]=opts;}const optionsHtml=opts.length?[...opts].sort((a,b)=>a.ordinal-b.ordinal).map(({ordinal,label})=>`<option value="${ordinal}">${decodeNiagaraName(label)}</option>`).join(''):'<option value="0">⚠ No enum options found</option>';enumHtml=`<div class="divider"></div><div class="override-controls"><div class="form-group"><label>Select Value</label><select id="override-enum-value">${optionsHtml}</select></div><div class="form-group"><label>Duration</label><select id="override-duration"><option value="">Permanent</option><option value="60">1 Minute</option><option value="300">5 Minutes</option><option value="1800">30 Minutes</option><option value="3600">1 Hour</option><option value="7200">2 Hours</option><option value="14400">4 Hours</option><option value="28800">8 Hours</option></select></div></div>`;}
+  let numericHtml='';
+  if(type==='numeric'){numericHtml=`<div class="divider"></div><div class="override-controls"><div class="form-group"><label>Override Value</label><input type="number" id="override-value" step="0.1" placeholder="Enter value…"/></div><div class="form-group"><label>Duration</label><select id="override-duration"><option value="">Permanent</option><option value="60">1 Minute</option><option value="300">5 Minutes</option><option value="1800">30 Minutes</option><option value="3600">1 Hour</option><option value="7200">2 Hours</option><option value="14400">4 Hours</option><option value="28800">8 Hours</option></select></div></div>`;}
+  let boolHtml='';
+  if(type==='boolean'){boolHtml=`<div class="divider"></div><div class="override-controls"><div class="form-group"><label>Command</label><select id="override-command"><option value="on">ON</option><option value="off">OFF</option></select></div><div class="form-group"><label>Duration</label><select id="override-duration"><option value="">Permanent</option><option value="60">1 Minute</option><option value="300">5 Minutes</option><option value="1800">30 Minutes</option><option value="3600">1 Hour</option><option value="7200">2 Hours</option><option value="14400">4 Hours</option><option value="28800">8 Hours</option></select></div></div>`;}
+
+  let currentValDisplay='—';
+  try{currentValDisplay=decodeNiagaraName(point.getOut().getValueDisplay()||'—');}catch(e){currentValDisplay='Error';}
+  const typeLabel=type==='enum'?'Enum':type==='boolean'?'Boolean':'Numeric';
+
+  const modalHTML=`<div id="override-modal" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h2>Override Control — Admin</h2><button class="modal-close-x" id="modal-close-x">✕</button></div><div class="modal-body"><div class="info-row"><label>Point</label><span>${getPointDisplayName(deviceName, pointName)}</span></div><div class="info-row"><label>Device</label><span>${decodeNiagaraName(deviceName)}</span></div><div class="info-row"><label>Type</label><span>${typeLabel}</span></div><div class="info-row"><label>Current Output</label><span id="modal-current-value" class="current-value">${currentValDisplay}</span></div>${numericHtml}${boolHtml}${enumHtml}</div><div class="modal-footer"><button id="apply-override-btn" class="btn btn-primary">Apply Override</button><button id="release-override-btn" class="btn btn-warning">Release to Auto</button><button id="close-modal-btn" class="btn btn-cancel">Cancel</button></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',modalHTML);
+  const close=()=>{const m=document.getElementById('override-modal');if(m)m.remove();};
+  document.getElementById('close-modal-btn').addEventListener('click',close);
+  document.getElementById('modal-close-x').addEventListener('click',close);
+  document.getElementById('override-modal').addEventListener('click',e=>{if(e.target.id==='override-modal')close();});
+  const esc=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',esc);}};
+  document.addEventListener('keydown',esc);
+  document.getElementById('apply-override-btn').addEventListener('click',function(){
+    const durEl=document.getElementById('override-duration');const dur=durEl?durEl.value:'';const duration=dur?parseInt(dur):null;
+    if(type==='numeric'){const v=parseFloat(document.getElementById('override-value').value);if(isNaN(v)){alert('Please enter a valid number');return;}performNumericOverride(point,v,duration);}
+    else if(type==='boolean'){const cmd=document.getElementById('override-command').value;if(cmd==='on')performActiveOverride(point,duration);else performInactiveOverride(point,duration);}
+    else if(type==='enum'){const ord=parseInt(document.getElementById('override-enum-value').value,10);if(isNaN(ord)){alert('Please select a valid option');return;}performEnumOverride(point,ord,duration);}
+    setTimeout(close,500);
+  });
+  document.getElementById('release-override-btn').addEventListener('click',function(){releaseToAuto(point);setTimeout(close,500);});
+}
+
+try{require(['baja!'],function(baja){
+  subscriber=new baja.Subscriber();
+  subscriber.attach('changed',function(prop){
+    if(prop.getName()==='out'){const pi=this.userData;if(pi){const out=this.getOut();const displayValue=out.getValueDisplay();const rawValue=out.getValue();updatePointValue(pi.deviceName,pi.pointName,displayValue,rawValue);}}
+  });
+});}catch(e){console.error('Failed to initialize subscriber:',e);}
+
+function subscribeToPoint(deviceName,pointName,pointPath,pointConfig){
+  try{require(['baja!'],function(baja){
+    baja.Ord.make(pointPath).get({subscriber:subscriber})
+      .then(point=>{
+        point.userData={deviceName,pointName,pointPath};
+        const pk=`${deviceName}-${pointName}`;
+        resolvedPoints[pk]=point;
+        // Capture Niagara display name, fall back to decoded raw name
+try {
+  const dn = point.getDisplayName ? point.getDisplayName() : null;
+  displayNames[pk] = (dn && dn.trim()) ? decodeNiagaraName(dn) : decodeNiagaraName(pointName);
+} catch(e) {
+  displayNames[pk] = decodeNiagaraName(pointName);
+}
+// Update column header (shared across all devices — only set once)
+const th = document.getElementById(`th-${pointName}`);
+if (th && !th.dataset.resolved) {
+  th.textContent = displayNames[pk];
+  th.dataset.resolved = '1';
+}
+// Update card label for this specific device
+const lbl = document.getElementById(`label-${deviceName}-${pointName}`);
+if (lbl) lbl.textContent = displayNames[pk];
+        const out=point.getOut();
+        const displayValue=out.getValueDisplay();
+        const rawValue=out.getValue();
+        updatePointValue(deviceName,pointName,displayValue,rawValue);
+        const autoType=detectPointType(point);
+        if(autoType==='enum'||pointConfig.id==='SP-Enum'||pointConfig.id2==='SP-Enum'){
+          const facets=parseFacetsFromPoint(point,pointName);
+          if(facets.length)enumFacetsCache[pk]=facets;
+          else setTimeout(()=>{const retried=parseFacetsFromPoint(point,pointName);if(retried.length)enumFacetsCache[pk]=retried;},2500);
+        }
+        const spTags=['SP-Numeric','SP-Boolean','SP-Enum'];
+        const isOverridable=spTags.includes(pointConfig.id)||spTags.includes(pointConfig.id2);
+        if(isAdminUser&&isOverridable){
+          [`point-${deviceName}-${pointName}`,`tablet-point-${deviceName}-${pointName}`].forEach(id=>{
+            const cell=document.getElementById(id);
+            if(cell&&!cell.querySelector('.override-btn')){
+              const btn=document.createElement('button');btn.className='override-btn';btn.textContent='⚙';
+btn.title=`Override — ${getPointDisplayName(deviceName, pointName)}`;
+btn.addEventListener('click',()=>showOverrideModal(deviceName,pointName,pointConfig));
+              cell.appendChild(btn);
+            }
+          });
+        }
+      })
+      .catch(()=>updatePointValue(deviceName,pointName,'Connection Error',null));
+  });}catch(e){updatePointValue(deviceName,pointName,'Connection Error',null);}
+}
+
+function createDeviceDisplay(deviceData){
+  const mainContent=document.getElementById('main-content');
+  if(Object.keys(deviceData).length===0){mainContent.innerHTML=`<div class="error-msg">No ${deviceType} configurations found.</div>`;return;}
+  const allPointNames=new Set();
+  Object.values(deviceData).forEach(pts=>pts.forEach(p=>allPointNames.add(p.name)));
+  const sortedPointNames=sortPointsByImportance(Array.from(allPointNames));
+  const sortedDeviceNames=Object.keys(deviceData).sort();
+
+  document.getElementById('mainToolbar').style.display='flex';
+  document.getElementById('view-toggle-bar').style.display='flex';
+
+  let html=`<div id="table-view" class="table-scroll-wrap"><table class="ahu-table"><thead><tr>
+    <th>Device Name</th>
+${sortedPointNames.map(n=>`<th id="th-${n}">${decodeNiagaraName(n)}</th>`).join('')}
+</tr></thead><tbody>`;
+  sortedDeviceNames.forEach(dn=>{
+    html+=`<tr><td class="ahu-name"><a href="#">${decodeNiagaraName(dn)}</a></td>${sortedPointNames.map(pn=>`<td id="point-${dn}-${pn}" class="value-loading">·</td>`).join('')}</tr>`;
+  });
+  html+=`</tbody></table></div>`;
+
+  html+=`<div id="tablet-view" class="tablet-view" style="display:none;"><div class="device-cards${sortedDeviceNames.length===1?' single-device':''}">`;
+  sortedDeviceNames.forEach(dn=>{
+    html+=`<div class="device-card">
+      <div class="device-card-header">
+        <div class="device-card-dot"></div>
+        <h3>${decodeNiagaraName(dn)}</h3>
+      </div>
+      <div class="device-card-body">`;
+    sortedPointNames.forEach(pn=>{
+      html+=`<div class="point-row">
+<div id="label-${dn}-${pn}" class="point-label">${decodeNiagaraName(pn)}</div>
+        <div class="point-value-container">
+          <div id="tablet-point-${dn}-${pn}" class="point-value value-loading">·</div>
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  html+=`</div></div>`;
+
+  mainContent.innerHTML=html;
+  setTimeout(loadViewPreference,100);
+
+  sortedDeviceNames.forEach(dn=>{
+    const pts=deviceData[dn];
+    sortedPointNames.forEach(pn=>{
+      const pt=pts.find(p=>p.name===pn);
+      if(pt&&pt.status==='connected'){subscribeToPoint(dn,pn,pt.fullPath,pt);}
+      else{updatePointValue(dn,pn,'N/A',null);}
+    });
+  });
+}
+
+async function loadAndDisplayDevicePoints(){
+  try{
+    const authResult=await isAuthorizedUser();
+    if(!authResult.authorized){document.getElementById('main-content').innerHTML='<div class="error-msg">Access Denied: You do not have permission to view point data.</div>';return;}
+    isAdminUser=authResult.isAdmin;
+    const response=await fetch('../Global.json');
+    if(!response.ok)throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+    const jsonData=await response.json();
+    const deviceConfigs={};
+    Object.keys(jsonData.globalVariables).forEach(key=>{if(matchesDeviceType(key)){const allPts=jsonData.globalVariables[key].points;if(allPts&&allPts.length>0)deviceConfigs[key]=allPts;}});
+    allDevicePoints=deviceConfigs;
+    createDeviceDisplay(deviceConfigs);
+    createDeviceExportControls();
+  }catch(error){document.getElementById('main-content').innerHTML=`<div class="error-msg">Error loading ${deviceType} data: ${error.message}</div>`;}
+}
+
+function cleanup(){if(subscriber)subscriber.unsubscribeAll();}
+window.addEventListener('beforeunload',cleanup);
+loadAndDisplayDevicePoints();
+</script>
+
+<script>
+let deviceExportHistoryCache=new Map();
+function getDeviceTypeFromFilenameExport(){
+  const path=window.location.pathname,filename=path.substring(path.lastIndexOf('/')+1);
+  const nameWithoutExtension=filename.replace('.html','');
+  const spacedName=nameWithoutExtension.replace(/([A-Z])/g,' $1').trim();
+  return{raw:nameWithoutExtension,display:spacedName,folder:nameWithoutExtension};
+}
+const exportDeviceInfo=getDeviceTypeFromFilenameExport();
+const exportDeviceType=exportDeviceInfo.display;
+
+async function discoverDeviceHistoryOrd(pointOrd){
+  return new Promise((resolve,reject)=>{try{require(['baja!'],function(baja){baja.Ord.make(pointOrd).get().then(e=>e.tags()).then(tm=>{const ht=tm.get('n:history');if(ht&&ht.toString().trim()!==''){let hp=ht.toString();if(!hp.startsWith('history:'))hp='history:'+hp;resolve(hp);}else reject(new Error('No n:history tag found on point: '+pointOrd));}).catch(e=>reject(new Error('Failed to load point tags: '+e.message)));});}catch(e){reject(e);}});
+}
+
+async function loadDeviceHistoryData(pointPath,startTime,endTime,maxPoints=1000){
+  return new Promise(async(resolve,reject)=>{try{let historyOrd=deviceExportHistoryCache.get(pointPath);if(!historyOrd){try{historyOrd=await discoverDeviceHistoryOrd(pointPath);deviceExportHistoryCache.set(pointPath,historyOrd);}catch(e){resolve([]);return;}}require(['baja!'],function(baja){const tc=`timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;const bqlQuery=historyOrd+'|bql:select timestamp, value where '+tc+' order by timestamp';const dp=[];baja.Ord.make(bqlQuery).get({cursor:{limit:maxPoints,each:function(){const r=this.get(),rt=r.get("timestamp"),v=r.get("value"),d=new Date(rt.getMillis());dp.push({timestamp:d,timestampString:d.toLocaleString(),value:v});}}}).then(()=>resolve(dp)).catch(e=>reject(new Error('Failed to load history data: '+e.message)));});}catch(e){reject(e);}});
+}
+
+function getAllDevicePointPaths(){
+  const paths=[];
+  Object.keys(allDevicePoints).forEach(deviceName=>{allDevicePoints[deviceName].forEach(point=>{if(point.status==='connected')paths.push({name:`${deviceName}_${point.name}`,deviceName,pointName:point.name,path:point.fullPath});});});
+  return paths;
+}
+
+async function exportDeviceHistoryToCSV(){
+  const mc=document.getElementById('main-content'),oc=mc.innerHTML;
+  mc.innerHTML='<div class="loading-msg">Loading historical data for CSV export…</div>';
+  try{
+    const sd=new Date(document.getElementById('device-start-datetime').value),ed=new Date(document.getElementById('device-end-datetime').value);
+    const ap=getAllDevicePointPaths();
+    if(!ap.length){mc.innerHTML=oc;alert('No data points available');return;}
+    const ahd=await Promise.all(ap.map(p=>loadDeviceHistoryData(p.path,sd,ed,1000).then(d=>({pointName:p.name,data:d}))));
+    const tm=new Map();
+    ahd.forEach(ph=>ph.data.forEach(r=>{const isTimeString=typeof r.value==='string'&&/\d{1,2}:\d{2}(:\d{2})?\s?(AM|PM)/i.test(r.value);let fullTs;if(isTimeString){fullTs=`${r.timestampString} ${r.value}`;if(!tm.has(fullTs))tm.set(fullTs,{timestamp:fullTs});return;}fullTs=[...tm.keys()].find(ts=>ts.startsWith(r.timestampString))||r.timestampString;if(!tm.has(fullTs))tm.set(fullTs,{timestamp:fullTs});tm.get(fullTs)[ph.pointName]=r.value;}));
+    const sortedData=Array.from(tm.values()).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+    if(!sortedData.length){mc.innerHTML=oc;alert('No historical data found for the selected time range');return;}
+    const headers=['Timestamp',...ap.map(p=>p.name)];
+    let csvContent=headers.join(',')+'\n';
+    sortedData.forEach(row=>{const st=`"${row.timestamp.replace(/"/g,'""')}"`;const csvRow=[st,...ap.map(p=>{const v=row[p.name];if(v===undefined||v===null)return'';const s=String(v);return(s.includes(',')||s.includes('"'))?`"${s.replace(/"/g,'""')}"`:s;})];csvContent+=csvRow.join(',')+'\n';});
+    const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'}),link=document.createElement('a'),url=URL.createObjectURL(blob);
+    link.setAttribute('href',url);link.setAttribute('download',`${exportDeviceInfo.raw}_History_${sd.toISOString().slice(0,10)}_to_${ed.toISOString().slice(0,10)}.csv`);
+    link.style.visibility='hidden';document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);
+    mc.innerHTML=oc;alert(`CSV exported successfully: ${sortedData.length} readings`);
+  }catch(e){mc.innerHTML=oc;alert('Failed to export CSV: '+e.message);}
+}
+
+async function generateDeviceHistoryPDFReport(){
+  const mc=document.getElementById('main-content'),oc=mc.innerHTML;
+  mc.innerHTML='<div class="loading-msg">Loading historical data for PDF report…</div>';
+  try{
+    const sd=new Date(document.getElementById('device-start-datetime').value),ed=new Date(document.getElementById('device-end-datetime').value);
+    const ap=getAllDevicePointPaths();
+    if(!ap.length){mc.innerHTML=oc;alert('No data points available');return;}
+    const ahd=await Promise.all(ap.map(p=>loadDeviceHistoryData(p.path,sd,ed,1000).then(d=>({pointName:p.name,deviceName:p.deviceName,data:d}))));
+    const deviceGroups={};ahd.forEach(ph=>{if(!deviceGroups[ph.deviceName])deviceGroups[ph.deviceName]=[];deviceGroups[ph.deviceName].push(ph);});
+    const pointStats=ahd.map(ph=>{const nv=ph.data.map(d=>parseFloat(d.value)).filter(v=>!isNaN(v));const isBool=ph.data.length>0&&typeof ph.data[0].value==='boolean';let stats;if(nv.length>0){stats={count:nv.length,min:Math.min(...nv),max:Math.max(...nv),avg:nv.reduce((a,b)=>a+b,0)/nv.length,isNumeric:true};}else if(isBool||ph.data.length>0){stats={count:ph.data.length,hasData:true,isBoolean:true};}else{stats={count:0,hasData:false};}return{pointName:ph.pointName,deviceName:ph.deviceName,stats,latestValue:ph.data.length>0?ph.data[ph.data.length-1].value:null,historyData:ph.data};});
+    const rd=new Date().toLocaleString(),svn=Object.keys(deviceGroups).sort();
+    let sumHTML='<div style="page-break-inside:avoid;"><h2 style="color:#1e3c72;font-size:18pt;margin-top:25px;border-bottom:2px solid #3b82f6;padding-bottom:8px;">'+exportDeviceType+' Summary Statistics</h2>';
+    svn.forEach(dn=>{const dpts=pointStats.filter(p=>p.deviceName===dn);sumHTML+=`<h3 style="color:#37474f;font-size:14pt;margin-top:20px;">${decodeNiagaraName(dn)}</h3><table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:9pt;"><thead style="background:#1e3c72;color:white;"><tr><th style="padding:8px;text-align:left;border:1px solid #ddd;">Point</th><th style="padding:8px;text-align:right;border:1px solid #ddd;">Latest</th><th style="padding:8px;text-align:right;border:1px solid #ddd;">Min</th><th style="padding:8px;text-align:right;border:1px solid #ddd;">Avg</th><th style="padding:8px;text-align:right;border:1px solid #ddd;">Max</th><th style="padding:8px;text-align:center;border:1px solid #ddd;">Count</th></tr></thead><tbody>`;dpts.forEach((pt,i)=>{const bg=i%2===0?'#f5f5f5':'#fff';if(!pt.stats.hasData&&!pt.stats.isNumeric){sumHTML+=`<tr style="background:${bg};"><td style="padding:6px;border:1px solid #ddd;">${decodeNiagaraName(pt.pointName)}</td><td colspan="5" style="padding:6px;border:1px solid #ddd;text-align:center;color:#999;">No Data</td></tr>`;}else if(pt.stats.isBoolean){const lv=pt.latestValue!==null?String(pt.latestValue).toUpperCase():'N/A';sumHTML+=`<tr style="background:${bg};"><td style="padding:6px;border:1px solid #ddd;">${decodeNiagaraName(pt.pointName)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;">${lv}</td><td colspan="3" style="padding:6px;border:1px solid #ddd;text-align:center;color:#999;">Boolean</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${pt.stats.count}</td></tr>`;}else{const lv=pt.latestValue!==null&&!isNaN(pt.latestValue)?Number(pt.latestValue).toFixed(2):'N/A';sumHTML+=`<tr style="background:${bg};"><td style="padding:6px;border:1px solid #ddd;">${decodeNiagaraName(pt.pointName)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;">${lv}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;">${pt.stats.min.toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;">${pt.stats.avg.toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right;">${pt.stats.max.toFixed(2)}</td><td style="padding:6px;border:1px solid #ddd;text-align:center;">${pt.stats.count}</td></tr>`;}});sumHTML+='</tbody></table>';});sumHTML+='</div>';
+    let detHTML='<div style="page-break-before:always;"><h2 style="color:#1e3c72;font-size:18pt;margin-top:25px;border-bottom:2px solid #3b82f6;padding-bottom:8px;">Detailed Historical Data (Sample)</h2><p style="color:#666;font-size:9pt;margin-bottom:15px;">Showing last 100 readings per point</p></div>';
+    svn.slice(0,20).forEach(dn=>{const dpts=pointStats.filter(p=>p.deviceName===dn);detHTML+=`<div style="page-break-inside:avoid;margin-top:25px;"><h3 style="color:#37474f;font-size:12pt;">${decodeNiagaraName(dn)}</h3>`;dpts.forEach(pt=>{if(pt.historyData&&pt.historyData.length>0){const dd=pt.historyData.slice(-100).reverse();detHTML+=`<h4 style="color:#546e7a;font-size:10pt;margin:15px 0 8px;">${decodeNiagaraName(pt.pointName)}</h4><table style="width:100%;border-collapse:collapse;font-size:8pt;"><thead style="background:#37474f;color:white;"><tr><th style="padding:6px;text-align:left;border:1px solid #ddd;">Timestamp</th><th style="padding:6px;text-align:right;border:1px solid #ddd;">Value</th></tr></thead><tbody>`;dd.forEach((r,ix)=>{const bg=ix%2===0?'#f9f9f9':'#fff';const v=parseFloat(r.value);detHTML+=`<tr style="background:${bg};"><td style="padding:4px 6px;border:1px solid #ddd;">${r.timestampString}</td><td style="padding:4px 6px;border:1px solid #ddd;text-align:right;font-family:monospace;">${!isNaN(v)?v.toFixed(2):r.value}</td></tr>`;});detHTML+='</tbody></table>';}});detHTML+='</div>';});
+    if(svn.length>20)detHTML+=`<p style="text-align:center;color:#90a4ae;font-size:9pt;margin-top:20px;">Detailed history shown for first 20 devices. Full data available in CSV export.</p>`;
+    const pdfHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${exportDeviceType} Performance Report</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:15mm;font-size:10pt;color:#000;}.header{text-align:center;margin-bottom:25px;border-bottom:3px solid #1e3c72;padding-bottom:15px;}.header h1{color:#1e3c72;font-size:24pt;margin-bottom:8px;}.info-section{background:#f5f5f5;padding:15px;margin-bottom:20px;border:1px solid #ddd;}.info-row{display:flex;margin-bottom:6px;}.info-label{font-weight:bold;width:140px;color:#37474f;}.info-value{color:#546e7a;}.footer{margin-top:30px;text-align:center;color:#90a4ae;font-size:9pt;border-top:1px solid #e0e0e0;padding-top:10px;}@media print{.no-print{display:none;}}</style></head><body><div class="header"><h1>${exportDeviceType} Performance Report</h1><p>Murphy Control Panel</p></div><div class="info-section"><div class="info-row"><div class="info-label">Report Generated:</div><div class="info-value">${rd}</div></div><div class="info-row"><div class="info-label">Data Time Range:</div><div class="info-value">${sd.toLocaleString()} to ${ed.toLocaleString()}</div></div><div class="info-row"><div class="info-label">Total Devices:</div><div class="info-value">${svn.length}</div></div><div class="info-row"><div class="info-label">Total Data Points:</div><div class="info-value">${ap.length}</div></div></div>${sumHTML}${detHTML}<div class="footer"><p>Generated by Murphy Control Panel — ${exportDeviceType} Monitoring System</p><p>${rd}</p></div><div class="no-print" style="position:fixed;top:10px;right:10px;background:white;padding:10px;border:2px solid #ddd;border-radius:5px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><button onclick="window.print()" style="padding:12px 24px;background:#0066cc;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;margin-right:10px;">Print / Save PDF</button><button onclick="window.close()" style="padding:12px 24px;background:#546e7a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">Close</button></div></body></html>`;
+    mc.innerHTML=oc;
+    const pw=window.open('','_blank');
+    if(pw){pw.document.write(pdfHTML);pw.document.close();}else alert('Pop-up blocked. Please allow pop-ups for this site.');
+  }catch(e){mc.innerHTML=oc;alert('Failed to generate report: '+e.message);}
+}
+
+function createDeviceExportControls(){
+  const ctrl=document.getElementById('device-export-controls');
+  if(!ctrl)return;
+  ctrl.style.display='flex';
+  const now=new Date(),yd=new Date(now.getTime()-86400000);
+  const si=document.createElement('input');si.type='datetime-local';si.id='device-start-datetime';si.value=yd.toISOString().slice(0,16);
+  const ei=document.createElement('input');ei.type='datetime-local';ei.id='device-end-datetime';ei.value=now.toISOString().slice(0,16);
+  const cb=document.createElement('button');cb.className='export-btn';cb.innerHTML='Export CSV';cb.onclick=exportDeviceHistoryToCSV;
+  const pb=document.createElement('button');pb.className='export-btn';pb.innerHTML='PDF Report';pb.onclick=generateDeviceHistoryPDFReport;
+  ctrl.appendChild(si);ctrl.appendChild(ei);ctrl.appendChild(cb);ctrl.appendChild(pb);
+}
+</script>
+
+</body>
+</html>
