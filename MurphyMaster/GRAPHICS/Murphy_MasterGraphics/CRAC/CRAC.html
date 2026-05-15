@@ -1,0 +1,2033 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - CRAC Unit Monitoring</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body { height: 100%; font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); }
+body { display: flex; flex-direction: column; min-height: 100vh; opacity: 0; transition: opacity 0.6s ease; }
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.4s ease; }
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.logo-wrapper { display: flex; align-items: center; gap: 18px; margin-bottom: 15px; }
+.loader-m { width: 80px; height: 80px; }
+.loader-m path { stroke-dasharray: 500; stroke-dashoffset: 500; animation: drawM 1.6s ease-out forwards, glowPulse 2s ease-in-out infinite 1.6s; }
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+@keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 4px #00A86B); } 50% { filter: drop-shadow(0 0 18px #00ff99); } }
+.loader-wordmark { font-size: 42px; font-weight: 700; letter-spacing: 2px; color: #111; background: linear-gradient(90deg, #111, #222); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.loader-text { margin-top: 10px; font-size: 14px; letter-spacing: 1px; opacity: 0.7; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 11px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 9px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px, 0.7vw, 11px); letter-spacing: clamp(1px, 0.3vw, 4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#ahu-header { font-family: var(--font-head); font-size: clamp(12px, 1.4vw, 18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+.top-right-controls { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls .divider { width: 1px; height: 20px; background: var(--border); }
+.top-right-controls span { font-family: var(--font-head); font-size: clamp(8px, 0.6vw, 10px); letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px, 0.8vw, 14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* ─── TOPBAR OVERRIDES BUTTON + DROPDOWN ────────────────────────────── */
+#topbar-or-btn {
+  background: rgba(255,171,0,0.06);
+  border: 1px solid rgba(255,171,0,0.2);
+  color: rgba(255,171,0,0.4);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: default;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+#topbar-or-btn:not([disabled]) { background: rgba(255,171,0,0.12); border-color: rgba(255,171,0,0.45); color: var(--amber); cursor: pointer; }
+#topbar-or-btn:not([disabled]):hover { background: rgba(255,171,0,0.25); border-color: var(--amber); box-shadow: 0 0 10px rgba(255,171,0,0.3); }
+#topbar-or-dropdown {
+  display: none; position: fixed; z-index: 99999; background: var(--bg-card);
+  border: 1px solid rgba(255,171,0,0.35); border-radius: 10px; padding: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,171,0,0.08);
+  min-width: 200px; max-width: 340px;
+}
+#topbar-or-dropdown.open { display: block; }
+#topbar-or-chips { display: flex; flex-direction: column; gap: 6px; }
+.topbar-or-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,171,0,0.07); border: 1px solid rgba(255,171,0,0.2); border-radius: 7px; padding: 6px 10px; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.topbar-or-chip:hover { background: rgba(255,171,0,0.18); border-color: var(--amber); }
+.topbar-or-chip.overridden { border-color: rgba(213,22,223,0.4); background: rgba(213,22,223,0.06); }
+.topbar-or-chip-name { font-family: var(--font-head); font-size: 15px; letter-spacing: 0.5px; color: var(--text-primary); text-transform: uppercase; }
+.topbar-or-chip-value { font-family: var(--font-head); font-size: 15px; font-weight: bold; color: var(--amber); }
+.topbar-or-chip.overridden .topbar-or-chip-value { color: var(--purple); }
+
+/* ─── UNIT DATA TOPBAR DROPDOWN ─────────────────────────────────────── */
+#unitdata-topbar-dropdown {
+    display: none; position: fixed; z-index: 99999; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 10px; padding: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,200,255,0.06);
+    min-width: 320px; max-width: 480px; max-height: 60vh; overflow-y: auto;
+}
+#unitdata-topbar-dropdown.open { display: block; }
+#unitDataButton-top {
+    padding: 5px 10px; background: transparent; border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text-muted); font-family: var(--font-head);
+    font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: var(--transition);
+    display: flex; align-items: center; gap: 5px;
+}
+#unitDataButton-top:hover { border-color: var(--accent); color: var(--accent); }
+#unitDataButton-top.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.08); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content { flex: 1; position: relative; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto;
+  background: radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+              radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+              radial-gradient(ellipse at 60% 85%, rgba(0,180,220,0.07) 0%, transparent 45%),
+              linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed; }
+
+/* ─── CRAC CONTAINER ─────────────────────────────────────────────────── */
+.ahu-container { display: flex; flex-direction: column; width: 100%; max-width: auto; gap: 16px; padding: 16px; }
+
+/* ─── GRAPHIC CARD ──────────────────────────────────────────────────── */
+.bubbleSP { width: 100%; background: #0a0f1a; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; box-shadow: 0 0 40px rgba(0,200,255,0.06), 0 8px 32px rgba(0,0,0,0.6); backdrop-filter: blur(8px); transition: box-shadow 0.3s ease; overflow: hidden; }
+.bubbleSP::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(0,80,140,0.18) 0%, transparent 65%), radial-gradient(ellipse at 75% 30%, rgba(0,40,80,0.14) 0%, transparent 60%), repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,200,255,0.012) 18px, rgba(0,200,255,0.012) 19px); pointer-events: none; z-index: 0; }
+.bubbleSP:hover { box-shadow: 0 0 50px rgba(0,200,255,0.1), 0 8px 40px rgba(0,0,0,0.7); }
+
+/* ─── ON-GRAPHIC POINT PILLS ─────────────────────────────────────────── */
+.point-display { position: absolute; z-index: 5; cursor: pointer; font-family: var(--font-head); font-size: clamp(9px, 0.85vw, 13px); white-space: nowrap; }
+.point-display-inner { background: rgba(10,15,25,0.88); border: 1px solid rgba(0,200,255,0.25); border-radius: 6px; padding: clamp(3px, 0.35vw, 5px) clamp(5px, 0.6vw, 10px); display: flex; flex-direction: column; gap: 1px; backdrop-filter: blur(8px); transition: var(--transition); }
+.point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+.pill-label { font-size: clamp(7px, 0.60vw, 15px); color: #fff; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.pill-value { font-size: clamp(9px, 0.9vw, 14px); font-family: var(--font-head); font-weight: bold; white-space: nowrap; line-height: 1.3; text-shadow: 0 0 8px rgba(0,200,255,0.4); }
+.data-value { font-family: var(--font-head); font-weight: bold; }
+.data-value.status-on,  .pill-value.status-on   { color: var(--green); }
+.data-value.status-off, .pill-value.status-off  { color: var(--text-muted); }
+.data-value.override-on, .data-value.override-active, .pill-value.override-active { color: var(--purple) !important; }
+.data-value.status-fault, .pill-value.status-fault { color: var(--red); }
+
+/* ─── OR CIRCLE BUTTON ──────────────────────────────────────────────── */
+.or-btn-inline {
+  display: none;
+  width: clamp(16px, 1.4vw, 22px); height: clamp(16px, 1.4vw, 22px); min-width: clamp(16px, 1.4vw, 22px);
+  background: rgba(255,171,0,0.18); border: 1px solid rgba(255,171,0,0.55); color: var(--amber);
+  border-radius: 50%; align-items: center; justify-content: center;
+  font-size: clamp(6px, 0.5vw, 8px); font-weight: bold; cursor: pointer; font-family: var(--font-head);
+  transition: all 0.2s; flex-shrink: 0; user-select: none;
+}
+.or-btn-inline.or-ready { display: flex; }
+.or-btn-inline:hover { transform: scale(1.15); background: rgba(255,171,0,0.35); box-shadow: 0 0 8px rgba(255,171,0,0.55); }
+.or-btn-inline.or-active { background: rgba(213,22,223,0.25) !important; border-color: var(--purple) !important; color: var(--purple) !important; animation: orPulse 1.8s ease-in-out infinite; }
+.or-btn-inline.or-active:hover { background: rgba(213,22,223,0.45) !important; box-shadow: 0 0 12px rgba(213,22,223,0.7) !important; }
+@keyframes orPulse { 0%, 100% { box-shadow: 0 0 4px rgba(213,22,223,0.5); } 50% { box-shadow: 0 0 14px rgba(213,22,223,0.9), 0 0 28px rgba(213,22,223,0.4); } }
+.or-btn-inline.or-fault { background: rgba(255,68,68,0.25) !important; border-color: var(--red) !important; color: var(--red) !important; animation: orFaultPulse 1.2s ease-in-out infinite; }
+.or-btn-inline.or-fault:hover { background: rgba(255,68,68,0.45) !important; box-shadow: 0 0 12px rgba(255,68,68,0.7) !important; }
+@keyframes orFaultPulse { 0%, 100% { box-shadow: 0 0 4px rgba(255,68,68,0.6); } 50% { box-shadow: 0 0 14px rgba(255,68,68,1.0), 0 0 28px rgba(255,68,68,0.5); } }
+
+/* Pill wrapper */
+.pill-wrap { position: absolute; z-index: 5; display: flex; align-items: flex-start; gap: 3px; }
+.pill-wrap .point-display { position: relative; z-index: auto; cursor: pointer; font-family: var(--font-head); font-size: clamp(9px, 0.85vw, 13px); white-space: nowrap; }
+.pill-wrap .or-btn-inline { position: relative; z-index: auto; align-self: flex-start; margin-top: 2px; }
+.pill-wrap .point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+
+/* ─── OVERRIDE STATUS BADGE ──────────────────────────────────────────── */
+.or-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: bold; transition: all 0.3s ease; }
+.or-status-badge.badge-auto { background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.35); color: var(--green); }
+.or-status-badge.badge-overridden { background: rgba(213,22,223,0.15); border: 1px solid rgba(213,22,223,0.55); color: var(--purple); animation: badgePulse 2s ease-in-out infinite; }
+.or-status-badge.badge-fault { background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.55); color: var(--red); animation: badgeFaultPulse 1.2s ease-in-out infinite; }
+@keyframes badgeFaultPulse { 0%, 100% { box-shadow: 0 0 0px rgba(255,68,68,0); } 50% { box-shadow: 0 0 10px rgba(255,68,68,0.6); } }
+@keyframes badgePulse { 0%, 100% { box-shadow: 0 0 0px rgba(213,22,223,0); } 50% { box-shadow: 0 0 10px rgba(213,22,223,0.5); } }
+
+.modal-content.is-overridden { border-color: rgba(213,22,223,0.6) !important; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(213,22,223,0.15), 0 0 30px rgba(213,22,223,0.1) !important; }
+.modal-content.is-overridden .modal-header { border-bottom-color: rgba(213,22,223,0.4) !important; }
+.modal-content.is-overridden .modal-header h2 { color: var(--purple) !important; }
+.modal-content.is-fault { border-color: rgba(255,68,68,0.6) !important; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,68,68,0.15), 0 0 30px rgba(255,68,68,0.1) !important; }
+.modal-content.is-fault .modal-header { border-bottom-color: rgba(255,68,68,0.4) !important; }
+.modal-content.is-fault .modal-header h2 { color: var(--red) !important; }
+
+/* ─── UNIT DATA PANEL ───────────────────────────────────────────────── */
+#unit-data-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+#unit-data-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; cursor: pointer; user-select: none; transition: var(--transition); }
+#unit-data-panel-header:hover { background: var(--bg-card-hover); }
+#unit-data-panel-title { font-family: var(--font-head); font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
+#unit-data-panel-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.3s ease; }
+#unit-data-panel.open #unit-data-panel-chevron { transform: rotate(180deg); }
+#unit-data-panel-body { display: none; padding: 0 16px 14px; }
+#unit-data-panel.open #unit-data-panel-body { display: block; }
+#unit-data-inner-table { width: 100%; border-collapse: collapse; font-family: var(--font-head); }
+#unit-data-inner-table th { text-align: left; padding: 6px 8px; color: var(--accent); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+#unit-data-inner-table td { padding: 5px 8px; color: var(--text-primary); font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+#unit-data-inner-table tr:last-child td { border-bottom: none; }
+#unit-data-inner-table tr:hover td { background: rgba(0,200,255,0.04); }
+
+
+/* ─── CRAC PER-PANEL OVERRIDE STRIP ─────────────────────────────── */
+.crac-or-strip {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+    background: #0a0f1a;  /* same as bubbleSP bg so it sits on top of pills */
+}
+.crac-or-strip-title {
+    font-family: var(--font-head);
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.7;
+}
+.crac-or-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.crac-or-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: rgba(255,171,0,0.07);
+    border: 1px solid rgba(255,171,0,0.2);
+    border-radius: 7px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    flex: 1;
+    min-width: 120px;
+}
+.crac-or-chip:hover {
+    background: rgba(255,171,0,0.18);
+    border-color: var(--amber);
+}
+.crac-or-chip.overridden {
+    border-color: rgba(213,22,223,0.4);
+    background: rgba(213,22,223,0.06);
+}
+.crac-or-chip-label {
+    font-family: var(--font-head);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.crac-or-chip-value {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--amber);
+}
+.crac-or-chip.overridden .crac-or-chip-value {
+    color: var(--purple);
+}
+
+/* ─── OR MODAL ──────────────────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--bg-panel); border: 1px solid rgba(255,171,0,0.45); border-radius: 14px; padding: 28px; width: 75%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,171,0,0.1); animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes modalIn { from { transform: scale(0.92) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255,171,0,0.3); }
+.modal-header h2 { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--amber); font-weight: normal; text-transform: uppercase; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-point-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.modal-point-name { font-family: var(--font-head); font-size: 14px; color: var(--amber); }
+.modal-live-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.modal-live-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.modal-point-value { font-family: var(--font-head); font-size: 28px; font-weight: bold; color: var(--text-primary); transition: color 0.3s ease; }
+.modal-point-value.status-on      { color: var(--green); }
+.modal-point-value.status-off     { color: var(--text-muted); }
+.modal-point-value.status-override { color: var(--purple); }
+.modal-point-value.status-fault   { color: var(--red); }
+.modal-controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+.control-group label { font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.control-group input, .control-group select { padding: 10px 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-head); font-size: 14px; transition: var(--transition); }
+.control-group input:focus, .control-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.modal-buttons { display: flex; gap: 10px; }
+.modal-btn { flex: 1; padding: 11px 16px; border: none; border-radius: 6px; font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: var(--transition); }
+.modal-btn-override { background: rgba(255,171,0,0.15); color: var(--amber); border: 1px solid rgba(255,171,0,0.4); }
+.modal-btn-override:hover { background: rgba(255,171,0,0.3); }
+.modal-btn-release { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+.modal-btn-release:hover { background: rgba(255,68,68,0.3); }
+.modal-btn-cancel { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
+.modal-btn-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+/* ─── GRAPH POPUP ───────────────────────────────────────────────────── */
+.graph-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(10px); z-index: 9999; justify-content: center; align-items: center; }
+.graph-popup-container { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; width: 94vw; max-width: 1400px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,200,255,0.08); }
+.graph-popup-header { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.graph-popup-title { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--accent); font-weight: normal; text-transform: uppercase; margin: 0; }
+.graph-popup-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 34px; height: 34px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; }
+.graph-popup-close:hover { border-color: var(--red); color: var(--red); }
+.graph-popup-body { flex: 1; padding: 24px; overflow: hidden; background: var(--bg-card); display: flex; flex-direction: column; min-height: 0; }
+.graph-canvas-container { flex: 1; position: relative; min-height: 0; width: 100%; }
+.graph-canvas-container canvas { width: 100% !important; height: 100% !important; }
+.graph-loading { display: flex; justify-content: center; align-items: center; height: 100%; color: var(--accent); font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; }
+.graph-info { margin-top: 12px; padding: 10px 16px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-muted); font-family: var(--font-head); flex-shrink: 0; }
+
+/* ─── PDF BUTTON ────────────────────────────────────────────────────── */
+#pdf-button-container button { background: rgba(0,200,255,0.1) !important; border: 1px solid var(--border) !important; color: var(--accent) !important; font-family: var(--font-head) !important; border-radius: 8px !important; }
+#pdf-button-container button:hover { background: rgba(0,200,255,0.2) !important; border-color: var(--accent) !important; }
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; position: sticky; bottom: 0; z-index: 1000; gap: 8px; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1; }
+.date-time strong { color: var(--text-primary); display: block; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode {
+  --bg-deep:      #d8dde8; --bg-panel:     #cdd4e4; --bg-card:      #dce2ef;
+  --bg-card-hover:#d0d8eb; --accent:       #003580; --accent-glow:  rgba(0,53,128,0.2);
+  --green:        #006b2f; --red:          #b00020; --amber:        #b06000;
+  --purple:       #7a10a0; --text-primary: #0a1428; --text-muted:   #3a4a6a;
+  --border:       rgba(0,35,100,0.35);
+}
+body.light-mode .main-content { background: radial-gradient(ellipse at 15% 50%, rgba(0,53,128,0.07) 0%, transparent 55%), linear-gradient(135deg, #bdc6da 0%, #c8d0e2 40%, #c2cbdd 100%); }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background: rgba(180,190,215,0.98); }
+body.light-mode .bubbleSP { background: #1a1f2e; border: 2px solid rgba(0,35,100,0.5); }
+body.light-mode .point-display-inner { background: rgba(240,244,255,0.93); border: 1px solid rgba(0,35,100,0.55); }
+body.light-mode .pill-label { color: #3a4a6a; }
+body.light-mode .pill-value { color: #003580; text-shadow: none; }
+body.light-mode .pill-value.status-on    { color: #006b2f; }
+body.light-mode .pill-value.status-off   { color: #5a6a8a; }
+body.light-mode .pill-value.status-fault { color: #b00020; }
+body.light-mode .pill-value.override-active { color: #7a10a0 !important; }
+body.light-mode .section-heading h2 { color: #003580; }
+body.light-mode .crac-panel-label { color: #003580; }
+body.light-mode .hamburger-line { background: #001f6b; }
+body.light-mode .hamburger-menu { background: rgba(255,255,255,0.85); border-color: rgba(0,35,100,0.3); }
+body.light-mode .side-panel { background: #dde2ed; border-color: rgba(0,35,100,0.2); }
+body.light-mode .nav-image-btn { background: #e4e8f3; border-color: rgba(0,100,160,0.25); color: #1a2035; }
+body.light-mode .nav-image-btn:hover { background: #d0d8f0; border-color: #003580; }
+body.light-mode .nav-btn-label { color: #1a2035; }
+body.light-mode .top-right-controls { background: rgba(255,255,255,0.85); border-color: rgba(0,35,100,0.3); }
+body.light-mode .user-badge { background: rgba(255,255,255,0.85); border-color: rgba(0,35,100,0.3); color: #334466; }
+body.light-mode .back-button { background: rgba(255,255,255,0.8); color: #334466; border-color: rgba(0,35,100,0.3); }
+body.light-mode .logout-btn { background: rgba(255,255,255,0.8); color: #1a2035; border-color: rgba(0,100,180,0.3); }
+body.light-mode .bottom-bar .date-time { color: #334466; }
+body.light-mode .modal-content { background: #edf1f8; border-color: rgba(180,120,0,0.45); }
+body.light-mode .modal-header { border-bottom-color: rgba(180,120,0,0.3); }
+body.light-mode .modal-point-info { background: rgba(255,255,255,0.8); border-color: rgba(0,53,128,0.2); }
+body.light-mode .modal-point-name { color: #885500; }
+body.light-mode .modal-close { background: rgba(255,255,255,0.8); border-color: rgba(0,53,128,0.25); color: #334466; }
+body.light-mode .modal-btn-cancel { background: rgba(255,255,255,0.7); color: #334466; border-color: rgba(0,53,128,0.25); }
+body.light-mode .control-group label { color: #445566; }
+body.light-mode .control-group input, body.light-mode .control-group select { background: #fff; color: #111827; border-color: rgba(0,53,128,0.3); }
+
+/* ─── CRAC GRID ─────────────────────────────────────────────────────── */
+.crac-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--crac-cols, 2), 1fr);
+  gap: 16px;
+  width: 100%;
+}
+@media (max-width: 900px) { .crac-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .crac-grid { grid-template-columns: 1fr; } }
+
+.crac-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.crac-panel-label {
+  font-family: var(--font-head); font-size: clamp(10px, 0.9vw, 13px);
+  letter-spacing: 3px; text-transform: uppercase; color: var(--accent);
+  text-align: center; padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.crac-img-wrap {
+    position: relative; 
+    width: 100%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    flex-shrink: 0;
+}.crac-base-img { width: 100%; max-width: 100%; height: auto; display: block; object-fit: contain; }
+/* Single unit: constrain width */
+.crac-grid.single-crac .crac-panel { max-width: 75%; margin: 0 auto; }
+
+/* PlenumFan gif — same position as EF */
+.crac-anim-fan {
+  width: 14%; height: auto;
+  position: absolute; top: 69.85%; left: 40.85%;
+  z-index: 5; pointer-events: none;
+}
+/* Compressor gif — positioned bottom-left area of the CRAC image */
+.crac-anim-comp {
+  width: 18%; height: auto;
+  position: absolute; top: 62%; left: 8%;
+  z-index: 5; pointer-events: none;
+}
+
+.crac-panel .bubbleSP { 
+    position: relative; 
+    min-height: 520px;  /* tall enough for image + pills + override strip */
+    display: flex;
+    flex-direction: column;
+}
+
+#crac-grid-loading { display: flex; align-items: center; justify-content: center; height: 180px; font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; color: var(--accent); }
+
+/* ─── OVERRIDE COUNTDOWN TIMER ─────────────────────────────────────── */
+.or-countdown {
+    display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px;
+    background: rgba(213,22,223,0.15); border: 1px solid rgba(213,22,223,0.45);
+    border-radius: 20px; font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 11px);
+    color: var(--purple); white-space: nowrap; animation: orPulse 1.8s ease-in-out infinite; flex-shrink: 0;
+}
+.or-countdown.expiring { background: rgba(255,68,68,0.18); border-color: rgba(255,68,68,0.55); color: var(--red); animation: orFaultPulse 1.2s ease-in-out infinite; }
+
+/* ─── LOADER — Customer + Murphy branding ───────────────────────────── */
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn {
+  to { transform: scaleX(1); }
+}
+.loader-murphy-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m {
+  width: 30px;
+  height: 30px;
+}
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #888;
+  text-transform: uppercase;
+}
+.loader-murphy-label strong {
+  color: #00A86B;
+  letter-spacing: 2px;
+  font-weight: normal;
+}
+.loader-content .loader-text {
+  margin-top: 18px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.5s ease-out 1.4s forwards;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170"
+          fill="none" stroke="#00A86B" stroke-width="18"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading system data…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>Navigation</h2>
+    <p>Murphy Control Panel</p>
+  </div>
+  <div class="nav-section-label">System Views</div>
+  <div class="nav-image-grid">
+    <a href="../Home.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+    <a href="../FloorPlan.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+    <a href="../Alarms.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="30" r="1.8" fill="var(--amber)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+    <a href="../Users.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+    <a href="../LogsNUMERIC.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/><rect x="8" y="20" width="5" height="14" fill="#e05252" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent)" rx="1"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+    <a href="../Shedules.html" class="nav-image-btn">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+    <div id="topbar-overrides" style="position:relative;">
+      <button id="topbar-or-btn" onclick="toggleTopbarOverrides(event)" disabled title="No overridable points loaded yet">⚡ Overrides</button>
+      <div id="topbar-or-dropdown">
+        <div id="topbar-or-chips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span id="ahu-header">Loading...</span>
+  </div>
+
+  <div class="top-right">
+    <div class="top-right-controls">
+      <button id="unitDataButton-top" onclick="toggleUnitDataPanelDropdown(event)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="9" x2="9" y2="21"/>
+        </svg>
+        Unit Data
+      </button>
+      <div class="divider"></div>
+      <span>☀</span>
+      <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+        <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Unit Data Topbar Dropdown -->
+<div id="unitdata-topbar-dropdown">
+    <div style="padding:10px 16px 6px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-family:var(--font-head);font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;">Unit Data</span>
+        <span onclick="closeUnitDataDropdown()" style="cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;transition:var(--transition);" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+    </div>
+    <div style="padding:0 16px 14px;">
+        <table id="unit-data-inner-table-top" style="width:100%;border-collapse:collapse;font-family:var(--font-head);">
+            <thead><tr>
+                <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Name</th>
+                <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Value</th>
+            </tr></thead>
+            <tbody id="unit-data-tbody-top"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="ahu-container">
+
+    <div class="section-heading">
+      <div class="line"></div>
+      <h2>CRAC Unit Monitoring</h2>
+      <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+    </div>
+
+    <!-- PDF button -->
+    <div id="pdf-button-container" style="display:flex; justify-content:flex-end; margin-bottom:4px;"></div>
+
+
+
+
+<div id="crac-search-container"
+     style="display: flex; justify-content: center; align-items: center; margin-bottom: 12px; width: 100%;">
+    
+    <input type="text"
+           id="crac-search-bar"
+           placeholder="Search units..."
+           style="width: 50%; padding: 8px; font-size: 14px;">
+</div>
+
+
+
+    <!-- ═══════════════ DYNAMIC CRAC GRID ═══════════════ -->
+    <div class="crac-grid" id="crac-grid">
+      <div id="crac-grid-loading">Discovering CRAC units…</div>
+    </div>
+
+    <!-- Hidden unit data tbody (source for topbar dropdown) -->
+    <div id="unit-data-panel-body" style="display:none;">
+      <table id="unit-data-inner-table">
+        <thead><tr><th style="width:50%">Name</th><th style="width:50%">Value</th></tr></thead>
+        <tbody id="unit-data-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ── OR MODAL ── -->
+    <div class="modal-overlay" id="or-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="or-modal-title">Point Override</h2>
+          <button class="modal-close" id="or-modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-point-info">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div class="modal-point-name" id="or-modal-point-name">No Point Selected</div>
+            <span class="or-status-badge badge-auto" id="or-modal-status-badge">⬤ AUTO</span>
+          </div>
+          <div class="modal-live-row">
+            <span class="modal-live-label">Current Output:</span>
+            <div class="modal-point-value" id="or-modal-point-value">N/A</div>
+          </div>
+          <div id="or-modal-countdown-row" style="display:none; margin-top:6px;">
+            <span class="modal-live-label">Override Expires:</span>
+            <span id="or-modal-countdown-display" style="font-family:var(--font-head);font-size:16px;font-weight:bold;color:var(--purple);animation:orPulse 1.8s ease-in-out infinite;"></span>
+          </div>
+        </div>
+        <div class="modal-controls">
+          <div class="control-group" id="or-numeric-control" style="display:none;">
+            <label>Override Value:</label>
+            <input type="number" id="or-modal-numeric-input" placeholder="Enter value" step="0.1">
+          </div>
+          <div class="control-group" id="or-boolean-control" style="display:none;">
+            <label>Command:</label>
+            <select id="or-modal-command-dropdown">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+              <option value="auto">AUTO</option>
+            </select>
+          </div>
+          <div class="control-group" id="or-enum-control" style="display:none;">
+            <label>Select Value:</label>
+            <select id="or-modal-enum-dropdown"></select>
+          </div>
+          <div class="control-group">
+            <label>Duration:</label>
+            <select id="or-modal-duration-dropdown">
+              <option value="permanent">Permanent</option>
+              <option value="1min">1 Minute</option>
+              <option value="5min" selected>5 Minutes</option>
+              <option value="30min">30 Minutes</option>
+              <option value="1hour">1 Hour</option>
+              <option value="2hours">2 Hours</option>
+              <option value="4hours">4 Hours</option>
+              <option value="8hours">8 Hours</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-override" id="or-modal-override-btn">Apply Override</button>
+          <button class="modal-btn modal-btn-release" id="or-modal-release-btn">Release to Auto</button>
+          <button class="modal-btn modal-btn-cancel" id="or-modal-cancel-btn">Cancel</button>
+        </div>
+        <div style="margin-top:-8px;">
+          <button class="modal-btn" onclick="manualORModalRefresh()" style="width:100%;background:rgba(0,200,255,0.06);color:var(--text-muted);border:1px solid var(--border);font-size:10px;letter-spacing:2px;padding:7px;">
+            ↻ REFRESH STATUS
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ahu-container -->
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">← Back</button>
+  <div class="date-time">
+    <strong>Current Date &amp; Time</strong>
+    <span id="currentDateTime">Loading...</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div style="text-align:right; font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+      Controls by:<br>
+      <span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+    </div>
+    <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+(async function() {
+  try {
+    const response = await fetch('../HomeConfig.json');
+    const data = await response.json();
+    const jobName = (data.JobBuilding || 'Control Panel').toUpperCase();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = jobName;
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+<!-- FADE IN/OUT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+    document.body.addEventListener("click", function(e) {
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 300);
+    });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- PANEL TOGGLE + UNIT DATA TOPBAR DROPDOWN -->
+<script>
+function toggleUnitDataPanelDropdown(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (!dd || !btn) return;
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); btn.classList.remove('active'); return; }
+    const srcTbody  = document.getElementById('unit-data-tbody');
+    const destTbody = document.getElementById('unit-data-tbody-top');
+    if (srcTbody && destTbody) destTbody.innerHTML = srcTbody.innerHTML;
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    dd.style.left = 'auto';
+    dd.classList.add('open');
+    btn.classList.add('active');
+}
+function closeUnitDataDropdown() {
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('active');
+}
+document.addEventListener('click', function(e) {
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd && !dd.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        dd.classList.remove('open');
+        if (btn) btn.classList.remove('active');
+    }
+});
+</script>
+
+<!-- TOPBAR OVERRIDES DROPDOWN -->
+<script>
+function toggleTopbarOverrides(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('topbar-or-dropdown');
+    const btn = document.getElementById('topbar-or-btn');
+    if (!dd || !btn) return;
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('topbar-or-dropdown');
+    if (dd && !dd.contains(e.target) && e.target.id !== 'topbar-or-btn') dd.classList.remove('open');
+});
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-mode');
+    toggleSwitch.classList.add('active');
+}
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- AUTH CHECK -->
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+    document.getElementById("userDisplay").textContent = username;
+};
+function handleLogoff() { sessionStorage.removeItem('username'); window.location.href = '../LOGIN/Login.html'; }
+</script>
+
+<!-- LOADER SAFETY NET -->
+<script>
+setTimeout(function() {
+    const loader = document.getElementById("page-loader");
+    if (loader && !loader.classList.contains("hidden")) { loader.classList.add("hidden"); console.warn("Loader force-hidden after timeout"); }
+}, 12000);
+</script>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     OVERRIDE SCRIPT  (identical logic to EF page, device-key aware)
+══════════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!control:EnumOverride'], function(baja) {
+'use strict';
+
+async function isAuthorizedUser() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+        const response = await fetch('../HomeConfig.json');
+        if (!response.ok) throw new Error('Config load failed');
+        const config = await response.json();
+        const user = config.Users.find(u => u.name.toLowerCase() === username.toLowerCase());
+        return user && user.role.toLowerCase() === 'admin';
+    } catch(err) { console.error('Auth error:', err); return false; }
+}
+
+(async () => {
+    const authorized = await isAuthorizedUser();
+    if (!authorized) {
+        alert('🚫 You do not have Admin rights. User Overrides LOCKED!');
+        document.getElementById("page-loader")?.classList.add("hidden");
+        throw new Error('Unauthorized user');
+    }
+
+    function decodeNiagaraName(name) {
+        if (!name) return name;
+        return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+    }
+
+    const fullFilename = window.location.pathname.split('/').pop();
+    const headerName   = fullFilename.replace('.html', '');
+    const ahuHeader    = document.getElementById('ahu-header');
+    if (ahuHeader) ahuHeader.textContent = decodeNiagaraName(headerName);
+
+    function resolveGraphicTarget(rawId) {
+        if (!rawId) return null;
+        if (rawId === 'OccupancyCmd') return 'Occupancy';
+        const fanCmdMatch = rawId.match(/^Fan-CMD(\d*)$/i);
+        if (fanCmdMatch) return 'Fan-Stat' + fanCmdMatch[1];
+        return null;
+    }
+
+    let allOverridePointsMeta = [];
+    let resolvedORById        = {};
+    let orCurrentPointId      = null;
+    let enumPointFacets       = {};
+
+ async function loadPointsFromJSON() {
+    try {
+        const response = await fetch('../Global.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const jsonData = await response.json();
+
+        // IDU keys live at the top level of globalVariables
+        const globalVars = jsonData.globalVariables || {};
+        Object.keys(globalVars).forEach(deviceKey => {
+            if (!deviceKey.toUpperCase().startsWith('IDU') && !deviceKey.toUpperCase().startsWith('IDF') ) return;
+            const deviceData = globalVars[deviceKey];
+            if (!deviceData.points) return;
+
+            deviceData.points.forEach(point => {
+                const idVal  = (point.id  || '').trim();
+                const id2Val = (point.id2 || '').trim();
+                const spTag  = [idVal, id2Val].find(v =>
+                    v === 'SP-Numeric' || v === 'SP-Boolean' || v === 'SP-Enum'
+                );
+                if (!spTag) return;
+
+                const type      = spTag === 'SP-Numeric' ? 'numeric'
+                                : spTag === 'SP-Boolean' ? 'boolean' : 'enum';
+                const rawRealId = (idVal === spTag ? id2Val : idVal).trim();
+
+                const uniquePointId   = `${deviceKey}__${point.name}`;
+                const graphicTargetId = (rawRealId && rawRealId !== 'N/A')
+                    ? `${deviceKey}__${rawRealId}` : null;
+
+                allOverridePointsMeta.push({
+                    pointId: uniquePointId,
+                    pointName: point.name,
+                    fullPath: point.fullPath,
+                    type,
+                    rawRealId,
+                    graphicTargetId,
+                    deviceKey
+                });
+            });
+        });
+        console.log(`[OR] Loaded ${allOverridePointsMeta.length} override-eligible points`);
+    } catch(err) { console.error('Error loading override points:', err); }
+}
+
+    await loadPointsFromJSON();
+
+    const orModal           = document.getElementById('or-modal');
+    const orModalCloseBtn   = document.getElementById('or-modal-close-btn');
+    const orModalCancelBtn  = document.getElementById('or-modal-cancel-btn');
+    const orModalTitle      = document.getElementById('or-modal-title');
+    const orModalPointName  = document.getElementById('or-modal-point-name');
+    const orModalPointValue = document.getElementById('or-modal-point-value');
+    const orNumericControl  = document.getElementById('or-numeric-control');
+    const orBooleanControl  = document.getElementById('or-boolean-control');
+    const orEnumControl     = document.getElementById('or-enum-control');
+    const orModalNumericIn  = document.getElementById('or-modal-numeric-input');
+    const orModalCommandDr  = document.getElementById('or-modal-command-dropdown');
+    const orModalEnumDr     = document.getElementById('or-modal-enum-dropdown');
+    const orModalDurationDr = document.getElementById('or-modal-duration-dropdown');
+    const orModalOverrideBtn= document.getElementById('or-modal-override-btn');
+    const orModalReleaseBtn = document.getElementById('or-modal-release-btn');
+
+    function checkIfOverridden(point) {
+        try {
+            const s = point.getOut().getStatus()?.toString().toLowerCase() || '';
+            if (!s.trim()) return null;
+            if (s.includes('overridden') || s.includes('manual')) return 'OVERRIDDEN';
+            if (s.includes('fault') || s.includes('alarm') || s.includes('down')) return 'FAULT';
+            return null;
+        } catch(e) { return null; }
+    }
+
+    function setORBubbleState(btn, state) {
+        if (!btn) return;
+        btn.classList.remove('or-active', 'or-fault');
+        if (state === 'OVERRIDDEN') btn.classList.add('or-active');
+        else if (state === 'FAULT') btn.classList.add('or-fault');
+    }
+
+    function parseFacetsFromPoint(point, pointName) {
+        const options = [];
+        try {
+            const facets = point.getFacets ? point.getFacets() : null;
+            if (facets) {
+                const range = facets.get ? facets.get('range') : null;
+                if (range) {
+                    if (typeof range.getSize === 'function') {
+                        for (let i = 0; i < range.getSize(); i++) { const entry = range.get(i); options.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || String(entry.getOrdinal()) }); }
+                        if (options.length) return options;
+                    }
+                    const r1 = parseFacetString(range.toString()); if (r1.length) return r1;
+                }
+            }
+        } catch(e) {}
+        return options;
+    }
+
+    function parseFacetString(s) {
+        const opts  = [];
+        const pairs = s.replace(/[{}]/g,'').match(/([^,=]+)=(\d+)/g);
+        if (pairs) pairs.forEach(p => { const [l,o] = p.split('='); opts.push({ ordinal:parseInt(o,10), label:l.trim() }); });
+        return opts;
+    }
+
+    const orSubscriber = new baja.Subscriber();
+
+    orSubscriber.attach('changed', function(prop) {
+        if (prop.getName() !== 'out') return;
+        const pointId = this._orPointId;
+        if (!pointId) return;
+        const info = resolvedORById[pointId];
+        if (!info) return;
+        const out = this.getOut(), displayVal = out.getValueDisplay(), rawVal = out.getValue(), isOvr = this.getStatus().isOverridden();
+        if (info.orBtn) setORBubbleState(info.orBtn, isOvr ? 'OVERRIDDEN' : null);
+        if (info.graphicTargetId) {
+            const spanEl = document.getElementById(info.graphicTargetId);
+            if (spanEl) {
+                spanEl.className = spanEl.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value|data-value)\b/g,'').trim();
+                if (isOvr) { spanEl.className = 'pill-value override-active'; spanEl.textContent = `${displayVal} ◈`; }
+                else { const isOn = String(rawVal||'').toLowerCase().includes('on') || String(rawVal||'').toLowerCase() === 'true' || parseFloat(rawVal) > 0; spanEl.className = `pill-value ${isOn ? 'status-on' : 'status-off'}`; spanEl.textContent = displayVal; }
+            }
+        }
+        if (orModal?.classList.contains('active') && orCurrentPointId === pointId) {
+            updateORModalDisplay(this, info.name, info.type, pointId);
+        }
+    });
+
+    async function resolveAllPoints() {
+        await Promise.all(allOverridePointsMeta.map(async meta => {
+            try {
+                const point = await baja.Ord.make(meta.fullPath).get({ subscriber: orSubscriber });
+                point._orPointId = meta.pointId;
+                resolvedORById[meta.pointId] = { point, name: meta.pointName, type: meta.type, graphicTargetId: meta.graphicTargetId, rawRealId: meta.rawRealId, isGraphic: false, orBtn: null, deviceKey: meta.deviceKey };
+                if (meta.type === 'enum') {
+                    const facetOpts = parseFacetsFromPoint(point, meta.pointName);
+                    enumPointFacets[meta.pointId] = facetOpts;
+                }
+            } catch(err) { console.warn(`Failed to resolve "${meta.pointName}":`, err.message); }
+        }));
+
+        setTimeout(() => {
+            Object.entries(resolvedORById).forEach(([pointId, info]) => {
+                if (!info.graphicTargetId) return;
+                const container = document.querySelector(`.pill-wrap[data-spanid="${info.graphicTargetId}"]`);
+                if (!container) return;
+                let orBtn = container.querySelector('.or-btn-inline');
+                if (!orBtn) { orBtn = document.createElement('div'); orBtn.className = 'or-btn-inline'; orBtn.textContent = 'OR'; container.appendChild(orBtn); }
+                orBtn.onclick = () => openORModal(pointId);
+                orBtn.title   = `Override: ${decodeNiagaraName(info.name)}`;
+                orBtn.classList.add('or-ready');
+                info.isGraphic = true;
+                info.orBtn     = orBtn;
+                try { setORBubbleState(orBtn, checkIfOverridden(info.point)); } catch(e) {}
+            });
+            buildTopbarOverrides();
+        }, 800);
+
+        initORModalListeners();
+        startORLiveUpdate();
+        document.getElementById("page-loader")?.classList.add("hidden");
+    }
+
+    resolveAllPoints();
+
+    function buildTopbarOverrides() {
+        const topbarPoints = Object.entries(resolvedORById).filter(([, info]) => !info.isGraphic);
+        const chips = document.getElementById('topbar-or-chips');
+        const btn   = document.getElementById('topbar-or-btn');
+        if (!chips) return;
+        chips.innerHTML = '';
+        topbarPoints.forEach(([pointId, info]) => {
+            let currentVal = '—';
+            try { currentVal = info.point?.getOut().getValueDisplay() || '—'; } catch(e) {}
+            const isOvr = info.point ? checkIfOverridden(info.point) : null;
+            const chip = document.createElement('div');
+            chip.className = 'topbar-or-chip' + (isOvr ? ' overridden' : '');
+            chip.dataset.pointId = pointId;
+            chip.addEventListener('click', () => { openORModal(pointId); document.getElementById('topbar-or-dropdown')?.classList.remove('open'); });
+            chip.innerHTML = `<span class="topbar-or-chip-name">${decodeNiagaraName(info.name)}</span><span class="topbar-or-chip-value" id="topbar-or-val-${CSS.escape(pointId)}">${currentVal}</span>`;
+            chips.appendChild(chip);
+        });
+        if (btn && topbarPoints.length > 0) { btn.removeAttribute('disabled'); btn.title = `${topbarPoints.length} overridable point(s)`; }
+    }
+
+    function startORLiveUpdate() {
+        setInterval(() => {
+// Update per-panel chips
+Object.entries(resolvedORById).forEach(([pointId, info]) => {
+    const valEl = document.getElementById(`crac-or-val-${pointId}`);
+    if (valEl) {
+        try { valEl.textContent = info.point.getOut().getValueDisplay() || '—'; } catch(e) {}
+    }
+    const chip = document.getElementById(`or-chip-${pointId}`);
+    if (chip) {
+        const isOvr = checkIfOverridden(info.point);
+        chip.classList.toggle('overridden', isOvr === 'OVERRIDDEN');
+    }
+});
+        }, 2000);
+    }
+
+    window.manualORModalRefresh = function() {
+        if (!orCurrentPointId) return;
+        const info = resolvedORById[orCurrentPointId];
+        if (info) updateORModalDisplay(info.point, info.name, info.type, orCurrentPointId);
+    };
+
+    window.openORModal = function(pointId) {
+        const info = resolvedORById[pointId];
+        if (!info || !info.point) { alert('Override point not yet loaded. Please wait and try again.'); return; }
+        orCurrentPointId = pointId;
+        updateORModalDisplay(info.point, info.name, info.type, pointId);
+        orModal.classList.add('active');
+        document.getElementById('topbar-or-dropdown')?.classList.remove('open');
+        if (window.restoreORCountdownDisplay) window.restoreORCountdownDisplay(pointId);
+    };
+
+    function updateORModalDisplay(point, pointName, pointType, pointId) {
+        if (!point) return;
+        const isOvr   = checkIfOverridden(point);
+        const decoded = decodeNiagaraName(pointName);
+        if (orModalTitle)     orModalTitle.textContent = `Override — ${decoded}`;
+        if (orModalPointName) orModalPointName.textContent = decoded;
+        const badge = document.getElementById('or-modal-status-badge');
+        if (badge) {
+            if (isOvr === 'OVERRIDDEN') { badge.textContent = '◈ OVERRIDDEN'; badge.className = 'or-status-badge badge-overridden'; }
+            else if (isOvr === 'FAULT') { badge.textContent = '⚠ FAULT / ALARM'; badge.className = 'or-status-badge badge-fault'; }
+            else                        { badge.textContent = '⬤ AUTO'; badge.className = 'or-status-badge badge-auto'; }
+        }
+        const modalContent = document.querySelector('.modal-content');
+        if (modalContent) { modalContent.classList.remove('is-overridden','is-fault'); if (isOvr === 'OVERRIDDEN') modalContent.classList.add('is-overridden'); else if (isOvr === 'FAULT') modalContent.classList.add('is-fault'); }
+        if (orModalPointValue) {
+            try {
+                const val = point.getOut().getValueDisplay();
+                orModalPointValue.textContent = val !== null && val !== undefined ? val : '—';
+                orModalPointValue.className   = 'modal-point-value';
+                if (isOvr === 'OVERRIDDEN')  orModalPointValue.classList.add('status-override');
+                else if (isOvr === 'FAULT')  orModalPointValue.classList.add('status-fault');
+                else { const rawVal = String(point.getOut().getValue() ?? '').toLowerCase(); orModalPointValue.classList.add(rawVal.includes('on') || rawVal === 'true' || parseFloat(rawVal) > 0 ? 'status-on' : 'status-off'); }
+            } catch(e) { orModalPointValue.textContent = 'Error'; orModalPointValue.className = 'modal-point-value status-fault'; }
+        }
+        if (orNumericControl) orNumericControl.style.display = 'none';
+        if (orBooleanControl) orBooleanControl.style.display = 'none';
+        if (orEnumControl)    orEnumControl.style.display    = 'none';
+        if (pointType === 'numeric') {
+            if (orNumericControl) orNumericControl.style.display = 'flex';
+            if (orModalNumericIn) { try { const cur = point.getOut().getValueDisplay(); orModalNumericIn.placeholder = cur ? `Current: ${cur}` : 'Enter value'; } catch(e) {} orModalNumericIn.value = ''; }
+        } else if (pointType === 'boolean') {
+            if (orBooleanControl) orBooleanControl.style.display = 'flex';
+            if (orModalCommandDr) orModalCommandDr.value = 'on';
+        } else if (pointType === 'enum') {
+            if (orEnumControl) orEnumControl.style.display = 'flex';
+            populateEnumDropdown(pointId);
+        }
+    }
+
+    function populateEnumDropdown(pointId) {
+        if (!orModalEnumDr) return;
+        orModalEnumDr.innerHTML = '';
+        let options = enumPointFacets[pointId] || [];
+        if (!options.length) { const info = resolvedORById[pointId]; if (info && info.point) { options = parseFacetsFromPoint(info.point, pointId); if (options.length) enumPointFacets[pointId] = options; } }
+        if (!options.length) { const o = document.createElement('option'); o.textContent = '⚠ No options found'; orModalEnumDr.appendChild(o); return; }
+        [...options].sort((a,b)=>a.ordinal-b.ordinal).forEach(({ordinal,label}) => { const o = document.createElement('option'); o.value = ordinal; o.textContent = label; orModalEnumDr.appendChild(o); });
+    }
+
+    function initORModalListeners() {
+        if (orModalCloseBtn)  orModalCloseBtn.addEventListener('click',  () => orModal.classList.remove('active'));
+        if (orModalCancelBtn) orModalCancelBtn.addEventListener('click', () => orModal.classList.remove('active'));
+        if (orModal) orModal.addEventListener('click', e => { if (e.target === orModal) orModal.classList.remove('active'); });
+
+        if (orModalOverrideBtn) {
+            orModalOverrideBtn.addEventListener('click', () => {
+                if (!orCurrentPointId) return;
+                const info = resolvedORById[orCurrentPointId];
+                if (!info || !info.point) return;
+                const duration = orModalDurationDr.value;
+                let durationSec = null;
+                if (duration !== 'permanent') { const map = {'1min':60,'5min':300,'30min':1800,'1hour':3600,'2hours':7200,'4hours':14400,'8hours':28800}; durationSec = map[duration]; }
+                if (info.type === 'numeric') {
+                    const v = parseFloat(orModalNumericIn.value); if (isNaN(v)) { alert('Please enter a valid number.'); return; }
+                    performNumericOverride(info.point, v, durationSec);
+                } else if (info.type === 'boolean') {
+                    const cmd = orModalCommandDr.value;
+                    if (cmd === 'on') performActiveOverride(info.point, durationSec);
+                    else if (cmd === 'off') performInactiveOverride(info.point, durationSec);
+                    else { releaseToAuto(info.point); if (window.stopORCountdown) window.stopORCountdown(orCurrentPointId); }
+                } else if (info.type === 'enum') {
+                    const ord = parseInt(orModalEnumDr.value, 10); if (isNaN(ord)) { alert('Please select a valid option.'); return; }
+                    performEnumOverride(info.point, ord, durationSec);
+                }
+                if (durationSec && window.startORCountdown) {
+                    window.startORCountdown(orCurrentPointId, durationSec, info.graphicTargetId);
+                }
+            });
+        }
+
+        if (orModalReleaseBtn) {
+            orModalReleaseBtn.addEventListener('click', () => {
+                const info = resolvedORById[orCurrentPointId];
+                if (info && info.point) { releaseToAuto(info.point); if (window.stopORCountdown) window.stopORCountdown(orCurrentPointId); }
+            });
+        }
+    }
+
+    function performNumericOverride(point, value, durationSec=null) {
+        const p = baja.$('control:NumericOverride'); p.setValue(value);
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+        point.invoke({ slot:'override', value:p }).then(() => console.log('Numeric override OK:', value)).catch(e => console.warn('Numeric override failed:', e.message));
+    }
+    function performActiveOverride(point, durationSec=null) {
+        const p = baja.$("control:Override");
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+        point.invoke({ slot:'active', value:p }).then(() => console.log('Active override OK')).catch(e => console.error(e));
+    }
+    function performInactiveOverride(point, durationSec=null) {
+        const p = baja.$("control:Override");
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+        point.invoke({ slot:'inactive', value:p }).then(() => console.log('Inactive override OK')).catch(e => console.error(e));
+    }
+    function performEnumOverride(point, ordinal, durationSec=null) {
+        function makeDynEnum(ord) { let d = null; if (baja.DynamicEnum && typeof baja.DynamicEnum.make === 'function') { try { d = baja.DynamicEnum.make(ord); } catch(e) {} } if (!d) { d = baja.$('baja:DynamicEnum'); if (typeof d.setOrdinal === 'function') d.setOrdinal(ord); } return d; }
+        const p = baja.$('control:EnumOverride'); p.setValue(makeDynEnum(ordinal));
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+        point.invoke({ slot:'override', value:p }).then(() => console.log('Enum override OK:', ordinal)).catch(e => console.warn('Enum override failed:', e.message));
+    }
+    function releaseToAuto(point) { point.invoke({ slot:'auto' }).then(() => console.log('Released to AUTO')).catch(e => console.error(e)); }
+
+    window.addEventListener('beforeunload', () => { try { orSubscriber.unsubscribeAll(); } catch(e) {} });
+
+})();
+});
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     CRAC UNIT DATA MONITORING
+     - Reads globalVariables[headerName] as an object of device keys
+     - Each device key with a Fan-Stat point → one CRAC panel
+     - Fan-Stat drives PlenumFan.gif animation
+     - COMP drives Compressor.gif animation
+     - All other points go to Unit Data table
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!'], function(baja) {
+'use strict';
+ 
+const CRAC_IMG_BASE  = './CRAC_IMAGES/';
+const CRAC_BASE_IMG  = CRAC_IMG_BASE + 'CRAC.png';
+const CRAC_FAN_ON    = CRAC_IMG_BASE + 'PlenumFan.gif';
+const CRAC_COMP_ON   = CRAC_IMG_BASE + 'Compressor.gif';
+const CRAC_ANIM_OFF  = '';
+ 
+function decodeNiagaraName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+}
+ 
+// ── Convert a decoded display name to the slug used in span IDs ──────
+// e.g. "Room Temperature" → "Room-Temperature"
+//      "On.Off"           → "On.Off"  (unchanged)
+function toSpanSlug(decoded) {
+    return decoded.replace(/ /g, '-');
+}
+ 
+// ── Map a point to its on-graphic span ID (deviceKey__slug) ──────────
+// Returns null if this point doesn't belong on the graphic.
+function getScopedSpanId(deviceKey, point) {
+    const decodedName = decodeNiagaraName(point.name || '');
+    const slug        = toSpanSlug(decodedName);
+    const knownSlugs  = new Set([
+        'On.Off',               // id: Fan-Stat  (spans use the slug of the name, not the id)
+        'Fan-Stat',             // in case name itself is Fan-Stat
+        'COMP',
+        'Room-Temperature',
+        'Return-Temperature',
+        'Setpoint',
+    ]);
+ 
+    // Also allow matching by point.id for Fan-Stat / COMP
+    const knownIds = new Set(['Fan-Stat', 'COMP']);
+ 
+    if (knownSlugs.has(slug) || knownIds.has((point.id || '').trim())) {
+        // Map to the exact IDs that buildCRACPanel generated
+        const idMap = {
+            'Fan-Stat':          `${deviceKey}__Fan-Stat`,
+            'COMP':              `${deviceKey}__COMP`,
+            'Room-Temperature':  `${deviceKey}__Room-Temperature`,
+            'Return-Temperature':`${deviceKey}__Return-Temperature`,
+            'Setpoint':          `${deviceKey}__Setpoint`,
+        };
+        // Resolve by id first, then by slug
+        const byId   = point.id ? idMap[(point.id || '').trim()] : null;
+        const bySlug = idMap[slug];
+        return byId || bySlug || null;
+    }
+    return null;
+}
+ 
+const headerEl = document.getElementById('ahu-header');
+// We still show a friendly name in the header — use the filename if available
+const fullFilename = window.location.pathname.split('/').pop();
+const filenameBase = fullFilename.replace('.html', '');
+if (headerEl) headerEl.textContent = decodeNiagaraName(filenameBase);
+ 
+async function loadGlobalConfig() {
+    const resp = await fetch('../Global.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+}
+ 
+// ── Collect ALL IDU device keys across ALL page configs ───────────────
+function collectIDUDevices(globalVariables) {
+    const devices = {};
+    Object.keys(globalVariables).forEach(deviceKey => {
+        if (!deviceKey.toUpperCase().startsWith('IDU') && !deviceKey.toUpperCase().startsWith('IDF') ) return;
+        const d = globalVariables[deviceKey];
+        if (d && Array.isArray(d.points)) {
+            devices[deviceKey] = d.points;
+        }
+    });
+    return devices;
+}
+
+
+function buildCRACPanel(deviceKey, hasFanStat, hasComp, spPoints) {
+    const label      = decodeNiagaraName(deviceKey);
+    const fanStatId  = `${deviceKey}__Fan-Stat`;
+    const compId     = `${deviceKey}__COMP`;
+    const fanAnimId  = `${deviceKey}__FanAnim`;
+    const compAnimId = `${deviceKey}__CompAnim`;
+    const roomTempId   = `${deviceKey}__Room-Temperature`;
+    const returnTempId = `${deviceKey}__Return-Temperature`;
+    const setpointId   = `${deviceKey}__Setpoint`;
+
+    const spChipsHtml = spPoints.map(p => {
+        const chipId      = `or-chip-${deviceKey}__${p.name}`;
+        const chipLabel   = decodeNiagaraName(p.name);
+        const pointId     = `${deviceKey}__${p.name}`;
+        return `
+        <div class="crac-or-chip" id="${chipId}"
+             onclick="openORModal('${pointId}')"
+             title="Override: ${chipLabel}">
+            <span class="crac-or-chip-label">${chipLabel}</span>
+            <span class="crac-or-chip-value" id="crac-or-val-${pointId}">—</span>
+        </div>`;
+    }).join('');
+
+    const spStripHtml = spPoints.length ? `
+        <div class="crac-or-strip">
+            <div class="crac-or-strip-title">⚡ Overrides</div>
+            <div class="crac-or-chips">${spChipsHtml}</div>
+        </div>` : '';
+
+    return `
+      <div class="crac-panel" id="panel-${deviceKey}">
+        <div class="crac-panel-label">${label}</div>
+        <div class="bubbleSP" style="padding:16px; min-height:200px;">
+
+          <div class="crac-img-wrap">
+            <img class="crac-base-img" src="${CRAC_BASE_IMG}" alt="${label}"/>
+            ${hasFanStat ? `<img id="${fanAnimId}" src="" class="crac-anim-fan" style="display:none;"/>` : ''}
+            ${hasComp    ? `<img id="${compAnimId}" src="" class="crac-anim-comp" style="display:none;"/>` : ''}
+          </div>
+
+          ${hasFanStat ? `
+          <div class="pill-wrap" data-spanid="${fanStatId}" style="left:2%; top:68%;">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${fanStatId}')">
+              <div class="point-display-inner">
+                <span class="pill-label">Fan Status</span>
+                <span id="${fanStatId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>` : ''}
+
+          ${hasComp ? `
+          <div class="pill-wrap" data-spanid="${compId}" style="left:2%; top:80%;">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${compId}')">
+              <div class="point-display-inner">
+                <span class="pill-label">Compressor</span>
+                <span id="${compId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>` : ''}
+
+          <div class="pill-wrap" data-spanid="${roomTempId}" style="right:2%; top:68%; left:auto;">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${roomTempId}')">
+              <div class="point-display-inner">
+                <span class="pill-label">Room Temp</span>
+                <span id="${roomTempId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pill-wrap" data-spanid="${returnTempId}" style="right:2%; top:80%; left:auto;">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${returnTempId}')">
+              <div class="point-display-inner">
+                <span class="pill-label">Return Temp</span>
+                <span id="${returnTempId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pill-wrap" data-spanid="${setpointId}" style="left:2%; top:92%;">
+            <div class="point-display" onclick="openGraphPopupBySpanId('${setpointId}')">
+              <div class="point-display-inner">
+                <span class="pill-label">Setpoint</span>
+                <span id="${setpointId}" class="pill-value status-off">—</span>
+              </div>
+            </div>
+          </div>
+
+          ${spStripHtml}
+
+        </div>
+      </div>`;
+}
+ 
+function updateFanAnim(rawVal, animId) {
+    const img = document.getElementById(animId);
+    if (!img) return;
+    const on = String(rawVal).toLowerCase().includes('on') || rawVal === true || parseFloat(rawVal) > 0;
+    img.src          = on ? CRAC_FAN_ON  : CRAC_ANIM_OFF;
+    img.style.display = on ? '' : 'none';
+}
+ 
+function updateCompAnim(rawVal, animId) {
+    const img = document.getElementById(animId);
+    if (!img) return;
+    const on = String(rawVal).toLowerCase().includes('on') || rawVal === true || parseFloat(rawVal) >= 1;
+    img.src          = on ? CRAC_COMP_ON : CRAC_ANIM_OFF;
+    img.style.display = on ? '' : 'none';
+}
+ 
+function applyValueToSpan(el, displayVal, rawVal, isOverride, spanId) {
+    el.className = el.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value|data-value)\b/g, '').trim();
+    const base = 'pill-value';
+    if (isOverride) {
+        el.className   = `${base} override-active`;
+        el.textContent = `${displayVal} ◈`;
+    } else if (spanId && (spanId.includes('ALM') || spanId.includes('Alarm'))) {
+        const isActive = String(rawVal || '').toLowerCase().includes('on') || parseFloat(rawVal) > 0;
+        el.className   = `${base} ${isActive ? 'status-fault' : 'status-on'}`;
+        el.textContent = displayVal;
+    } else {
+        const isOn = String(rawVal || '').toLowerCase().includes('on')
+                  || String(rawVal || '').toLowerCase() === 'true'
+                  || parseFloat(rawVal) > 0;
+        el.className   = `${base} ${isOn ? 'status-on' : 'status-off'}`;
+        el.textContent = displayVal;
+    }
+}
+ 
+const subscriber = new baja.Subscriber();
+ 
+subscriber.attach('changed', function(prop) {
+    if (prop.getName() !== 'out') return;
+    const info = this.userData;
+    if (!info) return;
+    const out = this.getOut(), displayVal = out.getValueDisplay(), rawVal = out.getValue(), isOverride = this.getStatus().isOverridden();
+    if (info.isFanStat) updateFanAnim(rawVal, info.fanAnimId);
+    if (info.isComp)    updateCompAnim(rawVal, info.compAnimId);
+    if (info.spanEl)    applyValueToSpan(info.spanEl, displayVal, rawVal, isOverride, info.spanId);
+    if (info.cellEl)    info.cellEl.textContent = displayVal;
+    // Keep topbar unit data in sync if open
+    const srcTbody  = document.getElementById('unit-data-tbody');
+    const destTbody = document.getElementById('unit-data-tbody-top');
+    if (srcTbody && destTbody && document.getElementById('unitdata-topbar-dropdown')?.classList.contains('open')) {
+        destTbody.innerHTML = srcTbody.innerHTML;
+    }
+});
+ 
+function subscribeToPoint(pointOrd, info) {
+    baja.Ord.make(pointOrd).get({ subscriber })
+        .then(point => {
+            point.userData = info;
+            const out = point.getOut(), displayVal = out.getValueDisplay(), rawVal = out.getValue(), isOverride = point.getStatus().isOverridden();
+            if (info.isFanStat) updateFanAnim(rawVal, info.fanAnimId);
+            if (info.isComp)    updateCompAnim(rawVal, info.compAnimId);
+            if (info.spanEl)    applyValueToSpan(info.spanEl, displayVal, rawVal, isOverride, info.spanId);
+            if (info.cellEl)    info.cellEl.textContent = displayVal;
+        })
+        .catch(err => {
+            console.error(`Failed to subscribe [${info.spanId || info.name}]:`, err);
+            if (info.spanEl) { info.spanEl.textContent = 'Err'; info.spanEl.className = 'pill-value status-fault'; }
+            if (info.cellEl) info.cellEl.textContent = 'Err';
+        });
+}
+ 
+async function initializeMonitoring() {
+    let globalConfig;
+    try {
+        const resp = await fetch('../Global.json');
+        console.log('Fetch status:', resp.status, resp.ok);
+        const raw = await resp.text();
+        console.log('Raw JSON preview:', raw.substring(0, 300));
+        globalConfig = JSON.parse(raw);
+    } catch(e) {
+        console.error('Global.json load error:', e);
+        showError('Failed to load Global.json: ' + e.message);
+        return;
+    }
+
+    console.log('globalVariables keys:', Object.keys(globalConfig.globalVariables || {}));
+
+  const iduDevices = collectIDUDevices(globalConfig.globalVariables || {});
+      console.log('IDU devices found:', Object.keys(iduDevices));
+
+const deviceKeys = Object.keys(iduDevices).sort((a, b) =>
+    decodeNiagaraName(a).localeCompare(decodeNiagaraName(b))
+);
+
+if (!deviceKeys.length) {
+    showError('No IDU devices found in Global.json');
+    return;
+}
+ 
+    const deviceCount = deviceKeys.length;
+    console.log(`Discovered ${deviceCount} IDU/CRAC units:`, deviceKeys.map(k => decodeNiagaraName(k)));
+ 
+    // ── Build grid ────────────────────────────────────────────────────
+    const grid = document.getElementById('crac-grid');
+    if (!grid) return;
+ 
+    let cols;
+    if (deviceCount <= 1)       cols = 1;
+    else if (deviceCount === 2) cols = 2;
+    else if (deviceCount === 3) cols = 3;
+    else                        cols = 2;   // 4+ → 2-column wrap
+ 
+    grid.style.setProperty('--crac-cols', cols);
+    if (deviceCount === 1) grid.classList.add('single-crac');
+ 
+grid.innerHTML = deviceKeys.map(key => {
+    const points  = iduDevices[key];
+    const hasFan  = points.some(p => (p.id || '').trim() === 'Fan-Stat');
+    const hasComp = points.some(p => (p.id || '').trim() === 'COMP');
+    // Collect SP points for this device
+    const spPoints = points.filter(p => {
+        const id = (p.id || '').trim();
+        return id === 'SP-Numeric' || id === 'SP-Boolean' || id === 'SP-Enum';
+    });
+    return buildCRACPanel(key, hasFan, hasComp, spPoints);
+}).join('');
+
+    // ── Subscribe to points ───────────────────────────────────────────
+    const naTableBody   = document.getElementById('unit-data-tbody');
+    const excludedNames = new Set(['Note1', 'Note2', 'Note3', 'StringWritable']);
+    const excludedIds   = new Set(['SP-Numeric', 'SP-Boolean', 'SP-Enum', 'N/A']);
+ 
+    deviceKeys.forEach(deviceKey => {
+        const points = iduDevices[deviceKey];
+        const fanAnimId  = `${deviceKey}__FanAnim`;
+        const compAnimId = `${deviceKey}__CompAnim`;
+ 
+        points.forEach(point => {
+            if (excludedNames.has(point.name)) return;
+ 
+            const pointId   = (point.id || '').trim();
+            const isFanStat = pointId === 'Fan-Stat';
+            const isComp    = pointId === 'COMP';
+ 
+            // ── Resolve on-graphic span ───────────────────────────────
+            const scopedSpanId = getScopedSpanId(deviceKey, point);
+            const spanEl       = scopedSpanId ? document.getElementById(scopedSpanId) : null;
+ 
+            if (spanEl || isFanStat || isComp) {
+                subscribeToPoint(point.fullPath, {
+                    name:       point.name,
+                    spanId:     scopedSpanId,
+                    spanEl:     spanEl || null,
+                    cellEl:     null,
+                    isFanStat,
+                    isComp,
+                    fanAnimId:  isFanStat ? fanAnimId  : null,
+                    compAnimId: isComp    ? compAnimId : null,
+                });
+                return;
+            }
+ 
+            // Skip SP/N/A tagged points from Unit Data table
+            if (excludedIds.has(pointId)) return;
+ 
+            // ── Unit Data table (everything else) ─────────────────────
+            if (!naTableBody) return;
+            const decodedDevice = decodeNiagaraName(deviceKey);
+            const decodedName   = decodeNiagaraName(point.name);
+            const row = naTableBody.insertRow();
+            const nc  = row.insertCell();
+            nc.textContent = `${decodedDevice} — ${decodedName}`;
+            nc.style.cssText = 'padding:5px 8px;color:var(--text-muted);font-size:12px;font-family:var(--font-head);border-bottom:1px solid rgba(255,255,255,0.04);';
+            const vc  = row.insertCell();
+            vc.textContent  = '—';
+            vc.style.cssText = 'padding:5px 8px;color:var(--text-primary);font-size:12px;font-family:var(--font-head);border-bottom:1px solid rgba(255,255,255,0.04);';
+            subscribeToPoint(point.fullPath, {
+                name: point.name, spanId: null, spanEl: null, cellEl: vc,
+                isFanStat: false, isComp: false, fanAnimId: null, compAnimId: null,
+            });
+        });
+    });
+ 
+    if (naTableBody && naTableBody.rows.length > 0) {
+        const unitBtn = document.getElementById('unitDataButton-top');
+        if (unitBtn) unitBtn.style.opacity = '1';
+    }
+ 
+    showSuccess(`Monitoring ${deviceCount} CRAC unit${deviceCount !== 1 ? 's' : ''}`);
+}
+ 
+function showError(msg) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--red);border-radius:10px;padding:16px 24px;z-index:9999;font-family:var(--font-head);font-size:13px;color:var(--red);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);letter-spacing:1px;max-width:480px;';
+    div.textContent = msg; document.body.appendChild(div);
+    setTimeout(() => div.remove(), 15000);
+}
+function showSuccess(msg) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:80px;right:20px;background:var(--bg-card);border:1px solid rgba(0,230,118,0.4);border-radius:8px;padding:10px 18px;z-index:9999;font-family:var(--font-head);font-size:12px;color:var(--green);letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+    div.textContent = msg; document.body.appendChild(div);
+    setTimeout(() => div.remove(), 5000);
+}
+ 
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeMonitoring);
+} else {
+    setTimeout(initializeMonitoring, 100);
+}
+ 
+window.addEventListener('beforeunload', () => { if (subscriber) subscriber.unsubscribeAll(); });
+});
+
+// ── CRAC Panel Search ──────────────────────────────
+const searchInput = document.getElementById('crac-search-bar');
+searchInput.addEventListener('input', function() {
+    const filter = this.value.toLowerCase().trim();
+    const panels = document.querySelectorAll('.crac-panel');
+
+    panels.forEach(panel => {
+        const labelEl = panel.querySelector('.crac-panel-label');
+        if (!labelEl) return;
+        const labelText = labelEl.textContent.toLowerCase();
+        if (labelText.includes(filter)) panel.style.display = '';  // show
+        else panel.style.display = 'none';                         // hide
+    });
+});
+</script>
+
+
+<!-- ─── OVERRIDE COUNTDOWN TIMERS ───────────────────────────────────── -->
+<script>
+(function() {
+    const activeTimers = {};
+
+    window.startORCountdown = function(pointId, durationSec, graphicTargetId) {
+        if (!durationSec) return;
+        stopORCountdown(pointId);
+        const endTime = Date.now() + durationSec * 1000;
+        activeTimers[pointId] = { endTime, intervalId: null, domBadges: [] };
+        const modalRow     = document.getElementById('or-modal-countdown-row');
+        const modalDisplay = document.getElementById('or-modal-countdown-display');
+        if (modalRow && modalDisplay) { modalRow.style.display = 'flex'; modalDisplay.textContent = formatTime(durationSec); modalDisplay.classList.remove('expiring'); }
+        const domBadges = [];
+        if (graphicTargetId) {
+            [document.querySelector(`.pill-wrap[data-spanid="${graphicTargetId}"]`)].forEach(container => {
+                if (!container) return;
+                container.querySelectorAll('.or-countdown').forEach(b => b.remove());
+                const b = makeBadge(formatTime(durationSec)); container.appendChild(b); domBadges.push(b);
+            });
+        }
+        const chip = document.querySelector(`.topbar-or-chip[data-point-id="${pointId}"]`) || document.querySelector(`.topbar-or-chip[data-pointid="${pointId}"]`);
+        if (chip) { chip.querySelectorAll('.or-countdown').forEach(b => b.remove()); const b = makeBadge(formatTime(durationSec)); chip.appendChild(b); domBadges.push(b); }
+        activeTimers[pointId].domBadges = domBadges;
+        const intervalId = setInterval(() => {
+            const t = activeTimers[pointId];
+            if (!t) { clearInterval(intervalId); return; }
+            const remaining = Math.max(0, Math.round((t.endTime - Date.now()) / 1000));
+            const timeStr = formatTime(remaining);
+            if (modalDisplay && modalRow && modalRow.style.display !== 'none') { modalDisplay.textContent = timeStr; if (remaining <= 30) modalDisplay.classList.add('expiring'); else modalDisplay.classList.remove('expiring'); }
+            t.domBadges.forEach(b => { try { b.textContent = timeStr; if (remaining <= 30) b.classList.add('expiring'); else b.classList.remove('expiring'); } catch(e) {} });
+            if (remaining <= 0) stopORCountdown(pointId);
+        }, 1000);
+        activeTimers[pointId].intervalId = intervalId;
+    };
+
+    window.stopORCountdown = function(pointId) {
+        const t = activeTimers[pointId];
+        if (!t) return;
+        clearInterval(t.intervalId);
+        t.domBadges.forEach(b => { try { b.remove(); } catch(e) {} });
+        const modalRow = document.getElementById('or-modal-countdown-row');
+        if (modalRow) modalRow.style.display = 'none';
+        delete activeTimers[pointId];
+    };
+
+    window.restoreORCountdownDisplay = function(pointId) {
+        const t = activeTimers[pointId];
+        const modalRow     = document.getElementById('or-modal-countdown-row');
+        const modalDisplay = document.getElementById('or-modal-countdown-display');
+        if (!modalRow || !modalDisplay) return;
+        if (t) { const remaining = Math.max(0, Math.round((t.endTime - Date.now()) / 1000)); modalRow.style.display = 'flex'; modalDisplay.textContent = formatTime(remaining); if (remaining <= 30) modalDisplay.classList.add('expiring'); else modalDisplay.classList.remove('expiring'); }
+        else { modalRow.style.display = 'none'; }
+    };
+
+    function makeBadge(text) { const b = document.createElement('span'); b.className = 'or-countdown'; b.textContent = text; return b; }
+    function formatTime(sec) { if (sec >= 3600) { const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60); return `⏱ ${h}h ${m}m`; } else if (sec >= 60) { const m=Math.floor(sec/60),s=sec%60; return `⏱ ${m}:${String(s).padStart(2,'0')}`; } return `⏱ ${sec}s`; }
+})();
+</script>
+
+
+<!-- ─── SAFE GLOBAL DISPATCH ─────────────────────────────────────────── -->
+<script>
+window.openGraphPopupBySpanId = function(spanId, customLabel) {
+    const attempt = () => {
+        if (window._graphPopupReady) { window._openGraphPopupBySpanIdImpl(spanId, customLabel); }
+        else { setTimeout(attempt, 100); }
+    };
+    attempt();
+};
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     GRAPH POPUP  (identical to EF page, uses fullPath lookup)
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+let graphPopupConfig = null;
+
+async function loadGraphPopupConfig() {
+    if (graphPopupConfig) return graphPopupConfig;
+    try {
+        const fullFilename = window.location.pathname.split('/').pop();
+        const headerName   = fullFilename.replace('.html', '');
+        const response     = await fetch('../Global.json');
+        const jsonData     = await response.json();
+        // CRAC: page config is object of device keys — flatten all points
+        const pageConfig   = jsonData.globalVariables[headerName];
+        if (!pageConfig) throw new Error(`No config for ${headerName}`);
+
+        // Flatten points from all devices, annotating with deviceKey
+        const allPoints = [];
+        Object.keys(pageConfig).forEach(deviceKey => {
+            const d = pageConfig[deviceKey];
+            if (d.points) d.points.forEach(p => allPoints.push({ ...p, _deviceKey: deviceKey }));
+        });
+
+        graphPopupConfig = { headerName, allPoints };
+        return graphPopupConfig;
+    } catch(err) { console.error('Config load failed:', err); throw err; }
+}
+
+// Find a point by its scoped span ID (deviceKey__pointId or deviceKey__name)
+function findPointPath(spanId) {
+    if (!graphPopupConfig) return null;
+    // spanId format: "IDU$202$2d2__Fan-Stat"  or  "IDU$202$2d2__Room-Temperature"
+    const parts      = spanId.split('__');
+    const deviceKey  = parts[0];
+    const localId    = parts.slice(1).join('__');   // everything after first __
+
+    // Re-encode the local part back to Niagara names for matching
+    // (we stored spans as decoded ids like "Room-Temperature" but point.name is "Room$20Temperature")
+    const candidates = graphPopupConfig.allPoints.filter(p => p._deviceKey === deviceKey);
+
+    // Try direct id match
+    let found = candidates.find(p => p.id === localId);
+    // Try name match (decoded)
+    if (!found) {
+        const decodedLocal = localId.replace(/-/g, ' ');
+        found = candidates.find(p => {
+            const dec = p.name.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))).replace(/_/g,' ');
+            return dec === decodedLocal || dec === localId || p.name === localId || p.id === localId;
+        });
+    }
+    // Fuzzy
+    if (!found) {
+        found = candidates.find(p =>
+            (p.id   && p.id.toLowerCase().includes(localId.toLowerCase())) ||
+            (p.name && p.name.toLowerCase().replace(/\$[0-9a-f]{2}/gi,' ').includes(localId.toLowerCase()))
+        );
+    }
+    return found ? { path: found.fullPath, name: found.name, id: found.id } : null;
+}
+
+function decodeNiagaraDisplayName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g,(m,h)=>String.fromCharCode(parseInt(h,16))).replace(/_/g,' ');
+}
+
+function createGraphPopup() {
+    let popup = document.getElementById('graph-popup-overlay');
+    if (popup) return popup;
+    popup = document.createElement('div');
+    popup.id = 'graph-popup-overlay';
+    popup.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);z-index:9999;justify-content:center;align-items:center;';
+    popup.innerHTML = `
+        <div style="width:94vw;max-width:1400px;height:88vh;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+            <div style="background:rgba(0,200,255,0.06);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;">
+                <h2 id="gp-title" style="font-family:var(--font-head);font-size:13px;letter-spacing:2px;color:var(--accent);font-weight:normal;text-transform:uppercase;margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">History</h2>
+                <div id="gp-toolbar" style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;"></div>
+                <button onclick="closeGraphPopup()" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">×</button>
+            </div>
+            <div id="gp-stats" style="padding:10px 18px 0;display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-panel);"></div>
+            <div style="flex:1;padding:10px 18px 14px;display:flex;flex-direction:column;gap:6px;min-height:0;background:var(--bg-card);">
+                <div id="gp-loading" style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--accent);font-family:var(--font-head);font-size:13px;letter-spacing:2px;">Loading historical data…</div>
+                <div id="gp-canvas-wrap" style="display:none;flex:1;position:relative;min-height:0;cursor:crosshair;">
+                    <canvas id="gp-canvas" style="display:block;width:100%;height:100%;"></canvas>
+                    <div id="gp-tooltip" style="display:none;position:absolute;pointer-events:none;background:rgba(13,17,23,0.96);border:1px solid rgba(0,200,255,0.45);border-radius:8px;padding:7px 12px;font-family:var(--font-head);font-size:11px;color:var(--text-primary);white-space:nowrap;z-index:10;"></div>
+                </div>
+                <div id="gp-hint" style="display:none;font-family:var(--font-head);font-size:9px;color:rgba(122,132,153,0.4);text-align:right;letter-spacing:1px;flex-shrink:0;">Scroll to zoom · Drag to pan</div>
+            </div>
+        </div>`;
+    document.body.appendChild(popup);
+    popup.addEventListener('click', e => { if (e.target === popup) closeGraphPopup(); });
+    return popup;
+}
+
+window.closeGraphPopup = function() {
+    const popup = document.getElementById('graph-popup-overlay');
+    if (popup) {
+        popup.style.display = 'none';
+        const wrap = document.getElementById('gp-canvas-wrap');
+        if (wrap && wrap._ro) { wrap._ro.disconnect(); wrap._ro = null; }
+    }
+};
+
+// ── History loader (same as EF page) ─────────────────────────────────
+let ahuExportHistoryCache = new Map();
+
+async function discoverHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointOrd).get().then(e => e.tags()).then(tagMap => {
+                const tag = tagMap.get('n:history');
+                if (tag && tag.toString().trim()) { let path = tag.toString(); if (!path.startsWith('history:')) path = 'history:' + path; resolve(path); }
+                else reject(new Error('No n:history tag on: ' + pointOrd));
+            }).catch(e => reject(new Error('Failed tags: ' + e.message)));
+        });
+    });
+}
+
+async function loadHistoryData(pointPath, startTime, endTime, maxPoints=2000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let historyOrd = ahuExportHistoryCache.get(pointPath);
+            if (!historyOrd) { try { historyOrd = await discoverHistoryOrd(pointPath); ahuExportHistoryCache.set(pointPath, historyOrd); } catch(e) { resolve([]); return; } }
+            require(['baja!'], function(baja) {
+                const q = `${historyOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+                const pts = [];
+                baja.Ord.make(q).get({ cursor: { limit: maxPoints, each: function() {
+                    const row = this.get(); const date = new Date(row.get("timestamp").getMillis());
+                    pts.push({ timestamp: date, timestampString: date.toLocaleString(), value: row.get("value") });
+                }}}).then(() => resolve(pts)).catch(e => reject(new Error('BQL failed: ' + e.message)));
+            });
+        } catch(e) { reject(e); }
+    });
+}
+
+// ── Draw graph (same as EF page) ──────────────────────────────────────
+function drawHistoryGraph(canvas, originalData, pointLabel, unit) {
+    const isLight = () => document.body.classList.contains('light-mode');
+    function getColors() {
+        const L = isLight();
+        return { bg:L?'#f0f4fb':'#0a0f1a', plotBg:L?'rgba(0,60,160,0.03)':'rgba(0,200,255,0.02)', grid:L?'rgba(0,60,160,0.08)':'rgba(0,200,255,0.07)', border:L?'rgba(0,60,160,0.22)':'rgba(0,200,255,0.22)', axis:L?'#667788':'rgba(122,132,153,0.75)', line:L?'#0066cc':'#00c8ff', fill0:L?'rgba(0,100,200,0.15)':'rgba(0,200,255,0.15)', fill1:L?'rgba(0,100,200,0.01)':'rgba(0,200,255,0.01)', dot:L?'#0066cc':'#00c8ff', cross:L?'rgba(0,60,160,0.28)':'rgba(0,200,255,0.32)', refMin:L?'rgba(100,60,160,0.85)':'rgba(123,94,167,0.9)', refAvg:L?'rgba(160,100,0,0.9)':'rgba(255,171,0,0.9)', refMax:L?'rgba(0,130,50,0.9)':'rgba(0,230,118,0.9)' };
+    }
+    const PAD={top:30,right:30,bottom:54,left:70};
+    const wrap=document.getElementById('gp-canvas-wrap'),tooltip=document.getElementById('gp-tooltip'),statsEl=document.getElementById('gp-stats');
+    let viewData=originalData.slice(),zoom={start:0,end:1},showMin=false,showAvg=true,showMax=false,dragging=false,dragX0=0,dragZoom0=null,hoverIdx=-1;
+    const BS='padding:4px 9px;border-radius:6px;border:1px solid rgba(0,200,255,0.22);background:transparent;color:var(--text-muted);font-family:var(--font-head);font-size:10px;letter-spacing:1px;cursor:pointer;';
+    const BA='border-color:var(--accent);color:var(--accent);background:rgba(0,200,255,0.1);';
+    const SEP='<div style="width:1px;height:18px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>';
+    const toolbar=document.getElementById('gp-toolbar');
+    toolbar.innerHTML=[`<button data-range="1" style="${BS}">1H</button>`,`<button data-range="6" style="${BS}">6H</button>`,`<button data-range="12" style="${BS}">12H</button>`,`<button data-range="24" style="${BS}${BA}" data-active="1">24H</button>`,SEP,`<button data-ref="min" style="${BS}">Min</button>`,`<button data-ref="avg" style="${BS}${BA}" data-active="1">Avg</button>`,`<button data-ref="max" style="${BS}">Max</button>`,SEP,`<button data-action="reset" style="${BS}">Reset</button>`].join('');
+    toolbar.addEventListener('click',e=>{
+        const btn=e.target.closest('button'); if(!btn) return;
+        if(btn.dataset.range){toolbar.querySelectorAll('[data-range]').forEach(b=>{b.style.cssText=BS;delete b.dataset.active;});btn.style.cssText=BS+BA;btn.dataset.active='1';const hours=parseInt(btn.dataset.range),lastT=originalData[originalData.length-1].timestamp.getTime(),cutoff=lastT-hours*3600000,filtered=originalData.filter(d=>d.timestamp.getTime()>=cutoff);viewData=filtered.length>=2?filtered:originalData.slice();zoom={start:0,end:1};hoverIdx=-1;redraw();return;}
+        if(btn.dataset.ref){const r=btn.dataset.ref;if(r==='min')showMin=!showMin;if(r==='avg')showAvg=!showAvg;if(r==='max')showMax=!showMax;const on=r==='min'?showMin:r==='avg'?showAvg:showMax;btn.style.cssText=on?BS+BA:BS;if(on)btn.dataset.active='1';else delete btn.dataset.active;redraw();return;}
+        if(btn.dataset.action==='reset'){toolbar.querySelectorAll('[data-range]').forEach(b=>{b.style.cssText=BS;delete b.dataset.active;});const btn24=toolbar.querySelector('[data-range="24"]');if(btn24){btn24.style.cssText=BS+BA;btn24.dataset.active='1';}viewData=originalData.slice();zoom={start:0,end:1};hoverIdx=-1;redraw();}
+    });
+    function updateStats(vis){if(!statsEl)return;const vals=vis.map(d=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);return isNaN(v)?null:v;}).filter(v=>v!==null);if(!vals.length){statsEl.innerHTML='';return;}const minV=Math.min(...vals),maxV=Math.max(...vals),avg=vals.reduce((a,b)=>a+b,0)/vals.length,u=unit?' '+unit:'',L=isLight(),mk=(lbl,val,col)=>`<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:5px 12px;font-family:var(--font-head);"><span style="color:var(--text-muted);display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;">${lbl}</span><strong style="color:${col};font-size:13px;">${val}</strong></div>`;statsEl.innerHTML=mk('Min',minV.toFixed(2)+u,L?'#7700aa':'#7b5ea7')+mk('Avg',avg.toFixed(2)+u,L?'#885500':'#ffab00')+mk('Max',maxV.toFixed(2)+u,L?'#006633':'#00e676')+mk('Latest',(()=>{const lv=vis[vis.length-1].value;return typeof lv==='boolean'?(lv?'ON':'OFF'):(isNaN(parseFloat(lv))?String(lv):parseFloat(lv).toFixed(2)+u);})(),L?'#004499':'#00c8ff')+mk('Points',vis.length,L?'#334466':'var(--text-primary)');}
+    function getVisible(){const n=viewData.length,si=Math.floor(zoom.start*n),ei=Math.ceil(zoom.end*n);return viewData.slice(si,Math.max(si+2,ei));}
+    function redraw(){
+        const vis=getVisible();updateStats(vis);
+        const W=canvas.offsetWidth||800,H=canvas.offsetHeight||400,dpr=window.devicePixelRatio||1;
+        canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+        const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const C=getColors(),gW=W-PAD.left-PAD.right,gH=H-PAD.top-PAD.bottom;
+        ctx.clearRect(0,0,W,H);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);ctx.fillStyle=C.plotBg;ctx.fillRect(PAD.left,PAD.top,gW,gH);
+        const rawVals=vis.map(d=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);return isNaN(v)?null:v;}).filter(v=>v!==null);
+        if(!rawVals.length){ctx.fillStyle=C.axis;ctx.font='13px Courier New';ctx.textAlign='center';ctx.fillText('No numeric data in this range',W/2,H/2);return;}
+        const minV=Math.min(...rawVals),maxV=Math.max(...rawVals),avg=rawVals.reduce((a,b)=>a+b,0)/rawVals.length,rangeV=maxV-minV||1,padV=rangeV*0.12,lo=minV-padV,hi=maxV+padV,rng=hi-lo,u=unit?' '+unit:'';
+        const xOf=i=>PAD.left+(i/Math.max(vis.length-1,1))*gW,yOf=v=>PAD.top+gH-((v-lo)/rng)*gH;
+        ctx.font='10px Courier New';ctx.fillStyle=C.axis;ctx.textAlign='right';
+        for(let i=0;i<=5;i++){const v=lo+(rng/5)*i,y=yOf(v);ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+gW,y);ctx.stroke();ctx.fillText(v.toFixed(1),PAD.left-8,y+4);}
+        if(unit){ctx.save();ctx.translate(13,PAD.top+gH/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillStyle=C.axis;ctx.fillText(unit,0,0);ctx.restore();}
+        ctx.textAlign='center';ctx.fillStyle=C.axis;const nTicks=Math.min(7,vis.length);
+        for(let i=0;i<nTicks;i++){const di=Math.floor((i/Math.max(nTicks-1,1))*(vis.length-1)),x=xOf(di);ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,PAD.top);ctx.lineTo(x,PAD.top+gH);ctx.stroke();const ts=vis[di].timestamp;ctx.fillText(ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),x,PAD.top+gH+16);ctx.fillText(ts.toLocaleDateString([],{month:'short',day:'numeric'}),x,PAD.top+gH+29);}
+        ctx.save();ctx.beginPath();ctx.rect(PAD.left,PAD.top,gW,gH);ctx.clip();
+        function refLine(v,color,label){const y=yOf(v);ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+gW,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.textAlign='left';ctx.font='9px Courier New';ctx.fillText(label+' '+v.toFixed(2)+u,PAD.left+6,y-4);}
+        if(showMin)refLine(minV,C.refMin,'MIN');if(showAvg)refLine(avg,C.refAvg,'AVG');if(showMax)refLine(maxV,C.refMax,'MAX');
+        const grad=ctx.createLinearGradient(0,PAD.top,0,PAD.top+gH);grad.addColorStop(0,C.fill0);grad.addColorStop(1,C.fill1);
+        ctx.beginPath();let first=true;vis.forEach((d,i)=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);if(isNaN(v))return;first?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));first=false;});ctx.lineTo(xOf(vis.length-1),PAD.top+gH);ctx.lineTo(PAD.left,PAD.top+gH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+        ctx.beginPath();first=true;vis.forEach((d,i)=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);if(isNaN(v))return;first?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));first=false;});ctx.strokeStyle=C.line;ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();
+        if(hoverIdx>=0&&hoverIdx<vis.length){const hd=vis[hoverIdx],hv=typeof hd.value==='boolean'?(hd.value?1:0):parseFloat(hd.value);if(!isNaN(hv)){const hx=xOf(hoverIdx),hy=yOf(hv);ctx.strokeStyle=C.cross;ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(hx,PAD.top);ctx.lineTo(hx,PAD.top+gH);ctx.stroke();ctx.beginPath();ctx.moveTo(PAD.left,hy);ctx.lineTo(PAD.left+gW,hy);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(hx,hy,5,0,Math.PI*2);ctx.fillStyle=C.dot;ctx.fill();ctx.strokeStyle=isLight()?'#fff':'#0a0f1a';ctx.lineWidth=2;ctx.stroke();}}
+        ctx.restore();ctx.strokeStyle=C.border;ctx.lineWidth=1;ctx.strokeRect(PAD.left,PAD.top,gW,gH);
+        canvas._gs={xOf,yOf,vis,gW,gH};
+    }
+    function onMouseMove(e){
+        if(dragging){const rect=wrap.getBoundingClientRect(),dx=(e.clientX-dragX0)/rect.width,span=dragZoom0.end-dragZoom0.start;let ns=dragZoom0.start-dx*span,ne=dragZoom0.end-dx*span;if(ns<0){ne-=ns;ns=0;}if(ne>1){ns-=(ne-1);ne=1;}zoom={start:Math.max(0,ns),end:Math.min(1,ne)};hoverIdx=-1;redraw();return;}
+        if(!canvas._gs)return;const{xOf,vis,gW}=canvas._gs,rect=canvas.getBoundingClientRect(),scaleX=canvas.offsetWidth/rect.width,mx=(e.clientX-rect.left)*scaleX;
+        if(mx<PAD.left||mx>PAD.left+gW){if(tooltip)tooltip.style.display='none';if(hoverIdx!==-1){hoverIdx=-1;redraw();}return;}
+        const frac=(mx-PAD.left)/gW,idx=Math.min(vis.length-1,Math.max(0,Math.round(frac*(vis.length-1))));
+        if(idx!==hoverIdx){hoverIdx=idx;redraw();}
+        if(!tooltip)return;const d=vis[idx],C=getColors(),vStr=typeof d.value==='boolean'?(d.value?'ON':'OFF'):(isNaN(parseFloat(d.value))?String(d.value):parseFloat(d.value).toFixed(2)),u=unit?' '+unit:'';
+        tooltip.innerHTML=`<div style="color:var(--text-muted);font-size:9px;letter-spacing:1px;margin-bottom:3px;">${d.timestamp.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})} · ${d.timestamp.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div><div style="color:${C.line};font-size:16px;font-weight:bold;">${vStr}${typeof d.value==='boolean'?'':u}</div>`;
+        const{yOf}=canvas._gs,hv=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value),cx=xOf(idx),tipW=160,tx=cx+PAD.left+tipW>canvas.offsetWidth?cx-tipW-10:cx+10,cy=!isNaN(hv)?yOf(hv):PAD.top+canvas.offsetHeight/2;
+        tooltip.style.left=tx+'px';tooltip.style.top=Math.max(4,cy-52)+'px';tooltip.style.display='block';
+    }
+    function onMouseLeave(){if(tooltip)tooltip.style.display='none';if(hoverIdx!==-1){hoverIdx=-1;redraw();}}
+    canvas.addEventListener('mousedown',e=>{dragging=true;dragX0=e.clientX;dragZoom0={...zoom};wrap.style.cursor='grabbing';});
+    window.addEventListener('mouseup',()=>{dragging=false;wrap.style.cursor='crosshair';});
+    canvas.addEventListener('mousemove',onMouseMove);
+    canvas.addEventListener('mouseleave',onMouseLeave);
+    canvas.addEventListener('wheel',e=>{e.preventDefault();const rect=canvas.getBoundingClientRect(),mx=(e.clientX-rect.left)/rect.width,span=zoom.end-zoom.start,factor=e.deltaY>0?1.15:0.87,nspan=Math.min(1,Math.max(0.04,span*factor));let ns=zoom.start+mx*span-mx*nspan,ne=ns+nspan;if(ns<0){ne-=ns;ns=0;}if(ne>1){ns-=(ne-1);ne=1;}zoom={start:Math.max(0,ns),end:Math.min(1,ne)};redraw();},{passive:false});
+    if(wrap._ro)wrap._ro.disconnect();const ro=new ResizeObserver(()=>redraw());ro.observe(wrap);wrap._ro=ro;
+    document.getElementById('gp-hint').style.display='block';
+    redraw();
+}
+
+async function openGraphPopup(pointPath, pointLabel, unit) {
+    const popup=createGraphPopup(); popup.style.display='flex';
+    const titleEl=document.getElementById('gp-title'),loadingEl=document.getElementById('gp-loading'),canvasWrap=document.getElementById('gp-canvas-wrap'),statsEl=document.getElementById('gp-stats'),hintEl=document.getElementById('gp-hint'),toolbar=document.getElementById('gp-toolbar');
+    if(titleEl)titleEl.textContent=decodeNiagaraDisplayName(pointLabel)+' — 24 Hour History';
+    if(statsEl)statsEl.innerHTML='';if(hintEl)hintEl.style.display='none';if(toolbar)toolbar.innerHTML='';
+    loadingEl.style.display='flex';loadingEl.textContent='Loading historical data…';canvasWrap.style.display='none';
+    if(canvasWrap._ro){canvasWrap._ro.disconnect();canvasWrap._ro=null;}
+    const oldCanvas=document.getElementById('gp-canvas');
+    if(oldCanvas){const nc=document.createElement('canvas');nc.id='gp-canvas';nc.style.cssText='display:block;width:100%;height:100%;';oldCanvas.replaceWith(nc);}
+    try {
+        const endTime=new Date(),startTime=new Date(endTime.getTime()-86400000);
+        const historyData=await loadHistoryData(pointPath,startTime,endTime,2000);
+        if(!historyData.length){loadingEl.innerHTML='<span style="color:var(--text-muted);font-family:var(--font-head);letter-spacing:2px;">No data for last 24 hours</span>';return;}
+        loadingEl.style.display='none';canvasWrap.style.display='flex';canvasWrap.style.flex='1';canvasWrap.style.minHeight='0';
+        await new Promise(r=>setTimeout(r,60));
+        const canvas=document.getElementById('gp-canvas');drawHistoryGraph(canvas,historyData,pointLabel,'');
+    } catch(err){loadingEl.innerHTML=`<span style="color:var(--red);font-family:var(--font-head);">Error: ${err.message}</span>`;}
+}
+
+window._openGraphPopupBySpanIdImpl = async function(spanId, customLabel) {
+    try {
+        if (!graphPopupConfig) await loadGraphPopupConfig();
+        const pointInfo = findPointPath(spanId);
+        if (!pointInfo) { alert('Could not find configuration for point: ' + spanId); return; }
+        const label = customLabel || decodeNiagaraDisplayName(pointInfo.name);
+        await openGraphPopup(pointInfo.path, label, '');
+    } catch(err) { alert('Failed to open graph: ' + err.message); }
+};
+
+setTimeout(async () => {
+    try { await loadGraphPopupConfig(); } catch(e) { console.warn('Pre-load config failed:', e.message); }
+    window._graphPopupReady = true;
+}, 200);
+</script>
+
+</body>
+</html>
