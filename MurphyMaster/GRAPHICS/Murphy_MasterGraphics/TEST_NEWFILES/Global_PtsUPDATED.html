@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Tag Scanner</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+<style>
+body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; margin:20px; background:linear-gradient(135deg,#0a0e27 0%,#1a1438 50%,#0d1b3e 100%); min-height:100vh; }
+.container { max-width:1600px; margin:0 auto; background:linear-gradient(145deg,rgba(26,20,56,0.95),rgba(13,27,62,0.95)); padding:30px; border-radius:16px; box-shadow:0 8px 32px rgba(88,101,242,0.3),0 0 60px rgba(139,92,246,0.2); border:1px solid rgba(139,92,246,0.3); }
+h1 { background:linear-gradient(135deg,#818cf8,#c084fc,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; border-bottom:3px solid; border-image:linear-gradient(90deg,#818cf8,#c084fc,#60a5fa) 1; padding-bottom:15px; font-size:2.2em; font-weight:700; letter-spacing:1px; margin-top:0; }
+.path-input-section { background:linear-gradient(135deg,rgba(88,101,242,0.15),rgba(139,92,246,0.15)); border:2px solid; border-image:linear-gradient(135deg,#818cf8,#c084fc) 1; border-radius:12px; padding:25px; margin:25px 0; }
+.path-list-title { font-weight:700; margin-bottom:6px; color:#c7d2fe; font-size:1.1em; }
+.path-subtitle { font-size:0.88em; color:#9ca3af; margin-bottom:14px; line-height:1.6; }
+.path-subtitle code { background:rgba(139,92,246,0.2); padding:2px 6px; border-radius:4px; font-family:'Courier New',monospace; color:#a5b4fc; }
+.path-input-row { display:flex; gap:10px; margin-bottom:10px; align-items:center; }
+.path-input-row input { flex:1; padding:12px; background:rgba(30,41,59,0.8); border:2px solid rgba(139,92,246,0.4); border-radius:8px; font-family:'Courier New',monospace; font-size:14px; color:#e0e7ff; transition:all 0.3s; }
+.path-input-row input:focus { outline:none; border-color:#c084fc; box-shadow:0 0 15px rgba(192,132,252,0.4); }
+.path-controls { display:flex; gap:10px; margin-top:15px; flex-wrap:wrap; align-items:center; }
+.path-controls button { padding:12px 24px; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700; transition:all 0.3s; }
+#scanBtn { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; box-shadow:0 4px 15px rgba(139,92,246,0.4); }
+#scanBtn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 25px rgba(139,92,246,0.6); }
+#scanBtn:disabled { background:linear-gradient(135deg,#4b5563,#374151); cursor:not-allowed; }
+#editBtn { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; box-shadow:0 4px 15px rgba(245,158,11,0.4); display:none; }
+#editBtn:hover { transform:translateY(-2px); }
+.status { padding:15px; margin:15px 0; border-radius:10px; font-weight:600; border:2px solid; }
+.status.loading { background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(245,158,11,0.2)); color:#fbbf24; border-color:#f59e0b; }
+.status.success { background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(22,163,74,0.2)); color:#4ade80; border-color:#22c55e; }
+.status.error   { background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(220,38,38,0.2)); color:#f87171; border-color:#ef4444; }
+.scan-progress { background:rgba(30,41,59,0.6); border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:14px 18px; margin:10px 0; display:none; }
+.scan-progress.visible { display:block; }
+.progress-text { color:#a5b4fc; font-size:13px; font-weight:600; margin-bottom:8px; }
+.progress-bar-bg { background:rgba(30,41,59,0.8); border-radius:6px; height:8px; overflow:hidden; }
+.progress-bar-fill { height:100%; background:linear-gradient(90deg,#8b5cf6,#3b82f6); border-radius:6px; transition:width 0.25s ease; width:0%; }
+.scan-log { margin-top:10px; max-height:110px; overflow-y:auto; font-family:'Courier New',monospace; font-size:11px; color:#6b7280; }
+.scan-log .found { color:#34d399; }
+.scan-log .info  { color:#60a5fa; }
+/* step indicator */
+.step-indicator { display:flex; align-items:center; margin:0 0 28px 0; padding:18px 24px; background:rgba(15,20,50,0.6); border:1px solid rgba(139,92,246,0.25); border-radius:12px; }
+.step { display:flex; align-items:center; gap:10px; flex:1; position:relative; }
+.step:not(:last-child)::after { content:''; flex:1; height:2px; background:rgba(139,92,246,0.25); margin:0 10px; border-radius:2px; transition:background 0.4s; }
+.step.done:not(:last-child)::after { background:rgba(139,92,246,0.7); }
+.step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; border:2px solid rgba(139,92,246,0.3); background:rgba(30,41,59,0.8); color:#6b7280; transition:all 0.3s; }
+.step.active .step-circle { background:linear-gradient(135deg,#8b5cf6,#7c3aed); border-color:#c084fc; color:white; box-shadow:0 0 16px rgba(139,92,246,0.5); }
+.step.done .step-circle   { background:linear-gradient(135deg,#10b981,#059669); border-color:#34d399; color:white; }
+.step-label { font-size:12px; font-weight:600; color:#4b5563; white-space:nowrap; transition:color 0.3s; }
+.step.active .step-label { color:#c084fc; } .step.done .step-label { color:#34d399; }
+/* tables */
+.points-table { width:100%; border-collapse:collapse; margin-top:15px; overflow:hidden; color:white; }
+.points-table th,.points-table td { border:1px solid rgb(138,92,246); padding:12px 14px; text-align:left; }
+.points-table th { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85em; }
+.points-table tr:nth-child(even) { background:rgba(139,92,246,0.08); }
+.points-table tr:nth-child(odd)  { background:rgba(88,101,242,0.05); }
+.points-table tr:hover { background:rgba(192,132,252,0.15); }
+.point-name { font-family:'Courier New',monospace; font-weight:700; color:#a5b4fc; }
+.point-row.duplicate-highlight { background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(245,158,11,0.3)) !important; border:2px solid #fbbf24 !important; }
+.point-row.drag-highlight { outline:2px dashed rgba(214,165,0,0.7); background-color:rgba(214,165,0,0.06); }
+.tag-badge { display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; background:linear-gradient(135deg,#10b981,#059669); color:white; }
+/* unit sections */
+.unit-type-section { margin:25px 0; border:2px solid rgba(139,92,246,0.4); border-radius:12px; overflow:hidden; box-shadow:0 6px 25px rgba(139,92,246,0.2); }
+.unit-type-header { color:white; padding:18px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-size:18px; font-weight:700; transition:all 0.3s; text-transform:uppercase; letter-spacing:1px; }
+.unit-type-header:hover { filter:brightness(1.1); }
+.unit-type-header .toggle-icon { font-size:28px; transition:transform 0.3s; }
+.unit-type-header.collapsed .toggle-icon { transform:rotate(-90deg); }
+.unit-type-content { max-height:600px; overflow-y:auto; overflow-x:auto; background:rgba(30,41,59,0.4); border-top:2px solid rgba(139,92,246,0.3); transition:max-height 0.3s ease-out; }
+.unit-type-content.collapsed { max-height:0; overflow:hidden; }
+.unit-count { background:rgba(255,255,255,0.25); padding:5px 14px; border-radius:20px; font-size:14px; margin-left:10px; font-weight:700; }
+.unit-type-header[data-type="VAV"]          { background:linear-gradient(135deg,#7c3aed,#6d28d9,#5b21b6); }
+.unit-type-header[data-type="AHU"]          { background:linear-gradient(135deg,#1d4ed8,#1e40af,#1e3a8a); }
+.unit-type-header[data-type="RTU"]          { background:linear-gradient(135deg,#0e7490,#0891b2,#06b6d4); }
+.unit-type-header[data-type="FCU"]          { background:linear-gradient(135deg,#059669,#047857,#065f46); }
+.unit-type-header[data-type="FTU"]          { background:linear-gradient(135deg,#b45309,#92400e,#78350f); }
+.unit-type-header[data-type="CHILLER"]      { background:linear-gradient(135deg,#0369a1,#075985,#0c4a6e); }
+.unit-type-header[data-type="CHILLER_PLANT"]{ background:linear-gradient(135deg,#0f172a,#1e3a8a,#0369a1); }
+.unit-type-header[data-type="TOWER"]        { background:linear-gradient(135deg,#0891b2,#0e7490,#155e75); }
+.unit-type-header[data-type="BOILER"]       { background:linear-gradient(135deg,#b91c1c,#991b1b,#7f1d1d); }
+.unit-type-header[data-type="EXHAUST_FANS"] { background:linear-gradient(135deg,#6d28d9,#5b21b6,#4c1d95); }
+.unit-type-header[data-type="OTHER"]        { background:linear-gradient(135deg,#374151,#1f2937,#111827); }
+/* search */
+.search-bar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:rgba(15,20,50,0.5); border-bottom:1px solid rgba(139,92,246,0.2); }
+.search-bar input { flex:1; padding:8px 12px; background:rgba(30,41,59,0.8); border:1px solid rgba(139,92,246,0.35); border-radius:6px; color:#e0e7ff; font-size:13px; }
+.search-bar input:focus { outline:none; border-color:#c084fc; }
+.search-bar input::placeholder { color:#4b5563; }
+.search-count { font-size:12px; color:#6b7280; font-weight:600; white-space:nowrap; }
+/* toolbar */
+.results-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.toolbar-btn { padding:8px 16px; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; transition:all 0.2s; color:white; }
+.toolbar-btn.purple { background:linear-gradient(135deg,#8b5cf6,#7c3aed); }
+.toolbar-btn.blue   { background:linear-gradient(135deg,#3b82f6,#2563eb); }
+.toolbar-btn:hover  { transform:translateY(-2px); filter:brightness(1.1); }
+.selected-counter { margin-left:auto; padding:6px 14px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.35); border-radius:20px; font-size:13px; font-weight:700; color:#c084fc; }
+select { padding:8px; border-radius:8px; border:2px solid rgba(139,92,246,0.4); background:rgba(30,41,59,0.8); color:#e0e7ff; font-weight:600; }
+/* modals */
+.vav-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,14,39,0.85); backdrop-filter:blur(8px); z-index:1000; justify-content:center; align-items:center; }
+.vav-modal.active { display:flex; }
+.vav-modal-content { background:linear-gradient(145deg,rgba(26,20,56,0.98),rgba(13,27,62,0.98)); border-radius:16px; padding:30px; width:92%; max-width:1100px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(139,92,246,0.4); border:2px solid rgba(139,92,246,0.3); }
+.vav-columns { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+.vav-column { flex:1; min-width:150px; border:2px solid rgba(139,92,246,0.3); border-radius:12px; overflow:hidden; }
+.vav-column-header { padding:14px; border-bottom:2px solid; text-align:center; }
+.vav-column-header h3 { margin:0 0 8px 0; font-size:14px; font-weight:700; text-transform:uppercase; color:white; }
+.vav-column-header.heat     { background:linear-gradient(135deg,#10b981,#059669); border-color:#10b981; }
+.vav-column-header.fan      { background:linear-gradient(135deg,#3b82f6,#2563eb); border-color:#3b82f6; }
+.vav-column-header.fanr     { background:linear-gradient(135deg,#f59e0b,#d97706); border-color:#f59e0b; }
+.vav-column-header.heatwater{ background:linear-gradient(135deg,#fbbf24,#d97706,#92400e); border-color:#d97706; }
+.vav-column-header.noreturn { background:linear-gradient(135deg,#a855f7,#7e22ce); border-color:#a855f7; }
+.vav-column-header.seriesfe { background:linear-gradient(135deg,#06b6d4,#0e7490); border-color:#06b6d4; }
+.vav-column-header.seriesf  { background:linear-gradient(135deg,#84cc16,#4d7c0f); border-color:#84cc16; }
+.vav-column-header.seriesC  { background:linear-gradient(135deg,#00fcfc,#029389); border-color:#00ffe1; }
+.vav-column-header.seriesHC { background:linear-gradient(135deg,#eef602,#c2b503); border-color:#e9fe00; }
+.vav-column-header.PRECOOL  { background:linear-gradient(135deg,#f45100,#bb4509); border-color:#f45100; }
+.vav-column-body { max-height:320px; overflow-y:auto; padding:10px; background:rgba(30,41,59,0.4); }
+.vav-item { margin-bottom:6px; padding:10px 12px; border-radius:8px; cursor:pointer; user-select:none; transition:all 0.2s; border:2px solid transparent; background:rgba(139,92,246,0.1); color:#e0e7ff; font-weight:500; font-size:13px; display:flex; align-items:center; gap:8px; }
+.vav-item:hover:not(.selected) { background:rgba(139,92,246,0.2); transform:translateX(3px); }
+.vav-item.selected { font-weight:700; border:2px solid; }
+.vav-item.selected.heat      { background:linear-gradient(135deg,rgba(16,185,129,0.3),rgba(5,150,105,0.3)); border-color:#10b981; }
+.vav-item.selected.fan       { background:linear-gradient(135deg,rgba(59,130,246,0.3),rgba(37,99,235,0.3)); border-color:#3b82f6; }
+.vav-item.selected.fanr      { background:linear-gradient(135deg,rgba(245,158,11,0.3),rgba(217,119,6,0.3)); border-color:#f59e0b; }
+.vav-item.selected.heatwater { background:linear-gradient(135deg,rgba(251,191,36,0.3),rgba(217,119,6,0.3)); border-color:#fbbf24; }
+.vav-item.selected.noreturn  { background:linear-gradient(135deg,rgba(168,85,247,0.3),rgba(126,34,206,0.3)); border-color:#a855f7; }
+.vav-item.selected.seriesfe  { background:linear-gradient(135deg,rgba(6,182,212,0.3),rgba(14,116,144,0.3)); border-color:#06b6d4; }
+.vav-item.selected.seriesf   { background:linear-gradient(135deg,rgba(132,204,22,0.3),rgba(77,124,15,0.3)); border-color:#84cc16; }
+.vav-summary { text-align:center; padding:14px; background:linear-gradient(135deg,rgba(88,101,242,0.2),rgba(139,92,246,0.2)); border:2px solid rgba(139,92,246,0.4); border-radius:10px; margin-bottom:18px; font-size:13px; color:#e0e7ff; font-weight:600; }
+.vav-modal-buttons { display:flex; gap:12px; justify-content:center; }
+.vav-btn { padding:12px 24px; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700; transition:all 0.3s; text-transform:uppercase; letter-spacing:0.5px; }
+.vav-btn-primary   { background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:white; }
+.vav-btn-primary:hover   { transform:translateY(-2px); }
+.vav-btn-secondary { background:linear-gradient(135deg,#6b7280,#4b5563); color:white; }
+.vav-btn-secondary:hover { transform:translateY(-2px); }
+.column-btn { font-size:11px; padding:4px 8px; margin:0 2px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.3); border-radius:5px; cursor:pointer; color:white; font-weight:600; }
+/* initial */
+#initialImportSection { margin:30px auto; max-width:820px; padding:28px; background:rgba(26,20,56,0.9); border-radius:14px; border:2px dashed rgba(139,92,246,0.5); }
+#initialImportSection h2 { margin-top:0; color:#c7d2fe; } #initialImportSection p { color:#9ca3af; }
+.file-import-btn { cursor:pointer; padding:10px 20px; background:linear-gradient(135deg,#10b981,#059669); color:white; border-radius:8px; display:inline-block; font-weight:700; }
+/* occ modal */
+.occ-point-item { background:rgba(30,41,59,0.6); border:2px solid rgba(139,92,246,0.3); border-radius:10px; padding:18px; margin-bottom:14px; }
+.occ-point-header { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(139,92,246,0.3); color:#c7d2fe; font-weight:700; }
+.days-checkboxes { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.day-checkbox { display:flex; align-items:center; padding:6px 10px; background:rgba(30,41,59,0.8); border:2px solid rgba(139,92,246,0.3); border-radius:6px; cursor:pointer; color:#9ca3af; font-weight:600; font-size:13px; }
+.day-checkbox input { margin-right:5px; }
+.day-checkbox:has(input:checked) { background:rgba(139,92,246,0.3); border-color:#c084fc; color:#e0e7ff; }
+.time-selection { display:flex; gap:20px; flex-wrap:wrap; }
+.time-input-group { display:flex; flex-direction:column; gap:6px; }
+.time-input-group label { font-weight:600; color:#c7d2fe; font-size:13px; }
+.time-input-group input[type=time] { padding:8px 10px; border:2px solid rgba(139,92,246,0.4); border-radius:6px; font-size:15px; background:rgba(30,41,59,0.8); color:#e0e7ff; }
+</style>
+</head>
+<body>
+
+<!-- ── Quick Start ────────────────────────────────────────────────────── -->
+<div id="initialImportSection">
+    <h2>🏷️ Murphy Tag Scanner</h2>
+    <p>Enter <em>any</em> ORD — even a top-level path like <code>station:|slot:/Drivers/NiagaraNetwork</code>. The scanner recurses through all sub-folders until it finds folders tagged with <code>MurphyTag:*</code>, then reads each point's slot sheet for <code>MurphyPoints:*</code> to auto-assign Point IDs. Niagara ASCII encoding (<code>$2d</code>→<code>-</code>, <code>$3a</code>→<code>:</code>, <code>$20</code>→space, etc.) is decoded automatically.</p>
+    <div style="display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:16px;">
+        <label class="file-import-btn">📁 Import Previous Global.json<input type="file" id="initialJsonImport" accept=".json" onchange="importInitialJson(event)" style="display:none;"></label>
+        <button onclick="skipImport()" style="padding:10px 20px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;">➡️ Start Fresh</button>
+    </div>
+    <div style="margin-top:15px;padding:12px;background:rgba(139,92,246,0.1);border-radius:8px;font-size:0.88em;color:#9ca3af;border:1px solid rgba(139,92,246,0.2);">
+        <strong style="color:#c7d2fe;">ℹ️</strong> <code>MurphyTag:FTU</code> on a device folder → shows the <strong>FTU Point ID dropdown</strong> for its points. The <strong>exported Type</strong> (sub-type like HEATE, COOL_HEAT, etc.) is still selected by you in the popup modals before export — exactly like the original script.
+    </div>
+</div>
+
+<!-- ── Main Interface ─────────────────────────────────────────────────── -->
+<div id="mainInterface" style="display:none;">
+<div class="container">
+    <h1>Murphy Tag Scanner</h1>
+    <div class="step-indicator">
+        <div class="step active" id="step1"><div class="step-circle">1</div><span class="step-label">Enter ORD</span></div>
+        <div class="step" id="step2"><div class="step-circle">2</div><span class="step-label">Tag Scan</span></div>
+        <div class="step" id="step3"><div class="step-circle">3</div><span class="step-label">Review Points</span></div>
+        <div class="step" id="step4"><div class="step-circle">4</div><span class="step-label">Export</span></div>
+    </div>
+
+    <div class="path-input-section">
+        <div class="path-list-title">Root ORD to Scan:</div>
+        <div class="path-subtitle">
+            Any depth works — e.g. <code>station:|slot:/Drivers/NiagaraNetwork</code> or <code>station:|slot:/Drivers/NiagaraNetwork/ClaycoRBBFirstFloor/points/Network 7000</code>.<br>
+            The scanner recurses until it finds folders with <code>MurphyTag:*</code> markers in their slot sheets.
+        </div>
+        <div class="path-input-row">
+            <input type="text" id="rootOrdInput" placeholder="station:|slot:/Drivers/NiagaraNetwork" value="station:|slot:/Drivers/NiagaraNetwork">
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin:10px 0;padding:10px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;flex-wrap:wrap;">
+            <label style="color:#c7d2fe;font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px;">
+                Max depth: <input type="number" id="maxDepth" value="10" min="1" max="20" style="width:55px;padding:5px 8px;border-radius:6px;border:1px solid rgba(139,92,246,0.4);background:rgba(30,41,59,0.8);color:#e0e7ff;font-size:13px;">
+            </label>
+            <span style="font-size:12px;color:#6b7280;">How many folder levels deep to recurse when searching for MurphyTag markers (10 covers virtually any station tree)</span>
+        </div>
+        <div class="path-controls">
+            <button id="scanBtn" onclick="startTagScan()">🏷️ Scan for Murphy Tags</button>
+            <button id="editBtn" onclick="editOrd()">✏️ Edit ORD</button>
+        </div>
+    </div>
+
+    <div id="scanProgress" class="scan-progress">
+        <div class="progress-text" id="progressText">Scanning…</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBarFill"></div></div>
+        <div class="scan-log" id="scanLog"></div>
+    </div>
+    <div id="status" class="status loading" style="display:none;"></div>
+    <div id="results"></div>
+</div>
+</div>
+
+<!-- ═══ AHU Type Modal ═══════════════════════════════════════════════════ -->
+<div id="ahuTypeModal" class="vav-modal">
+<div class="vav-modal-content">
+    <h2 style="margin-top:0;color:#e0e7ff;">Assign AHU Sub-Types</h2>
+    <p style="color:#9ca3af;margin-bottom:16px;">Choose the equipment sub-type for each AHU. Unassigned → N/A in export.</p>
+    <div class="vav-columns">
+        <div class="vav-column"><div class="vav-column-header heat"><h3>Pre-Heat/Cool/Heat</h3><button class="column-btn" onclick="tmSelAll('AHU','PRE_C_H')">All</button><button class="column-btn" onclick="tmClrAll('AHU','PRE_C_H')">Clr</button></div><div id="ahuList_PRE_C_H" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fan"><h3>Cooling &amp; Heat</h3><button class="column-btn" onclick="tmSelAll('AHU','COOL_HEAT')">All</button><button class="column-btn" onclick="tmClrAll('AHU','COOL_HEAT')">Clr</button></div><div id="ahuList_COOL_HEAT" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fanr"><h3>Heating Only</h3><button class="column-btn" onclick="tmSelAll('AHU','HEATING')">All</button><button class="column-btn" onclick="tmClrAll('AHU','HEATING')">Clr</button></div><div id="ahuList_HEATING" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header PRECOOL"><h3>Pre-Heat/Cooling</h3><button class="column-btn" onclick="tmSelAll('AHU','PRE_C')">All</button><button class="column-btn" onclick="tmClrAll('AHU','PRE_C')">Clr</button></div><div id="ahuList_PRE_C" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header seriesC"><h3>Series Cooling</h3><button class="column-btn" onclick="tmSelAll('AHU','SERIES_C')">All</button><button class="column-btn" onclick="tmClrAll('AHU','SERIES_C')">Clr</button></div><div id="ahuList_SERIES_C" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header seriesHC"><h3>Series Heat/Cool</h3><button class="column-btn" onclick="tmSelAll('AHU','SERIES_H_C')">All</button><button class="column-btn" onclick="tmClrAll('AHU','SERIES_H_C')">Clr</button></div><div id="ahuList_SERIES_H_C" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header noreturn"><h3>No Return</h3><button class="column-btn" onclick="tmSelAll('AHU','NO_RETURN')">All</button><button class="column-btn" onclick="tmClrAll('AHU','NO_RETURN')">Clr</button></div><div id="ahuList_NO_RETURN" class="vav-column-body"></div></div>
+    </div>
+    <div id="ahuSummary" class="vav-summary">No AHUs selected</div>
+    <div class="vav-modal-buttons">
+        <button class="vav-btn vav-btn-secondary" onclick="tmClrAllType('AHU')">Clear All</button>
+        <button class="vav-btn vav-btn-primary"   onclick="tmConfirm('AHU')">✓ Confirm &amp; Continue</button>
+        <button class="vav-btn vav-btn-secondary" onclick="closeModal('ahuTypeModal')">Cancel</button>
+    </div>
+</div></div>
+
+<!-- ═══ RTU Type Modal ═══════════════════════════════════════════════════ -->
+<div id="rtuTypeModal" class="vav-modal">
+<div class="vav-modal-content">
+    <h2 style="margin-top:0;color:#e0e7ff;">Assign RTU Sub-Types</h2>
+    <div class="vav-columns">
+        <div class="vav-column"><div class="vav-column-header heat"><h3>Intellipak</h3><button class="column-btn" onclick="tmSelAll('RTU','INTELLIPAK')">All</button><button class="column-btn" onclick="tmClrAll('RTU','INTELLIPAK')">Clr</button></div><div id="rtuList_INTELLIPAK" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fan"><h3>Voyager</h3><button class="column-btn" onclick="tmSelAll('RTU','VOYAGER')">All</button><button class="column-btn" onclick="tmClrAll('RTU','VOYAGER')">Clr</button></div><div id="rtuList_VOYAGER" class="vav-column-body"></div></div>
+<div class="vav-column"><div class="vav-column-header heatwater"><h3>Precedent</h3><button class="column-btn" onclick="tmSelAll('RTU','PRECEDENT')">All</button><button class="column-btn" onclick="tmClrAll('RTU','PRECEDENT')">Clr</button></div><div id="rtuList_PRECEDENT" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header noreturn"><h3>Generic</h3><button class="column-btn" onclick="tmSelAll('RTU','GENERIC')">All</button><button class="column-btn" onclick="tmClrAll('RTU','GENERIC')">Clr</button></div><div id="rtuList_GENERIC" class="vav-column-body"></div></div>
+    </div>
+    <div id="rtuSummary" class="vav-summary">No RTUs selected</div>
+    <div class="vav-modal-buttons">
+        <button class="vav-btn vav-btn-secondary" onclick="tmClrAllType('RTU')">Clear All</button>
+        <button class="vav-btn vav-btn-primary"   onclick="tmConfirm('RTU')">✓ Confirm &amp; Continue</button>
+        <button class="vav-btn vav-btn-secondary" onclick="closeModal('rtuTypeModal')">Cancel</button>
+    </div>
+</div></div>
+
+<!-- ═══ FTU Type Modal ═══════════════════════════════════════════════════ -->
+<div id="ftuTypeModal" class="vav-modal">
+<div class="vav-modal-content">
+    <h2 style="margin-top:0;color:#e0e7ff;">Assign FTU Sub-Types</h2>
+    <div class="vav-columns">
+        <div class="vav-column"><div class="vav-column-header heat"><h3>Electric Heat</h3><button class="column-btn" onclick="tmSelAll('FTU','HEATE')">All</button><button class="column-btn" onclick="tmClrAll('FTU','HEATE')">Clr</button></div><div id="ftuList_HEATE" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fan"><h3>Water Heat</h3><button class="column-btn" onclick="tmSelAll('FTU','HEATW')">All</button><button class="column-btn" onclick="tmClrAll('FTU','HEATW')">Clr</button></div><div id="ftuList_HEATW" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header seriesfe"><h3>Series Fan+Electric</h3><button class="column-btn" onclick="tmSelAll('FTU','SERIES_F_E')">All</button><button class="column-btn" onclick="tmClrAll('FTU','SERIES_F_E')">Clr</button></div><div id="ftuList_SERIES_F_E" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header seriesf"><h3>Series Fan Only</h3><button class="column-btn" onclick="tmSelAll('FTU','SERIES_F')">All</button><button class="column-btn" onclick="tmClrAll('FTU','SERIES_F')">Clr</button></div><div id="ftuList_SERIES_F" class="vav-column-body"></div></div>
+    </div>
+    <div id="ftuSummary" class="vav-summary">No FTUs selected</div>
+    <div class="vav-modal-buttons">
+        <button class="vav-btn vav-btn-secondary" onclick="tmClrAllType('FTU')">Clear All</button>
+        <button class="vav-btn vav-btn-primary"   onclick="tmConfirm('FTU')">✓ Confirm &amp; Continue</button>
+        <button class="vav-btn vav-btn-secondary" onclick="closeModal('ftuTypeModal')">Cancel</button>
+    </div>
+</div></div>
+
+<!-- ═══ VAV Type Modal ═══════════════════════════════════════════════════ -->
+<div id="vavTypeModal" class="vav-modal">
+<div class="vav-modal-content">
+    <h2 style="margin-top:0;color:#e0e7ff;">Assign VAV Sub-Types</h2>
+    <p style="color:#9ca3af;margin-bottom:16px;">Unassigned VAVs = Cooling Only (N/A) in the export.</p>
+    <div class="vav-columns">
+        <div class="vav-column"><div class="vav-column-header heat"><h3>Electric Reheat</h3><button class="column-btn" onclick="tmSelAll('VAV','HEAT')">All</button><button class="column-btn" onclick="tmClrAll('VAV','HEAT')">Clr</button></div><div id="vavList_HEAT" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fan"><h3>Fan Only</h3><button class="column-btn" onclick="tmSelAll('VAV','FAN')">All</button><button class="column-btn" onclick="tmClrAll('VAV','FAN')">Clr</button></div><div id="vavList_FAN" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header fanr"><h3>Fan+Electric Reheat</h3><button class="column-btn" onclick="tmSelAll('VAV','FANR')">All</button><button class="column-btn" onclick="tmClrAll('VAV','FANR')">Clr</button></div><div id="vavList_FANR" class="vav-column-body"></div></div>
+        <div class="vav-column"><div class="vav-column-header heatwater"><h3>Reheat Water</h3><button class="column-btn" onclick="tmSelAll('VAV','HEATW')">All</button><button class="column-btn" onclick="tmClrAll('VAV','HEATW')">Clr</button></div><div id="vavList_HEATW" class="vav-column-body"></div></div>
+    </div>
+    <div id="vavSummary" class="vav-summary">No VAVs selected</div>
+    <div class="vav-modal-buttons">
+        <button class="vav-btn vav-btn-secondary" onclick="tmClrAllType('VAV')">Clear All</button>
+        <button class="vav-btn vav-btn-primary"   onclick="tmConfirm('VAV')">✓ Confirm &amp; Export</button>
+        <button class="vav-btn vav-btn-secondary" onclick="closeModal('vavTypeModal')">Cancel</button>
+    </div>
+</div></div>
+
+<!-- ═══ Occupancy Schedule Modal ════════════════════════════════════════ -->
+<div id="occModal" class="vav-modal">
+<div class="vav-modal-content" style="max-width:780px;">
+    <h2 style="margin-top:0;color:#e0e7ff;">Occupancy Schedules</h2>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="vav-btn vav-btn-secondary" style="font-size:12px;padding:7px 13px;" onclick="occSetDays(['Monday','Tuesday','Wednesday','Thursday','Friday'])">Weekdays All</button>
+        <button class="vav-btn vav-btn-secondary" style="font-size:12px;padding:7px 13px;" onclick="occSetDays(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'])">All Days</button>
+        <button class="vav-btn vav-btn-secondary" style="font-size:12px;padding:7px 13px;" onclick="occClearDays()">Clear All</button>
+    </div>
+    <div id="occSummaryBar" style="margin-bottom:12px;color:#c084fc;font-size:13px;font-weight:600;"></div>
+    <div id="occPointsList"></div>
+    <div class="vav-modal-buttons" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(139,92,246,0.3);">
+        <button class="vav-btn vav-btn-secondary" onclick="closeModal('occModal')">Cancel</button>
+        <button class="vav-btn vav-btn-primary"   onclick="occConfirm()">✓ Confirm &amp; Export</button>
+    </div>
+</div></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ══════════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!'], function(baja) {
+'use strict';
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let allPointsData  = [];   // { unit, dropdownKey, murphyTag, name, ord, hasPointsFolder, murphyPointId }
+let rootOrd        = '';
+let _importedData  = null;
+let _pendingGVars  = {};   // built during export, passed through type modals
+
+// ─── Niagara ASCII decode ─────────────────────────────────────────────────────
+// Niagara encodes special chars in slot names as $XX (hex). e.g. $2d = '-', $3a = ':'
+function decodeN(name) {
+    return (name || '').replace(/\$([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+// ─── Tag extraction ───────────────────────────────────────────────────────────
+// Given an array of {name, displayName} slots, find "PREFIX:VALUE" and return VALUE.
+// Checks decoded slot name AND displayName.
+function extractTag(slots, prefixLower) {
+    for (const s of slots) {
+        // 1. Try decoded slot name
+        const dec = decodeN(s.name);
+        if (dec.toLowerCase().startsWith(prefixLower)) return dec.slice(prefixLower.length).trim();
+        // 2. Try display name
+        if (s.displayName && s.displayName.toLowerCase().startsWith(prefixLower))
+            return s.displayName.slice(prefixLower.length).trim();
+    }
+    return null;
+}
+const getMurphyTag    = slots => extractTag(slots, 'murphytag:');
+const getMurphyPoints = slots => extractTag(slots, 'murphypoints:');
+
+// ─── Map MurphyTag value → Point ID dropdown key ─────────────────────────────
+function tagToKey(tag) {
+    const t = (tag || '').toUpperCase().trim();
+    if (t === 'AHU')            return 'AHU';
+    if (t === 'VAV' || t === 'EAV') return 'VAV';
+    if (t === 'RTU')            return 'RTU';
+    if (t === 'FCU')            return 'FCU';
+    if (t === 'FTU' || t === 'FANTERMINAL') return 'FTU';
+    if (t === 'CHILLER_PLANT')  return 'CHILLER_PLANT';
+    if (t === 'CHILLER')        return 'CHILLER';
+    if (t === 'TOWER')          return 'TOWER';
+    if (t === 'BOILER')         return 'BOILER';
+    if (t === 'EF' || t === 'EXHAUST_FANS') return 'EXHAUST_FANS';
+    return 'OTHER';
+}
+
+// ─── Point ID options per dropdown key ───────────────────────────────────────
+const PID = {
+    AHU:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'AHU-ALARM',l:'AHU Alarm'},{v:'DA-T',l:'Discharge Air Temp'},{v:'DA-TSP',l:'Discharge Air Temp SP'},
+        {v:'MA-T',l:'Mixed Air Temp'},{v:'MA-TSP',l:'Mixed Air Temp SP'},{v:'OA-T',l:'Outside Air Temp'},
+        {v:'RA-T',l:'Return Air Temp'},{v:'RA-TSP',l:'Return Air Temp SP'},{v:'DPR-cmd',l:'OA Damper Position'},
+        {v:'DPR-cmdSPT',l:'OA Damper Command'},{v:'Fan-Stat',l:'Fan Stat'},{v:'Fan-CMD',l:'Fan Command'},
+        {v:'EF-status',l:'Ex Fan Stat'},{v:'EF-CMD',l:'Ex Fan Command'},{v:'Occupancy',l:'Occupancy Status'},
+        {v:'OccupancyCMD',l:'Occupancy Command'},{v:'DPR-RTN',l:'Return Damper'},{v:'DPR-RTNSP',l:'Return Damper SP'},
+        {v:'HTG-VLV',l:'Heating Valve'},{v:'HTG-VLVSP',l:'Heating Valve SP'},{v:'Pre-HT-VLV',l:'Pre-Heat VLV'},
+        {v:'Pre-HT-VLVSP',l:'Pre-Heat VLV SP'},{v:'CLG-VLV',l:'Cooling Valve'},{v:'CLG-VLVSP',l:'Cooling Valve SP'},
+        {v:'SPACE-TMP',l:'Space Temp'},{v:'SPACE-TMPSP',l:'Space Temp SP'},{v:'power',l:'VFD Power'},
+        {v:'current',l:'VFD Current'},{v:'frequency',l:'VFD Frequency'},{v:'torque',l:'VFD Torque'},
+        {v:'voltage',l:'VFD Voltage'},{v:'speed',l:'VFD Speed'},{v:'fault',l:'VFD Alarm'}
+    ],
+    VAV:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'Air-Flow',l:'Air Flow'},{v:'AirFlow-SP',l:'Air Flow SP'},{v:'DA-T',l:'Discharge Air TMP'},
+        {v:'DA-TSP',l:'Discharge Air TMP SP'},{v:'DPR-Pos',l:'Damper Pos'},{v:'Damp-Pos-Cmd',l:'Damper Pos Command'},
+        {v:'Occupancy',l:'Occupancy'},{v:'OccupancyCMD',l:'Occupancy Cmd'},{v:'Reheat1',l:'Reheat Stat'},
+        {v:'Reheat1SP',l:'Reheat Cmd'},{v:'Space-Temp',l:'Space Temp'},{v:'Space-Setpoint',l:'Space TMP SP'},
+        {v:'EFF-SPACE-SP',l:'Effective Space SP'},{v:'HVACModeStatus',l:'System Status (ON/OFF)'},{v:'Mode',l:'System Mode'}
+    ],
+    RTU:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'RTU-ALARM',l:'RTU Alarm'},{v:'DA-T',l:'Discharge Air Temp'},{v:'DA-T-SP',l:'Discharge Air Temp SP'},
+        {v:'RA-T',l:'Return Air Temp'},{v:'Airflow',l:'Airflow'},{v:'Static',l:'Discharge Static'},
+        {v:'StaticSP',l:'Discharge Static SP'},{v:'DPR-cmd-OA',l:'Damper Position OA'},{v:'DPR-cmd-OA-CMD',l:'Damper Position OA CMD'},
+        {v:'DPR-cmd-RET',l:'Damper Position RET'},{v:'Fan-Stat',l:'Fan Stat'},{v:'EF-STAT',l:'Exhaust Fan Stat'},
+        {v:'COMP-STAT1',l:'Compressor 1'},{v:'COMP-STAT2',l:'Compressor 2'},{v:'Space-TMP',l:'Space Temp'},
+        {v:'HTG-CAP',l:'Heating Cap'},{v:'CLG-CAP',l:'Cooling Cap'},{v:'ModeStatus',l:'Mode Status'},{v:'Occupancy',l:'Occupancy Status'}
+    ],
+
+    FTU:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'AirFlow-SP',l:'Air Flow SP'},{v:'Air-Flow',l:'Air Flow'},{v:'DA-T',l:'Discharge Air TMP'},
+        {v:'DPR-Pos',l:'Damper Pos'},{v:'DPR-Pos-CMD',l:'Damper Command'},{v:'Occupancy',l:'Occupancy'},
+        {v:'OccupancyCMD',l:'Occupancy Command'},{v:'Reheat1',l:'Reheat Stat'},{v:'Reheat1SP',l:'Reheat Command'},
+        {v:'Space-Temp',l:'Space Temp'},{v:'Space-Setpoint',l:'Space TMP SP'},{v:'EFF-SPACE-SP',l:'Effective Space SP'},
+        {v:'HVACModeStatus',l:'System Status (ON/OFF)'},{v:'Mode',l:'System Mode'},{v:'Fan-Stat',l:'Fan Stat'},{v:'Fan-CMD',l:'Fan Command'}
+    ],
+        FCU:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'DA-T',l:'Discharge Air TMP'},{v:'DA-TSP',l:'Discharge Air TMP SP'},{v:'Occupancy',l:'Occupancy'},
+        {v:'OccupancyCMD',l:'Occupancy Command'},{v:'Reheat1',l:'Reheat Stat'},{v:'Reheat1SP',l:'Reheat Cmd'},
+        {v:'Cool',l:'Cooling Stat'},{v:'CoolSP',l:'Cooling Cmd'},{v:'Space-Temp',l:'Space Temp'},
+        {v:'Space-Setpoint',l:'Space TMP SP'},{v:'HVACModeStatus',l:'System Status (ON/OFF)'},{v:'Mode',l:'System Mode'},{v:'Fan-Stat',l:'Fan Stat'}
+    ],
+    CHILLER:[
+        {v:'N/A',l:'N/A'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'CH1-ALM',l:'Chiller 1 Alarm'},{v:'CH2-ALM',l:'Chiller 2 Alarm'},{v:'CH3-ALM',l:'Chiller 3 Alarm'},
+        {v:'CH1-EN',l:'Chiller 1 Enable'},{v:'CH2-EN',l:'Chiller 2 Enable'},{v:'CH3-EN',l:'Chiller 3 Enable'},
+        {v:'CHWTR-PMP-Stat1',l:'Chilled Water PMP Stat 1'},{v:'CHWTR-PMP-CMD1',l:'Chilled Water PMP CMD 1'},
+        {v:'CH1-WTR-ENT',l:'Chiller 1 Water Enter'},{v:'CH1-WTR-LEAVE',l:'Chiller 1 Water Leaving'},
+        {v:'CH1-CONDTMP-ENTER',l:'Cond 1 TMP Enter'},{v:'CH1-CONDTMP-LEAVE',l:'Cond 1 TMP Leave'},
+        {v:'CH1-Compressor-Stat',l:'Compressor 1 Status'},{v:'CH1-CondPMP',l:'Condenser 1 Stat'}
+    ],
+    CHILLER_PLANT:[
+        {v:'N/A',l:'N/A'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'TWR-ENT-WTR',l:'Tower Enter Temp'},{v:'CH1-EN',l:'Chiller 1 Enable'},{v:'CH1-Stat',l:'Chiller 1 Stat'},
+        {v:'CH1-ALM',l:'Chiller 1 Alarm'},{v:'CH-LEAD',l:'Lead Chiller'}
+    ],
+    TOWER:[
+        {v:'N/A',l:'N/A'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'CH-ST',l:'Chiller Stat'},{v:'TMP-ENT',l:'Entering Temperature'},{v:'FAN-EN_1',l:'Fan Enable Tower 1'},
+        {v:'Tower1-ST',l:'Tower 1 Stat'},{v:'TowerPMP1',l:'Tower Pump 1'},{v:'BypassVLV',l:'Bypass VLV'},
+        {v:'Tower1_FanSP',l:'Tower 1 Fan Speed SP'},{v:'TMP-LEAVE1',l:'Leaving Tower Temp 1'}
+    ],
+    BOILER:[
+        {v:'N/A',l:'N/A'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'Coils1',l:'Boiler 1 Status'},{v:'Boiler_Alarm1',l:'Boiler 1 Alarm'},{v:'PMP-VFD',l:'Pump VFD'},
+        {v:'P1-SupTMP',l:'PMP 1 Sup TMP'},{v:'HW_Ret_TMP',l:'Building Return TMP'},
+        {v:'OutTMP',l:'Building Supply TMP'},{v:'OutTMPSP',l:'Building Supply TMP Spt'},{v:'LeadBoiler',l:'Lead Boiler'}
+    ],
+    EXHAUST_FANS:[
+        {v:'N/A',l:'N/A'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Enum',l:'Enumerated Override'},
+        {v:'Fan-Stat1',l:'Fan Status 1'},{v:'Fan-CMD1',l:'Fan Cmd 1'},{v:'Duct-Static',l:'Duct Static'},
+        {v:'EF-Alarm1',l:'Exhaust Fan Alarm 1'},{v:'Occupancy',l:'Occupancy'},{v:'OccupancyCmd',l:'Occupancy Command'},
+        {v:'Pressure',l:'Pressure'},{v:'VFD-Feedback',l:'VFD Output'}
+    ],
+    OTHER:[
+        {v:'N/A',l:'N/A'},{v:'SP-Boolean',l:'Boolean Override'},{v:'SP-Numeric',l:'Numeric Override'},{v:'SP-Enum',l:'Enumerated Override'}
+    ]
+};
+
+// ─── Slot ignore lists ────────────────────────────────────────────────────────
+const SKIP_EXACT = new Set([
+    'submitPointDiscoveryJob','proxySyncFlagsAutoUpdate','createPoints','updatePoints',
+    'FAN_Stat_constant','verifyPoints','faultCause','health','alarmSourceInfo','monitor',
+    'ping','ackAlarm','upload','download','historyPolicies','worker','writeWorker',
+    'bacnetComm','localDevice','tuningPolicies','covWorker','asyncPing','enabled',
+    'Graphic','privateTransferResultBlockFlag','facets','proxyExt','wsAnnotation',
+    'displayNames','execute','programming','Programming','Logic','dispatcher',
+    'pollScheduler','pollService','PollServiceOnCOV','lonNetmgmt',
+    'histories','Histories','alarms','Alarms','schedules','Schedules',
+    'users','Users','sysdef','SysDef','virtual','Virtual','files','Files',
+    'alarmsourceinfo','AlarmSourceInfo','clientconnection','ClientConnection',
+    'weatherservice','WeatherService','platformservices','PlatformServices'
+]);
+const SKIP_RE = [/greaterthanequal/i,/lessthanequal/i,/^math/i,/statusdemux/i,/communications_alarm/i,/^slot:ext/i];
+
+function skipSlot(name) {
+    if (SKIP_EXACT.has(name)) return true;
+    const low = name.toLowerCase();
+    if (SKIP_EXACT.has(low)) return true;
+    return SKIP_RE.some(r => r.test(name));
+}
+
+// ─── Baja helpers ─────────────────────────────────────────────────────────────
+async function getSlots(ord) {
+    try {
+        const obj = await baja.Ord.make(ord).get();
+        const out = [];
+        obj.getSlots().each(slot => {
+            let dn = null;
+            try { dn = slot.getDisplayName ? slot.getDisplayName() : null; } catch(e) {}
+            out.push({ name: slot.getName(), displayName: dn });
+        });
+        return out;
+    } catch(e) { return []; }
+}
+
+// ─── Concurrency limiter ─────────────────────────────────────────────────────
+// Limits simultaneous baja requests to avoid overwhelming the station.
+// 12 concurrent is a good balance — fast but not flooding.
+function makeConcurrencyPool(limit) {
+    let active = 0;
+    const queue = [];
+    const next = () => {
+        if (active >= limit || !queue.length) return;
+        active++;
+        const { fn, resolve, reject } = queue.shift();
+        fn().then(r => { active--; resolve(r); next(); })
+            .catch(e => { active--; reject(e); next(); });
+    };
+    return fn => new Promise((resolve, reject) => {
+        queue.push({ fn, resolve, reject });
+        next();
+    });
+}
+const throttle = makeConcurrencyPool(12);
+
+// Throttled wrapper for getSlots — all baja reads go through the pool
+async function getSlotsT(ord) { return throttle(() => getSlots(ord)); }
+
+// ─── Progress helpers ─────────────────────────────────────────────────────────
+const $prog  = () => document.getElementById('scanProgress');
+const $bar   = () => document.getElementById('progressBarFill');
+const $ptext = () => document.getElementById('progressText');
+const $log   = () => document.getElementById('scanLog');
+let _logEl   = null;
+
+function setProgress(pct, text) {
+    $prog().classList.add('visible');
+    if (pct !== null) $bar().style.width = pct + '%';
+    $ptext().textContent = text;
+}
+function logLine(msg, cls) {
+    if (!_logEl) return;
+    const d = document.createElement('div'); d.className = cls||''; d.textContent = msg;
+    _logEl.appendChild(d); _logEl.scrollTop = _logEl.scrollHeight;
+}
+function hideProgress() { $prog().classList.remove('visible'); }
+
+// ─── RECURSIVE SCAN ───────────────────────────────────────────────────────────
+let _devicesFound = 0;
+let _maxDepth     = 10;
+
+// Returns array of { name, ord, murphyTag }
+async function findTaggedDevices(ord, depth) {
+    if (depth > _maxDepth) return [];
+    const slots = await getSlotsT(ord);
+    if (!slots.length) return [];
+
+    // Does THIS folder have a MurphyTag?
+    const tag = getMurphyTag(slots);
+    if (tag) {
+        _devicesFound++;
+        const rawSlotName  = ord.split('/').pop();          // raw ASCII e.g. "FTU$201$2d3"
+        const shortName    = decodeN(rawSlotName);          // decoded for UI  e.g. "FTU 1-3"
+        logLine(`✔ ${shortName} [MurphyTag:${tag}] at depth ${depth}`, 'found');
+        return [{ name: shortName, rawName: rawSlotName, ord, murphyTag: tag }];
+    }
+
+    // Otherwise recurse into all children IN PARALLEL (skip known noise folders)
+    const children = slots.filter(s => !skipSlot(s.name));
+    setProgress(null, `Scanning depth ${depth+1}: ${children.length} children — ${_devicesFound} devices found`);
+    const nested = await Promise.all(
+        children.map(slot => findTaggedDevices(ord + '/' + slot.name, depth + 1))
+    );
+    return nested.flat();
+}
+
+// ─── READ DEVICE POINTS ────────────────────────────────────────────────────────
+// Points within a device are read IN PARALLEL (Promise.all) rather than
+// sequentially — cuts 50 round-trips down to ~1 round-trip worth of latency.
+async function readDevicePoints(device) {
+    const dKey = tagToKey(device.murphyTag);
+
+    // Try /points sub-folder first, then the device folder itself
+    let pointsOrd = device.ord + '/points';
+    let slotList  = await getSlotsT(pointsOrd);
+    let hasPointsFolder = true;
+    if (!slotList.length) {
+        pointsOrd       = device.ord;
+        slotList        = await getSlotsT(device.ord);
+        hasPointsFolder = false;
+    }
+
+    // Filter to real point slots upfront
+    const pointSlots = slotList.filter(s => !skipSlot(s.name));
+
+    // ── PARALLEL: fire all point slot-sheet reads at once ──────────────────
+    // We already fetch the full slot sheet per point for MurphyPoints detection,
+    // so we detect history/alarm extensions here for FREE — zero extra requests.
+    const results = await Promise.all(
+        pointSlots.map(async slot => {
+            const pointOrd  = pointsOrd + '/' + slot.name;
+            const pSlots    = await getSlotsT(pointOrd);
+            const mpId      = getMurphyPoints(pSlots);   // decoded e.g. "Fan-CMD"
+
+            // Check for history & alarm extension slots in the same response
+            const slotNames = new Set(pSlots.map(s => s.name.toLowerCase()));
+            const hasNumeric = slotNames.has('numericinterval') || slotNames.has('numericcov')
+                            || slotNames.has('logfile');
+            const hasBoolean = slotNames.has('booleaninterval') || slotNames.has('booleancov');
+            const hasAlarm   = slotNames.has('outofrangealarmext')
+                            || slotNames.has('booleanchangeofstatealarmext')
+                            || slotNames.has('booleancommandfailurealarmext')
+                            || slotNames.has('enumchangeofstatealarmext')
+                            || [...slotNames].some(n => n.endsWith('alarmext'));
+
+            return { slot, pointOrd, mpId, hasNumeric, hasBoolean, hasAlarm };
+        })
+    );
+
+    for (const { slot, pointOrd, mpId, hasNumeric, hasBoolean, hasAlarm } of results) {
+        allPointsData.push({
+            unit:          device.name,        // decoded — UI display
+            rawUnit:       device.rawName,     // raw ASCII — JSON export key
+            dropdownKey:   dKey,
+            murphyTag:     device.murphyTag,
+            name:          decodeN(slot.name), // decoded — UI key & display
+            rawName:       slot.name,          // raw ASCII — JSON export
+            ord:           pointOrd,
+            hasPointsFolder,
+            murphyPointId: mpId || null,       // decoded Point ID e.g. "Fan-CMD"
+            hasNumeric,                        // pre-detected from slot sheet
+            hasBoolean,
+            hasAlarm,
+        });
+    }
+}
+
+// ─── START SCAN ───────────────────────────────────────────────────────────────
+window.startTagScan = async function() {
+    const ord = document.getElementById('rootOrdInput').value.trim();
+    if (!ord) { alert('Please enter a root ORD path.'); return; }
+    rootOrd        = ord;
+    allPointsData  = [];
+    _devicesFound  = 0;
+    _maxDepth      = parseInt(document.getElementById('maxDepth').value) || 10;
+    _logEl         = $log();
+    _logEl.innerHTML = '';
+
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('results').innerHTML = '';
+    const st = document.getElementById('status');
+    st.style.display = 'block'; st.className = 'status loading'; st.textContent = 'Starting scan…';
+    setProgress(5, 'Connecting to station…');
+    setStep(2);
+
+    try {
+        logLine('Root ORD: ' + ord, 'info');
+        const devices = await findTaggedDevices(ord, 1);
+
+        if (!devices.length) {
+            st.className = 'status error';
+            st.textContent = `No MurphyTag markers found under ${ord}. Try increasing Max Depth, or verify MurphyTag:TYPE markers are set on device folders.`;
+            hideProgress(); document.getElementById('scanBtn').disabled = false;
+            return;
+        }
+
+        logLine(`Found ${devices.length} tagged device(s). Reading points…`, 'info');
+        setProgress(55, `Reading points for ${devices.length} device(s) in parallel…`);
+
+        // ── PARALLEL: read all devices at the same time ─────────────────────
+        // Each readDevicePoints also parallelizes its own point reads internally,
+        // so total latency ≈ max(slowest_device) instead of sum(all_devices).
+        let completed = 0;
+        await Promise.all(devices.map(async device => {
+            await readDevicePoints(device);
+            completed++;
+            setProgress(55 + Math.round(completed / devices.length * 42),
+                `Completed ${completed}/${devices.length} devices (${allPointsData.length} points found)`);
+        }));
+
+        setProgress(100, 'Scan complete!');
+        await displayResults();
+    } catch(err) {
+        st.className = 'status error';
+        st.textContent = 'Scan error: ' + err.message;
+        console.error(err);
+    }
+
+    hideProgress();
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('editBtn').style.display = 'inline-block';
+};
+
+window.editOrd = function() {
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('rootOrdInput').focus();
+    setStep(1);
+};
+
+// ─── DISPLAY RESULTS ──────────────────────────────────────────────────────────
+async function displayResults() {
+    const pts = allPointsData;
+    if (!pts.length) {
+        const st = document.getElementById('status');
+        st.className = 'status error'; st.textContent = 'No points found.';
+        return;
+    }
+
+    // Group by dropdownKey
+    const grouped = {}, uniqueBy = {};
+    pts.forEach(p => {
+        if (!grouped[p.dropdownKey]) { grouped[p.dropdownKey] = []; uniqueBy[p.dropdownKey] = new Set(); }
+        grouped[p.dropdownKey].push(p);
+        uniqueBy[p.dropdownKey].add(p.name);
+    });
+
+    const tagsFound  = pts.filter(p => p.murphyPointId).length;
+    const idsMatched = pts.filter(p => {
+        if (!p.murphyPointId) return false;
+        const decoded = decodeN(p.murphyPointId);
+        const opts = PID[p.dropdownKey] || PID.OTHER;
+        return opts.some(o => o.v.toLowerCase() === decoded.toLowerCase());
+    }).length;
+    const st = document.getElementById('status');
+    st.className = 'status success';
+    st.textContent = `✅ Scan complete — ${pts.length} points in ${Object.keys(grouped).length} device type(s). ${tagsFound} MurphyPoints tags found, ${idsMatched} Point IDs auto-assigned.`;
+
+    let html = `<div class="results-toolbar">
+        <button class="toolbar-btn purple" onclick="exportSelected()">💾 Export to Global.json</button>
+        <label class="toolbar-btn blue" style="cursor:pointer;">📂 Import JSON<input type="file" accept=".json" onchange="importGlobalJson(event)" style="display:none;"></label>
+        <button class="toolbar-btn blue" onclick="collapseAll()">⊟ Collapse All</button>
+        <button class="toolbar-btn blue" onclick="expandAll()">⊞ Expand All</button>
+        <span class="selected-counter" id="selectedCounter">0 selected</span>
+    </div>`;
+
+    Object.keys(grouped).sort().forEach(gk => {
+        const typePts   = grouped[gk];
+        const uniquePts = Array.from(uniqueBy[gk]);
+        const opts      = PID[gk] || PID.OTHER;
+
+        html += `<div class="unit-type-section">
+            <div class="unit-type-header" data-type="${gk}" onclick="toggleSec('${gk}')">
+                <div><span>${gk}</span><span class="unit-count">${uniquePts.length} unique points</span></div>
+                <span class="toggle-icon" id="icon-${gk}">▼</span>
+            </div>
+            <div class="unit-type-content" id="content-${gk}">
+                <div class="search-bar">
+                    <input type="text" placeholder="🔍 Filter ${gk} points…" oninput="filterPts('${gk}',this.value)">
+                    <span class="search-count" id="sc-${gk}">${uniquePts.length} / ${uniquePts.length}</span>
+                </div>
+                <table class="points-table"><thead><tr>
+                    <th><input type="checkbox" onchange="selAllSec('${gk}',this.checked)"> All</th>
+                    <th>Point Name</th><th>Found In</th><th>Point ID</th>
+                    <th>Log Numeric</th><th>Log Boolean</th><th>Alarm</th><th>Schedule</th>
+                </tr></thead><tbody id="tbody-${gk}">`;
+
+        uniquePts.forEach(ptName => {
+            const matches   = typePts.filter(p => p.name === ptName);
+            const first     = matches[0];
+            const unitsList = [...new Set(matches.map(p => p.unit))].join(', ');
+            // Pre-detected from slot sheet — no extra requests needed
+            const logNumVal  = first.hasNumeric ? 'yes_Numeric' : 'no_Numeric';
+            const logBoolVal = first.hasBoolean ? 'yes_Boolean' : 'no_Boolean';
+            const alarmVal   = first.hasAlarm   ? 'yes'         : 'no';
+            // murphyPointId is already decoded by extractTag (e.g. "Fan-CMD")
+            // but run decodeN again as a safety net for any missed $XX
+            const rawMpId   = first.murphyPointId;
+            const autoId    = rawMpId ? decodeN(rawMpId) : null;
+            const hasTag    = !!autoId;
+            // Case-insensitive match against option values
+            let selVal = 'N/A';
+            if (autoId) {
+                const m = opts.find(o => o.v.toLowerCase() === autoId.toLowerCase());
+                selVal = m ? m.v : 'N/A';
+                // If no exact match, try stripping common suffix/prefix differences
+                if (selVal === 'N/A') {
+                    const m2 = opts.find(o => o.v.replace(/-/g,'').toLowerCase() === autoId.replace(/-/g,'').toLowerCase());
+                    if (m2) selVal = m2.v;
+                }
+            }
+            const idAssigned = selVal !== 'N/A';   // true when we actually found a matching Point ID
+            const safeId = (gk + '-' + ptName).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            html += `<tr id="row-${safeId}" class="point-row${idAssigned?' duplicate-highlight':''}"
+                data-point-name="${ptName}" data-dropdown-key="${gk}" data-point-ord="${first.ord}">
+                <td><input type="checkbox" class="select-point"
+                    data-point-name="${ptName}" data-dropdown-key="${gk}"
+                    onchange="handleSel(this)" ${hasTag?'checked':''}></td>
+                <td>
+                    <span class="point-name">${ptName}</span>
+                    ${idAssigned ? `<span class="tag-badge">🏷️ ${selVal}</span>` : (hasTag ? `<span class="tag-badge" style="background:linear-gradient(135deg,#f59e0b,#d97706)">⚠️ ${autoId}</span>` : '')}
+                </td>
+                <td style="font-size:0.88em;color:#9ca3af;">${unitsList}</td>
+                <td>
+                    <select class="point-id">
+                        ${opts.map(o=>`<option value="${o.v}"${o.v===selVal?' selected':''}>${o.l}</option>`).join('')}
+                    </select><br>
+                    <select class="point-id2" style="margin-top:4px;">
+                        <option value="">-- None --</option>
+                        <option value="SP-Numeric">Numeric Override</option>
+                        <option value="SP-Boolean">Boolean Override</option>
+                        <option value="SP-Enum">Enumerated Override</option>
+                    </select>
+                </td>
+                <td><select class="log-numeric">
+                    <option value="yes_Numeric" ${logNumVal==='yes_Numeric'?'selected':''}>yes_Numeric</option>
+                    <option value="no_Numeric"  ${logNumVal==='no_Numeric' ?'selected':''}>no_Numeric</option>
+                </select></td>
+                <td><select class="log-boolean">
+                    <option value="yes_Boolean" ${logBoolVal==='yes_Boolean'?'selected':''}>yes_Boolean</option>
+                    <option value="no_Boolean"  ${logBoolVal==='no_Boolean' ?'selected':''}>no_Boolean</option>
+                </select></td>
+                <td><select class="alarm">
+                    <option value="yes" ${alarmVal==='yes'?'selected':''}>yes</option>
+                    <option value="no"  ${alarmVal==='no' ?'selected':''}>no</option>
+                </select></td>
+                <td><select class="schedule"><option value="yes">yes</option><option value="no" selected>no</option></select></td>
+            </tr>`;
+        });
+        html += `</tbody></table></div></div>`;
+    });
+
+    document.getElementById('results').innerHTML = html;
+    initDrag();
+    if (_importedData && _importedData.globalVariables) {
+        await new Promise(r => setTimeout(r, 150));
+        applyImport(_importedData.globalVariables);
+    }
+    updateCounter();
+    setStep(3);
+}
+
+// ─── DRAG SELECTION ───────────────────────────────────────────────────────────
+function initDrag() {
+    let drag = false, act = null;
+    document.querySelectorAll('.unit-type-content tbody').forEach(tb => {
+        tb.addEventListener('mousedown', e => {
+            if (e.target.tagName === 'SELECT') return;
+            const row = e.target.closest('tr.point-row'); if (!row) return;
+            const cb = row.querySelector('.select-point'); if (!cb) return;
+            drag = true; act = cb.checked ? 'uncheck' : 'check';
+            if (e.target !== cb) { cb.checked = act==='check'; handleSel(cb); row.classList.add('drag-highlight'); e.preventDefault(); }
+        });
+        tb.addEventListener('mouseover', e => {
+            if (!drag) return;
+            const row = e.target.closest('tr.point-row'); if (!row) return;
+            const cb = row.querySelector('.select-point'); if (!cb) return;
+            const want = act==='check';
+            if (cb.checked !== want) { cb.checked = want; handleSel(cb); }
+            row.classList.add('drag-highlight');
+        });
+    });
+    const fin = () => { drag=false; act=null; document.querySelectorAll('.drag-highlight').forEach(r=>r.classList.remove('drag-highlight')); };
+    document.addEventListener('mouseup', fin);
+    document.addEventListener('selectstart', e => { if(drag) e.preventDefault(); });
+}
+
+// ─── UI HELPERS ───────────────────────────────────────────────────────────────
+window.handleSel = function(cb) {
+    const row = cb.closest('tr');
+    cb.checked ? row.classList.add('duplicate-highlight') : row.classList.remove('duplicate-highlight');
+    updateCounter();
+};
+window.toggleSec = k => { document.getElementById('content-'+k).classList.toggle('collapsed'); document.getElementById('icon-'+k).parentElement.classList.toggle('collapsed'); };
+window.collapseAll = () => { document.querySelectorAll('.unit-type-content').forEach(c=>c.classList.add('collapsed')); document.querySelectorAll('.unit-type-header').forEach(h=>h.classList.add('collapsed')); };
+window.expandAll   = () => { document.querySelectorAll('.unit-type-content').forEach(c=>c.classList.remove('collapsed')); document.querySelectorAll('.unit-type-header').forEach(h=>h.classList.remove('collapsed')); };
+window.filterPts   = (k,q) => {
+    const tb = document.getElementById('tbody-'+k); if(!tb) return;
+    const rows = tb.querySelectorAll('tr.point-row'); const ql = q.toLowerCase();
+    let v=0; rows.forEach(r=>{ const show=!ql||(r.dataset.pointName||'').toLowerCase().includes(ql); r.style.display=show?'':'none'; if(show)v++; });
+    const sc=document.getElementById('sc-'+k); if(sc) sc.textContent=`${v}/${rows.length}`;
+};
+window.selAllSec   = (k,checked) => {
+    const tb=document.getElementById('tbody-'+k); if(!tb) return;
+    tb.querySelectorAll('tr.point-row').forEach(row=>{ if(row.style.display==='none') return; const cb=row.querySelector('.select-point'); if(cb){cb.checked=checked;handleSel(cb);} });
+    updateCounter();
+};
+function updateCounter() { const n=document.querySelectorAll('.select-point:checked').length; const el=document.getElementById('selectedCounter'); if(el) el.textContent=n+' selected'; }
+function setStep(n) { [1,2,3,4].forEach(i=>{ const el=document.getElementById('step'+i); el.classList.remove('active','done'); if(i<n)el.classList.add('done'); if(i===n)el.classList.add('active'); }); }
+window.closeModal  = id => document.getElementById(id).classList.remove('active');
+
+// ─── INITIAL IMPORT / SKIP ────────────────────────────────────────────────────
+window.importInitialJson = function(ev) {
+    const f = ev.target.files[0]; if(!f) return;
+    new FileReader().onload = function(e) {
+        try {
+            _importedData = JSON.parse(e.target.result);
+            document.getElementById('initialImportSection').style.display='none';
+            document.getElementById('mainInterface').style.display='block';
+            if (_importedData.rootOrd) document.getElementById('rootOrdInput').value = _importedData.rootOrd;
+        } catch(err) { alert('Error: '+err.message); }
+    };
+    (new FileReader()).readAsText(f);
+};
+// Fix: use proper FileReader
+window.importInitialJson = function(ev) {
+    const f = ev.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = e => {
+        try {
+            _importedData = JSON.parse(e.target.result);
+            document.getElementById('initialImportSection').style.display='none';
+            document.getElementById('mainInterface').style.display='block';
+            if (_importedData.rootOrd) document.getElementById('rootOrdInput').value = _importedData.rootOrd;
+        } catch(err) { alert('Error: '+err.message); }
+    };
+    r.readAsText(f);
+};
+window.skipImport = () => { document.getElementById('initialImportSection').style.display='none'; document.getElementById('mainInterface').style.display='block'; };
+
+window.importGlobalJson = function(ev) {
+    const f = ev.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = e => { try { applyImport((JSON.parse(e.target.result)).globalVariables||{}); alert('Imported.'); } catch(err) { alert('Error: '+err.message); } };
+    r.readAsText(f);
+};
+
+function applyImport(gv) {
+    Object.values(gv).forEach(hdr => {
+        const pts = Array.isArray(hdr.points)?hdr.points:Object.values(hdr.points||{});
+        pts.forEach(pt => {
+            document.querySelectorAll(`tr[data-point-name="${pt.name}"]`).forEach(row => {
+                const cb=row.querySelector('.select-point'); if(cb){cb.checked=true;row.classList.add('duplicate-highlight');}
+                const pid=row.querySelector('.point-id'); if(pid&&(pt.id||pt.pointID)) pid.value=pt.id||pt.pointID;
+                const pid2=row.querySelector('.point-id2'); if(pid2&&pt.id2) pid2.value=pt.id2;
+                const ln=row.querySelector('.log-numeric'); if(ln&&pt.logNumeric) ln.value=pt.logNumeric;
+                const lb=row.querySelector('.log-boolean'); if(lb&&pt.logBoolean) lb.value=pt.logBoolean;
+                const al=row.querySelector('.alarm'); if(al&&(pt.Alarm||pt.alarm)) al.value=pt.Alarm||pt.alarm;
+                const sc=row.querySelector('.schedule'); if(sc&&pt.schedule) sc.value=pt.schedule;
+            });
+        });
+    });
+    updateCounter();
+}
+
+// ─── TYPE MANAGER ─────────────────────────────────────────────────────────────
+// Generic engine: state stored in TM_STATE[cat]
+const TM_STATE = {};
+const TM_CFG = {
+    AHU:{ modal:'ahuTypeModal', sumId:'ahuSummary', listPfx:'ahuList',
+          types:['PRE_C_H','COOL_HEAT','HEATING','PRE_C','SERIES_C','SERIES_H_C','NO_RETURN'],
+          css:{PRE_C_H:'heat',COOL_HEAT:'fan',HEATING:'fanr',PRE_C:'PRECOOL',SERIES_C:'seriesC',SERIES_H_C:'seriesHC',NO_RETURN:'noreturn'},
+          labels:{PRE_C_H:'Pre-Heat/Cool/Heat',COOL_HEAT:'Cooling & Heat',HEATING:'Heating Only',PRE_C:'Pre-Cooling',SERIES_C:'Series Cooling',SERIES_H_C:'Series Heat/Cool',NO_RETURN:'No Return'}
+    },
+RTU:{ modal:'rtuTypeModal', sumId:'rtuSummary', listPfx:'rtuList',
+      types:['INTELLIPAK','VOYAGER','PRECEDENT','GENERIC'],
+      css:{INTELLIPAK:'heat',VOYAGER:'fan',PRECEDENT:'heatwater',GENERIC:'noreturn'},
+      labels:{INTELLIPAK:'Intellipak',VOYAGER:'Voyager',PRECEDENT:'Precedent',GENERIC:'Generic'}
+},
+    FTU:{ modal:'ftuTypeModal', sumId:'ftuSummary', listPfx:'ftuList',
+          types:['HEATE','HEATW','SERIES_F_E','SERIES_F'],
+          css:{HEATE:'heat',HEATW:'fan',SERIES_F_E:'seriesfe',SERIES_F:'seriesf'},
+          labels:{HEATE:'Electric Heat',HEATW:'Water Heat',SERIES_F_E:'Series Fan+Electric',SERIES_F:'Series Fan Only'}
+    },
+    VAV:{ modal:'vavTypeModal', sumId:'vavSummary', listPfx:'vavList',
+          types:['HEAT','FAN','FANR','HEATW'],
+          css:{HEAT:'heat',FAN:'fan',FANR:'fanr',HEATW:'heatwater'},
+          labels:{HEAT:'Electric Reheat',FAN:'Fan Only',FANR:'Fan+Electric Reheat',HEATW:'Reheat Water'}
+    }
+};
+
+function tmOpen(cat, units, onConfirm) {
+    const cfg = TM_CFG[cat]; if(!cfg) return;
+    TM_STATE[cat] = { units, sel:{}, onConfirm };
+    cfg.types.forEach(t => { TM_STATE[cat].sel[t] = new Set(); });
+    cfg.types.forEach(t => {
+        const el = document.getElementById(`${cfg.listPfx}_${t}`); if(!el) return;
+        // units are rawUnit keys; display the decoded version for readability
+        el.innerHTML = units.map(u =>
+            `<div class="vav-item" data-unit="${u}" data-type="${t}" onclick="tmClick('${cat}','${u}','${t}')">${decodeN(u)}</div>`
+        ).join('');
+    });
+    tmUpdateSum(cat);
+    document.getElementById(cfg.modal).classList.add('active');
+}
+
+window.tmClick = function(cat, unit, type) {
+    const st = TM_STATE[cat]; if(!st) return;
+    const cfg = TM_CFG[cat];
+    const wasHere = st.sel[type].has(unit);
+    // Clear from all types
+    cfg.types.forEach(t => { st.sel[t].delete(unit); tmItemUI(cat,unit,t,false); });
+    // Re-select in clicked type (toggle off if was already there)
+    if (!wasHere) { st.sel[type].add(unit); tmItemUI(cat,unit,type,true); }
+    tmUpdateSum(cat);
+};
+function tmItemUI(cat, unit, type, on) {
+    const cfg = TM_CFG[cat];
+    const el = document.querySelector(`#${cfg.listPfx}_${type} .vav-item[data-unit="${unit}"]`); if(!el) return;
+    if (on) { el.classList.add('selected', cfg.css[type]||''); }
+    else    { el.classList.remove('selected',...Object.values(cfg.css||{})); }
+}
+function tmUpdateSum(cat) {
+    const st = TM_STATE[cat]; if(!st) return;
+    const cfg = TM_CFG[cat];
+    const parts = cfg.types.filter(t=>st.sel[t].size>0).map(t=>`${st.sel[t].size} ${cfg.labels[t]}`);
+    const totalSel = cfg.types.reduce((s,t)=>s+st.sel[t].size,0);
+    const unass = st.units.length - totalSel;
+    let txt = parts.length ? 'Selected: '+parts.join(', ') : 'No units selected';
+    if (unass>0) txt += ` | ${unass} unassigned (N/A)`;
+    document.getElementById(cfg.sumId).textContent = txt;
+}
+window.tmSelAll = function(cat,type) {
+    const st=TM_STATE[cat]; if(!st) return;
+    st.units.forEach(u=>{ TM_CFG[cat].types.forEach(t=>{st.sel[t].delete(u);tmItemUI(cat,u,t,false);}); st.sel[type].add(u); tmItemUI(cat,u,type,true); });
+    tmUpdateSum(cat);
+};
+window.tmClrAll = function(cat,type) {
+    const st=TM_STATE[cat]; if(!st) return;
+    [...st.sel[type]].forEach(u=>{st.sel[type].delete(u);tmItemUI(cat,u,type,false);}); tmUpdateSum(cat);
+};
+window.tmClrAllType = function(cat) {
+    const st=TM_STATE[cat]; if(!st) return;
+    TM_CFG[cat].types.forEach(t=>{[...st.sel[t]].forEach(u=>tmItemUI(cat,u,t,false)); st.sel[t].clear();}); tmUpdateSum(cat);
+};
+window.tmConfirm = function(cat) {
+    const st=TM_STATE[cat]; if(!st) return;
+    const cfg=TM_CFG[cat];
+    st.units.forEach(unit => {
+        let assigned='N/A';
+        cfg.types.forEach(t=>{ if(st.sel[t].has(unit)) assigned=t; });
+        if (_pendingGVars[unit]) _pendingGVars[unit].Type = assigned;
+    });
+    document.getElementById(cfg.modal).classList.remove('active');
+    st.onConfirm(_pendingGVars);
+};
+
+// ─── EXPORT FLOW ──────────────────────────────────────────────────────────────
+window.exportSelected = function() {
+    const cbs = document.querySelectorAll('.select-point:checked');
+    if (!cbs.length) { alert('Please select at least one point.'); return; }
+
+    _pendingGVars = {};
+
+    cbs.forEach(cb => {
+        const ptName  = cb.dataset.pointName;
+        const dKey    = cb.dataset.dropdownKey;
+        const row     = cb.closest('tr');
+        const pid     = row.querySelector('.point-id').value;
+        const pid2    = row.querySelector('.point-id2').value;
+        const logNum  = row.querySelector('.log-numeric').value;
+        const logBool = row.querySelector('.log-boolean').value;
+        const alarm   = row.querySelector('.alarm').value;
+        const sched   = row.querySelector('.schedule').value;
+
+        const matches = allPointsData.filter(p => p.name === ptName && p.dropdownKey === dKey);
+        matches.forEach(pt => {
+            const hdr        = pt.rawUnit || pt.unit;   // raw ASCII unit name for JSON key
+            const dm         = pt.ord.match(/(station:\|slot:\/Drivers\/[^/]+)/);
+            const driverPath = dm ? dm[1] : rootOrd;
+            if (!_pendingGVars[hdr]) {
+                // basePath uses raw ASCII slot names so downstream tools get the correct ORDs
+                const bp = pt.hasPointsFolder
+                    ? `${driverPath}/${hdr}/points/${pt.rawName}`
+                    : `${driverPath}/${hdr}/${pt.rawName}`;
+                _pendingGVars[hdr] = { basePath: bp.replace(pt.rawName, '{pointName}'), driverPath, murphyTag: pt.murphyTag, Type: 'N/A', points: [] };
+            }
+            const pObj = {
+                name:          pt.rawName,              // raw ASCII slot name e.g. "Fan$2dCMD"
+                displayName:   pt.name,                 // decoded for human reading e.g. "Fan-CMD"
+                id:            pid,
+                fullPath:      pt.ord,                  // ORD already contains raw ASCII
+                driverPath,
+                status:        'connected',
+                logNumeric:    logNum,
+                logBoolean:    logBool,
+                Alarm:         alarm,
+                schedule:      sched,
+                murphyPointId: pt.murphyPointId || null,
+                dateAdded:     new Date().toISOString()
+            };
+            if (pid2) pObj.id2 = pid2;
+            _pendingGVars[hdr].points.push(pObj);
+        });
+    });
+
+    // Chain type modals in order: AHU → RTU → FTU → VAV → Occ → Export
+    chainModals(_pendingGVars);
+};
+
+function chainModals(gv) {
+    const all   = Object.keys(gv);
+    const normTag = u => (gv[u].murphyTag||'').toUpperCase();
+    const ahus  = all.filter(u => normTag(u)==='AHU');
+    const rtus  = all.filter(u => normTag(u)==='RTU');
+    const ftus  = all.filter(u => ['FTU','FANTERMINAL'].includes(normTag(u)));
+    const vavs  = all.filter(u => ['VAV','EAV'].includes(normTag(u)));
+
+    const step4 = gv => runOccOrExport(gv);
+    const step3 = gv => vavs.length  ? tmOpen('VAV', vavs, step4) : step4(gv);
+    const step2 = gv => ftus.length  ? tmOpen('FTU', ftus, step3) : step3(gv);
+    const step1 = gv => rtus.length  ? tmOpen('RTU', rtus, step2) : step2(gv);
+    ahus.length ? tmOpen('AHU', ahus, step1) : step1(gv);
+}
+
+function runOccOrExport(gv) {
+    const withSched = [];
+    Object.entries(gv).forEach(([un, unit]) => {
+        (unit.points||[]).forEach(pt => { if((pt.schedule||'').toLowerCase()==='yes') withSched.push({unitName:un,pointName:pt.name}); });
+    });
+    withSched.length ? showOccModal(withSched, gv) : doExport(gv);
+}
+
+function doExport(gv) {
+    const blob = new Blob([JSON.stringify({rootOrd,driverPaths:[rootOrd],globalVariables:gv},null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='Global.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStep(4);
+    alert('Export complete!');
+}
+
+// ─── OCCUPANCY MODAL ──────────────────────────────────────────────────────────
+let _occState = { pts:[], gv:{}, schedules:new Map() };
+
+function showOccModal(pts, gv) {
+    _occState = { pts, gv, schedules:new Map() };
+    pts.forEach(p => _occState.schedules.set(`${p.unitName}::${p.pointName}`,{days:[],startTime:'08:00',endTime:'17:00'}));
+    document.getElementById('occPointsList').innerHTML = pts.map(p => {
+        const key = `${p.unitName}::${p.pointName}`;
+        return `<div class="occ-point-item" data-key="${key}">
+            <div class="occ-point-header"><strong>${p.unitName}</strong> — ${p.pointName}</div>
+            <div class="days-checkboxes">
+                ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>
+                    `<label class="day-checkbox"><input type="checkbox" value="${d}" data-key="${key}" class="day-chk"> ${d.slice(0,3)}</label>`
+                ).join('')}
+            </div>
+            <div class="time-selection">
+                <div class="time-input-group"><label>Start</label><input type="time" class="occ-s" data-key="${key}" value="08:00"></div>
+                <div class="time-input-group"><label>End</label><input type="time" class="occ-e" data-key="${key}" value="17:00"></div>
+            </div>
+        </div>`;
+    }).join('');
+    document.querySelectorAll('.day-chk,.occ-s,.occ-e').forEach(el => el.addEventListener('change', () => occSync(el.dataset.key)));
+    occSummary();
+    document.getElementById('occModal').classList.add('active');
+}
+function occSync(key) {
+    const item = document.querySelector(`.occ-point-item[data-key="${key}"]`); if(!item) return;
+    _occState.schedules.set(key,{days:[...item.querySelectorAll('.day-chk:checked')].map(c=>c.value),startTime:item.querySelector('.occ-s').value,endTime:item.querySelector('.occ-e').value});
+    occSummary();
+}
+function occSummary() {
+    const c = [..._occState.schedules.values()].filter(s=>s.days.length>0).length;
+    document.getElementById('occSummaryBar').textContent=`${c} of ${_occState.pts.length} points configured`;
+}
+window.occSetDays = function(days) {
+    document.querySelectorAll('.occ-point-item').forEach(item=>{
+        item.querySelectorAll('.day-chk').forEach(cb=>cb.checked=days.includes(cb.value));
+        occSync(item.dataset.key);
+    });
+};
+window.occClearDays = function() {
+    document.querySelectorAll('.occ-point-item').forEach(item=>{ item.querySelectorAll('.day-chk').forEach(cb=>cb.checked=false); occSync(item.dataset.key); });
+};
+window.occConfirm = function() {
+    _occState.pts.forEach(p=>{
+        const key=`${p.unitName}::${p.pointName}`;
+        const sc=_occState.schedules.get(key);
+        const unit=_occState.gv[p.unitName]; if(!unit) return;
+        const ptObj=(unit.points||[]).find(x=>x.name===p.pointName); if(!ptObj) return;
+        ptObj.occupancySchedule = sc||{days:[],startTime:'08:00',endTime:'17:00'};
+    });
+    document.getElementById('occModal').classList.remove('active');
+    doExport(_occState.gv);
+};
+
+}); // end require
+</script>
+</body>
+</html>
