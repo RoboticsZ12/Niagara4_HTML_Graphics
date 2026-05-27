@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forsyth 5th Floor — VAV/FTU Summary</title>
+  <script type='text/javascript' src='/requirejs/config.js'></script>
+  <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+  <style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-deep:#0d1117;--bg-panel:#161b27;--bg-card:#1e2535;--bg-card-hover:#252d42;
+  --accent:#00c8ff;--accent-glow:rgba(0,200,255,0.25);
+  --green:#00e676;--red:#ff4444;--amber:#ffab00;
+  --text-primary:#e8ecf4;--text-muted:#7a8499;
+  --border:rgba(0,200,255,0.15);
+  --radius:10px;--font-head:'Courier New',Courier,monospace;
+  --transition:0.22s cubic-bezier(0.4,0,0.2,1);
+  --tbl-border:#2a3550;--tbl-head-bg:#0f1825;
+  --tbl-row-even:#141c2e;--tbl-row-odd:#1a2438;--tbl-row-hover:#1e2d45;
+  --ovrd-color:#a855f7;--ovrd-glow:rgba(168,85,247,0.25);
+}
+body.light-mode {
+  --bg-deep:#f0f4f8;--bg-panel:#ffffff;--bg-card:#e8edf5;--bg-card-hover:#dce4f0;
+  --accent:#dc143c;--accent-glow:rgba(220,20,60,0.18);
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;
+  --text-primary:#1a1e2a;--text-muted:#4b5563;
+  --border:rgba(220,20,60,0.18);
+  --tbl-border:#c5cedc;--tbl-head-bg:#dce4f0;
+  --tbl-row-even:#f5f8fc;--tbl-row-odd:#eef2f8;--tbl-row-hover:#e2e9f4;
+  --ovrd-color:#7c3aed;--ovrd-glow:rgba(124,58,237,0.18);
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font-head);background:var(--bg-deep);color:var(--text-primary);
+  display:flex;flex-direction:column;opacity:0;transition:opacity 0.6s ease;}
+body.fade-in{opacity:1;}
+
+.top-bar{background:rgba(13,17,23,0.97);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:60px;flex-shrink:0;position:relative;z-index:100;}
+body.light-mode .top-bar{background:rgba(255,255,255,0.97);}
+.top-bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.top-center{position:absolute;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:2px;}
+.site-label{font-size:11px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;}
+.page-title{font-size:17px;font-weight:normal;letter-spacing:1px;color:var(--text-primary);}
+.top-right{display:flex;align-items:center;gap:12px;}
+.theme-label{font-size:10px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;}
+.switch{position:relative;display:inline-block;width:42px;height:22px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg-card);
+  border:1px solid var(--border);border-radius:34px;transition:0.3s;}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:2px;bottom:2px;
+  background:var(--text-muted);border-radius:50%;transition:0.3s;}
+input:checked+.slider{background:var(--accent-glow);border-color:var(--accent);}
+input:checked+.slider:before{transform:translateX(20px);background:var(--accent);}
+.user-badge{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;
+  padding:5px 14px;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:8px;}
+.user-dot{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green);}
+
+.status-legend{display:flex;align-items:center;gap:18px;padding:8px 20px;
+  background:var(--bg-panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:bold;
+  letter-spacing:1px;color:#fff;text-transform:uppercase;}
+.legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+.legend-swatch.alarm{background:rgba(255,68,68,0.25);box-shadow:inset 0 0 0 1.5px rgba(255,68,68,0.8);}
+.legend-swatch.fault{background:rgba(255,171,0,0.25);box-shadow:inset 0 0 0 1.5px rgba(255,171,0,0.8);}
+.legend-swatch.override{background:rgba(147,51,234,0.25);box-shadow:inset 0 0 0 1.5px rgba(147,51,234,0.8);}
+.legend-swatch.set-val{background:rgba(0,200,255,0.25);box-shadow:inset 0 0 0 1.5px rgba(0,200,255,0.8);}
+
+.export-bar{display:flex;align-items:center;gap:10px;padding:10px 20px;
+  background:var(--bg-panel);border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0;}
+.export-bar input[type="datetime-local"]{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:6px;color:var(--text-primary);padding:7px 10px;font-family:var(--font-head);
+  font-size:11px;letter-spacing:0.5px;outline:none;cursor:pointer;}
+.export-bar input:focus,.export-bar input:hover{border-color:var(--accent);}
+.export-bar input::-webkit-calendar-picker-indicator{filter:invert(0.6) sepia(1) hue-rotate(160deg);cursor:pointer;}
+body.light-mode .export-bar input::-webkit-calendar-picker-indicator{filter:invert(0.3) sepia(1) hue-rotate(320deg);}
+.export-btn{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;
+  color:var(--text-muted);padding:7px 16px;font-family:var(--font-head);font-size:11px;
+  letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;
+  gap:7px;transition:var(--transition);white-space:nowrap;}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px var(--accent-glow);}
+
+.table-scroll-wrap{flex:1;overflow-x:auto;overflow-y:auto;min-height:0;
+  -webkit-overflow-scrolling:touch;padding:20px 24px;}
+.table-scroll-wrap::-webkit-scrollbar{width:7px;height:7px;}
+.table-scroll-wrap::-webkit-scrollbar-track{background:var(--bg-panel);}
+.table-scroll-wrap::-webkit-scrollbar-thumb{background:rgba(0,200,255,0.35);border-radius:4px;}
+.table-scroll-wrap::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+.table-scroll-wrap::-webkit-scrollbar-corner{background:var(--bg-panel);}
+
+.vav-table{width:auto;min-width:1200px;border-collapse:separate;border-spacing:0;
+  font-family:var(--font-head);font-size:13px;border:2px solid var(--tbl-border);
+  border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+.vav-table thead{position:sticky;top:0;z-index:10;}
+.vav-table thead tr{background:var(--tbl-head-bg);}
+.vav-table thead tr.group-row th{
+  padding:5px 8px;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(0,200,255,0.55);font-weight:normal;text-align:center;
+  border-bottom:1px solid var(--tbl-border);border-right:1px solid var(--tbl-border);
+  background:rgba(0,200,255,0.03);}
+.vav-table thead tr.group-row th:last-child{border-right:none;}
+.vav-table thead tr.col-row th{
+  padding:10px 12px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--accent);font-weight:normal;text-align:center;
+  border-bottom:2px solid var(--tbl-border);border-right:1px solid var(--tbl-border);
+  white-space:nowrap;background:var(--tbl-head-bg);}
+.vav-table thead tr.col-row th:last-child{border-right:none;}
+.vav-table thead tr.col-row th:first-child{text-align:left;}
+.vav-table thead tr.col-row th.sortable{cursor:pointer;user-select:none;padding-right:24px;position:relative;transition:background 0.15s,color 0.15s;}
+.vav-table thead tr.col-row th.sortable:hover{background:rgba(0,200,255,0.10);color:#fff;}
+.vav-table thead tr.col-row th.sortable::after{content:'⇅';position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:11px;opacity:0.3;}
+.vav-table thead tr.col-row th.sort-asc::after{content:'▲';opacity:1;color:var(--accent);}
+.vav-table thead tr.col-row th.sort-desc::after{content:'▼';opacity:1;color:var(--accent);}
+.vav-table tbody tr:nth-child(even){background:var(--tbl-row-even);}
+.vav-table tbody tr:nth-child(odd){background:var(--tbl-row-odd);}
+.vav-table tbody tr:hover{background:var(--tbl-row-hover)!important;}
+.vav-table td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--tbl-border);
+  border-right:1px solid var(--tbl-border);color:var(--text-primary);font-size:13px;
+  vertical-align:middle;white-space:nowrap;transition:background-color 0.3s ease,box-shadow 0.3s ease;}
+.vav-table td:last-child{border-right:none;}
+.vav-table tbody tr:last-child td{border-bottom:none;}
+.vav-table td:first-child{text-align:left;font-weight:bold;color:var(--accent);letter-spacing:0.5px;}
+
+/* ── SET-EDITABLE CELL (Duct Area & K-Factor) ── */
+.set-cell-wrap{display:inline-flex;align-items:center;gap:6px;}
+.gear-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:4px;
+  background:rgba(0,200,255,0.10);border:1px solid rgba(0,200,255,0.3);
+  color:var(--accent);cursor:pointer;font-size:12px;line-height:1;
+  transition:var(--transition);flex-shrink:0;user-select:none;
+}
+.gear-btn:hover{background:rgba(0,200,255,0.28);border-color:var(--accent);box-shadow:0 0 8px var(--accent-glow);transform:rotate(30deg);}
+
+/* ── OVERRIDE BUTTON (purple) ── */
+.ovrd-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:4px;
+  background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);
+  color:var(--ovrd-color);cursor:pointer;font-size:11px;line-height:1;
+  transition:var(--transition);flex-shrink:0;user-select:none;
+}
+.ovrd-btn:hover{background:rgba(168,85,247,0.28);border-color:var(--ovrd-color);box-shadow:0 0 8px var(--ovrd-glow);}
+
+/* ── ENUM BADGE (for Man Ovrd display) ── */
+.enum-badge{
+  display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;
+  font-weight:bold;letter-spacing:0.5px;text-transform:uppercase;
+  background:rgba(255,171,0,0.12);border:1px solid rgba(255,171,0,0.35);color:#ffcf40;
+}
+.enum-badge.enum-auto{background:rgba(0,200,255,0.10);border-color:rgba(0,200,255,0.35);color:var(--accent);}
+.enum-badge.enum-open{background:rgba(0,230,118,0.10);border-color:rgba(0,230,118,0.35);color:var(--green);}
+.enum-badge.enum-close{background:rgba(255,68,68,0.10);border-color:rgba(255,68,68,0.35);color:#ff6b6b;}
+.enum-badge.enum-minimum{background:rgba(255,171,0,0.10);border-color:rgba(255,171,0,0.35);color:#ffcf40;}
+.enum-badge.enum-maximum{background:rgba(168,85,247,0.10);border-color:rgba(168,85,247,0.35);color:#c084fc;}
+.enum-badge.enum-flowvalue{background:rgba(100,200,100,0.10);border-color:rgba(100,200,100,0.35);color:#80e080;}
+.enum-badge.enum-flowpercent{background:rgba(255,140,0,0.10);border-color:rgba(255,140,0,0.35);color:#ffaa40;}
+
+/* ── SET MODAL ── */
+.set-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);
+  backdrop-filter:blur(8px);z-index:9999;align-items:center;justify-content:center;}
+.set-modal-overlay.active{display:flex;}
+.set-modal-content{
+  background:var(--bg-panel);border:1px solid rgba(0,200,255,0.45);border-radius:14px;
+  padding:28px;width:75%;max-width:480px;display:flex;flex-direction:column;gap:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(0,200,255,0.1);
+  animation:setModalIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+/* Override modal uses purple accent */
+.set-modal-content.ovrd-theme{
+  border-color:rgba(168,85,247,0.5);
+  box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(168,85,247,0.15);
+}
+.set-modal-content.ovrd-theme .set-modal-header{border-bottom-color:rgba(168,85,247,0.35);}
+.set-modal-content.ovrd-theme #set-modal-title{color:var(--ovrd-color);}
+.set-modal-content.ovrd-theme .set-modal-point-name{color:var(--ovrd-color);}
+.set-modal-content.ovrd-theme .set-modal-current-value{color:var(--ovrd-color);}
+.set-modal-content.ovrd-theme .set-modal-controls input:focus{border-color:var(--ovrd-color);box-shadow:0 0 0 3px var(--ovrd-glow);}
+.set-modal-content.ovrd-theme .set-modal-btn-apply{background:rgba(168,85,247,0.15);color:var(--ovrd-color);border:1px solid rgba(168,85,247,0.4);}
+.set-modal-content.ovrd-theme .set-modal-btn-apply:hover{background:rgba(168,85,247,0.3);}
+
+@keyframes setModalIn{from{transform:scale(0.92) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.set-modal-header{display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:12px;border-bottom:1px solid rgba(0,200,255,0.3);}
+.set-modal-header h2{font-family:var(--font-head);font-size:15px;letter-spacing:2px;
+  color:var(--accent);font-weight:normal;text-transform:uppercase;}
+.set-modal-close{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;
+  color:var(--text-muted);font-size:18px;width:32px;height:32px;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;transition:var(--transition);}
+.set-modal-close:hover{border-color:var(--red);color:var(--red);}
+.set-modal-info{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
+  padding:14px 18px;display:flex;flex-direction:column;gap:8px;}
+.set-modal-unit-name{font-family:var(--font-head);font-size:12px;color:var(--text-muted);letter-spacing:1px;}
+.set-modal-point-name{font-family:var(--font-head);font-size:14px;color:var(--accent);}
+.set-modal-current-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:4px;}
+.set-modal-current-label{font-family:var(--font-head);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);}
+.set-modal-current-value{font-family:var(--font-head);font-size:26px;font-weight:bold;color:var(--accent);}
+.set-modal-controls{display:flex;flex-direction:column;gap:10px;}
+.set-modal-controls label{font-family:var(--font-head);font-size:11px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;}
+.set-modal-controls input{padding:10px 12px;background:var(--bg-card);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:6px;font-family:var(--font-head);font-size:14px;
+  transition:var(--transition);width:100%;}
+.set-modal-controls input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+/* Enum select */
+.set-modal-controls select{padding:10px 12px;background:var(--bg-card);color:var(--text-primary);
+  border:1px solid var(--border);border-radius:6px;font-family:var(--font-head);font-size:14px;
+  transition:var(--transition);width:100%;cursor:pointer;}
+.set-modal-controls select:focus{outline:none;border-color:var(--ovrd-color);box-shadow:0 0 0 3px var(--ovrd-glow);}
+.set-modal-buttons{display:flex;gap:10px;}
+.set-modal-btn{flex:1;padding:11px 16px;border:none;border-radius:6px;font-family:var(--font-head);
+  font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:var(--transition);}
+.set-modal-btn-apply{background:rgba(0,200,255,0.15);color:var(--accent);border:1px solid rgba(0,200,255,0.4);}
+.set-modal-btn-apply:hover{background:rgba(0,200,255,0.3);}
+.set-modal-btn-cancel{background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border);}
+.set-modal-btn-cancel:hover{border-color:var(--text-muted);color:var(--text-primary);}
+/* Emergency Auto / Release override button */
+.set-modal-btn-release{background:rgba(255,68,68,0.12);color:#ff6b6b;border:1px solid rgba(255,68,68,0.35);margin-top:-8px;}
+.set-modal-btn-release:hover{background:rgba(255,68,68,0.25);border-color:#ff4444;}
+.set-feedback{font-family:var(--font-head);font-size:11px;letter-spacing:1px;text-align:center;
+  padding:6px 10px;border-radius:6px;display:none;}
+.set-feedback.success{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);}
+.set-feedback.error{background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);color:var(--red);}
+
+/* Priority badge for override modal */
+.ovrd-priority-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ovrd-priority-label{font-family:var(--font-head);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);}
+.priority-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:5px;font-size:11px;font-family:var(--font-head);letter-spacing:1px;
+  background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--ovrd-color);}
+
+.vav-table td.fan-na{color:var(--tbl-border)!important;font-size:11px;}
+
+.section-divider td{
+  background:rgba(0,200,255,0.06)!important;
+  border-top:2px solid rgba(0,200,255,0.4)!important;
+  border-bottom:2px solid rgba(0,200,255,0.4)!important;
+  color:var(--accent)!important;font-size:10px!important;letter-spacing:3px!important;
+  text-transform:uppercase!important;text-align:center!important;padding:5px 12px!important;}
+
+.vav-table td.sec-start,.vav-table th.sec-start{border-left:2px solid rgba(0,200,255,0.3)!important;}
+
+.value-loading{color:var(--text-muted);font-style:italic;font-size:12px;letter-spacing:1px;}
+.value-loading::after{content:'';animation:dots 1.4s infinite;}
+@keyframes dots{0%{content:'';}33%{content:'.';}66%{content:'..';}100%{content:'...'}}
+.value-error{color:var(--red);font-size:12px;font-weight:bold;}
+.value-missing{color:var(--text-muted);font-size:12px;}
+.value-normal{color:var(--text-primary);}
+.value-active{color:var(--green);font-weight:bold;}
+.value-inactive{color:#8a9ab5;font-weight:bold;}
+
+.cell-alarm{background-color:rgba(255,68,68,0.18)!important;color:#ff6b6b!important;
+  font-weight:bold;box-shadow:inset 0 0 0 2px rgba(255,68,68,0.7);
+  animation:cellAlarmPulse 1.8s ease-in-out infinite;position:relative;}
+.cell-alarm::after{content:'⚠';position:absolute;top:2px;right:4px;font-size:8px;color:#ff4444;opacity:0.85;line-height:1;}
+@keyframes cellAlarmPulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(255,68,68,0.7),0 0 0 0 rgba(255,68,68,0);}
+  50%{box-shadow:inset 0 0 0 2px rgba(255,68,68,1),0 0 8px 2px rgba(255,68,68,0.3);}}
+.cell-override{background-color:rgba(147,51,234,0.18)!important;color:#c084fc!important;
+  font-weight:bold;box-shadow:inset 0 0 0 2px rgba(147,51,234,0.6);position:relative;}
+.cell-override::after{content:'↑';position:absolute;top:2px;right:4px;font-size:9px;color:#a855f7;opacity:0.85;font-weight:bold;line-height:1;}
+.cell-fault{background-color:rgba(255,171,0,0.18)!important;color:#ffcf40!important;
+  font-weight:bold;box-shadow:inset 0 0 0 2px rgba(255,171,0,0.65);
+  animation:cellFaultPulse 2.4s ease-in-out infinite;position:relative;}
+.cell-fault::after{content:'⛔';position:absolute;top:2px;right:4px;font-size:8px;opacity:0.85;line-height:1;}
+@keyframes cellFaultPulse{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(255,171,0,0.65),0 0 0 0 rgba(255,171,0,0);}
+  50%{box-shadow:inset 0 0 0 2px rgba(255,171,0,1),0 0 8px 2px rgba(255,171,0,0.28);}}
+
+.row-hidden{display:none!important;}
+
+.bottom-bar{background:rgba(13,17,23,0.97);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:48px;flex-shrink:0;position:relative;}
+body.light-mode .bottom-bar{background:rgba(255,255,255,0.97);}
+.bottom-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.back-btn,.logoff-btn{background:none;border:1px solid var(--border);border-radius:6px;
+  color:var(--text-muted);padding:5px 14px;cursor:pointer;font-size:12px;
+  font-family:var(--font-head);letter-spacing:1px;display:flex;align-items:center;gap:7px;
+  transition:var(--transition);}
+.back-btn:hover{border-color:var(--accent);color:var(--accent);}
+.logoff-btn:hover{border-color:var(--red);color:var(--red);}
+.datetime-display{font-size:12px;color:var(--text-muted);letter-spacing:1px;}
+.loading-msg{text-align:center;padding:60px 20px;color:var(--text-muted);font-size:13px;letter-spacing:2px;}
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button class="back-btn" id="topBackBtn">← Back</button>
+  <div class="top-center">
+    <span class="site-label">Forsyth 5th Floor</span>
+    <span class="page-title">VAV / FTU Summary — Direct Subscriptions</span>
+  </div>
+  <div class="top-right">
+    <span class="theme-label">Light</span>
+    <label class="switch"><input type="checkbox" id="themeSwitch" onchange="toggleTheme()"><span class="slider"></span></label>
+    <div class="user-badge"><div class="user-dot"></div><span id="userDisplay">—</span></div>
+  </div>
+</div>
+
+<div class="status-legend">
+  <span style="font-size:10px;font-weight:bold;letter-spacing:2px;color:#fff;text-transform:uppercase;margin-right:4px;">Legend:</span>
+  <span class="legend-item"><span class="legend-swatch alarm"></span>⚠ Alarm</span>
+  <span class="legend-item"><span class="legend-swatch fault"></span>⛔ Fault/Down</span>
+  <span class="legend-item"><span class="legend-swatch override"></span>↑ Override</span>
+  <span class="legend-item"><span class="legend-swatch set-val"></span>⚙ Set</span>
+  <span id="live-stats" style="margin-left:auto;font-size:11px;color:var(--text-muted);letter-spacing:1px;"></span>
+</div>
+
+<div class="export-bar">
+  <input type="datetime-local" id="exp-start">
+  <input type="datetime-local" id="exp-end">
+  <button class="export-btn" onclick="exportCSV()">📊 Export CSV</button>
+  <button class="export-btn" onclick="exportPDF()">📄 PDF Report</button>
+</div>
+
+<div class="table-scroll-wrap" id="table-wrap">
+  <div class="loading-msg">Subscribing to points…</div>
+</div>
+
+<!-- ── SET MODAL (shared for set, enum-override, and numeric override) ── -->
+<div class="set-modal-overlay" id="set-modal">
+  <div class="set-modal-content" id="set-modal-content">
+    <div class="set-modal-header">
+      <h2 id="set-modal-title">⚙ Set Value</h2>
+      <button class="set-modal-close" id="set-modal-close">×</button>
+    </div>
+    <div class="set-modal-info">
+      <div class="set-modal-unit-name" id="set-modal-unit-name">—</div>
+      <div class="set-modal-point-name" id="set-modal-point-name">—</div>
+      <div class="set-modal-current-row">
+        <span class="set-modal-current-label">Current Value:</span>
+        <span class="set-modal-current-value" id="set-modal-current-value">—</span>
+      </div>
+    </div>
+    <!-- Priority row (shown for overrides) -->
+    <div class="ovrd-priority-row" id="set-modal-priority-row" style="display:none;">
+      <span class="ovrd-priority-label">Priority:</span>
+      <span class="priority-badge" id="set-modal-priority-badge">—</span>
+      <select id="set-modal-priority-select" style="background:var(--bg-card);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);padding:4px 8px;font-family:var(--font-head);font-size:11px;cursor:pointer;">
+        <option value="8">8 — Manual Operator</option>
+        <option value="14">14 — Default</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+        <option value="13">13</option>
+      </select>
+    </div>
+    <div class="set-modal-controls" id="set-modal-controls">
+      <label id="set-modal-input-label">New Value:</label>
+      <!-- numeric input -->
+      <input type="number" id="set-modal-input" placeholder="Enter value" step="1">
+      <!-- boolean select (hidden by default) -->
+      <select id="set-modal-bool-select" style="display:none;">
+        <option value="on">ON / Active</option>
+        <option value="off">OFF / Inactive</option>
+      </select>
+      <!-- enum select (hidden by default) -->
+      <select id="set-modal-enum-select" style="display:none;">
+        <option value="1">Position</option>
+        <option value="2">Flow Value</option>
+        <option value="3">Flow Percent</option>
+        <option value="4">Open</option>
+        <option value="5">Close</option>
+        <option value="6">Minimum</option>
+        <option value="7">Maximum</option>
+        <option value="8">Auto</option>
+      </select>
+    </div>
+    <div class="set-modal-buttons" id="set-modal-buttons">
+      <button class="set-modal-btn set-modal-btn-apply" id="set-modal-apply">Apply</button>
+      <button class="set-modal-btn set-modal-btn-cancel" id="set-modal-cancel">Cancel</button>
+    </div>
+    <!-- Release override row — shown for override modals -->
+    <button class="set-modal-btn set-modal-btn-release" id="set-modal-release" style="display:none;">
+      ✕ Release Override (Auto)
+    </button>
+    <div class="set-feedback" id="set-feedback"></div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="back-btn" id="bottomBackBtn">← Back</button>
+  <div class="datetime-display" id="clock">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ENUM DEFINITIONS  (from facets: range in slot sheet)
+// ═══════════════════════════════════════════════════════
+const MAN_FLOW_OVRD_ENUM = [
+  { ordinal:1, name:'Position',    cssKey:'flowvalue'  },
+  { ordinal:2, name:'Flow Value',  cssKey:'flowvalue'  },
+  { ordinal:3, name:'Flow %',      cssKey:'flowpercent'},
+  { ordinal:4, name:'Open',        cssKey:'open'       },
+  { ordinal:5, name:'Close',       cssKey:'close'      },
+  { ordinal:6, name:'Minimum',     cssKey:'minimum'    },
+  { ordinal:7, name:'Maximum',     cssKey:'maximum'    },
+  { ordinal:8, name:'Auto',        cssKey:'auto'       },
+];
+
+function enumBadgeHTML(ordinal, name) {
+  const e = MAN_FLOW_OVRD_ENUM.find(x => x.ordinal === ordinal)
+         || MAN_FLOW_OVRD_ENUM.find(x => x.name === name);
+  const key = e ? e.cssKey : 'flowvalue';
+  const label = e ? e.name : (name || String(ordinal));
+  return `<span class="enum-badge enum-${key}">${label}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  POINT DEFINITIONS
+// ═══════════════════════════════════════════════════════
+const BASE = 'station:|slot:/Drivers/NiagaraNetwork/Forsyth_5th_Flr/points/Floor_5/';
+
+// manFlowOvrd => fmt:'enum', overridable via override action (enum type)
+// CfgMax/Min/Heat/Reheat => fmt:'num0', overridable via override action (numeric)
+const VAV_POINTS = [
+  { id:'CfgKFactor',            label:'K-Factor',    fmt:'num2', unit:'',     mode:'set'      },
+  { id:'CfgDuctArea',           label:'Duct Area',   fmt:'num3', unit:'',     mode:'set'      },
+  { id:'EffFlowSpt',            label:'Eff Flow Spt',fmt:'num0', unit:' cfm', mode:'read'     },
+  { id:'BoxFlow',               label:'Box Flow',    fmt:'num0', unit:' cfm', mode:'read'     },
+  { id:'ManFlowOvrd',           label:'Man Ovrd',    fmt:'enum', unit:'',     mode:'ovrd-enum'},
+  { id:'DamperCmd',             label:'Damper Cmd',  fmt:'num0', unit:'%',    mode:'read'     },
+  { id:'CfgMaxFlowSetpt',       label:'Cool Max',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgMinFlowSetpt',       label:'Cool Min',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgHeatMaxFlowSetpt',   label:'Heat Max',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgHeatMinFlowSetpt',   label:'Heat Min',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgReheatMaxFlowSetpt', label:'Reheat Max',  fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgReheatMinFlowSetpt', label:'Reheat Min',  fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+];
+
+const FTU_POINTS = [
+  { id:'CfgKFactor',            label:'K-Factor',    fmt:'num2', unit:'',     mode:'set'      },
+  { id:'CfgDuctArea',           label:'Duct Area',   fmt:'num3', unit:'',     mode:'set'      },
+  { id:'EffFlowSpt',            label:'Eff Flow Spt',fmt:'num0', unit:' cfm', mode:'read'     },
+  { id:'BoxFlow',               label:'Box Flow',    fmt:'num0', unit:' cfm', mode:'read'     },
+  { id:'ManFlowOvrd',           label:'Man Ovrd',    fmt:'enum', unit:'',     mode:'ovrd-enum'},
+  { id:'DamperCmd',             label:'Damper Cmd',  fmt:'num0', unit:'%',    mode:'read'     },
+  { id:'CfgMaxFlowSetpt',       label:'Cool Max',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgMinFlowSetpt',       label:'Cool Min',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgHeatMaxFlowSetpt',   label:'Heat Max',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgHeatMinFlowSetpt',   label:'Heat Min',    fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgReheatMaxFlowSetpt', label:'Reheat Max',  fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'CfgReheatMinFlowSetpt', label:'Reheat Min',  fmt:'num0', unit:' cfm', mode:'ovrd-num' },
+  { id:'FanCmd',                label:'Fan Cmd',     fmt:'bool', unit:'',     mode:'read'     },
+];
+
+const ALL_COLS = FTU_POINTS;
+
+// ═══════════════════════════════════════════════════════
+//  FLOOR DETECTION
+// ═══════════════════════════════════════════════════════
+function detectFloorNumber() {
+  const m = BASE.match(/Floor_(\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  const um = window.location.href.match(/floor[_\-]?(\d+)/i);
+  if (um) return parseInt(um[1], 10);
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUILD DEVICE LISTS
+// ═══════════════════════════════════════════════════════
+function buildVAVDevices() {
+  const list = [];
+  for (let n = 1; n <= 40; n++) {
+    const nn  = String(n).padStart(2,'0');
+    const name = `VAV_05_${nn}`;
+    const pts = VAV_POINTS.map(p => ({
+      cellId : `${name}__${p.id}`,
+      ord    : `${BASE}${name}/points/${p.id}`,
+      fmt    : p.fmt,
+      unit   : p.unit,
+      mode   : p.mode,
+      pointId: p.id,
+      label  : p.label,
+    }));
+    list.push({ name, points: pts, type: 'VAV' });
+  }
+  return list;
+}
+
+function buildFTUDevices() {
+  const list = [];
+  for (let n = 1; n <= 40; n++) {
+    const nn  = String(n).padStart(2,'0');
+    const name = `FTU_05_${nn}`;
+    const pts = FTU_POINTS.map(p => ({
+      cellId : `${name}__${p.id}`,
+      ord    : `${BASE}${name}/points/${p.id}`,
+      fmt    : p.fmt,
+      unit   : p.unit,
+      mode   : p.mode,
+      pointId: p.id,
+      label  : p.label,
+    }));
+    list.push({ name, points: pts, type: 'FTU' });
+  }
+  return list;
+}
+
+const VAV_DEVICES = buildVAVDevices();
+const FTU_DEVICES = buildFTUDevices();
+const ALL_DEVICES = [...VAV_DEVICES, ...FTU_DEVICES];
+
+// ═══════════════════════════════════════════════════════
+//  COUNTERS
+// ═══════════════════════════════════════════════════════
+const resolvedPoints  = {};
+let   globalSubscriber;
+const deviceResolved  = {};
+const deviceHasValue  = {};
+ALL_DEVICES.forEach(dev => {
+  deviceResolved[dev.name] = 0;
+  deviceHasValue[dev.name] = 0;
+});
+
+let loadedCount  = 0;
+const totalPoints = VAV_DEVICES.length * VAV_POINTS.length
+                  + FTU_DEVICES.length * FTU_POINTS.length;
+
+// ═══════════════════════════════════════════════════════
+//  FORMATTING
+// ═══════════════════════════════════════════════════════
+function formatValue(raw, fmt, unit) {
+  if (raw === null || raw === undefined) return 'N/A';
+  switch(fmt) {
+    case 'bool':  return raw ? 'ON' : 'OFF';
+    case 'num0':  { const n=parseFloat(raw); return isNaN(n)?String(raw):Math.round(n)+unit; }
+    case 'num2':  { const n=parseFloat(raw); return isNaN(n)?String(raw):n.toFixed(2)+unit; }
+    case 'num3':  { const n=parseFloat(raw); return isNaN(n)?String(raw):n.toFixed(3)+unit; }
+    case 'enum': {
+      if (typeof raw === 'number' || !isNaN(Number(raw))) {
+        const ord = parseInt(raw, 10);
+        const e = MAN_FLOW_OVRD_ENUM.find(x => x.ordinal === ord);
+        return e ? e.name : String(raw);
+      }
+      return String(raw);
+    }
+    default:      return String(raw)+unit;
+  }
+}
+
+function renderEnumCell(cellId, raw) {
+  const el = document.getElementById(cellId);
+  if (!el) return;
+  if (raw === null || raw === undefined) { el.innerHTML = '<span class="value-missing">—</span>'; return; }
+  let ordinal = null;
+  if (typeof raw === 'number' || !isNaN(Number(raw))) {
+    ordinal = parseInt(raw, 10);
+  } else {
+    const e = MAN_FLOW_OVRD_ENUM.find(x => x.name.toLowerCase() === String(raw).toLowerCase());
+    if (e) ordinal = e.ordinal;
+  }
+  const name = ordinal
+    ? (MAN_FLOW_OVRD_ENUM.find(x => x.ordinal === ordinal)||{}).name || String(raw)
+    : String(raw);
+  el.innerHTML = enumBadgeHTML(ordinal, name);
+}
+
+function valueClass(raw, fmt) {
+  if (raw === null || raw === undefined) return 'value-error';
+  if (fmt === 'bool') return raw ? 'value-active' : 'value-inactive';
+  if (fmt === 'enum') return '';
+  return 'value-normal';
+}
+
+// ═══════════════════════════════════════════════════════
+//  STATUS
+// ═══════════════════════════════════════════════════════
+function applyStatus(cellId, point) {
+  const el = document.getElementById(cellId);
+  if (!el) return;
+  let raw = '';
+  try { raw = (point.getOut().getStatus()||'').toString().toLowerCase(); } catch(e){}
+  el.classList.remove('cell-alarm','cell-override','cell-fault');
+  el.removeAttribute('title');
+  if (raw.includes('alarm')||raw.includes('offnormal')||raw.includes('unacked')) {
+    el.classList.add('cell-alarm'); el.title='STATUS: '+raw.toUpperCase(); return;
+  }
+  if (raw.includes('fault')||raw.includes('down')||raw.includes('stale')) {
+    el.classList.add('cell-fault'); el.title='STATUS: '+raw.toUpperCase(); return;
+  }
+  if (raw.includes('overridden')) {
+    el.classList.add('cell-override'); el.title='STATUS: OVERRIDDEN';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  POINT TYPE DETECTION  (reads facets, mirrors script 2)
+// ═══════════════════════════════════════════════════════
+// Cache: cellId -> 'numeric' | 'boolean' | 'enum'
+const pointTypeCache = {};
+
+function detectPointType(cellId, point) {
+  if (pointTypeCache[cellId]) return pointTypeCache[cellId];
+  let type = 'numeric'; // safe default for cfm setpoints
+  try {
+    const val = point.getOut().getValue();
+    if (val !== null && val !== undefined) {
+      const valType = typeof val;
+      if (valType === 'boolean') {
+        type = 'boolean';
+      } else {
+        // Try to read facets for enum detection (mirrors script 2's parseFacetsFromPoint)
+        const facetOpts = readEnumFacets(point);
+        if (facetOpts.length > 0) {
+          type = 'enum';
+        } else {
+          type = 'numeric';
+        }
+      }
+    }
+  } catch(e) {
+    type = 'numeric';
+  }
+  pointTypeCache[cellId] = type;
+  return type;
+}
+
+// Read enum facets from a resolved baja point — mirrors script 2's parseFacetsFromPoint
+function readEnumFacets(point) {
+  const options = [];
+  // Method 1: point.getFacets()
+  try {
+    const facets = point.getFacets ? point.getFacets() : null;
+    if (facets) {
+      const range = facets.get ? facets.get('range') : null;
+      if (range) {
+        if (typeof range.getSize === 'function') {
+          for (let i = 0; i < range.getSize(); i++) {
+            const entry = range.get(i);
+            options.push({
+              ordinal: entry.getOrdinal(),
+              label: (entry.getDisplayName && entry.getDisplayName()) ||
+                     (entry.getTag && entry.getTag()) ||
+                     String(entry.getOrdinal())
+            });
+          }
+          if (options.length) return options;
+        }
+        // Fallback: parse range.toString() e.g. "{label=0, ...}"
+        const parsed = parseFacetRangeString(range.toString());
+        if (parsed.length) return parsed;
+      }
+    }
+  } catch(e) {}
+
+  // Method 2: point.getOut().getFacets()
+  try {
+    const out = point.getOut ? point.getOut() : null;
+    if (out) {
+      const outFacets = out.getFacets ? out.getFacets() : null;
+      if (outFacets) {
+        const range = outFacets.get ? outFacets.get('range') : null;
+        if (range) {
+          const parsed = parseFacetRangeString(range.toString());
+          if (parsed.length) return parsed;
+        }
+      }
+      // Method 3: value type facets
+      try {
+        const val = out.getValue ? out.getValue() : null;
+        if (val && val.getType) {
+          const vt = val.getType();
+          const tf = vt.getFacets ? vt.getFacets() : null;
+          if (tf) {
+            const range = tf.get ? tf.get('range') : null;
+            if (range) {
+              if (typeof range.getSize === 'function') {
+                const opts = [];
+                for (let i = 0; i < range.getSize(); i++) {
+                  const entry = range.get(i);
+                  opts.push({
+                    ordinal: entry.getOrdinal(),
+                    label: (entry.getDisplayName && entry.getDisplayName()) ||
+                           (entry.getTag && entry.getTag()) ||
+                           String(entry.getOrdinal())
+                  });
+                }
+                if (opts.length) return opts;
+              }
+              const parsed = parseFacetRangeString(range.toString());
+              if (parsed.length) return parsed;
+            }
+          }
+        }
+      } catch(e3) {}
+    }
+  } catch(e2) {}
+
+  return options;
+}
+
+function parseFacetRangeString(s) {
+  const opts = [];
+  if (!s) return opts;
+  const pairs = s.replace(/[{}]/g, '').match(/([^,=]+)=(\d+)/g);
+  if (pairs) {
+    pairs.forEach(p => {
+      const [l, o] = p.split('=');
+      opts.push({ ordinal: parseInt(o, 10), label: l.trim() });
+    });
+  }
+  return opts;
+}
+
+// Enum facets cache per cellId
+const enumFacetsCache = {};
+
+function getEnumFacets(cellId) {
+  if (enumFacetsCache[cellId]) return enumFacetsCache[cellId];
+  const point = resolvedPoints[cellId];
+  if (!point) return MAN_FLOW_OVRD_ENUM.map(x => ({ ordinal: x.ordinal, label: x.name }));
+  const facets = readEnumFacets(point);
+  if (facets.length) {
+    enumFacetsCache[cellId] = facets;
+    return facets;
+  }
+  // Fallback to ManFlowOvrd enum definition for ManFlowOvrd points
+  return MAN_FLOW_OVRD_ENUM.map(x => ({ ordinal: x.ordinal, label: x.name }));
+}
+
+// ═══════════════════════════════════════════════════════
+//  BAJA SUBSCRIPTIONS
+// ═══════════════════════════════════════════════════════
+try {
+  require(['baja!'], function(baja) {
+    globalSubscriber = new baja.Subscriber();
+    globalSubscriber.attach('changed', function(prop) {
+      if (prop.getName() !== 'out') return;
+      const meta = this.userData;
+      if (!meta) return;
+      const raw = this.getOut().getValue();
+      const el  = document.getElementById(meta.cellId);
+      if (el) {
+        if (meta.fmt === 'enum') {
+          renderEnumCell(meta.cellId, raw);
+        } else {
+          el.textContent = formatValue(raw, meta.fmt, meta.unit);
+          el.className   = valueClass(raw, meta.fmt);
+        }
+        applyStatus(meta.cellId, this);
+      }
+    });
+
+    ALL_DEVICES.forEach(dev => {
+      dev.points.forEach(pt => {
+        baja.Ord.make(pt.ord)
+          .get({ subscriber: globalSubscriber })
+          .then(point => {
+            point.userData = { cellId: pt.cellId, fmt: pt.fmt, unit: pt.unit };
+            resolvedPoints[pt.cellId] = point;
+            // Pre-detect & cache type for override points
+            if (pt.mode === 'ovrd-num' || pt.mode === 'ovrd-enum') {
+              detectPointType(pt.cellId, point);
+            }
+            onPointResolved(dev, pt.cellId, point.getOut().getValue(), pt.fmt, pt.unit, point, true);
+          })
+          .catch(() => {
+            onPointResolved(dev, pt.cellId, null, pt.fmt, pt.unit, null, false);
+          });
+      });
+    });
+  });
+} catch(e) {
+  console.error('Baja init failed:', e);
+}
+
+// ═══════════════════════════════════════════════════════
+//  POINT RESOLVED CALLBACK
+// ═══════════════════════════════════════════════════════
+function onPointResolved(dev, cellId, raw, fmt, unit, point, success) {
+  const el = document.getElementById(cellId);
+  if (el) {
+    if (success) {
+      if (fmt === 'enum') {
+        renderEnumCell(cellId, raw);
+      } else {
+        el.textContent = formatValue(raw, fmt, unit);
+        el.className   = valueClass(raw, fmt);
+      }
+      if (point) applyStatus(cellId, point);
+    } else {
+      el.textContent = '—';
+      el.className   = 'value-missing';
+    }
+  }
+
+  deviceResolved[dev.name]++;
+  if (success) deviceHasValue[dev.name]++;
+  loadedCount++;
+  updateStats();
+
+  const pointCount = dev.type === 'VAV' ? VAV_POINTS.length : FTU_POINTS.length;
+  if (deviceResolved[dev.name] === pointCount) {
+    const row = document.getElementById(`row__${dev.name}`);
+    if (row && deviceHasValue[dev.name] === 0) {
+      row.classList.add('row-hidden');
+    }
+    updateDividerVisibility();
+  }
+}
+
+function updateDividerVisibility() {
+  const divider = document.getElementById('divider-ftu');
+  if (!divider) return;
+  const anyVisible = FTU_DEVICES.some(dev => {
+    const r = document.getElementById(`row__${dev.name}`);
+    return r && !r.classList.contains('row-hidden');
+  });
+  divider.style.display = anyVisible ? '' : 'none';
+}
+
+function updateStats() {
+  const el = document.getElementById('live-stats');
+  if (el) el.textContent = `${loadedCount} / ${totalPoints} pts loaded`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUILD TABLE
+// ═══════════════════════════════════════════════════════
+function buildTable() {
+  const colGroups = [
+    { label:'Device Info',       span:1  },
+    { label:'Duct Config',       span:2  },
+    { label:'Flow Control',      span:4  },
+    { label:'Cooling Setpoints', span:2  },
+    { label:'Heating Setpoints', span:4  },
+    { label:'Fan',               span:1  },
+  ];
+
+  let groupRow = '<tr class="group-row"><th></th>';
+  colGroups.forEach(g => { groupRow += `<th colspan="${g.span}">${g.label}</th>`; });
+  groupRow += '</tr>';
+
+  const SEC = new Set([0,2,4,8,10]);
+  let colRow = '<tr class="col-row"><th class="sortable" onclick="sortByName()">Unit</th>';
+  ALL_COLS.forEach((p,i) => {
+    let suffix = '';
+    if (p.mode === 'set')       suffix = ' ⚙';
+    if (p.mode === 'ovrd-num')  suffix = ' ↑';
+    if (p.mode === 'ovrd-enum') suffix = ' ↑';
+    colRow += `<th${SEC.has(i)?' class="sec-start"':''}>${p.label}${suffix}</th>`;
+  });
+  colRow += '</tr>';
+
+  function buildRows(devices, pointDefs, showFanFallback) {
+    return devices.map(dev => {
+      let cells = '';
+      pointDefs.forEach((p,i) => {
+        const secClass = SEC.has(i) ? 'sec-start ' : '';
+
+        if (p.mode === 'set') {
+          cells += `<td class="${secClass}">
+            <div class="set-cell-wrap">
+              <span id="${dev.name}__${p.id}" class="value-loading">…</span>
+              <span class="gear-btn" title="Set ${p.label}" onclick="openSetModal('${dev.name}','${p.id}','${p.label}','${p.fmt}','${p.unit}','set')">⚙</span>
+            </div></td>`;
+
+        } else if (p.mode === 'ovrd-enum') {
+          cells += `<td class="${secClass}">
+            <div class="set-cell-wrap">
+              <span id="${dev.name}__${p.id}"></span>
+              <span class="ovrd-btn" title="Override ${p.label}" onclick="openSetModal('${dev.name}','${p.id}','${p.label}','${p.fmt}','${p.unit}','ovrd-enum')">↑</span>
+            </div></td>`;
+
+        } else if (p.mode === 'ovrd-num') {
+          cells += `<td class="${secClass}">
+            <div class="set-cell-wrap">
+              <span id="${dev.name}__${p.id}" class="value-loading">…</span>
+              <span class="ovrd-btn" title="Override ${p.label}" onclick="openSetModal('${dev.name}','${p.id}','${p.label}','${p.fmt}','${p.unit}','ovrd-num')">↑</span>
+            </div></td>`;
+
+        } else {
+          cells += `<td id="${dev.name}__${p.id}" class="${secClass}value-loading">…</td>`;
+        }
+      });
+      if (showFanFallback) cells += `<td class="fan-na">—</td>`;
+      return `<tr id="row__${dev.name}"><td>${dev.name}</td>${cells}</tr>`;
+    }).join('');
+  }
+
+  const totalCols = 1 + ALL_COLS.length;
+  const dividerRow = `<tr id="divider-ftu" class="section-divider">
+    <td colspan="${totalCols}">── FTU Units ──────────────────────────────</td>
+  </tr>`;
+
+  document.getElementById('table-wrap').innerHTML = `
+    <table class="vav-table">
+      <thead>${groupRow}${colRow}</thead>
+      <tbody>
+        ${buildRows(VAV_DEVICES, VAV_POINTS, true)}
+        ${dividerRow}
+        ${buildRows(FTU_DEVICES, FTU_POINTS, false)}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  UNIFIED MODAL  (set | ovrd-num | ovrd-enum)
+// ═══════════════════════════════════════════════════════
+let modal_devName = null;
+let modal_pointId = null;
+let modal_fmt     = null;
+let modal_unit    = null;
+let modal_mode    = null;   // 'set' | 'ovrd-num' | 'ovrd-enum'
+
+function openSetModal(devName, pointId, label, fmt, unit, mode) {
+  modal_devName = devName;
+  modal_pointId = pointId;
+  modal_fmt     = fmt;
+  modal_unit    = unit;
+  modal_mode    = mode;
+
+  const content    = document.getElementById('set-modal-content');
+  const titleEl    = document.getElementById('set-modal-title');
+  const inputEl    = document.getElementById('set-modal-input');
+  const boolSelEl  = document.getElementById('set-modal-bool-select');
+  const enumSelEl  = document.getElementById('set-modal-enum-select');
+  const applyBtn   = document.getElementById('set-modal-apply');
+  const releaseBtn = document.getElementById('set-modal-release');
+  const priorityRow= document.getElementById('set-modal-priority-row');
+  const inputLabel = document.getElementById('set-modal-input-label');
+
+  document.getElementById('set-modal-unit-name').textContent  = devName;
+  document.getElementById('set-modal-point-name').textContent = label;
+
+  const cellId = `${devName}__${pointId}`;
+  const spanEl = document.getElementById(cellId);
+  let curText  = '—';
+  if (spanEl) {
+    curText = spanEl.textContent.replace('…','').trim() || spanEl.innerText.trim() || '—';
+  }
+  document.getElementById('set-modal-current-value').textContent = curText;
+
+  hideFeedback();
+
+  // Default: hide all input controls
+  inputEl.style.display   = '';
+  boolSelEl.style.display = 'none';
+  enumSelEl.style.display = 'none';
+
+  if (mode === 'set') {
+    // ── numeric set (K-Factor, Duct Area) — uses point.invoke({ slot:'set', value:... })
+    content.classList.remove('ovrd-theme');
+    titleEl.textContent      = `⚙ Set — ${label}`;
+    releaseBtn.style.display = 'none';
+    priorityRow.style.display= 'none';
+    inputLabel.textContent   = 'New Value:';
+    inputEl.style.display    = '';
+    inputEl.step        = (fmt === 'num3') ? '0.001' : (fmt === 'num2') ? '0.01' : '1';
+    inputEl.value       = '';
+    inputEl.placeholder = `Enter new value`;
+    applyBtn.textContent= '⚙ Apply Set';
+
+  } else if (mode === 'ovrd-num') {
+    // ── override for numeric setpoints (CfgMax, CfgMin, etc.)
+    // Auto-detect actual point type from resolved point's facets/value type
+    content.classList.add('ovrd-theme');
+    titleEl.textContent      = `↑ Override — ${label}`;
+    releaseBtn.style.display = '';
+    priorityRow.style.display= '';
+    inputLabel.textContent   = 'Override Value:';
+    applyBtn.textContent     = '↑ Apply Override';
+    document.getElementById('set-modal-priority-badge').textContent = 'Priority 8';
+    document.getElementById('set-modal-priority-select').value = '8';
+
+    const resolvedPoint = resolvedPoints[cellId];
+    if (resolvedPoint) {
+      const detectedType = detectPointType(cellId, resolvedPoint);
+      if (detectedType === 'boolean') {
+        inputEl.style.display   = 'none';
+        boolSelEl.style.display = '';
+        inputLabel.textContent  = 'Override Command:';
+      } else if (detectedType === 'enum') {
+        inputEl.style.display   = 'none';
+        enumSelEl.style.display = '';
+        inputLabel.textContent  = 'Override State:';
+        populateEnumSelect(cellId, enumSelEl);
+      } else {
+        // numeric (default for cfm setpoints)
+        inputEl.style.display = '';
+        inputEl.step        = '1';
+        inputEl.value       = '';
+        inputEl.placeholder = `Enter override cfm`;
+        boolSelEl.style.display = 'none';
+        enumSelEl.style.display = 'none';
+      }
+    } else {
+      // Point not yet resolved — default to numeric
+      inputEl.style.display = '';
+      inputEl.step        = '1';
+      inputEl.value       = '';
+      inputEl.placeholder = `Enter override value`;
+    }
+
+  } else if (mode === 'ovrd-enum') {
+    // ── enum override (ManFlowOvrd)
+    content.classList.add('ovrd-theme');
+    titleEl.textContent      = `↑ Override — ${label}`;
+    inputEl.style.display    = 'none';
+    boolSelEl.style.display  = 'none';
+    enumSelEl.style.display  = '';
+    releaseBtn.style.display = '';
+    priorityRow.style.display= '';
+    inputLabel.textContent   = 'Override State:';
+    applyBtn.textContent     = '↑ Apply Override';
+    document.getElementById('set-modal-priority-badge').textContent = 'Priority 8';
+    document.getElementById('set-modal-priority-select').value = '8';
+
+    // Populate enum options from facets if available, else use ManFlowOvrd default
+    populateEnumSelect(cellId, enumSelEl);
+
+    // Pre-select current enum state
+    const curOrd = (() => {
+      const e = MAN_FLOW_OVRD_ENUM.find(x =>
+        x.name.toLowerCase() === curText.toLowerCase() ||
+        x.name.replace(' ','').toLowerCase() === curText.replace(' ','').toLowerCase()
+      );
+      return e ? e.ordinal : 8; // default Auto
+    })();
+    enumSelEl.value = String(curOrd);
+  }
+
+  document.getElementById('set-modal').classList.add('active');
+  setTimeout(() => {
+    if (mode === 'ovrd-enum' || (mode === 'ovrd-num' && enumSelEl.style.display !== 'none')) {
+      enumSelEl.focus();
+    } else if (mode === 'ovrd-num' && boolSelEl.style.display !== 'none') {
+      boolSelEl.focus();
+    } else {
+      inputEl.focus();
+    }
+  }, 80);
+}
+
+// Populate the enum select element from facet cache or ManFlowOvrd defaults
+function populateEnumSelect(cellId, selectEl) {
+  const facets = getEnumFacets(cellId);
+  selectEl.innerHTML = '';
+  facets.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.ordinal;
+    opt.textContent = f.label;
+    selectEl.appendChild(opt);
+  });
+}
+
+function closeSetModal() {
+  document.getElementById('set-modal').classList.remove('active');
+  modal_devName = null;
+  modal_pointId = null;
+}
+
+function showFeedback(msg, type) {
+  const el = document.getElementById('set-feedback');
+  el.textContent = msg;
+  el.className   = `set-feedback ${type}`;
+  el.style.display = 'block';
+}
+function hideFeedback() {
+  const el = document.getElementById('set-feedback');
+  el.style.display = 'none';
+  el.textContent   = '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL LISTENERS  —  uses proper Niagara override types
+//  Mirrors the proven pattern from the FTU monitoring script
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('set-modal-close').addEventListener('click', closeSetModal);
+  document.getElementById('set-modal-cancel').addEventListener('click', closeSetModal);
+  document.getElementById('set-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSetModal();
+  });
+
+  document.getElementById('set-modal-priority-select').addEventListener('change', function() {
+    document.getElementById('set-modal-priority-badge').textContent = `Priority ${this.value}`;
+  });
+
+  // ── APPLY button
+  document.getElementById('set-modal-apply').addEventListener('click', () => {
+    if (!modal_devName || !modal_pointId) { showFeedback('⚠ No point selected.', 'error'); return; }
+    const cellId = `${modal_devName}__${modal_pointId}`;
+    const point  = resolvedPoints[cellId];
+    if (!point) { showFeedback('⚠ Point not yet resolved — please wait and retry.', 'error'); return; }
+
+    if (modal_mode === 'set') {
+      // ── Numeric SET (K-Factor, Duct Area) — uses the 'set' action slot, not override
+      const val = parseFloat(document.getElementById('set-modal-input').value);
+      if (isNaN(val)) { showFeedback('⚠ Please enter a valid number.', 'error'); return; }
+
+      require(['baja!'], function(baja) {
+        try {
+          point.invoke({ slot: 'set', value: baja.Double.make(val) })
+            .then(() => {
+              showFeedback(`✓ Set to ${val}`, 'success');
+              const spanEl = document.getElementById(cellId);
+              if (spanEl) {
+                spanEl.textContent = formatValue(val, modal_fmt, modal_unit);
+                spanEl.className   = 'value-normal';
+              }
+              setTimeout(closeSetModal, 1200);
+            })
+            .catch(err => showFeedback(`✗ Set failed: ${err.message||err}`, 'error'));
+        } catch(e) { showFeedback(`✗ Baja error: ${e.message||e}`, 'error'); }
+      });
+
+    } else if (modal_mode === 'ovrd-num' || modal_mode === 'ovrd-enum') {
+      // ── OVERRIDE — use typed override objects matching script 2's proven approach
+      const detectedType = pointTypeCache[cellId] ||
+                           (modal_mode === 'ovrd-enum' ? 'enum' : 'numeric');
+
+      require(['baja!',
+               'baja!control:NumericOverride',
+               'baja!control:Override',
+               'baja!control:EnumOverride'],
+      function(baja) {
+        try {
+          if (detectedType === 'numeric') {
+            // ── Numeric override (CfgMaxFlowSetpt, CfgMinFlowSetpt, etc.)
+            const val = parseFloat(document.getElementById('set-modal-input').value);
+            if (isNaN(val)) { showFeedback('⚠ Please enter a valid cfm value.', 'error'); return; }
+
+            const ovrdParam = baja.$('control:NumericOverride');
+            ovrdParam.setValue(val);
+            // duration 0 = indefinite/permanent
+            ovrdParam.setDuration(baja.RelTime.make(0));
+
+            point.invoke({ slot: 'override', value: ovrdParam })
+              .then(() => {
+                showFeedback(`✓ Override applied: ${val}${modal_unit}`, 'success');
+                const spanEl = document.getElementById(cellId);
+                if (spanEl) {
+                  spanEl.textContent = formatValue(val, modal_fmt, modal_unit);
+                  spanEl.className   = 'value-normal';
+                  // Parent td gets override styling
+                  const td = spanEl.closest('td');
+                  if (td) td.classList.add('cell-override');
+                }
+                setTimeout(closeSetModal, 1400);
+              })
+              .catch(err => showFeedback(`✗ Override failed: ${err.message||err}`, 'error'));
+
+          } else if (detectedType === 'boolean') {
+            // ── Boolean override (ON / OFF / Auto)
+            const cmd = document.getElementById('set-modal-bool-select').value;
+            if (cmd === 'auto') {
+              // Release to auto rather than override
+              point.invoke({ slot: 'auto' })
+                .then(() => {
+                  showFeedback('✓ Released to Auto', 'success');
+                  const td = document.getElementById(cellId)?.closest('td');
+                  if (td) td.classList.remove('cell-override');
+                  setTimeout(closeSetModal, 1400);
+                })
+                .catch(err => showFeedback(`✗ Release failed: ${err.message||err}`, 'error'));
+            } else {
+              const ovrdParam = baja.$('control:Override');
+              ovrdParam.setDuration(baja.RelTime.make(0));
+              const slot = cmd === 'on' ? 'active' : 'inactive';
+              point.invoke({ slot, value: ovrdParam })
+                .then(() => {
+                  showFeedback(`✓ Override: ${cmd.toUpperCase()}`, 'success');
+                  const spanEl = document.getElementById(cellId);
+                  if (spanEl) {
+                    spanEl.textContent = cmd === 'on' ? 'ON' : 'OFF';
+                    spanEl.className   = cmd === 'on' ? 'value-active' : 'value-inactive';
+                    const td = spanEl.closest('td');
+                    if (td) td.classList.add('cell-override');
+                  }
+                  setTimeout(closeSetModal, 1400);
+                })
+                .catch(err => showFeedback(`✗ Override failed: ${err.message||err}`, 'error'));
+            }
+
+          } else if (detectedType === 'enum') {
+            // ── Enum override (ManFlowOvrd and any enum-type setpoint)
+            const ordinal = parseInt(document.getElementById('set-modal-enum-select').value, 10);
+            if (isNaN(ordinal)) { showFeedback('⚠ Please select a valid option.', 'error'); return; }
+
+            // Build DynamicEnum value — mirrors script 2 exactly
+            function makeDynEnum(ord) {
+              let d = null;
+              if (baja.DynamicEnum && typeof baja.DynamicEnum.make === 'function') {
+                try { d = baja.DynamicEnum.make(ord); } catch(e) {}
+              }
+              if (!d) {
+                d = baja.$('baja:DynamicEnum');
+                if (typeof d.setOrdinal === 'function') d.setOrdinal(ord);
+              }
+              return d;
+            }
+
+            const ovrdParam = baja.$('control:EnumOverride');
+            ovrdParam.setValue(makeDynEnum(ordinal));
+            ovrdParam.setDuration(baja.RelTime.make(0));
+
+            point.invoke({ slot: 'override', value: ovrdParam })
+              .then(() => {
+                const eEntry = MAN_FLOW_OVRD_ENUM.find(x => x.ordinal === ordinal);
+                const label  = eEntry ? eEntry.name : String(ordinal);
+                showFeedback(`✓ Override: ${label}`, 'success');
+                // Re-render enum badge in the cell span
+                renderEnumCell(cellId, ordinal);
+                const spanEl = document.getElementById(cellId);
+                if (spanEl) {
+                  const td = spanEl.closest('td');
+                  if (td) td.classList.add('cell-override');
+                }
+                setTimeout(closeSetModal, 1400);
+              })
+              .catch(err => showFeedback(`✗ Override failed: ${err.message||err}`, 'error'));
+          }
+
+        } catch(e) { showFeedback(`✗ Baja error: ${e.message||e}`, 'error'); }
+      });
+    }
+  });
+
+  // ── RELEASE button  —  mirrors script 2's releaseToAuto pattern
+  document.getElementById('set-modal-release').addEventListener('click', () => {
+    if (!modal_devName || !modal_pointId) return;
+    const cellId = `${modal_devName}__${modal_pointId}`;
+    const point  = resolvedPoints[cellId];
+    if (!point) { showFeedback('⚠ Point not yet resolved.', 'error'); return; }
+
+    require(['baja!'], function(baja) {
+      try {
+        point.invoke({ slot: 'auto' })
+          .then(() => {
+            showFeedback('✓ Override released — returned to Auto', 'success');
+            const cellEl = document.getElementById(cellId);
+            if (cellEl) {
+              const td = cellEl.closest('td');
+              if (td) td.classList.remove('cell-override');
+              // For enum points restore badge without override styling
+              if (modal_mode === 'ovrd-enum') {
+                renderEnumCell(cellId, 8); // 8 = Auto ordinal
+              }
+            }
+            setTimeout(closeSetModal, 1400);
+          })
+          .catch(err => {
+            // Fallback: emergencyAuto slot (matches script 2 fallback)
+            point.invoke({ slot: 'emergencyAuto' })
+              .then(() => {
+                showFeedback('✓ Emergency Auto — override released', 'success');
+                const td = document.getElementById(cellId)?.closest('td');
+                if (td) td.classList.remove('cell-override');
+                setTimeout(closeSetModal, 1400);
+              })
+              .catch(err2 => showFeedback(`✗ Release failed: ${err2.message||err2}`, 'error'));
+          });
+      } catch(e) { showFeedback(`✗ Baja error: ${e.message||e}`, 'error'); }
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+//  SORT
+// ═══════════════════════════════════════════════════════
+let sortDir = 'asc';
+function sortByName() {
+  const tbody = document.querySelector('.vav-table tbody');
+  if (!tbody) return;
+  sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  const divider = document.getElementById('divider-ftu');
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  const divIdx  = allRows.indexOf(divider);
+  const vavRows = allRows.slice(0, divIdx).filter(r => !r.classList.contains('section-divider'));
+  const ftuRows = allRows.slice(divIdx + 1).filter(r => !r.classList.contains('section-divider'));
+  const cmp = (a,b) => {
+    const ta = a.cells[0].textContent.trim(), tb = b.cells[0].textContent.trim();
+    return sortDir === 'asc' ? ta.localeCompare(tb) : tb.localeCompare(ta);
+  };
+  vavRows.sort(cmp).forEach(r => tbody.insertBefore(r, divider));
+  tbody.appendChild(divider);
+  ftuRows.sort(cmp).forEach(r => tbody.appendChild(r));
+}
+
+// ═══════════════════════════════════════════════════════
+//  EXPORT  (CSV / PDF)
+// ═══════════════════════════════════════════════════════
+function getVisibleDevices() {
+  return ALL_DEVICES.filter(dev => {
+    const r = document.getElementById(`row__${dev.name}`);
+    return r && !r.classList.contains('row-hidden');
+  });
+}
+
+function getCellText(devName, pointId, devType) {
+  const el = document.getElementById(`${devName}__${pointId}`);
+  if (el) return el.textContent.trim() || el.innerText.trim();
+  if (devType === 'VAV' && pointId === 'FanCmd') return 'N/A';
+  return '';
+}
+
+function getTableCSV() {
+  let csv = ['Unit', ...ALL_COLS.map(p => p.label)].join(',') + '\n';
+  getVisibleDevices().forEach(dev => {
+    const row = [dev.name];
+    ALL_COLS.forEach(p => {
+      const v = getCellText(dev.name, p.id, dev.type);
+      row.push(v.includes(',') ? `"${v}"` : v);
+    });
+    csv += row.join(',') + '\n';
+  });
+  return csv;
+}
+
+function exportCSV() {
+  const sd  = document.getElementById('exp-start').value;
+  const csv = getTableCSV();
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `VAV_FTU_5th_Floor_${sd||'snapshot'}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportPDF() {
+  const reportDate = new Date().toLocaleString();
+  const visible    = getVisibleDevices();
+  let rowsHTML = '';
+  visible.forEach((dev, i) => {
+    const bg = i % 2 === 0 ? '#f5f7ff' : '#fff';
+    let cells = `<td style="font-weight:bold;padding:4px 8px;border:1px solid #dde;">${dev.name}</td>`;
+    ALL_COLS.forEach(p => {
+      const v = getCellText(dev.name, p.id, dev.type) || '—';
+      cells += `<td style="padding:4px 8px;border:1px solid #dde;text-align:center;">${v}</td>`;
+    });
+    rowsHTML += `<tr style="background:${bg}">${cells}</tr>`;
+  });
+  const headCols = ALL_COLS.map(p =>
+    `<th style="padding:6px 8px;font-weight:normal;letter-spacing:.4px;">${p.label}</th>`
+  ).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>VAV/FTU 5th Floor Report — ${reportDate}</title>
+  <style>body{font-family:Arial,sans-serif;padding:10mm 12mm;font-size:9pt;}
+  h1{font-size:16pt;color:#003580;margin-bottom:4px;}p{font-size:9pt;color:#556;margin-bottom:14px;}
+  table{width:100%;border-collapse:collapse;font-size:8pt;}thead{background:#003580;color:#fff;}
+  th{padding:6px 8px;text-align:left;}
+  .no-print{position:fixed;top:10px;right:10px;background:#fff;border:2px solid #003580;
+    border-radius:8px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:999;}
+  .no-print button{display:block;width:100%;margin-bottom:6px;padding:8px 16px;
+    border:none;border-radius:5px;cursor:pointer;font-size:10pt;}
+  .btn-p{background:#003580;color:#fff;}.btn-c{background:#546e7a;color:#fff;}
+  @media print{.no-print{display:none;}}</style></head><body>
+  <h1>VAV / FTU 5th Floor — Live Snapshot</h1>
+  <p>Forsyth 5th Floor &nbsp;|&nbsp; Generated: ${reportDate} &nbsp;|&nbsp; ${visible.length} units visible</p>
+  <table><thead><tr><th>Unit</th>${headCols}</tr></thead><tbody>${rowsHTML}</tbody></table>
+  <div class="no-print"><h4 style="color:#003580;margin-bottom:8px;">Report Ready</h4>
+  <button class="btn-p" onclick="window.print()">🖨️ Save as PDF</button>
+  <button class="btn-c" onclick="window.close()">✕ Close</button></div>
+  </body></html>`;
+  const pw = window.open('','_blank');
+  if (pw) { pw.document.write(html); pw.document.close(); }
+  else alert('Pop-up blocked — please allow pop-ups for this site.');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUTO PDF ON BACK
+// ═══════════════════════════════════════════════════════
+function buildAutoDownloadPDF() {
+  const now        = new Date();
+  const floor      = detectFloorNumber();
+  const floorLabel = floor !== null ? `Floor${floor}` : 'Floor_Unknown';
+  const pad = n => String(n).padStart(2,'0');
+  const ts  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_` +
+              `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  const filename = `VAV_FTU_${floorLabel}_${ts}.pdf`;
+  const reportDate = now.toLocaleString();
+  const visible    = getVisibleDevices();
+  let rowsHTML = '';
+  visible.forEach((dev, i) => {
+    const bg = i % 2 === 0 ? '#f5f7ff' : '#fff';
+    let cells = `<td style="font-weight:bold;padding:4px 8px;border:1px solid #dde;">${dev.name}</td>`;
+    ALL_COLS.forEach(p => {
+      const v = getCellText(dev.name, p.id, dev.type) || '—';
+      cells += `<td style="padding:4px 8px;border:1px solid #dde;text-align:center;">${v}</td>`;
+    });
+    rowsHTML += `<tr style="background:${bg}">${cells}</tr>`;
+  });
+  const headCols = ALL_COLS.map(p =>
+    `<th style="padding:6px 8px;font-weight:normal;letter-spacing:.4px;">${p.label}</th>`
+  ).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${filename}</title>
+  <style>body{font-family:Arial,sans-serif;padding:10mm 12mm;font-size:9pt;}
+  h1{font-size:16pt;color:#003580;margin-bottom:4px;}p{font-size:9pt;color:#556;margin-bottom:14px;}
+  table{width:100%;border-collapse:collapse;font-size:8pt;}thead{background:#003580;color:#fff;}
+  th{padding:6px 8px;text-align:left;}
+  .no-print{position:fixed;top:10px;right:10px;background:#fff;border:2px solid #003580;
+    border-radius:8px;padding:12px;box-shadow:0 4px 20px rgba(0,0,0,.2);z-index:999;font-family:Arial,sans-serif;}
+  .no-print h4{color:#003580;margin-bottom:8px;}.no-print p{font-size:9pt;color:#555;margin-bottom:10px;}
+  .no-print button{display:block;width:100%;margin-bottom:6px;padding:9px 16px;border:none;border-radius:5px;cursor:pointer;font-size:10pt;}
+  .btn-p{background:#003580;color:#fff;}.btn-c{background:#546e7a;color:#fff;}
+  @media print{.no-print{display:none;}}</style></head><body>
+  <h1>VAV / FTU ${floorLabel} — Auto Snapshot</h1>
+  <p>Generated on Back Navigation &nbsp;|&nbsp; ${reportDate} &nbsp;|&nbsp; ${visible.length} units</p>
+  <table><thead><tr><th>Unit</th>${headCols}</tr></thead><tbody>${rowsHTML}</tbody></table>
+  <div class="no-print"><h4>Auto-Generated Report</h4>
+  <p style="font-size:8pt;color:#777;margin-bottom:8px;">Filename: ${filename}</p>
+  <button class="btn-p" onclick="window.print()">🖨️ Save as PDF (${filename})</button>
+  <button class="btn-c" onclick="window.close()">✕ Close</button></div>
+  </body></html>`;
+  return { html, filename };
+}
+
+function handleBack() {
+  try {
+    const { html } = buildAutoDownloadPDF();
+    const pw = window.open('', '_blank');
+    if (pw) {
+      pw.document.write(html);
+      pw.document.close();
+      pw.onload = () => { try { pw.focus(); pw.print(); } catch(e){} };
+      setTimeout(() => { try { pw.focus(); pw.print(); } catch(e){} }, 600);
+    }
+  } catch(e) { console.warn('Auto-PDF failed:', e); }
+  history.back();
+}
+
+// ═══════════════════════════════════════════════════════
+//  THEME / CLOCK / INIT
+// ═══════════════════════════════════════════════════════
+function toggleTheme() {
+  const c = document.getElementById('themeSwitch');
+  document.body.classList.toggle('light-mode', c.checked);
+  localStorage.setItem('theme', c.checked ? 'light' : 'dark');
+}
+function updateClock() {
+  const el = document.getElementById('clock');
+  if (el) el.textContent = new Date().toLocaleString('en-US',
+    { day:'2-digit', month:'short', year:'numeric',
+      hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' });
+}
+function handleLogoff() {
+  sessionStorage.clear();
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('topBackBtn').addEventListener('click', handleBack);
+  document.getElementById('bottomBackBtn').addEventListener('click', handleBack);
+  const saved = localStorage.getItem('theme');
+  const sw    = document.getElementById('themeSwitch');
+  if (saved === 'light') { document.body.classList.add('light-mode'); sw.checked = true; }
+  const u = sessionStorage.getItem('username') || sessionStorage.getItem('user') || 'Guest';
+  document.getElementById('userDisplay').textContent = u;
+  const now = new Date(), yd = new Date(now.getTime() - 86400000);
+  document.getElementById('exp-start').value = yd.toISOString().slice(0,16);
+  document.getElementById('exp-end').value   = now.toISOString().slice(0,16);
+  updateClock();
+  setInterval(updateClock, 1000);
+  document.body.classList.add('fade-in');
+  buildTable();
+});
+window.addEventListener('beforeunload', () => {
+  if (globalSubscriber) try { globalSubscriber.unsubscribeAll(); } catch(e){}
+});
+</script>
+</body>
+</html>
