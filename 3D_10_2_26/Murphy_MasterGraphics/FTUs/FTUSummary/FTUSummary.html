@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - FTU Monitoring</title>
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #7b5ea7;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode {
+  --bg-deep:      #f0f4f8;
+  --bg-panel:     #ffffff;
+  --bg-card:      #e8edf5;
+  --bg-card-hover:#dce4f0;
+  --accent:       #dc143c;
+  --accent-glow:  rgba(220,20,60,0.18);
+  --green:        #16a34a;
+  --red:          #dc2626;
+  --amber:        #d97706;
+  --purple:       #6d28d9;
+  --text-primary: #1a1e2a;
+  --text-muted:   #4b5563;
+  --border:       rgba(220,20,60,0.18);
+  --border-hover: rgba(220,20,60,0.45);
+}
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.6s ease, background 0.3s ease, color 0.3s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel {
+  position: fixed;
+  top: 0; left: -300px;
+  width: 280px; height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  z-index: 300;
+  transition: left 0.3s ease;
+  padding: 80px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+
+.side-panel-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.side-panel-header h2 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: normal;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+
+.nav-image-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: var(--transition);
+  position: relative; overflow: hidden;
+}
+.nav-image-btn::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s;
+}
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); }
+.nav-image-btn:hover::before { opacity: 1; }
+
+.nav-btn-icon {
+  width: 40px; height: 40px; border-radius: 8px;
+  background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 18px;
+}
+body.light-mode .nav-btn-icon { background: rgba(220,20,60,0.08); border-color: rgba(220,20,60,0.15); }
+
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: rgba(13,17,23,0.97);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 64px; flex-shrink: 0;
+  position: relative; z-index: 100;
+  backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
+}
+body.light-mode .top-bar { background: rgba(255,255,255,0.97); box-shadow: 0 1px 12px rgba(0,0,0,0.08); }
+.top-bar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.hamburger {
+  width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  transition: var(--transition); flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+.top-center {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.site-label { font-family: var(--font-head); font-size: 12px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; }
+.page-title { font-family: var(--font-head); font-size: 18px; font-weight: normal; letter-spacing: 1px; color: var(--text-primary); }
+
+.top-right { display: flex; align-items: center; gap: 12px; }
+
+.theme-toggle-wrap { display: flex; align-items: center; gap: 8px; }
+.theme-label { font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 34px; transition: 0.3s;
+}
+.slider:before {
+  position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px;
+  background: var(--text-muted); border-radius: 50%; transition: 0.3s;
+}
+input:checked + .slider { background: var(--accent-glow); border-color: var(--accent); }
+input:checked + .slider:before { transform: translateX(20px); background: var(--accent); }
+
+.user-badge {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+  padding: 6px 14px; font-size: 13px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px; font-family: var(--font-head);
+}
+.user-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); }
+#userDisplay { color: var(--text-primary); }
+
+/* ─── UNIT FILTER BAR ───────────────────────────────────────────────── */
+.unit-filter-bar {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.unit-filter-label {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.unit-filter-count {
+  font-family: var(--font-head);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  margin-left: auto;
+}
+
+/* ─── CUSTOM DROPDOWN ───────────────────────────────────────────────── */
+.unit-dropdown-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.unit-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 220px;
+  user-select: none;
+}
+.unit-dropdown-trigger:hover,
+.unit-dropdown-trigger.open {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.unit-dropdown-trigger.open {
+  border-radius: 8px 8px 0 0;
+  border-bottom-color: transparent;
+}
+.unit-dropdown-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.unit-dropdown-selected {
+  flex: 1;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unit-dropdown-arrow {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.22s ease;
+}
+.unit-dropdown-trigger.open .unit-dropdown-arrow {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+.unit-dropdown-badge {
+  background: rgba(0,200,255,0.15);
+  border: 1px solid rgba(0,200,255,0.3);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-family: var(--font-head);
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+body.light-mode .unit-dropdown-badge {
+  background: rgba(220,20,60,0.1);
+  border-color: rgba(220,20,60,0.25);
+}
+
+/* ─── DROPDOWN PANEL ────────────────────────────────────────────────── */
+.unit-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 100%;
+  width: 300px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  z-index: 150;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-glow);
+  overflow: hidden;
+  display: none;
+  animation: dropIn 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.unit-dropdown-panel.open { display: block; }
+
+/* search box inside panel */
+.unit-search-wrap {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.unit-search-icon {
+  color: var(--text-muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.unit-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  caret-color: var(--accent);
+}
+.unit-search-input::placeholder { color: var(--text-muted); }
+
+/* list */
+.unit-dropdown-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.unit-dropdown-list::-webkit-scrollbar { width: 4px; }
+.unit-dropdown-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.unit-dropdown-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+.unit-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+.unit-dropdown-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.unit-dropdown-item.selected {
+  background: rgba(0,200,255,0.08);
+  color: var(--accent);
+}
+body.light-mode .unit-dropdown-item.selected {
+  background: rgba(220,20,60,0.07);
+  color: var(--accent);
+}
+.unit-dropdown-item-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.unit-dropdown-item.selected .unit-dropdown-item-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+body.light-mode .unit-dropdown-item.selected .unit-dropdown-item-dot {
+  box-shadow: none;
+}
+.unit-dropdown-item-count {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.unit-dropdown-no-results {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-style: italic;
+}
+
+/* ─── MAIN SCROLL AREA ──────────────────────────────────────────────── */
+.main-content {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 24px 20px 24px;
+  min-height: 0;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.main-content::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ─── PAGE HEADING ──────────────────────────────────────────────────── */
+.page-heading {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 24px;
+}
+.page-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.page-heading h2 {
+  font-family: var(--font-head); font-size: 11px; letter-spacing: 4px;
+  color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap;
+}
+
+/* ─── FTU CONTAINER (card per unit) ────────────────────────────────── */
+.FTU-container {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: var(--transition);
+}
+.FTU-container:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 6px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,200,255,0.08);
+}
+.FTU-container.hidden { display: none; }
+
+.FTU-header {
+  background: rgba(0,200,255,0.06);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative; overflow: hidden;
+}
+body.light-mode .FTU-header { background: rgba(220,20,60,0.04); }
+.FTU-header::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.FTU-header-icon {
+  width: 34px; height: 34px; border-radius: 7px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.FTU-header-title {
+  font-family: var(--font-head); font-size: 15px; letter-spacing: 1px;
+  color: var(--text-primary); font-weight: normal;
+}
+
+/* ─── POINTS GRID ───────────────────────────────────────────────────── */
+.points-grid {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ─── POINT CARD ────────────────────────────────────────────────────── */
+.point-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.point-item::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent); border-radius: 0 2px 2px 0;
+  transform: scaleY(0); transition: transform 0.2s ease;
+}
+.point-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3), 0 0 16px var(--accent-glow);
+}
+.point-item:hover::before { transform: scaleY(1); }
+
+.point-item::after {
+  content: '📊 History';
+  position: absolute; top: 10px; right: 12px;
+  font-family: var(--font-head); font-size: 9px; letter-spacing: 1px;
+  color: var(--accent); opacity: 0; transition: opacity 0.2s;
+  text-transform: uppercase;
+}
+.point-item:hover::after { opacity: 0.8; }
+
+/* type badge */
+.point-type {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 20px;
+  font-family: var(--font-head); font-size: 9px; font-weight: bold;
+  letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.type-numeric { background: rgba(0,200,255,0.12); color: var(--accent); border: 1px solid rgba(0,200,255,0.25); }
+.type-boolean { background: rgba(123,94,167,0.15); color: #a78bfa; border: 1px solid rgba(123,94,167,0.3); }
+.type-other   { background: rgba(0,230,118,0.10); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+
+body.light-mode .type-numeric { background: rgba(220,20,60,0.08); color: var(--accent); border-color: rgba(220,20,60,0.2); }
+body.light-mode .type-boolean { background: rgba(109,40,217,0.08); color: var(--purple); border-color: rgba(109,40,217,0.2); }
+body.light-mode .type-other   { background: rgba(22,163,74,0.08); color: var(--green); border-color: rgba(22,163,74,0.2); }
+
+.point-name {
+  font-family: var(--font-head); font-size: 13px; letter-spacing: 0.5px;
+  color: var(--text-primary); font-weight: bold; margin-bottom: 8px;
+}
+body.light-mode .point-name { color: #1a1e2a; }
+
+.point-value {
+  font-family: var(--font-head); font-size: 20px; font-weight: bold;
+  color: var(--accent); margin-bottom: 8px;
+  text-shadow: 0 0 12px var(--accent-glow);
+}
+body.light-mode .point-value { text-shadow: none; }
+
+.point-path {
+  font-family: var(--font-head); font-size: 10px; color: var(--text-muted);
+  word-break: break-all; opacity: 0.7; line-height: 1.4;
+}
+
+/* ─── LOADING / ERROR STATES ────────────────────────────────────────── */
+.loading {
+  text-align: center; padding: 60px 20px;
+  color: var(--text-muted); font-family: var(--font-head);
+  font-size: 13px; letter-spacing: 2px;
+}
+.loading::after { content: ''; animation: dots 1.4s infinite; }
+@keyframes dots { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+
+.error {
+  text-align: center; padding: 40px; margin: 20px;
+  color: var(--red); font-family: var(--font-head); font-size: 13px;
+  background: var(--bg-card); border: 1px solid rgba(255,68,68,0.3);
+  border-radius: var(--radius);
+}
+.no-data {
+  text-align: center; padding: 60px 20px;
+  color: var(--text-muted); font-family: var(--font-head);
+  font-size: 13px; letter-spacing: 1px; font-style: italic;
+}
+
+/* ─── HISTORY MODAL ─────────────────────────────────────────────────── */
+.history-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 500;
+}
+.history-modal.show {
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.history-content {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 92%; max-width: 1100px;
+  max-height: 88vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,200,255,0.06);
+  animation: slideIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+  overflow: hidden;
+}
+@keyframes slideIn { from{transform:scale(0.92) translateY(20px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+
+.history-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0,200,255,0.04); flex-shrink: 0;
+  position: relative; overflow: hidden;
+}
+.history-header::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.history-title {
+  font-family: var(--font-head); font-size: 14px; letter-spacing: 2px;
+  color: var(--accent); text-transform: uppercase; font-weight: normal;
+}
+.close-button {
+  width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); color: var(--text-muted); cursor: pointer;
+  font-size: 18px; display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.close-button:hover { border-color: var(--red); color: var(--red); }
+
+.history-body { padding: 24px; overflow-y: auto; flex: 1; }
+.history-body::-webkit-scrollbar { width: 6px; }
+.history-body::-webkit-scrollbar-track { background: transparent; }
+.history-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* point info strip */
+.point-info {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;
+}
+.point-info-name {
+  font-family: var(--font-head); font-size: 15px; color: var(--accent);
+  font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.point-info-path { font-family: var(--font-head); font-size: 11px; color: var(--text-muted); word-break: break-all; }
+
+/* controls row */
+.history-controls {
+  display: flex; gap: 14px; margin-bottom: 20px;
+  align-items: flex-end; flex-wrap: wrap;
+}
+.date-control { display: flex; flex-direction: column; gap: 5px; }
+.date-control label { font-family: var(--font-head); font-size: 10px; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
+.date-picker {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-primary); padding: 8px 12px;
+  font-family: var(--font-head); font-size: 12px; outline: none; transition: var(--transition);
+}
+.date-picker:focus, .date-picker:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.date-picker::-webkit-calendar-picker-indicator { filter: invert(0.6) sepia(1) hue-rotate(160deg); cursor: pointer; }
+body.light-mode .date-picker::-webkit-calendar-picker-indicator { filter: invert(0.3) sepia(1) hue-rotate(320deg); }
+
+.load-button, .export-button, #toggle-history-view-btn {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-muted); padding: 8px 18px;
+  font-family: var(--font-head); font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition); white-space: nowrap;
+  align-self: flex-end;
+}
+.load-button:hover, .export-button:hover, #toggle-history-view-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: var(--bg-card-hover); box-shadow: 0 0 12px var(--accent-glow);
+}
+.load-button:disabled, .export-button:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+.export-buttons { display: flex; gap: 8px; align-self: flex-end; }
+
+/* stats row */
+.history-stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-box {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 18px;
+  text-align: center; flex: 1; min-width: 110px;
+  transition: var(--transition);
+}
+.stat-box:hover { border-color: var(--accent); }
+.stat-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+.stat-value { font-family: var(--font-head); font-size: 20px; font-weight: bold; color: var(--accent); }
+body.light-mode .stat-value { color: var(--accent); }
+
+/* history table */
+.history-table { width: 100%; border-collapse: collapse; font-family: var(--font-head); font-size: 13px; margin-top: 8px; }
+.history-table thead tr { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); }
+body.light-mode .history-table thead tr { background: rgba(220,20,60,0.04); }
+.history-table th {
+  padding: 12px 16px; font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); font-weight: normal; text-align: left; position: sticky; top: 0;
+  background: var(--bg-panel);
+}
+.history-table td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #ffffff; font-weight: bold; }
+body.light-mode .history-table td { color: #0d1117; }
+.history-table tr:hover td { background: rgba(0,200,255,0.05); }
+body.light-mode .history-table tr:hover td { background: rgba(220,20,60,0.04); }
+
+/* graph wrapper */
+.history-graph-wrapper { width: 100%; overflow: hidden; border-radius: 8px; }
+#history-graph-canvas { display: block; border-radius: 8px; }
+
+/* modal state messages */
+.history-loading { text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-head); font-size: 12px; letter-spacing: 2px; }
+.history-error { color: var(--red); text-align: center; padding: 30px; background: var(--bg-card); border: 1px solid rgba(255,68,68,0.3); border-radius: 8px; font-family: var(--font-head); font-size: 12px; }
+.history-no-data { text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; font-style: italic; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: rgba(13,17,23,0.97); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 50px; flex-shrink: 0; position: relative;
+}
+body.light-mode .bottom-bar { background: rgba(255,255,255,0.97); box-shadow: 0 -1px 12px rgba(0,0,0,0.06); }
+.bottom-bar::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.back-btn, .logoff-btn {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text-muted); padding: 6px 16px; cursor: pointer;
+  font-size: 13px; font-family: var(--font-head); letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px; transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+.datetime-display { font-family: var(--font-head); font-size: 13px; color: var(--text-muted); letter-spacing: 1px; }
+
+/* ─── SCROLLBAR GLOBAL ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ────────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="nav-image-grid">
+
+    <a href="../../Home.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Home</span>
+        <span class="nav-btn-sublabel">Main dashboard</span>
+      </div>
+    </a>
+
+    <a href="../../FloorPlan.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Floor Plan</span>
+        <span class="nav-btn-sublabel">Building layout</span>
+      </div>
+    </a>
+
+    <a href="../../Alarms.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Alarming</span>
+        <span class="nav-btn-sublabel">System alerts</span>
+      </div>
+    </a>
+
+    <a href="../../Users.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Users</span>
+        <span class="nav-btn-sublabel">Manage access</span>
+      </div>
+    </a>
+
+    <a href="../../LogsNUMERIC.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Histories</span>
+        <span class="nav-btn-sublabel">Data logs</span>
+      </div>
+    </a>
+
+    <a href="../../Shedules.html" class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Schedules</span>
+        <span class="nav-btn-sublabel">Time programs</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">FTU Point Display</span>
+  </div>
+  <div class="top-right">
+    <div class="theme-toggle-wrap">
+      <span class="theme-label">Light</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── UNIT FILTER BAR ──────────────────────────────────────────────── -->
+<div class="unit-filter-bar" id="unitFilterBar" style="display:none;">
+  <span class="unit-filter-label">💨 Filter Unit</span>
+
+  <div class="unit-dropdown-wrap" id="unitDropdownWrap">
+    <div class="unit-dropdown-trigger" id="unitDropdownTrigger" onclick="toggleUnitDropdown()">
+      <span class="unit-dropdown-icon">📋</span>
+      <span class="unit-dropdown-selected" id="unitDropdownSelected">All Units</span>
+      <span class="unit-dropdown-badge" id="unitDropdownBadge">ALL</span>
+      <svg class="unit-dropdown-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="4,6 8,10 12,6"/>
+      </svg>
+    </div>
+    <div class="unit-dropdown-panel" id="unitDropdownPanel">
+      <div class="unit-search-wrap">
+        <span class="unit-search-icon">🔍</span>
+        <input type="text" class="unit-search-input" id="unitSearchInput"
+               placeholder="Search units..." oninput="filterUnitList(this.value)">
+      </div>
+      <div class="unit-dropdown-list" id="unitDropdownList"></div>
+    </div>
+  </div>
+
+  <span class="unit-filter-count" id="unitFilterCount"></span>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="page-heading">
+    <div class="line"></div>
+    <h2>Real-Time FTU Point Monitoring</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+  <div id="main-content">
+    <div class="loading">Scanning FTU points</div>
+  </div>
+</div>
+
+<!-- ─── HISTORY MODAL ────────────────────────────────────────────────── -->
+<div id="history-modal" class="history-modal">
+  <div class="history-content">
+    <div class="history-header">
+      <div class="history-title">Point History</div>
+      <button class="close-button" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div class="history-body">
+      <div class="point-info">
+        <div class="point-info-name" id="modal-point-name">Loading...</div>
+        <div class="point-info-path" id="modal-point-path">Loading...</div>
+      </div>
+
+      <div class="history-controls">
+        <div class="date-control">
+          <label for="modal-start-date">Start Date</label>
+          <input type="date" id="modal-start-date" class="date-picker">
+        </div>
+        <div class="date-control">
+          <label for="modal-end-date">End Date</label>
+          <input type="date" id="modal-end-date" class="date-picker">
+        </div>
+        <div class="export-buttons">
+          <button class="export-button" id="export-pdf-btn" onclick="exportToPDF()" disabled>📄 Export PDF</button>
+          <button id="toggle-history-view-btn" onclick="toggleHistoryView()">📊 Graph View</button>
+        </div>
+        <button class="load-button" onclick="loadModalHistory()">Load History</button>
+      </div>
+
+      <div id="history-data-content">
+        <div class="history-loading">Select date range and click "Load History"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- THEME -->
+<script>
+function toggleTheme() {
+  const checkbox = document.getElementById('themeSwitch');
+  document.body.classList.toggle('light-mode', checkbox.checked);
+  localStorage.setItem('theme', checkbox.checked ? 'light' : 'dark');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const saved = localStorage.getItem('theme');
+  const checkbox = document.getElementById('themeSwitch');
+  if (saved === 'light') { document.body.classList.add('light-mode'); checkbox.checked = true; }
+});
+</script>
+
+<!-- FADE -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime(); setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function() {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = '../../LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('username');
+  window.location.href = '../../LOGIN/Login.html';
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger = document.getElementById('hamburgerMenu');
+  const sidePanel = document.getElementById('sidePanel');
+  const overlay   = document.getElementById('overlay');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+  });
+  overlay.addEventListener('click', () => {
+    hamburger.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+  });
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  ALL ORIGINAL FTU POINT DISPLAY FUNCTIONALITY — UNCHANGED          -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+// Global variables
+let pointSubscriptions = [];
+let pointValues = {};
+let allFTUPoints = {};
+let subscriber;
+let currentHistoryPoint = null;
+let historyCache = new Map();
+let currentHistoryData = null;
+let currentHistoryStats = null;
+const plottedPoints = [];
+let historyViewMode = 'table';
+let currentHistoryTableHTML = '';
+
+// ─── UNIT FILTER STATE ──────────────────────────────────────────────
+let activeUnitFilter = 'all';
+let allUnitNames = [];
+
+// ─── EXCLUDED POINT NAMES ───────────────────────────────────────────
+const EXCLUDED_POINT_NAMES = ['note1', 'note2', 'note3', 'stringwritable'];
+
+function isExcludedPoint(pointName) {
+  if (!pointName) return false;
+  return EXCLUDED_POINT_NAMES.includes(pointName.toLowerCase());
+}
+
+// ─── DROPDOWN TOGGLE ────────────────────────────────────────────────
+function toggleUnitDropdown() {
+  const trigger = document.getElementById('unitDropdownTrigger');
+  const panel   = document.getElementById('unitDropdownPanel');
+  const search  = document.getElementById('unitSearchInput');
+  const isOpen  = panel.classList.contains('open');
+  if (isOpen) {
+    closeUnitDropdown();
+  } else {
+    trigger.classList.add('open');
+    panel.classList.add('open');
+    search.value = '';
+    filterUnitList('');
+    setTimeout(() => search.focus(), 50);
+  }
+}
+
+function closeUnitDropdown() {
+  document.getElementById('unitDropdownTrigger').classList.remove('open');
+  document.getElementById('unitDropdownPanel').classList.remove('open');
+}
+
+// Close when clicking outside
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('unitDropdownWrap');
+  if (wrap && !wrap.contains(e.target)) closeUnitDropdown();
+});
+
+// ─── BUILD DROPDOWN LIST ─────────────────────────────────────────────
+function buildUnitFilter(FTUData) {
+  allUnitNames = Object.keys(FTUData).sort();
+  const filterBar = document.getElementById('unitFilterBar');
+  if (allUnitNames.length === 0) return;
+  filterBar.style.display = 'flex';
+  renderUnitList(allUnitNames);
+  updateUnitFilterCount(allUnitNames.length);
+}
+
+function renderUnitList(names) {
+  const list = document.getElementById('unitDropdownList');
+  const total = Object.keys(allFTUPoints).length;
+
+  let html = `<div class="unit-dropdown-item ${activeUnitFilter === 'all' ? 'selected' : ''}"
+    onclick="selectUnit('all')">
+    <span class="unit-dropdown-item-dot"></span>
+    All Units
+    <span class="unit-dropdown-item-count">${total}</span>
+  </div>`;
+
+  if (names.length === 0) {
+    html += `<div class="unit-dropdown-no-results">No units match</div>`;
+  } else {
+    names.forEach(name => {
+      const display = decodeDisplayName(name).replace(/_/g, ' ');
+      const count = allFTUPoints[name]?.length || 0;
+      const sel = activeUnitFilter === name ? 'selected' : '';
+      html += `<div class="unit-dropdown-item ${sel}" onclick="selectUnit('${name}')">
+        <span class="unit-dropdown-item-dot"></span>
+        ${display}
+        <span class="unit-dropdown-item-count">${count} pts</span>
+      </div>`;
+    });
+  }
+  list.innerHTML = html;
+}
+
+function filterUnitList(query) {
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? allUnitNames.filter(n => decodeDisplayName(n).toLowerCase().includes(q))
+    : allUnitNames;
+  renderUnitList(filtered);
+}
+
+// ─── SELECT A UNIT ───────────────────────────────────────────────────
+function selectUnit(unitKey) {
+  activeUnitFilter = unitKey;
+  closeUnitDropdown();
+
+  // Update trigger label & badge
+  const selectedEl = document.getElementById('unitDropdownSelected');
+  const badgeEl    = document.getElementById('unitDropdownBadge');
+  if (unitKey === 'all') {
+    selectedEl.textContent = 'All Units';
+    badgeEl.textContent = 'ALL';
+  } else {
+    const display = decodeDisplayName(unitKey).replace(/_/g, ' ');
+    selectedEl.textContent = display;
+    badgeEl.textContent = '1';
+  }
+
+  // Show/hide FTU containers
+  const containers = document.querySelectorAll('.FTU-container[data-ftu-name]');
+  const total = allUnitNames.length;
+  let visible = 0;
+  containers.forEach(container => {
+    const name = container.dataset.ftuName;
+    const show = (unitKey === 'all' || name === unitKey);
+    container.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+
+  // Re-render list to reflect new selection
+  filterUnitList(document.getElementById('unitSearchInput').value || '');
+
+  // Update count
+  if (unitKey === 'all') {
+    updateUnitFilterCount(total);
+  } else {
+    document.getElementById('unitFilterCount').textContent = `Showing 1 of ${total} units`;
+  }
+}
+
+// kept for legacy calls
+function setUnitFilter(unitKey) { selectUnit(unitKey); }
+
+function updateUnitFilterCount(total) {
+  document.getElementById('unitFilterCount').textContent = `${total} unit${total !== 1 ? 's' : ''} total`;
+}
+
+function decodeDisplayName(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str.replace(/\$20/g, ' ').replace(/\$2[dD]/g, '-');
+}
+
+function toggleHistoryView() {
+    if (!currentHistoryData) return;
+    historyViewMode = historyViewMode === 'table' ? 'graph' : 'table';
+    const btn = document.getElementById('toggle-history-view-btn');
+    btn.textContent = historyViewMode === 'table' ? '📊 Graph View' : '📋 Table View';
+    renderHistoryView();
+}
+
+function renderHistoryView() {
+    if (!currentHistoryData || !currentHistoryPoint) return;
+    if (historyViewMode === 'table') {
+        document.getElementById('history-data-content').innerHTML = currentHistoryTableHTML;
+    } else {
+        renderHistoryGraphView();
+    }
+}
+
+function renderHistoryGraphView() {
+    const container = document.getElementById('history-data-content');
+    container.innerHTML = `<div class="history-graph-wrapper"><canvas id="history-graph-canvas"></canvas></div>`;
+    const canvas = document.getElementById('history-graph-canvas');
+    const unit = currentHistoryPoint.type === 'numeric' ? extractDataUnit(currentHistoryPoint.displayName) : '';
+    drawHistoryGraph(canvas, currentHistoryData, currentHistoryPoint.displayName, unit);
+}
+
+function drawHistoryGraph(canvas, data, label, unit) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const height = 360;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const padding = { top: 40, right: 30, bottom: 60, left: 70 };
+    const gw = width - padding.left - padding.right;
+    const gh = height - padding.top - padding.bottom;
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    if (!data.length) {
+        ctx.fillStyle = '#888'; ctx.font = '16px Arial';
+        ctx.textAlign = 'center'; ctx.fillText('No data', width / 2, height / 2);
+        return;
+    }
+
+    const localPlottedPoints = [];
+    const values = data.map(d => typeof d.value === 'boolean' ? (d.value ? 1 : 0) : d.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const xScale = i => padding.left + (i / (data.length - 1)) * gw;
+    const yScale = v => padding.top + gh - ((v - min) / range) * gh;
+
+    ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+        const y = padding.top + (gh / 5) * i;
+        ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(padding.left + gw, y); ctx.stroke();
+        const val = max - (range / 5) * i;
+        ctx.fillStyle = '#666'; ctx.font = '12px Arial'; ctx.textAlign = 'right';
+        ctx.fillText(val.toFixed(1) + (unit ? ' ' + unit : ''), padding.left - 8, y + 4);
+    }
+
+    const startTime = data[0].timestamp.getTime();
+    const endTime = data[data.length - 1].timestamp.getTime();
+    const rangeHours = (endTime - startTime) / (1000 * 60 * 60);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#666'; ctx.font = '11px Arial';
+    for (let i = 0; i < 6; i++) {
+        const idx = Math.floor((i / 5) * (data.length - 1));
+        const x = xScale(idx);
+        const ts = data[idx].timestamp;
+        let lbl;
+        if (rangeHours <= 24) lbl = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        else if (rangeHours <= 168) lbl = ts.toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        else lbl = ts.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+        ctx.fillText(lbl, x, height - 25);
+    }
+
+    ctx.strokeStyle = '#26c6da'; ctx.lineWidth = 2.5; ctx.beginPath();
+    data.forEach((p, i) => {
+        const v = typeof p.value === 'boolean' ? (p.value ? 1 : 0) : p.value;
+        const x = xScale(i); const y = yScale(v);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        localPlottedPoints.push({ x, y, value: p.value, timestamp: p.timestamp });
+    });
+    ctx.stroke();
+
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, padding.top + gh); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(padding.left, padding.top + gh); ctx.lineTo(padding.left + gw, padding.top + gh); ctx.stroke();
+
+    ctx.fillStyle = '#1e3c72'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+    ctx.fillText(label, width / 2, 24);
+
+    canvas.onmousemove = e => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+        let closest = null; let minDist = 8;
+        localPlottedPoints.forEach(p => {
+            const d = Math.hypot(mx - p.x, my - p.y);
+            if (d < minDist) { minDist = d; closest = p; }
+        });
+        if (!closest) { drawHistoryGraph(canvas, data, label, unit); canvas.style.cursor = 'default'; return; }
+        canvas.style.cursor = 'pointer';
+        drawHistoryGraph(canvas, data, label, unit);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath();
+        ctx.moveTo(closest.x, padding.top); ctx.lineTo(closest.x, padding.top + gh); ctx.stroke();
+        ctx.fillStyle = '#ff7043'; ctx.beginPath(); ctx.arc(closest.x, closest.y, 6, 0, Math.PI * 2); ctx.fill();
+        const valueText = typeof closest.value === 'boolean'
+            ? (closest.value ? 'TRUE' : 'FALSE')
+            : closest.value.toFixed(2) + (unit ? ' ' + unit : '');
+        drawTooltip(ctx, closest.x + 10, closest.y - 10, `${closest.timestamp.toLocaleString()}\nValue: ${valueText}`);
+    };
+}
+
+function drawTooltip(ctx, x, y, text) {
+    const pad = 8; const lineHeight = 14; const maxWidth = 200;
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    words.forEach(word => {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        const testWidth = ctx.measureText(testLine).width;
+        if (testWidth + pad * 2 > maxWidth) { if (currentLine) lines.push(currentLine); currentLine = word; }
+        else { currentLine = testLine; }
+    });
+    if (currentLine) lines.push(currentLine);
+    const w = Math.min(maxWidth, Math.max(...lines.map(l => ctx.measureText(l).width)) + pad * 2);
+    const h = lines.length * lineHeight + pad * 2;
+    if (x + w > ctx.canvas.width) x = ctx.canvas.width - w - 5;
+    if (y - h < 0) y = h + 5;
+    ctx.fillStyle = 'rgba(50,50,50,0.9)'; ctx.fillRect(x, y - h, w, h);
+    ctx.fillStyle = '#fff';
+    lines.forEach((line, i) => { ctx.fillText(line, x + pad, y - h + pad + (i + 1) * lineHeight - 4); });
+}
+
+function isAuthorizedUser() {
+    const username = 'murphy';
+    if (!username) return false;
+    const authorizedUsers = ['murphy', 'admin'];
+    return authorizedUsers.includes(username.toLowerCase());
+}
+
+if (!isAuthorizedUser()) {
+    document.getElementById('main-content').innerHTML = '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+    throw new Error('Unauthorized access');
+}
+
+function initializeDateInputs() {
+    const endDate = new Date(); const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 1);
+    document.getElementById('modal-start-date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('modal-end-date').value = endDate.toISOString().split('T')[0];
+}
+
+function getPointTypeClass(pointId) {
+    if (pointId === 'SP-Numeric') return 'type-numeric';
+    if (pointId === 'SP-Boolean') return 'type-boolean';
+    return 'type-other';
+}
+
+function formatPointValue(value, pointId) {
+    if (value === null || value === undefined) return 'No Data';
+    if (pointId === 'SP-Boolean') return value ? 'TRUE' : 'FALSE';
+    else if (pointId === 'SP-Numeric') return typeof value === 'number' ? value.toFixed(2) : value.toString();
+    return value.toString();
+}
+
+function updatePointValue(FTUName, pointName, value) {
+    const elementId = `point-${FTUName}-${pointName}`;
+    const valueElement = document.getElementById(elementId);
+    if (valueElement) {
+        const pointInfo = getAllFTUPoints()[FTUName]?.find(p => p.name === pointName);
+        const formattedValue = formatPointValue(value, pointInfo?.id);
+        valueElement.textContent = formattedValue;
+        if (!pointValues[FTUName]) pointValues[FTUName] = {};
+        pointValues[FTUName][pointName] = value;
+    }
+}
+
+function getAllFTUPoints() { return allFTUPoints; }
+
+try {
+    require(['baja!'], function(baja) {
+        subscriber = new baja.Subscriber();
+        subscriber.attach('changed', function(prop) {
+            if (prop.getName() === 'out') {
+                const pointInfo = this.userData;
+                if (pointInfo) {
+                    const out = this.getOut();
+                    const displayValue = out.getValueDisplay();
+                    const isOverridden = this.getStatus().isOverridden();
+                    updatePointValueWithStatus(pointInfo.FTUName, pointInfo.pointName, displayValue, isOverridden, pointInfo.pointType);
+                }
+            }
+        });
+    });
+} catch (error) { console.error('Failed to initialize subscriber:', error); }
+
+function updatePointValueWithStatus(FTUName, pointName, displayValue, isOverridden, pointType) {
+    const elementId = `point-${FTUName}-${pointName}`;
+    const valueElement = document.getElementById(elementId);
+    if (valueElement) {
+        if (isOverridden) {
+            valueElement.textContent = `${displayValue} (Override)`;
+            valueElement.style.color = '#a78bfa';
+            valueElement.style.fontWeight = 'bold';
+        } else {
+            valueElement.textContent = displayValue;
+            if (pointType === 'boolean') {
+                const displayLower = String(displayValue).toLowerCase();
+                const isTrueValue = displayLower === 'true' || displayLower.includes('on') ||
+                    displayLower.includes('active') || displayLower.includes('enabled') || displayValue === true;
+                valueElement.style.color = isTrueValue ? 'var(--green)' : 'var(--red)';
+            } else {
+                valueElement.style.color = 'var(--accent)';
+            }
+            valueElement.style.fontWeight = 'bold';
+        }
+        if (!pointValues[FTUName]) pointValues[FTUName] = {};
+        pointValues[FTUName][pointName] = displayValue;
+    }
+}
+
+function subscribeToPoint(FTUName, pointName, pointPath, pointType) {
+    try {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                .then(point => {
+                    point.userData = { FTUName, pointName, pointPath, pointType };
+                    const out = point.getOut();
+                    const displayValue = out.getValueDisplay();
+                    const isOverridden = point.getStatus().isOverridden();
+                    updatePointValueWithStatus(FTUName, pointName, displayValue, isOverridden, pointType);
+                })
+                .catch(error => { updatePointValue(FTUName, pointName, 'Connection Error'); });
+        });
+    } catch (error) {
+        setTimeout(() => { updatePointValue(FTUName, pointName, (Math.random() * 100).toFixed(2)); }, Math.random() * 2000);
+    }
+}
+
+function showHistoryModal(pointPath, pointName, FTUName, pointType) {
+    currentHistoryPoint = {
+        path: pointPath, name: pointName, FTUName, type: pointType,
+        displayName: `${decodeDisplayName(FTUName)} - ${decodeDisplayName(pointName)}`
+    };
+    currentHistoryData = null; currentHistoryStats = null;
+    document.getElementById('modal-point-name').textContent = decodeDisplayName(currentHistoryPoint.displayName);
+    document.getElementById('modal-point-path').textContent = decodeDisplayName(pointPath);
+    document.getElementById('history-data-content').innerHTML = '<div class="history-loading">Select date range and click "Load History"</div>';
+    document.getElementById('export-pdf-btn').disabled = true;
+    document.getElementById('history-modal').classList.add('show');
+}
+
+function closeHistoryModal() {
+    document.getElementById('history-modal').classList.remove('show');
+    currentHistoryPoint = null; currentHistoryData = null; currentHistoryStats = null;
+}
+
+async function discoverHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        try {
+            require(['baja!'], function(baja) {
+                baja.Ord.make(pointOrd).get()
+                    .then(entity => entity.tags())
+                    .then(tagMap => {
+                        const historyTag = tagMap.get('n:history');
+                        if (historyTag && historyTag.toString().trim() !== '') {
+                            let historyPath = historyTag.toString();
+                            if (!historyPath.startsWith('history:')) historyPath = 'history:' + historyPath;
+                            resolve(historyPath);
+                        } else { reject(new Error('No n:history tag found on point: ' + pointOrd)); }
+                    })
+                    .catch(err => reject(new Error('Failed to load point tags: ' + err.message)));
+            });
+        } catch (error) { reject(error); }
+    });
+}
+
+async function loadHistoryDataForPoint(pointPath, startTime, endTime, pointType, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const cacheKey = pointPath;
+            let historyOrd = historyCache.get(cacheKey);
+            if (!historyOrd) {
+                try { historyOrd = await discoverHistoryOrd(pointPath); historyCache.set(cacheKey, historyOrd); }
+                catch (error) { resolve([]); return; }
+            }
+            require(['baja!'], function(baja) {
+                const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+                const bqlQuery = historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+                const dataPoints = [];
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function() {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            const date = new Date(rawTimestamp.getMillis());
+                            let processedValue;
+                            if (pointType === 'boolean') {
+                                processedValue = value === true || value === 'true' || value === 1 || value === '1';
+                            } else {
+                                processedValue = parseFloat(value);
+                                if (isNaN(processedValue)) return;
+                            }
+                            dataPoints.push({ timestamp: date, timestampString: date.toLocaleString(), value: processedValue });
+                        }
+                    }
+                })
+                .then(() => resolve(dataPoints))
+                .catch(err => reject(new Error('Failed to load history data: ' + err.message)));
+            });
+        } catch (error) { reject(error); }
+    });
+}
+
+function extractDataUnit(pointNameOrOrd) {
+    if (!pointNameOrOrd) return '';
+    const name = pointNameOrOrd.toLowerCase();
+    if (name.includes('temp') || name.includes('temperature') || name.includes('dischargeairtemp')) return '°F';
+    if (name.includes('flow') || name.includes('airflow') || name.includes('air-flow')) return 'CFM';
+    if (name.includes('pressure')) return 'PSI';
+    if (name.includes('humidity')) return '%';
+    if (name.includes('percent') || name.includes('pct')) return '%';
+    if (name.includes('speed')) return '%';
+    if (name.includes('power')) return 'kW';
+    if (name.includes('current')) return 'A';
+    if (name.includes('voltage')) return 'V';
+    if (name.includes('frequency') || name.includes('freq')) return 'Hz';
+    if (name.includes('static')) return 'in/wc';
+    return '';
+}
+
+async function loadModalHistory() {
+    if (!currentHistoryPoint) return;
+    const historyContent = document.getElementById('history-data-content');
+    historyContent.innerHTML = '<div class="history-loading">Loading historical data...</div>';
+    document.getElementById('export-pdf-btn').disabled = true;
+    try {
+        const startDateStr = document.getElementById('modal-start-date').value;
+        const endDateStr = document.getElementById('modal-end-date').value;
+        if (!startDateStr || !endDateStr) throw new Error('Please select both start and end dates');
+        const startDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr + 'T23:59:59');
+        const historyData = await loadHistoryDataForPoint(currentHistoryPoint.path, startDate, endDate, currentHistoryPoint.type, 10000);
+        if (historyData.length === 0) {
+            historyContent.innerHTML = '<div class="history-no-data">No historical data found for the selected date range.</div>';
+            return;
+        }
+        currentHistoryData = historyData;
+        let stats;
+        if (currentHistoryPoint.type === 'boolean') {
+            const trueCount = historyData.filter(d => d.value === true).length;
+            const falseCount = historyData.length - trueCount;
+            stats = { count: historyData.length, trueCount, falseCount, truePercent: ((trueCount / historyData.length) * 100).toFixed(1) };
+        } else {
+            const values = historyData.map(d => d.value);
+            stats = { count: values.length, min: Math.min(...values), max: Math.max(...values), avg: values.reduce((a, b) => a + b, 0) / values.length };
+        }
+        currentHistoryStats = stats;
+        const unit = currentHistoryPoint.type === 'numeric' ? extractDataUnit(currentHistoryPoint.displayName) : '';
+
+        let html = '<div class="history-stats">';
+        html += `<div class="stat-box"><div class="stat-label">Count</div><div class="stat-value">${stats.count}</div></div>`;
+        if (currentHistoryPoint.type === 'boolean') {
+            html += `<div class="stat-box"><div class="stat-label">TRUE Count</div><div class="stat-value">${stats.trueCount}</div></div>
+                     <div class="stat-box"><div class="stat-label">FALSE Count</div><div class="stat-value">${stats.falseCount}</div></div>
+                     <div class="stat-box"><div class="stat-label">TRUE %</div><div class="stat-value">${stats.truePercent}%</div></div>`;
+        } else {
+            html += `<div class="stat-box"><div class="stat-label">Minimum</div><div class="stat-value">${stats.min.toFixed(2)} ${unit}</div></div>
+                     <div class="stat-box"><div class="stat-label">Maximum</div><div class="stat-value">${stats.max.toFixed(2)} ${unit}</div></div>
+                     <div class="stat-box"><div class="stat-label">Average</div><div class="stat-value">${stats.avg.toFixed(2)} ${unit}</div></div>`;
+        }
+        html += '</div>';
+        html += `<table class="history-table"><thead><tr><th>Timestamp</th><th>Value</th></tr></thead><tbody>`;
+        const displayData = historyData.slice(-100).reverse();
+        displayData.forEach(point => {
+            let displayValue;
+            if (currentHistoryPoint.type === 'boolean') {
+                displayValue = `<span style="color:${point.value ? 'var(--green)' : 'var(--red)'};font-weight:bold;">${point.value ? 'TRUE' : 'FALSE'}</span>`;
+            } else { displayValue = `${point.value.toFixed(2)} ${unit}`; }
+            html += `<tr><td>${point.timestampString}</td><td>${displayValue}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        if (historyData.length > 300) {
+            html += `<div style="text-align:center;margin-top:20px;color:var(--text-muted);font-family:var(--font-head);font-size:11px;letter-spacing:1px;">Showing most recent 300 of ${historyData.length} records</div>`;
+        }
+        currentHistoryTableHTML = html;
+        historyViewMode = 'table';
+        document.getElementById('toggle-history-view-btn').textContent = '📊 Graph View';
+        renderHistoryView();
+        document.getElementById('export-pdf-btn').disabled = false;
+    } catch (error) {
+        console.error('Error loading history data:', error);
+        historyContent.innerHTML = `<div class="history-error">Error loading history: ${error.message}</div>`;
+    }
+}
+
+function exportToPDF() {
+    if (!currentHistoryData || !currentHistoryPoint) { alert('No data to export'); return; }
+    const unit = currentHistoryPoint.type === 'numeric' ? extractDataUnit(currentHistoryPoint.displayName) : '';
+    const printWindow = window.open('', '_blank');
+    let pdfContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Point History - ${decodeDisplayName(currentHistoryPoint.displayName)}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:20mm;font-size:11pt;color:black;}
+.header{text-align:center;margin-bottom:30px;border-bottom:3px solid #1e3c72;padding-bottom:15px;}
+.header h1{color:#1e3c72;font-size:24pt;margin-bottom:5px;}.header p{color:#546e7a;font-size:10pt;}
+.info-section{background:#f5f5f5;padding:15px;margin-bottom:20px;border-radius:5px;}
+.info-row{display:flex;margin-bottom:8px;}.info-label{font-weight:bold;width:150px;color:#37474f;}.info-value{color:#546e7a;}
+.stats-section{margin-bottom:25px;}.stats-section h2{color:#1e3c72;font-size:16pt;margin-bottom:15px;border-bottom:2px solid #26c6da;padding-bottom:5px;}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;}
+.stat-box{background:#263238;color:white;padding:15px;border-radius:5px;}.stat-label{font-size:9pt;opacity:0.8;margin-bottom:5px;}.stat-value{font-size:18pt;font-weight:bold;color:#26c6da;}
+.data-section{margin-top:25px;}.data-section h2{color:#1e3c72;font-size:16pt;margin-bottom:15px;border-bottom:2px solid #26c6da;padding-bottom:5px;}
+table{width:100%;border-collapse:collapse;margin-bottom:20px;}table thead{background:#263238;color:white;}
+table th{padding:10px;text-align:left;font-weight:bold;}table td{padding:8px 10px;border-bottom:1px solid #e0e0e0;}
+table tbody tr:nth-child(even){background:#f5f5f5;}.value-true{color:#2ecc71;font-weight:bold;}.value-false{color:#e74c3c;font-weight:bold;}
+.footer{margin-top:30px;text-align:center;color:#90a4ae;font-size:9pt;border-top:1px solid #e0e0e0;padding-top:10px;}
+@media print{body{padding:10mm;}.no-print{display:none;}}</style></head><body>
+<div class="header"><h1>${decodeDisplayName(currentHistoryPoint.displayName)} Logged Data</h1><p>FTU Point Display System</p></div>
+<div class="info-section">
+<div class="info-row"><div class="info-label">Point Name:</div><div class="info-value">${decodeDisplayName(currentHistoryPoint.path)}</div></div>
+<div class="info-row"><div class="info-label">Point Path:</div><div class="info-value">${currentHistoryPoint.path}</div></div>
+<div class="info-row"><div class="info-label">Point Type:</div><div class="info-value">${currentHistoryPoint.type.toUpperCase()}</div></div>
+<div class="info-row"><div class="info-label">Export Date:</div><div class="info-value">${new Date().toLocaleString()}</div></div>
+<div class="info-row"><div class="info-label">Date Range:</div><div class="info-value">${document.getElementById('modal-start-date').value} to ${document.getElementById('modal-end-date').value}</div></div>
+</div>
+<div class="stats-section"><h2>Statistics</h2><div class="stats-grid">
+<div class="stat-box"><div class="stat-label">Total Records</div><div class="stat-value">${currentHistoryStats.count}</div></div>`;
+    if (currentHistoryPoint.type === 'boolean') {
+        pdfContent += `<div class="stat-box"><div class="stat-label">TRUE Count</div><div class="stat-value">${currentHistoryStats.trueCount}</div></div>
+<div class="stat-box"><div class="stat-label">FALSE Count</div><div class="stat-value">${currentHistoryStats.falseCount}</div></div>
+<div class="stat-box"><div class="stat-label">TRUE Percentage</div><div class="stat-value">${currentHistoryStats.truePercent}%</div></div>`;
+    } else {
+        pdfContent += `<div class="stat-box"><div class="stat-label">Minimum</div><div class="stat-value">${currentHistoryStats.min.toFixed(2)} ${unit}</div></div>
+<div class="stat-box"><div class="stat-label">Maximum</div><div class="stat-value">${currentHistoryStats.max.toFixed(2)} ${unit}</div></div>
+<div class="stat-box"><div class="stat-label">Average</div><div class="stat-value">${currentHistoryStats.avg.toFixed(2)} ${unit}</div></div>`;
+    }
+    pdfContent += `</div></div><div class="data-section"><h2>Historical Data</h2>
+<table><thead><tr><th>Timestamp</th><th>Value${unit ? ' (' + unit + ')' : ''}</th></tr></thead><tbody>`;
+    const maxRows = 500;
+    const dataToShow = currentHistoryData.slice(-maxRows).reverse();
+    dataToShow.forEach(point => {
+        let valueHtml;
+        if (currentHistoryPoint.type === 'boolean') {
+            const className = point.value ? 'value-true' : 'value-false';
+            valueHtml = `<span class="${className}">${point.value ? 'TRUE' : 'FALSE'}</span>`;
+        } else { valueHtml = point.value.toFixed(2); }
+        pdfContent += `<tr><td>${point.timestampString}</td><td>${valueHtml}</td></tr>`;
+    });
+    if (currentHistoryData.length > maxRows) {
+        pdfContent += `</tbody></table><p style="text-align:center;color:#90a4ae;font-size:10pt;">Showing most recent ${maxRows} of ${currentHistoryData.length} records</p>`;
+    } else { pdfContent += `</tbody></table>`; }
+    pdfContent += `</div><div class="footer"><p>Point Information Provided By Murphy Company - ${new Date().toLocaleString()}</p><p>Page 1 of 1</p></div>
+<div class="no-print" style="position:fixed;top:10px;right:10px;">
+<button onclick="window.print()" style="padding:10px 20px;background:#26c6da;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">Print / Save as PDF</button>
+<button onclick="window.close()" style="padding:10px 20px;background:#546e7a;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">Close</button>
+</div></body></html>`;
+    printWindow.document.write(pdfContent); printWindow.document.close();
+}
+
+function createFTUDisplay(FTUData) {
+    const mainContent = document.getElementById('main-content');
+    if (Object.keys(FTUData).length === 0) {
+        mainContent.innerHTML = '<div class="no-data">No FTU configurations found in JSON file.</div>';
+        return;
+    }
+    let html = '';
+    const sortedFTUNames = Object.keys(FTUData).sort();
+    sortedFTUNames.forEach(FTUName => {
+        const points = FTUData[FTUName];
+        html += `<div class="FTU-container" data-ftu-name="${FTUName}">
+            <div class="FTU-header">
+                <div class="FTU-header-icon">💨</div>
+                <span class="FTU-header-title">${decodeDisplayName(FTUName).replace(/_/g, ' ')}</span>
+            </div>
+            <div class="points-grid">`;
+        points.forEach(point => {
+            const pointTypeClass = getPointTypeClass(point.id);
+            const pointId = `point-${FTUName}-${point.name}`;
+            const pointType = point.logNumeric === "yes_Numeric" ? "numeric" : "boolean";
+            const pointTypeText = pointType === 'numeric' ? 'NUMERIC' : 'BOOLEAN';
+            html += `<div class="point-item" onclick="showHistoryModal('${point.fullPath}', '${point.name}', '${FTUName}', '${pointType}')">
+                <div class="point-type ${pointTypeClass}">${pointTypeText}</div>
+                <div class="point-name">${decodeDisplayName(point.name).replace(/_/g, ' ')}</div>
+                <div class="point-value" id="${pointId}">Loading...</div>
+                <div class="point-path">${decodeDisplayName(point.fullPath)}</div>
+            </div>`;
+        });
+        html += `</div></div>`;
+    });
+    mainContent.innerHTML = html;
+
+    // Build the unit filter now that DOM is ready
+    buildUnitFilter(FTUData);
+
+    sortedFTUNames.forEach(FTUName => {
+        const points = FTUData[FTUName];
+        points.forEach(point => {
+            const pointType = point.logNumeric === "yes_Numeric" ? "numeric" : "boolean";
+            subscribeToPoint(FTUName, point.name, point.fullPath, pointType);
+        });
+    });
+}
+
+async function loadAndDisplayFTUPoints() {
+    try {
+        const response = await fetch('../../Global.json');
+        if (!response.ok) throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+        const jsonData = await response.json();
+        const FTUConfigs = {};
+        Object.keys(jsonData.globalVariables).forEach(key => {
+            if (key.toLowerCase().startsWith('ftu') || key.toLowerCase().startsWith('ft')) {
+                const filteredPoints = jsonData.globalVariables[key].points.filter(point =>
+                    (point.logNumeric === "yes_Numeric" || point.logNumeric === "yes_Boolean" ||
+                     point.logNumeric === "no_Numeric"  || point.logNumeric === "no_Boolean") &&
+                    point.status === "connected" &&
+                    !isExcludedPoint(point.name)   // ← exclude Note1/2/3 and StringWritable
+                );
+                if (filteredPoints.length > 0) FTUConfigs[key] = filteredPoints;
+            }
+        });
+        allFTUPoints = FTUConfigs;
+        createFTUDisplay(FTUConfigs);
+    } catch (error) {
+        console.error('Error loading FTU points from JSON:', error);
+        document.getElementById('main-content').innerHTML = `<div class="error">Error loading FTU data: ${error.message}</div>`;
+    }
+}
+
+document.getElementById('history-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeHistoryModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeHistoryModal();
+});
+
+function cleanup() { if (subscriber) subscriber.unsubscribeAll(); }
+window.addEventListener('beforeunload', cleanup);
+
+initializeDateInputs();
+loadAndDisplayFTUPoints();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Niagara Presentation XML -->
+<px version="1.0" media="workbench:WbPxMedia">
+<import>
+  <module name="baja"/>
+  <module name="bajaui"/>
+  <module name="gx"/>
+  <module name="kitPx"/>
+</import>
+<content>
+<ScrollPane>
+
+  <CanvasPane name="content" viewSize="1000.0,800.0" scale="fit" background="black">
+
+    <ImageButton layout="0.0,0.0,1000.0,800.0" text="ALL OVERRIDES" font="bold 50.0pt SansSerif">
+      <ValueBinding ord="slot:" hyperlink="station:|slot:/|bql:select displayName as &#x27;Point Name&#x27;,parent.device.displayName as &#x27;JACE&#x27;,parent.parent.displayName as &#x27;Controller&#x27;,toString as &#x27;Point Status&#x27; from baja:Component where status.overridden = &#x27;true&#x27;"/>
+      <WsAnnotation name="wsAnnotation" value="10,10,8"/>
+    </ImageButton>
+
+    <ValueBinding/>
+
+  </CanvasPane>
+
+</ScrollPane>
+</content>
+</px>
