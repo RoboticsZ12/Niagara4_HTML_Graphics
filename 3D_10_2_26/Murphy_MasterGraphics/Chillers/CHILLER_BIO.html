@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Chiller Monitoring</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body { height: 100%; font-family: var(--font-body); background: var(--bg-deep); color: var(--text-primary); }
+body { display: flex; flex-direction: column; min-height: 100vh; opacity: 0; transition: opacity 0.6s ease; }
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader { position: fixed; inset: 0; background: #000; display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.4s ease; }
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.loader-m { width: 80px; height: 80px; }
+.loader-m path { stroke-dasharray: 500; stroke-dashoffset: 500; animation: drawM 1.6s ease-out forwards, glowPulse 2s ease-in-out infinite 1.6s; }
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+@keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 4px #00A86B); } 50% { filter: drop-shadow(0 0 18px #00ff99); } }
+.loader-clayco-wordmark { font-family: Georgia,'Times New Roman',serif; font-size: clamp(36px,6vw,58px); font-weight: 700; letter-spacing: 6px; color: #D93B2B; text-transform: uppercase; opacity: 0; animation: loaderClaycoIn 0.9s ease-out 0.1s forwards; }
+@keyframes loaderClaycoIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.loader-divider { width: 160px; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent); margin: 12px auto 14px; transform: scaleX(0); animation: loaderDividerIn 0.6s ease-out 0.55s forwards; }
+@keyframes loaderDividerIn { to { transform: scaleX(1); } }
+.loader-murphy-row { display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 0; animation: loaderMurphyIn 0.6s ease-out 0.9s forwards; }
+@keyframes loaderMurphyIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.loader-murphy-row .loader-m { width: 30px; height: 30px; }
+.loader-murphy-row .loader-m path { stroke-dasharray: 500; stroke-dashoffset: 500; animation: drawM 1.0s ease-out 1.15s forwards; }
+.loader-murphy-label { font-family: 'Courier New',Courier,monospace; font-size: 12px; letter-spacing: 3px; color: #888; text-transform: uppercase; }
+.loader-murphy-label strong { color: #00A86B; letter-spacing: 2px; font-weight: normal; }
+.loader-content .loader-text { margin-top: 18px; opacity: 0; animation: loaderMurphyIn 0.5s ease-out 1.4s forwards; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6);  z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 11px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 9px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100;  gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px,0.7vw,11px); letter-spacing: clamp(1px,0.3vw,4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#ahu-header { font-family: var(--font-head); font-size: clamp(12px,1.4vw,18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+.top-right-controls { display: flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls .divider { width: 1px; height: 20px; background: var(--border); }
+.top-right-controls span { font-family: var(--font-head); font-size: clamp(8px,0.6vw,10px); letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px,0.8vw,14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* ─── TOPBAR OVERRIDES BUTTON ────────────────────────────────────────── */
+#topbar-or-btn { background: rgba(255,171,0,0.06); border: 1px solid rgba(255,171,0,0.2); color: rgba(255,171,0,0.4); border-radius: 8px; padding: 5px 10px; font-family: var(--font-head); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; cursor: default; transition: var(--transition); white-space: nowrap; }
+#topbar-or-btn:not([disabled]) { background: rgba(255,171,0,0.12); border-color: rgba(255,171,0,0.45); color: var(--amber); cursor: pointer; }
+#topbar-or-btn:not([disabled]):hover { background: rgba(255,171,0,0.25); border-color: var(--amber); box-shadow: 0 0 10px rgba(255,171,0,0.3); }
+#topbar-or-dropdown { display: none; position: fixed; z-index: 99999; background: var(--bg-card); border: 1px solid rgba(255,171,0,0.35); border-radius: 10px; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); min-width: 200px; }
+#topbar-or-dropdown.open { display: block; }
+#topbar-or-chips { display: flex; flex-direction: column; gap: 6px; }
+.topbar-or-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,171,0,0.07); border: 1px solid rgba(255,171,0,0.2); border-radius: 7px; padding: 6px 10px; cursor: pointer; transition: var(--transition); }
+.topbar-or-chip:hover { background: rgba(255,171,0,0.18); border-color: var(--amber); }
+.topbar-or-chip.overridden { border-color: rgba(213,22,223,0.4); background: rgba(213,22,223,0.06); }
+.topbar-or-chip-name { font-family: var(--font-head); font-size: 11px; color: var(--text-primary); text-transform: uppercase; }
+.topbar-or-chip-value { font-family: var(--font-head); font-size: 12px; font-weight: bold; color: var(--amber); }
+.topbar-or-chip.overridden .topbar-or-chip-value { color: var(--purple); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content { flex: 1; position: relative; display: flex; justify-content: center; align-items: flex-start; padding: 20px; overflow-y: auto;
+  background: radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+              radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+              linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #0d1117 100%);
+  background-attachment: fixed; }
+
+/* ─── MAIN CONTAINER ─────────────────────────────────────────────────── */
+.ahu-container { display: flex; flex-direction: column; width: 100%; max-width: auto; gap: 16px; padding: auto; }
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── PLANT STATUS PANEL ─────────────────────────────────────────────── */
+#plant-status-panel {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(0,8,20,0.95) 0%, rgba(10,18,35,0.95) 100%);
+  border: 1px solid rgba(0,200,255,0.2);
+  border-radius: var(--radius);
+  padding: 16px 20px 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0,200,255,0.05), 0 8px 24px rgba(0,0,0,0.5);
+}
+#plant-status-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(-45deg, transparent, transparent 22px, rgba(0,200,255,0.008) 22px, rgba(0,200,255,0.008) 23px);
+  pointer-events: none;
+}
+#plant-status-panel::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.5), transparent);
+  pointer-events: none;
+}
+.psp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; position: relative; z-index: 1; }
+.psp-header-label { font-family: var(--font-head); font-size: 9px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; opacity: 0.75; }
+.psp-header-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pspDotPulse 2.5s ease-in-out infinite; flex-shrink: 0; }
+@keyframes pspDotPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(0,200,255,0.6); opacity: 1; } 50% { box-shadow: 0 0 0 5px rgba(0,200,255,0); opacity: 0.6; } }
+.psp-header-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(0,200,255,0.25), transparent); }
+.psp-live-chip { font-family: var(--font-head); font-size: 8px; letter-spacing: 2px; color: var(--green); border: 1px solid rgba(0,230,118,0.3); border-radius: 20px; padding: 2px 8px; background: rgba(0,230,118,0.06); }
+.psp-tree { display: flex; flex-direction: column; align-items: center; gap: 0; position: relative; z-index: 1; }
+.psp-node-top { display: flex; flex-direction: column; align-items: center; }
+.psp-connector-v { width: 1px; height: 18px; background: linear-gradient(180deg, rgba(0,200,255,0.5), rgba(0,200,255,0.2)); }
+.psp-connector-branch { position: relative; width: 320px; height: 1px; background: linear-gradient(90deg, transparent 5%, rgba(0,200,255,0.35) 20%, rgba(0,200,255,0.35) 80%, transparent 95%); margin-bottom: 0; }
+.psp-branch-pair { display: flex; gap: 20px; align-items: flex-start; justify-content: center; }
+.psp-branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.psp-connector-v-short { width: 1px; height: 14px; background: linear-gradient(180deg, rgba(0,200,255,0.35), rgba(0,200,255,0.1)); }
+.psp-node { background: rgba(0,200,255,0.05); border: 1px solid rgba(0,200,255,0.18); border-radius: 8px; padding: 10px 20px; text-align: center; cursor: default; transition: var(--transition); min-width: 140px; position: relative; }
+.psp-node:hover { border-color: rgba(0,200,255,0.4); background: rgba(0,200,255,0.09); box-shadow: 0 0 16px rgba(0,200,255,0.1); }
+.psp-node.node-primary { border-color: rgba(0,200,255,0.3); background: rgba(0,200,255,0.07); min-width: 200px; }
+.psp-node.node-stages { border-color: rgba(0,200,255,0.22); background: rgba(0,200,255,0.05); min-width: 160px; }
+.psp-node-sublabel { font-family: var(--font-head); font-size: 8px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+.psp-node-value { font-family: var(--font-head); font-size: 15px; font-weight: bold; color: var(--text-primary); letter-spacing: 0.5px; transition: color 0.3s ease; white-space: nowrap; }
+.psp-node-value.val-on    { color: var(--green); text-shadow: 0 0 10px rgba(0,230,118,0.4); }
+.psp-node-value.val-off   { color: var(--text-muted); }
+.psp-node-value.val-fault { color: var(--red); animation: almPulse 1.2s ease-in-out infinite; }
+.psp-node-value.val-na    { color: var(--text-muted); opacity: 0.45; }
+.psp-node-badge { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); font-family: var(--font-head); font-size: 7px; letter-spacing: 1.5px; color: var(--accent); background: #0d1117; border: 1px solid rgba(0,200,255,0.25); border-radius: 10px; padding: 1px 8px; text-transform: uppercase; white-space: nowrap; }
+.psp-stages-num { font-size: 28px; letter-spacing: -0.5px; color: var(--accent); text-shadow: 0 0 14px rgba(0,200,255,0.4); }
+
+/* ─── SEARCH BAR ────────────────────────────────────────────────────── */
+#chiller-search-wrap { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+#chiller-search-wrap svg { flex-shrink: 0; color: var(--text-muted); }
+#chiller-search-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-head); font-size: 14px; color: var(--text-primary); letter-spacing: 1px; }
+#chiller-search-input::placeholder { color: var(--text-muted); }
+#chiller-search-clear { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; display: none; transition: var(--transition); }
+#chiller-search-clear:hover { color: var(--red); }
+#chiller-search-count { font-family: var(--font-head); font-size: 10px; color: var(--text-muted); letter-spacing: 1px; white-space: nowrap; }
+
+/* ─── CHILLER GRID ───────────────────────────────────────────────────── */
+#chiller-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 18px; width: 100%; }
+
+/* ─── INDIVIDUAL CHILLER CARD ────────────────────────────────────────── */
+.chiller-card { background: #0a0f1a; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: relative; box-shadow: 0 0 30px rgba(0,200,255,0.04), 0 8px 24px rgba(0,0,0,0.5); transition: box-shadow 0.3s ease, border-color 0.3s ease, transform 0.3s ease; display: flex; flex-direction: column; }
+.chiller-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(0,80,140,0.14) 0%, transparent 65%), repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,200,255,0.01) 18px, rgba(0,200,255,0.01) 19px); pointer-events: none; z-index: 0; }
+.chiller-card:hover { box-shadow: 0 0 40px rgba(0,200,255,0.1), 0 12px 36px rgba(0,0,0,0.6); border-color: rgba(0,200,255,0.3); }
+.chiller-card.fullscreen-card { position: fixed !important; inset: 70px 10px 56px 10px !important; z-index: 5000 !important; border-radius: 12px !important; overflow-y: auto; border-color: rgba(0,200,255,0.5) !important; box-shadow: 0 0 80px rgba(0,200,255,0.2), 0 0 0 1px rgba(0,200,255,0.3) !important; grid-column: unset !important; }
+
+/* ─── CARD HEADER ────────────────────────────────────────────────────── */
+.chiller-card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 10px; border-bottom: 1px solid var(--border); position: relative; z-index: 2; background: rgba(0,10,20,0.5); flex-shrink: 0; }
+.chiller-card-title { font-family: var(--font-head); font-size: clamp(10px,0.9vw,13px); letter-spacing: 3px; color: var(--accent); text-transform: uppercase; font-weight: normal; }
+.chiller-card-type { font-family: var(--font-head); font-size: 9px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.chiller-card-actions { display: flex; align-items: center; gap: 6px; }
+.chiller-fullscreen-btn { background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.25); border-radius: 6px; color: var(--text-muted); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); font-size: 14px; }
+.chiller-fullscreen-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.15); }
+.chiller-alarm-badge { display: none; padding: 2px 8px; border-radius: 20px; font-family: var(--font-head); font-size: 9px; letter-spacing: 1px; background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.4); color: var(--red); animation: almPulse 1.2s ease-in-out infinite; }
+.chiller-alarm-badge.show { display: flex; align-items: center; gap: 4px; }
+.chiller-run-badge { display: none; padding: 2px 8px; border-radius: 20px; font-family: var(--font-head); font-size: 9px; letter-spacing: 1px; background: rgba(0,230,118,0.12); border: 1px solid rgba(0,230,118,0.35); color: var(--green); }
+.chiller-run-badge.show { display: flex; align-items: center; gap: 4px; }
+@keyframes almPulse { 0%,100%{box-shadow:0 0 4px rgba(255,68,68,0.4);}50%{box-shadow:0 0 14px rgba(255,68,68,0.8);} }
+
+/* ─── CHILLER IMAGE SECTION ────────────────────────────────────────── */
+.chiller-img-section { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; padding: 16px; z-index: 1; }
+.chiller-graphic-wrap { position: relative; width: 80%; max-width: 500px; display: inline-block; }
+.fullscreen-card .chiller-img-section { padding: 20px; }
+.fullscreen-card .chiller-graphic-wrap { width: 65%; max-width: 100%; }
+.chiller-base-img { width: 100%; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 4px 20px rgba(0,200,255,0.15)); }
+
+/* ─── RUN ANIMATION GIF OVERLAY ────────────────────────────────────── */
+.chiller-run-anim { position: absolute; top: var(--anim-top, 0%); left: var(--anim-left, 0%); width: var(--anim-width, 100%); pointer-events: none; z-index: 5; display: none; opacity: 0.9; transition: opacity 0.4s ease; }
+.chiller-run-anim img { width: 100%; height: auto; display: block; }
+.chiller-run-anim.running { display: block; }
+
+/* ─── OVERLAY PILL-WRAPS on the graphic ─────────────────────────────── */
+.pill-wrap { position: absolute; z-index: 10; display: flex; align-items: flex-start; gap: 3px; }
+.pill-wrap .or-btn-inline { align-self: flex-start; margin-top: 2px; }
+
+/* ─── POINT DISPLAY PILLS ────────────────────────────────────────────── */
+.point-display { cursor: pointer; font-family: var(--font-head); white-space: nowrap; }
+.point-display-inner { background: rgba(10,15,25,0.9); border: 1px solid rgba(0,200,255,0.25); border-radius: 6px; padding: clamp(2px,0.3vw,5px) clamp(1px,0.5vw,7px); display: flex; flex-direction: column; gap: 1px; transition: var(--transition); }
+.point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+.pill-label { font-size: clamp(1px,0.50vw,8.5px); color: rgba(255,255,255,0.7); letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.pill-value { font-size: clamp(1px,0.60vw,10.5px); font-family: var(--font-head); font-weight: bold; white-space: nowrap; line-height: 1.3; text-shadow: 0 0 8px rgba(0,200,255,0.4); }
+.pill-value.status-on   { color: var(--green); }
+.pill-value.status-off  { color: WHITE; }
+.pill-value.status-fault{ color: var(--red); }
+.pill-value.override-active { color: var(--purple) !important; }
+.pill-value.status-na { color: var(--text-muted); opacity: 0.55; }
+
+/* ─── OR BUTTON (circle) ────────────────────────────────────────────── */
+.or-btn-inline { display: none; width: clamp(14px,1.3vw,20px); height: clamp(14px,1.3vw,20px); min-width: clamp(14px,1.3vw,20px); background: rgba(255,171,0,0.18); border: 1px solid rgba(255,171,0,0.55); color: var(--amber); border-radius: 50%; align-items: center; justify-content: center; font-size: clamp(5px,0.45vw,8px); font-weight: bold; cursor: pointer; font-family: var(--font-head); transition: all 0.2s; flex-shrink: 0; user-select: none; }
+.or-btn-inline.or-ready { display: flex; }
+.or-btn-inline:hover { transform: scale(1.15); background: rgba(255,171,0,0.35); box-shadow: 0 0 8px rgba(255,171,0,0.55); }
+.or-btn-inline.or-active { background: rgba(213,22,223,0.25) !important; border-color: var(--purple) !important; color: var(--purple) !important; animation: orPulse 1.8s ease-in-out infinite; }
+.or-btn-inline.or-fault  { background: rgba(255,68,68,0.25) !important; border-color: var(--red) !important; color: var(--red) !important; animation: orFaultPulse 1.2s ease-in-out infinite; }
+@keyframes orPulse      { 0%,100%{box-shadow:0 0 4px rgba(213,22,223,0.5);}50%{box-shadow:0 0 14px rgba(213,22,223,0.9);} }
+@keyframes orFaultPulse { 0%,100%{box-shadow:0 0 4px rgba(255,68,68,0.6);}50%{box-shadow:0 0 14px rgba(255,68,68,1.0);} }
+
+/* ─── DATA GRID (below image) ────────────────────────────────────────── */
+.chiller-data-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; padding: 12px 16px 16px; position: relative; z-index: 2; border-top: 1px solid var(--border); }
+.fullscreen-card .chiller-data-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+
+.data-pill { background: rgba(0,200,255,0.04); border: 1px solid rgba(0,200,255,0.12); border-radius: 7px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: var(--transition); position: relative; }
+.data-pill:hover { border-color: rgba(0,200,255,0.35); background: rgba(0,200,255,0.09); }
+.data-pill-wrap { display: flex; align-items: flex-start; gap: 4px; }
+.data-pill-inner { flex: 1; min-width: 0; }
+.data-pill-label { font-family: var(--font-head); font-size: 9px; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.data-pill-value { font-family: var(--font-head); font-size: 14px; font-weight: bold; color: var(--text-primary); white-space: nowrap; transition: color 0.2s; }
+.data-pill-value.status-on    { color: var(--green); }
+.data-pill-value.status-off   { color: var(--text-muted); }
+.data-pill-value.status-fault { color: var(--red); animation: almPulse 1.2s ease-in-out infinite; }
+.data-pill-value.override-active { color: var(--purple) !important; }
+.data-pill-value.status-na { color: var(--text-muted); opacity: 0.55; }
+
+/* Compressor sub-section */
+.comp-section { padding: 0 16px 14px; position: relative; z-index: 2; }
+.comp-section-title { font-family: var(--font-head); font-size: 9px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; opacity: 0.7; }
+.comp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 5px; }
+
+/* ─── OVERRIDE STATUS BADGE (modal) ─────────────────────────────────── */
+.or-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: bold; }
+.or-status-badge.badge-auto       { background: rgba(0,230,118,0.1);   border: 1px solid rgba(0,230,118,0.35);  color: var(--green); }
+.or-status-badge.badge-overridden { background: rgba(213,22,223,0.15); border: 1px solid rgba(213,22,223,0.55); color: var(--purple); animation: badgePulse 2s ease-in-out infinite; }
+.or-status-badge.badge-fault      { background: rgba(255,68,68,0.15);  border: 1px solid rgba(255,68,68,0.55);  color: var(--red); }
+@keyframes badgePulse { 0%,100%{box-shadow:0 0 0 rgba(213,22,223,0);}50%{box-shadow:0 0 10px rgba(213,22,223,0.5);} }
+
+/* ─── OVERRIDE MODAL ─────────────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--bg-panel); border: 1px solid rgba(255,171,0,0.45); border-radius: 14px; padding: 28px; width: 75%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.6); animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes modalIn { from { transform: scale(0.92) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(255,171,0,0.3); }
+.modal-header h2 { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--amber); font-weight: normal; text-transform: uppercase; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-point-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+.modal-point-name { font-family: var(--font-head); font-size: 14px; color: var(--amber); }
+.modal-live-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.modal-live-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
+.modal-point-value { font-family: var(--font-head); font-size: 28px; font-weight: bold; color: var(--text-primary); transition: color 0.3s ease; }
+.modal-point-value.status-on       { color: var(--green); }
+.modal-point-value.status-off      { color: var(--text-muted); }
+.modal-point-value.status-override { color: var(--purple); }
+.modal-point-value.status-fault    { color: var(--red); }
+.modal-controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+.control-group label { font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.control-group input, .control-group select { padding: 10px 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-head); font-size: 14px; transition: var(--transition); }
+.control-group input:focus, .control-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.modal-buttons { display: flex; gap: 10px; }
+.modal-btn { flex: 1; padding: 11px 16px; border: none; border-radius: 6px; font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: var(--transition); }
+.modal-btn-override { background: rgba(255,171,0,0.15); color: var(--amber); border: 1px solid rgba(255,171,0,0.4); }
+.modal-btn-override:hover { background: rgba(255,171,0,0.3); }
+.modal-btn-release { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+.modal-btn-release:hover { background: rgba(255,68,68,0.3); }
+.modal-btn-cancel { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
+.modal-btn-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+.modal-content.is-overridden { border-color: rgba(213,22,223,0.6) !important; }
+.modal-content.is-overridden .modal-header h2 { color: var(--purple) !important; }
+.modal-content.is-fault { border-color: rgba(255,68,68,0.6) !important; }
+.modal-content.is-fault .modal-header h2 { color: var(--red) !important; }
+
+/* ─── COUNTDOWN MODAL ROW ────────────────────────────────────────────── */
+#or-modal-countdown-row { display:none; margin-top:-8px; padding:10px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+#or-modal-countdown-display { font-family:var(--font-head);font-size:16px;font-weight:bold;color:var(--purple);animation:orPulse 1.8s ease-in-out infinite; }
+
+/* ─── GRAPH POPUP ────────────────────────────────────────────────────── */
+.graph-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82);  z-index: 9999; justify-content: center; align-items: center; }
+.graph-popup-container { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; width: 94vw; max-width: 1400px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.7); }
+.graph-popup-header { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 10px; }
+.graph-popup-title { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--accent); font-weight: normal; text-transform: uppercase; margin: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#gp-toolbar { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+.graph-popup-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 34px; height: 34px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.graph-popup-close:hover { border-color: var(--red); color: var(--red); }
+#gp-stats { padding: 10px 18px 0; display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0; background: var(--bg-panel); }
+.graph-popup-body { flex: 1; padding: 10px 18px 14px; overflow: hidden; background: var(--bg-card); display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+#gp-canvas-wrap { display: none; flex: 1; position: relative; min-height: 0; cursor: crosshair; }
+#gp-canvas { display: block; width: 100%; height: 100%; }
+#gp-tooltip { display: none; position: absolute; pointer-events: none; background: rgba(13,17,23,0.96); border: 1px solid rgba(0,200,255,0.45); border-radius: 8px; padding: 7px 12px; font-family: var(--font-head); font-size: 11px; color: var(--text-primary); white-space: nowrap; z-index: 10; }
+#gp-hint { display: none; font-family: var(--font-head); font-size: 9px; color: rgba(122,132,153,0.4); text-align: right; letter-spacing: 1px; flex-shrink: 0; }
+.graph-loading { display: flex; justify-content: center; align-items: center; height: 100%; color: var(--accent); font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; }
+
+/* ─── NO RESULTS ─────────────────────────────────────────────────────── */
+#no-results { display: none; text-align: center; padding: 60px 20px; font-family: var(--font-head); color: var(--text-muted); letter-spacing: 2px; }
+
+/* ─── BOTTOM BAR ─────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; position: sticky; bottom: 0; z-index: 1000; gap: 8px; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px,0.8vw,13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px,0.65vw,13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1; }
+.date-time strong { color: var(--text-primary); display: block; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px,0.8vw,13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── LIGHT MODE ─────────────────────────────────────────────────────── */
+body.light-mode { --bg-deep: #b8c2d8; --bg-panel: #cdd4e4; --bg-card: #dce2ef; --bg-card-hover: #d0d8eb; --accent: #003580; --green: #006b2f; --red: #b00020; --amber: #b06000; --purple: #7a10a0; --text-primary: #0a1428; --text-muted: #3a4a6a; --border: rgba(0,35,100,0.35); }
+body.light-mode .main-content { background: radial-gradient(ellipse at 15% 50%, rgba(0,53,128,0.07) 0%, transparent 55%), linear-gradient(135deg, #bdc6da 0%, #c8d0e2 40%, #c2cbdd 100%); }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background: rgba(180,190,215,0.98); }
+body.light-mode .chiller-card { background: #e8edf5; }
+body.light-mode .point-display-inner { background: rgba(240,244,255,0.93); border-color: rgba(0,35,100,0.55); }
+body.light-mode .pill-label { color: #3a4a6a; }
+body.light-mode .pill-value { text-shadow: none; }
+body.light-mode .data-pill { background: rgba(0,53,128,0.05); border-color: rgba(0,53,128,0.15); }
+body.light-mode #plant-status-panel { background: linear-gradient(135deg, rgba(200,210,230,0.97) 0%, rgba(215,225,240,0.97) 100%); }
+body.light-mode .psp-node { background: rgba(0,53,128,0.06); border-color: rgba(0,53,128,0.2); }
+body.light-mode .psp-node-badge { background: #cdd4e4; color: var(--accent); border-color: rgba(0,53,128,0.25); }
+body.light-mode .psp-node-value.val-on { text-shadow: none; }
+
+/* ─── SCROLLBARS ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Fullscreen overlay backdrop */
+#fullscreen-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);  z-index:4999; }
+#fullscreen-backdrop.active { display:block; }
+</style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ───────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170" fill="none" stroke="#00A86B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading chiller data&hellip;</div>
+  </div>
+</div>
+
+<!-- ─── FULLSCREEN BACKDROP ───────────────────────────────────────────── -->
+<div id="fullscreen-backdrop"></div>
+
+<!-- ─── OVERLAY ──────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ───────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+    <div class="side-panel-header">
+        <h2>Navigation</h2>
+        <p>Murphy Control Panel</p>
+    </div>
+    <div class="nav-section-label">System Views</div>
+    <div class="nav-image-grid">
+      <a href="../BIO_Home.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+                    <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text">
+                <span class="nav-btn-label">Building Choice</span>
+                <span class="nav-btn-sublabel">Building Change</span>
+            </div>
+        </a>
+        <a href="../Home.html" class="nav-image-btn" id="nav-home-link">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+        </a>
+        <a href="../FloorPlan.html" class="nav-image-btn" id="nav-floorplan-link">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+        </a>
+        <a href="../Alarms.html" class="nav-image-btn" id="nav-alarms-link">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+        </a>
+        <a href="../Users.html" class="nav-image-btn" id="nav-users-link">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+        </a>
+        <a href="../LogsNUMERIC.html" class="nav-image-btn" id="nav-logs-link">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+                    <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+                    <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+                    <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+                    <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+        </a>
+        <a href="../Shedules.html" class="nav-image-btn" id="nav-schedules-link">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+                    <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+        </a>
+    </div>
+</div>
+
+<!-- ─── TOP BAR ──────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div><div class="hamburger-line"></div><div class="hamburger-line"></div>
+    </div>
+    <div id="topbar-overrides" style="position:relative;">
+      <button id="topbar-or-btn" onclick="toggleTopbarOverrides(event)" disabled title="No overridable points loaded yet">&#9889; Overrides</button>
+      <div id="topbar-or-dropdown"><div id="topbar-or-chips"></div></div>
+    </div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span id="ahu-header">Chiller Plant</span>
+  </div>
+  <div class="top-right">
+    <div class="top-right-controls">
+      <div class="divider"></div>
+      <span>&#9728;</span>
+      <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+        <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+      </div>
+    </div>
+    <div class="user-badge"><span id="userDisplay">&#8212;</span></div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ──────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="ahu-container">
+
+    <div class="section-heading">
+      <div class="line"></div>
+      <h2>Chiller Plant Monitoring</h2>
+      <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+    </div>
+
+    <!-- Plant Controller Status Panel -->
+    <div id="plant-status-panel">
+      <div class="psp-header">
+        <div class="psp-header-dot"></div>
+        <span class="psp-header-label">Plant Controller &mdash; BioMerieux</span>
+        <div class="psp-header-line"></div>
+        <span class="psp-live-chip">&#9679; LIVE</span>
+      </div>
+      <div class="psp-tree">
+        <div class="psp-node-top">
+          <div class="psp-node node-primary">
+            <div class="psp-node-badge">Operating Mode</div>
+            <div class="psp-node-sublabel">Plant Command</div>
+            <div class="psp-node-value val-na" id="psp-op-mode">N/A</div>
+          </div>
+        </div>
+        <div class="psp-connector-v"></div>
+        <div class="psp-connector-branch"></div>
+        <div class="psp-branch-pair">
+          <div class="psp-branch-col">
+            <div class="psp-connector-v-short"></div>
+            <div class="psp-node">
+              <div class="psp-node-badge">Std Mode</div>
+              <div class="psp-node-sublabel">Standard Oper.</div>
+              <div class="psp-node-value val-na" id="psp-std-mode">N/A</div>
+            </div>
+          </div>
+          <div class="psp-branch-col">
+            <div class="psp-connector-v-short"></div>
+            <div class="psp-node">
+              <div class="psp-node-badge">Twr Mode</div>
+              <div class="psp-node-sublabel">Tower Oper.</div>
+              <div class="psp-node-value val-na" id="psp-twr-mode">N/A</div>
+            </div>
+          </div>
+        </div>
+        <div class="psp-connector-v"></div>
+        <div class="psp-node node-stages">
+          <div class="psp-node-badge">Stages On</div>
+          <div class="psp-node-sublabel">Active Stages</div>
+          <div class="psp-node-value psp-stages-num val-na" id="psp-stages-on">N/A</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div id="chiller-search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input id="chiller-search-input" type="text" placeholder="Search chiller unit&#8230;" autocomplete="off"/>
+      <button id="chiller-search-clear" onclick="clearSearch()" title="Clear search">&#215;</button>
+      <span id="chiller-search-count"></span>
+    </div>
+
+    <!-- Dynamic Chiller Grid -->
+    <div id="chiller-grid"></div>
+    <div id="no-results">No chiller units match your search.</div>
+
+    <!-- ── OR MODAL ── -->
+    <div class="modal-overlay" id="or-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="or-modal-title">Point Override</h2>
+          <button class="modal-close" id="or-modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-point-info">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div class="modal-point-name" id="or-modal-point-name">No Point Selected</div>
+            <span class="or-status-badge badge-auto" id="or-modal-status-badge">&#11044; AUTO</span>
+          </div>
+          <div class="modal-live-row">
+            <span class="modal-live-label">Current Output:</span>
+            <div class="modal-point-value" id="or-modal-point-value">N/A</div>
+          </div>
+        </div>
+        <div class="modal-point-info" id="or-modal-countdown-row">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;">
+            <span style="font-family:var(--font-head);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Override Expires:</span>
+            <span id="or-modal-countdown-display"></span>
+          </div>
+        </div>
+        <div class="modal-controls">
+          <div class="control-group" id="or-numeric-control" style="display:none;">
+            <label>Override Value:</label>
+            <input type="number" id="or-modal-numeric-input" placeholder="Enter value" step="0.1">
+          </div>
+          <div class="control-group" id="or-boolean-control" style="display:none;">
+            <label>Command:</label>
+            <select id="or-modal-command-dropdown">
+              <option value="on">ON</option>
+              <option value="off">OFF</option>
+              <option value="auto">AUTO</option>
+            </select>
+          </div>
+          <div class="control-group" id="or-enum-control" style="display:none;">
+            <label>Select Value:</label>
+            <select id="or-modal-enum-dropdown"></select>
+          </div>
+          <div class="control-group">
+            <label>Duration:</label>
+            <select id="or-modal-duration-dropdown">
+              <option value="permanent">Permanent</option>
+              <option value="1min">1 Minute</option>
+              <option value="5min">5 Minutes</option>
+              <option value="30min">30 Minutes</option>
+              <option value="1hour">1 Hour</option>
+              <option value="2hours">2 Hours</option>
+              <option value="4hours">4 Hours</option>
+              <option value="8hours">8 Hours</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-buttons">
+          <button class="modal-btn modal-btn-override" id="or-modal-override-btn">Apply Override</button>
+          <button class="modal-btn modal-btn-release" id="or-modal-release-btn">Release to Auto</button>
+          <button class="modal-btn modal-btn-cancel" id="or-modal-cancel-btn">Cancel</button>
+        </div>
+        <div style="margin-top:-8px;">
+          <button class="modal-btn" onclick="manualORModalRefresh()" style="width:100%;background:rgba(0,200,255,0.06);color:var(--text-muted);border:1px solid var(--border);font-size:10px;letter-spacing:2px;padding:7px;">&#8635; REFRESH STATUS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRAPH POPUP ── -->
+    <div class="graph-popup-overlay" id="graph-popup-overlay">
+      <div class="graph-popup-container">
+        <div class="graph-popup-header">
+          <h2 class="graph-popup-title" id="graph-popup-title">24-Hour History</h2>
+          <div id="gp-toolbar"></div>
+          <button class="graph-popup-close" onclick="closeGraphPopup()">&#215;</button>
+        </div>
+        <div id="gp-stats"></div>
+        <div class="graph-popup-body">
+          <div class="graph-loading" id="gp-loading">Loading historical data...</div>
+          <div id="gp-canvas-wrap">
+            <canvas id="gp-canvas"></canvas>
+            <div id="gp-tooltip"></div>
+          </div>
+          <div id="gp-hint">Scroll to zoom &middot; Drag to pan</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ahu-container -->
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ────────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">&#8592; Back</button>
+  <div class="date-time">
+    <strong>Current Date &amp; Time</strong>
+    <span id="currentDateTime">Loading...</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div style="text-align:right;font-family:var(--font-head);font-size:10px;letter-spacing:1px;color:var(--text-muted);line-height:1.4;">Controls by:<br><span style="color:var(--accent);font-size:12px;letter-spacing:2px;">MURPHY</span></div>
+    <button class="logout-btn" onclick="handleLogoff()">&#128274; Logoff</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+    const urlUnit = new URLSearchParams(window.location.search).get('site');
+    if (!urlUnit) return;
+    const unit = encodeURIComponent(urlUnit);
+    const navLinks = {
+        'nav-home-link':      '../Home.html?unit=',
+        'nav-floorplan-link': '../FloorPlan.html?unit=',
+        'nav-alarms-link':    '../Alarms.html?unit=',
+        'nav-users-link':     '../Users.html?unit=',
+        'nav-logs-link':      '../LogsNUMERIC.html?unit=',
+        'nav-schedules-link': '../Shedules.html?unit=',
+        'nav-doc-link':       '../DOC.html?unit=',
+    };
+    Object.entries(navLinks).forEach(([id, base]) => {
+        const el = document.getElementById(id);
+        if (el) el.href = base + unit;
+    });
+})();
+</script>
+<script>
+(async function() {
+  try {
+    const r = await fetch('../HomeConfig.json');
+    const d = await r.json();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = (d.JobBuilding || 'Control Panel').toUpperCase();
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+    document.body.addEventListener("click", function(e) {
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 300);
+    });
+});
+</script>
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+<script>
+function toggleTopbarOverrides(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('topbar-or-dropdown');
+    const btn = document.getElementById('topbar-or-btn');
+    if (!dd || !btn) return;
+    if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('topbar-or-dropdown');
+    if (dd && !dd.contains(e.target) && e.target.id !== 'topbar-or-btn') dd.classList.remove('open');
+});
+</script>
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+    document.getElementById("userDisplay").textContent = username;
+};
+function handleLogoff() {
+    sessionStorage.removeItem('SyncedSessionStorage');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('role');
+    window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+<script>
+setTimeout(function() {
+    const loader = document.getElementById("page-loader");
+    if (loader && !loader.classList.contains("hidden")) { loader.classList.add("hidden"); }
+}, 15000);
+</script>
+<script>
+function clearSearch() {
+    const inp = document.getElementById('chiller-search-input');
+    if (inp) inp.value = '';
+    document.getElementById('chiller-search-clear').style.display = 'none';
+    filterChillers('');
+}
+document.getElementById('chiller-search-input').addEventListener('input', function() {
+    const v = this.value.trim();
+    document.getElementById('chiller-search-clear').style.display = v ? 'block' : 'none';
+    filterChillers(v);
+});
+function filterChillers(query) {
+    const cards  = document.querySelectorAll('.chiller-card');
+    const noRes  = document.getElementById('no-results');
+    const q      = query.toLowerCase();
+    let visible  = 0;
+    cards.forEach(card => {
+        if (card.classList.contains('fullscreen-card')) { visible++; return; }
+        const name = (card.dataset.unitName || '').toLowerCase();
+        const type = (card.dataset.unitType || '').toLowerCase();
+        const match = !q || name.includes(q) || type.includes(q);
+        card.style.display = match ? '' : 'none';
+        if (match) visible++;
+    });
+    const count = document.getElementById('chiller-search-count');
+    if (q) {
+        count.textContent = `${visible} result${visible !== 1 ? 's' : ''}`;
+    } else {
+        count.textContent = `${cards.length} unit${cards.length !== 1 ? 's' : ''}`;
+    }
+    noRes.style.display = visible === 0 ? 'block' : 'none';
+}
+</script>
+
+<script>
+let ahuExportHistoryCache = new Map();
+
+async function discoverAHUHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointOrd).get().then(e => e.tags()).then(tagMap => {
+                const tag = tagMap.get('n:history');
+                if (tag && tag.toString().trim()) {
+                    let path = tag.toString();
+                    if (!path.startsWith('history:')) path = 'history:' + path;
+                    resolve(path);
+                } else reject(new Error('No n:history tag on: ' + pointOrd));
+            }).catch(e => reject(new Error('Tags failed: ' + e.message)));
+        });
+    });
+}
+
+async function loadAHUHistoryData(pointPath, startTime, endTime, maxPoints=2000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let historyOrd = ahuExportHistoryCache.get(pointPath);
+            if (!historyOrd) {
+                try { historyOrd = await discoverAHUHistoryOrd(pointPath); ahuExportHistoryCache.set(pointPath, historyOrd); }
+                catch(e) { resolve([]); return; }
+            }
+            require(['baja!'], function(baja) {
+                const q = `${historyOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+                const pts = [];
+                baja.Ord.make(q).get({ cursor: { limit:maxPoints, each: function() {
+                    const row=this.get(); const date=new Date(row.get("timestamp").getMillis());
+                    pts.push({timestamp:date,timestampString:date.toLocaleString(),value:row.get("value")});
+                }}})
+                .then(()=>resolve(pts)).catch(e=>reject(new Error('BQL: '+e.message)));
+            });
+        } catch(e) { reject(e); }
+    });
+}
+</script>
+
+<!-- INTERACTIVE GRAPH POPUP -->
+<script>
+(function() {
+const PAD = { top:30, right:30, bottom:54, left:70 };
+function getColors() {
+    const L = document.body.classList.contains('light-mode');
+    return {
+        bg:L?'#f0f4fb':'#0a0f1a',plotBg:L?'rgba(0,60,160,0.03)':'rgba(0,200,255,0.02)',
+        grid:L?'rgba(0,60,160,0.08)':'rgba(0,200,255,0.07)',border:L?'rgba(0,60,160,0.22)':'rgba(0,200,255,0.22)',
+        axis:L?'#667788':'rgba(122,132,153,0.75)',line:L?'#0066cc':'#00c8ff',
+        fill0:L?'rgba(0,100,200,0.15)':'rgba(0,200,255,0.15)',fill1:L?'rgba(0,100,200,0.01)':'rgba(0,200,255,0.01)',
+        dot:L?'#0066cc':'#00c8ff',cross:L?'rgba(0,60,160,0.28)':'rgba(0,200,255,0.32)',
+        refMin:L?'rgba(100,60,160,0.85)':'rgba(123,94,167,0.9)',refAvg:L?'rgba(160,100,0,0.9)':'rgba(255,171,0,0.9)',
+        refMax:L?'rgba(0,130,50,0.9)':'rgba(0,230,118,0.9)',
+    };
+}
+let _graphState = null;
+const BS='padding:4px 9px;border-radius:6px;border:1px solid rgba(0,200,255,0.22);background:transparent;color:var(--text-muted);font-family:var(--font-head);font-size:10px;letter-spacing:1px;cursor:pointer;';
+const BA='border-color:var(--accent);color:var(--accent);background:rgba(0,200,255,0.1);';
+const SEP='<div style="width:1px;height:18px;background:rgba(255,255,255,0.08);flex-shrink:0;"></div>';
+function buildToolbar(toolbar,state){
+    toolbar.innerHTML=[`<button data-range="1" style="${BS}">1H</button>`,`<button data-range="6" style="${BS}">6H</button>`,`<button data-range="12" style="${BS}">12H</button>`,`<button data-range="24" style="${BS}${BA}" data-active="1">24H</button>`,SEP,`<button data-ref="min" style="${BS}">Min</button>`,`<button data-ref="avg" style="${BS}${BA}" data-active="1">Avg</button>`,`<button data-ref="max" style="${BS}">Max</button>`,SEP,`<button data-action="reset" style="${BS}">Reset</button>`].join('');
+    toolbar.addEventListener('click',e=>{
+        const btn=e.target.closest('button');if(!btn||!_graphState)return;
+        if(btn.dataset.range){toolbar.querySelectorAll('[data-range]').forEach(b=>{b.style.cssText=BS;delete b.dataset.active;});btn.style.cssText=BS+BA;btn.dataset.active='1';const hours=parseInt(btn.dataset.range);const lastT=state.originalData[state.originalData.length-1].timestamp.getTime();const cutoff=lastT-hours*3600000;const filtered=state.originalData.filter(d=>d.timestamp.getTime()>=cutoff);state.viewData=filtered.length>=2?filtered:state.originalData.slice();state.zoom={start:0,end:1};state.hoverIdx=-1;redraw(state);return;}
+        if(btn.dataset.ref){const r=btn.dataset.ref;if(r==='min')state.showMin=!state.showMin;if(r==='avg')state.showAvg=!state.showAvg;if(r==='max')state.showMax=!state.showMax;const on=r==='min'?state.showMin:r==='avg'?state.showAvg:state.showMax;btn.style.cssText=on?BS+BA:BS;if(on)btn.dataset.active='1';else delete btn.dataset.active;redraw(state);return;}
+        if(btn.dataset.action==='reset'){toolbar.querySelectorAll('[data-range]').forEach(b=>{b.style.cssText=BS;delete b.dataset.active;});const b24=toolbar.querySelector('[data-range="24"]');if(b24){b24.style.cssText=BS+BA;b24.dataset.active='1';}state.viewData=state.originalData.slice();state.zoom={start:0,end:1};state.hoverIdx=-1;redraw(state);}
+    });
+}
+function updateStats(vis,statsEl,unit){
+    if(!statsEl)return;const vals=vis.map(d=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);return isNaN(v)?null:v;}).filter(v=>v!==null);
+    if(!vals.length){statsEl.innerHTML='';return;}const minV=Math.min(...vals),maxV=Math.max(...vals),avg=vals.reduce((a,b)=>a+b,0)/vals.length;const u=unit?` ${unit}`:'';const L=document.body.classList.contains('light-mode');
+    const mk=(lbl,val,col)=>`<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:5px 12px;font-family:var(--font-head);"><span style="color:var(--text-muted);display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;">${lbl}</span><strong style="color:${col};font-size:13px;">${val}</strong></div>`;
+    statsEl.innerHTML=mk('Min',minV.toFixed(2)+u,L?'#7700aa':'#7b5ea7')+mk('Avg',avg.toFixed(2)+u,L?'#885500':'#ffab00')+mk('Max',maxV.toFixed(2)+u,L?'#006633':'#00e676')+mk('Latest',(()=>{const lv=vis[vis.length-1].value;return typeof lv==='boolean'?(lv?'ON':'OFF'):(isNaN(parseFloat(lv))?String(lv):parseFloat(lv).toFixed(2)+u);})(),L?'#004499':'#00c8ff')+mk('Points',vis.length,L?'#334466':'var(--text-primary)');
+}
+function getVisible(state){const n=state.viewData.length;const si=Math.floor(state.zoom.start*n);const ei=Math.ceil(state.zoom.end*n);return state.viewData.slice(si,Math.max(si+2,ei));}
+function redraw(state){
+    const vis=getVisible(state);updateStats(vis,document.getElementById('gp-stats'),state.unit);
+    const canvas=document.getElementById('gp-canvas');if(!canvas)return;
+    const W=canvas.offsetWidth||800,H=canvas.offsetHeight||400;const dpr=window.devicePixelRatio||1;
+    canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';
+    const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);const C=getColors();
+    const gW=W-PAD.left-PAD.right,gH=H-PAD.top-PAD.bottom;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);ctx.fillStyle=C.plotBg;ctx.fillRect(PAD.left,PAD.top,gW,gH);
+    const rawVals=vis.map(d=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);return isNaN(v)?null:v;}).filter(v=>v!==null);
+    if(!rawVals.length){ctx.fillStyle=C.axis;ctx.font='13px Courier New';ctx.textAlign='center';ctx.fillText('No numeric data in this range',W/2,H/2);return;}
+    const minV=Math.min(...rawVals),maxV=Math.max(...rawVals),avg=rawVals.reduce((a,b)=>a+b,0)/rawVals.length;
+    const rangeV=maxV-minV||1;const padV=rangeV*0.12;const lo=minV-padV,hi=maxV+padV,rng=hi-lo;const u=state.unit?` ${state.unit}`:'';
+    const xOf=i=>PAD.left+(i/Math.max(vis.length-1,1))*gW;const yOf=v=>PAD.top+gH-((v-lo)/rng)*gH;
+    ctx.font='10px Courier New';ctx.fillStyle=C.axis;ctx.textAlign='right';
+    for(let i=0;i<=5;i++){const v=lo+(rng/5)*i,y=yOf(v);ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+gW,y);ctx.stroke();ctx.fillText(v.toFixed(1),PAD.left-8,y+4);}
+    if(state.unit){ctx.save();ctx.translate(13,PAD.top+gH/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillStyle=C.axis;ctx.fillText(state.unit,0,0);ctx.restore();}
+    ctx.textAlign='center';ctx.fillStyle=C.axis;const nTicks=Math.min(7,vis.length);
+    for(let i=0;i<nTicks;i++){const di=Math.floor((i/Math.max(nTicks-1,1))*(vis.length-1));const x=xOf(di);ctx.strokeStyle=C.grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,PAD.top);ctx.lineTo(x,PAD.top+gH);ctx.stroke();const ts=vis[di].timestamp;ctx.fillText(ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),x,PAD.top+gH+16);ctx.fillText(ts.toLocaleDateString([],{month:'short',day:'numeric'}),x,PAD.top+gH+29);}
+    ctx.save();ctx.beginPath();ctx.rect(PAD.left,PAD.top,gW,gH);ctx.clip();
+    function refLine(v,color,label){const y=yOf(v);ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+gW,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=color;ctx.textAlign='left';ctx.font='9px Courier New';ctx.fillText(label+' '+v.toFixed(2)+u,PAD.left+6,y-4);}
+    if(state.showMin)refLine(minV,C.refMin,'MIN');if(state.showAvg)refLine(avg,C.refAvg,'AVG');if(state.showMax)refLine(maxV,C.refMax,'MAX');
+    const grad=ctx.createLinearGradient(0,PAD.top,0,PAD.top+gH);grad.addColorStop(0,C.fill0);grad.addColorStop(1,C.fill1);
+    ctx.beginPath();let first=true;vis.forEach((d,i)=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);if(isNaN(v))return;first?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));first=false;});
+    ctx.lineTo(xOf(vis.length-1),PAD.top+gH);ctx.lineTo(PAD.left,PAD.top+gH);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+    ctx.beginPath();first=true;vis.forEach((d,i)=>{const v=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);if(isNaN(v))return;first?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v));first=false;});
+    ctx.strokeStyle=C.line;ctx.lineWidth=1.8;ctx.lineJoin='round';ctx.stroke();
+    if(state.hoverIdx>=0&&state.hoverIdx<vis.length){const hd=vis[state.hoverIdx];const hv=typeof hd.value==='boolean'?(hd.value?1:0):parseFloat(hd.value);if(!isNaN(hv)){const hx=xOf(state.hoverIdx),hy=yOf(hv);ctx.strokeStyle=C.cross;ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(hx,PAD.top);ctx.lineTo(hx,PAD.top+gH);ctx.stroke();ctx.beginPath();ctx.moveTo(PAD.left,hy);ctx.lineTo(PAD.left+gW,hy);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(hx,hy,5,0,Math.PI*2);ctx.fillStyle=C.dot;ctx.fill();ctx.strokeStyle=document.body.classList.contains('light-mode')?'#fff':'#0a0f1a';ctx.lineWidth=2;ctx.stroke();}}
+    ctx.restore();ctx.strokeStyle=C.border;ctx.lineWidth=1;ctx.strokeRect(PAD.left,PAD.top,gW,gH);
+    state._xOf=xOf;state._yOf=yOf;state._vis=vis;state._gW=gW;state._gH=gH;
+}
+function attachMouseHandlers(state){
+    const canvas=document.getElementById('gp-canvas');const wrap=document.getElementById('gp-canvas-wrap');const tooltip=document.getElementById('gp-tooltip');if(!canvas||!wrap)return;
+    function onMouseMove(e){
+        if(state.dragging){const rect=wrap.getBoundingClientRect();const dx=(e.clientX-state.dragX0)/rect.width;const span=state.dragZoom0.end-state.dragZoom0.start;let ns=state.dragZoom0.start-dx*span,ne=state.dragZoom0.end-dx*span;if(ns<0){ne-=ns;ns=0;}if(ne>1){ns-=(ne-1);ne=1;}state.zoom={start:Math.max(0,ns),end:Math.min(1,ne)};state.hoverIdx=-1;redraw(state);return;}
+        if(!state._vis)return;const rect=canvas.getBoundingClientRect();const scaleX=canvas.offsetWidth/rect.width;const mx=(e.clientX-rect.left)*scaleX;
+        if(mx<PAD.left||mx>PAD.left+state._gW){if(tooltip)tooltip.style.display='none';if(state.hoverIdx!==-1){state.hoverIdx=-1;redraw(state);}return;}
+        const frac=(mx-PAD.left)/state._gW;const idx=Math.min(state._vis.length-1,Math.max(0,Math.round(frac*(state._vis.length-1))));
+        if(idx!==state.hoverIdx){state.hoverIdx=idx;redraw(state);}if(!tooltip)return;
+        const d=state._vis[idx];const hv=typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value);const vStr=typeof d.value==='boolean'?(d.value?'ON':'OFF'):(isNaN(parseFloat(d.value))?String(d.value):parseFloat(d.value).toFixed(2));const u=state.unit?` ${state.unit}`:'';const C=getColors();
+        tooltip.innerHTML=`<div style="color:var(--text-muted);font-size:9px;letter-spacing:1px;margin-bottom:3px;">${d.timestamp.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})} &middot; ${d.timestamp.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div><div style="color:${C.line};font-size:16px;font-weight:bold;">${vStr}${typeof d.value==='boolean'?'':u}</div>`;
+        const cx=state._xOf(idx);const tipW=160;const tx=cx+PAD.left+tipW>canvas.offsetWidth?cx-tipW-10:cx+10;
+        tooltip.style.left=tx+'px';tooltip.style.top=Math.max(4,(state._yOf&&!isNaN(hv)?state._yOf(hv):100)-52)+'px';tooltip.style.display='block';
+    }
+    function onMouseLeave(){if(tooltip)tooltip.style.display='none';if(state.hoverIdx!==-1){state.hoverIdx=-1;redraw(state);}}
+    const newCanvas=canvas.cloneNode(false);canvas.parentNode.replaceChild(newCanvas,canvas);const c2=document.getElementById('gp-canvas');
+    c2.addEventListener('mousedown',e=>{state.dragging=true;state.dragX0=e.clientX;state.dragZoom0={...state.zoom};wrap.style.cursor='grabbing';});
+    window.addEventListener('mouseup',()=>{state.dragging=false;wrap.style.cursor='crosshair';});
+    c2.addEventListener('mousemove',onMouseMove);c2.addEventListener('mouseleave',onMouseLeave);
+    c2.addEventListener('wheel',e=>{e.preventDefault();const rect=c2.getBoundingClientRect();const mx=(e.clientX-rect.left)/rect.width;const span=state.zoom.end-state.zoom.start;const factor=e.deltaY>0?1.15:0.87;const nspan=Math.min(1,Math.max(0.04,span*factor));let ns=state.zoom.start+mx*span-mx*nspan,ne=ns+nspan;if(ns<0){ne-=ns;ns=0;}if(ne>1){ns-=(ne-1);ne=1;}state.zoom={start:Math.max(0,ns),end:Math.min(1,ne)};redraw(state);},{passive:false});
+    if(wrap._ro){wrap._ro.disconnect();}const ro=new ResizeObserver(()=>redraw(state));ro.observe(wrap);wrap._ro=ro;
+}
+window.openGraphPopup = async function(pointPath, pointLabel, unit) {
+    const popup=document.getElementById('graph-popup-overlay');if(!popup)return;popup.style.display='flex';
+    document.getElementById('graph-popup-title').textContent=pointLabel+' \u2014 24 Hour History';
+    const loadingEl=document.getElementById('gp-loading');const canvasWrap=document.getElementById('gp-canvas-wrap');const statsEl=document.getElementById('gp-stats');const toolbar=document.getElementById('gp-toolbar');const hintEl=document.getElementById('gp-hint');
+    if(statsEl)statsEl.innerHTML='';if(toolbar)toolbar.innerHTML='';if(hintEl)hintEl.style.display='none';loadingEl.style.display='flex';loadingEl.textContent='Loading historical data\u2026';canvasWrap.style.display='none';if(canvasWrap._ro){canvasWrap._ro.disconnect();canvasWrap._ro=null;}
+    try{
+        const end=new Date(),start=new Date(end.getTime()-86400000);const data=await loadAHUHistoryData(pointPath,start,end,2000);
+        if(!data.length){loadingEl.innerHTML='<span style="color:var(--text-muted);font-family:var(--font-head);">No data for last 24 hours</span>';return;}
+        loadingEl.style.display='none';canvasWrap.style.display='flex';canvasWrap.style.flex='1';canvasWrap.style.minHeight='0';await new Promise(r=>setTimeout(r,60));
+        const state={originalData:data,viewData:data.slice(),zoom:{start:0,end:1},showMin:false,showAvg:true,showMax:false,hoverIdx:-1,dragging:false,dragX0:0,dragZoom0:null,unit:unit||'',_xOf:null,_yOf:null,_vis:null,_gW:0,_gH:0};
+        _graphState=state;if(toolbar)buildToolbar(toolbar,state);attachMouseHandlers(state);redraw(state);if(hintEl)hintEl.style.display='block';
+    }catch(err){loadingEl.innerHTML=`<span style="color:var(--red);font-family:var(--font-head);">Error: ${err.message}</span>`;}
+};
+window.closeGraphPopup = function(){const p=document.getElementById('graph-popup-overlay');if(p)p.style.display='none';const wrap=document.getElementById('gp-canvas-wrap');if(wrap&&wrap._ro){wrap._ro.disconnect();wrap._ro=null;}_graphState=null;};
+document.getElementById('graph-popup-overlay').addEventListener('click',function(e){if(e.target===this)closeGraphPopup();});
+})();
+</script>
+
+<!-- OVERRIDE COUNTDOWN TIMERS -->
+<script>
+(function() {
+    const activeTimers = {};
+    function formatTime(sec) {
+        if(sec<=0)return'0:00';const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+        if(h>0)return`${h}h ${m}m ${s}s`;if(m>0)return`${m}m ${s}s`;return`${s}s`;
+    }
+    window.startORCountdown = function(pointId, durationSec, graphicTargetId) {
+        if(activeTimers[pointId]){clearInterval(activeTimers[pointId].intervalId);}
+        const endTime=Date.now()+durationSec*1000;activeTimers[pointId]={endTime,graphicTargetId,intervalId:null};
+        const intervalId=setInterval(()=>{const remaining=Math.round((activeTimers[pointId].endTime-Date.now())/1000);if(remaining<=0){clearInterval(intervalId);delete activeTimers[pointId];updateModalCountdown(0);return;}const modal=document.getElementById('or-modal');if(modal&&modal.classList.contains('active'))updateModalCountdown(remaining);},1000);
+        activeTimers[pointId].intervalId=intervalId;updateModalCountdown(durationSec);
+    };
+    window.stopORCountdown = function(pointId) {
+        if(activeTimers[pointId]){clearInterval(activeTimers[pointId].intervalId);delete activeTimers[pointId];}updateModalCountdown(0);
+    };
+    window.restoreORCountdownDisplay = function(pointId) {
+        const timer=activeTimers[pointId];if(!timer){const row=document.getElementById('or-modal-countdown-row');if(row)row.style.display='none';return;}
+        const remaining=Math.round((timer.endTime-Date.now())/1000);if(remaining>0)updateModalCountdown(remaining);else window.stopORCountdown(pointId);
+    };
+    function updateModalCountdown(remaining) {
+        const row=document.getElementById('or-modal-countdown-row');const display=document.getElementById('or-modal-countdown-display');if(!row||!display)return;
+        if(remaining>0){row.style.display='block';display.textContent=formatTime(remaining);display.style.color=remaining<30?'var(--red)':'var(--purple)';}else{row.style.display='none';display.textContent='';}
+    }
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAIN: CHILLER DISCOVERY + DYNAMIC OR DETECTION + MONITORING
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!control:EnumOverride'], function(baja) {
+'use strict';
+
+/* ══════════════════════════════════════════════════════════════
+   GRAPHIC PILL POSITIONS
+   top/left (%) position each data pill on the chiller image.
+   IDs NOT listed here appear in the bottom data-grid instead.
+
+   ISOCHWCMD = OR bubble container element for ISOCHW display
+   ISOCWCMD  = OR bubble container element for ISOCW display
+══════════════════════════════════════════════════════════════ */
+const GRAPHIC_PILL_POSITIONS = {
+    'RUN':        { top: '20%',  left: '72%'  },
+    'CHW':        { top: '85%',  left: '90%'  },
+    'CHW-SP':     { top: '70%',  left: '90%'  },
+    'EVAP-LEAVE': { top: '60%',  left: '-12%' },
+    'EVAP-ENT':   { top: '75%',  left: '-12%' },
+    'COND-LEAVE': { top: '35%',  left: '-12%' },
+    'COND-ENT':   { top: '20%',  left: '-12%' },
+    'OAT':        { top: '55%',  left: '72%'  },
+    'RLA':        { top: '46%',  left: '42%'  },
+    'ALARM':      { top: '4%',   left: '74%'  },
+    'CH-MODE':    { top: '38%',  left: '74%'  },
+    'EVAP-FLOW':  { top: '90%',  left: '-12%' },
+    'COND-FLOW':  { top: '5%',   left: '-12%' },
+    'EN':         { top: '90%',  left: '42%'  },
+    'ISOCHWCMD':  { top: '78%',  left: '42%'  },
+    'ISOCWCMD':   { top: '65%',  left: '42%'  },
+};
+
+/*
+ * OR CONTAINER MAPPING
+ * Maps a display point ID → the graphic element ID that hosts the OR bubble.
+ * When Global.json has an SP tag referencing one of these rawRealIds, we look
+ * up the correct pill-wrap container to attach the OR button to.
+ *
+ * e.g. the SP point for ISOCHW uses rawRealId "ISOCHW"; its OR button lives
+ * inside the pill-wrap whose data-spanid is "ISOCHWCMD".
+ */
+const OR_CONTAINER_MAP = {
+    'ISOCHW': 'ISOCHWCMD',
+    'ISOCW':  'ISOCWCMD',
+};
+
+/* ══════════════════════════════════════════════════════════════
+   RUN ANIMATION OVERLAY CONFIG
+══════════════════════════════════════════════════════════════ */
+const RUN_ANIM_CONFIG = {
+    CENT:      { top: '52%',  left: '50%', width: '18%' },
+    AIRCOOLED: { top: '8%',   left: '11%', width: '75%' },
+};
+
+/* ──────────────────────────────────────────────────────────────────
+   CONSTANTS
+────────────────────────────────────────────────────────────────── */
+const CHILLER_IMAGES = {
+    'AIRCOOLED': '../IMAGES/Chiller/AirCooledChiller.png',
+    'CENT':      '../IMAGES/Chiller/Trane Centrifugal Chiller CVGF - CLOSED.png',
+};
+const CHILLER_IMG_DEFAULT = '../IMAGES/Chiller/AirCooledChiller.png';
+
+const RUN_ANIM_IMAGES = {
+    'AIRCOOLED': '../IMAGES/Chiller/Fans.gif',
+    'CENT':      '../IMAGES/Chiller/Animation.gif',
+};
+
+/* ─── POINT DEFINITIONS ─────────────────────────────────────────────
+   These define the display points (what to monitor and where to show
+   each pill/value).  Override eligibility and type are now determined
+   DYNAMICALLY from Global.json SP tags — NOT hardcoded here.
+   Special flags:
+     special:'run'   → drives the run animation + run badge
+     special:'alarm' → drives the alarm badge
+────────────────────────────────────────────────────────────────── */
+const POINT_DEFS = [
+    { id: 'RUN',           label: 'Run Status',        special: 'run'   },
+    { id: 'ALARM',         label: 'Alarm',             special: 'alarm' },
+    { id: 'CH-MODE',       label: 'Mode'                                },
+    { id: 'CHW',           label: 'CHW Leaving'                         },
+    { id: 'CHW-SP',        label: 'CHW Setpoint'                        },
+    { id: 'EVAP-LEAVE',    label: 'Evap Leaving'                        },
+    { id: 'EVAP-ENT',      label: 'Evap Entering'                       },
+    { id: 'COND-LEAVE',    label: 'Cond Leaving'                        },
+    { id: 'COND-ENT',      label: 'Cond Entering'                       },
+    { id: 'OAT',           label: 'Outdoor Air Temp'                    },
+    { id: 'OIL-PRESS',     label: 'Oil Pressure'                        },
+    { id: 'OIL-DIFFPRESS', label: 'Oil Diff Pressure'                   },
+    { id: 'OIL-TEMP',      label: 'Oil Temp'                            },
+    { id: 'RLA',           label: 'RLA %'                               },
+    { id: 'EVAP-FLOW',     label: 'Evap Flow'                           },
+    { id: 'COND-FLOW',     label: 'Cond Flow'                           },
+    { id: 'POWER',         label: 'Power'                               },
+    { id: 'EN',            label: 'Enable'                              },
+    { id: 'ISOCHW',        label: 'Iso Valve CHW'                       },
+    { id: 'ISOCW',         label: 'Iso Valve CW'                        },
+    /* The CMD points act as OR-button containers on the graphic.
+       They have no display pill of their own — they exist solely to
+       anchor the OR bubble next to the ISO valve readings. */
+    { id: 'ISOCHWCMD',     label: 'Iso CHW CMD',       },
+    { id: 'ISOCWCMD',      label: 'Iso CW CMD',        },
+];
+
+const COMP_IDS = ['COMP-1A','COMP-2A','COMP-1B','COMP-2B','COMP-1C','COMP-2C'];
+
+/* ──────────────────────────────────────────────────────────────────
+   UTILITIES
+────────────────────────────────────────────────────────────────── */
+function decodeNiagaraName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+}
+
+function isRunning(rawVal) {
+    if (rawVal === null || rawVal === undefined) return false;
+    const s = String(rawVal).toLowerCase().trim();
+    if (s === 'true' || s === 'on') return true;
+    if (s.includes('not running') || s.includes('not run')) return false;
+    if (s.includes('chiller off') || s.includes('unit off') || s.includes('off mode')) return false;
+    if (s.includes('running')) return true;
+    if (s.includes('run mode')) return true;
+    if (s === 'chiller in run mode') return true;
+    const num = parseFloat(s);
+    if (!isNaN(num) && num > 0) return true;
+    return false;
+}
+
+function updateRunAnimation(unitKey, rawVal) {
+    const card = document.querySelector(`.chiller-card[data-unit-key="${unitKey}"]`);
+    if (!card) return;
+    const animEl = card.querySelector('.chiller-run-anim');
+    if (!animEl) return;
+    if (isRunning(rawVal)) animEl.classList.add('running');
+    else animEl.classList.remove('running');
+}
+
+function applyValueToEl(el, displayVal, rawVal, isOverride, pointDef) {
+    if (!el) return;
+    el.className = el.className.replace(/\b(status-on|status-off|status-fault|override-active|status-na)\b/g,'').trim();
+    if (isOverride) {
+        el.classList.add('override-active');
+        el.textContent = `${displayVal} \u25C8`;
+    } else if (pointDef && pointDef.special === 'alarm') {
+        const isActive = String(rawVal||'').toLowerCase().includes('on') || parseFloat(rawVal) > 0 || String(rawVal||'').toLowerCase() === 'true';
+        el.classList.add(isActive ? 'status-fault' : 'status-off');
+        el.textContent = isActive ? `\u26A0 ${displayVal}` : displayVal;
+    } else if (pointDef && pointDef.special === 'run') {
+        const on = isRunning(rawVal);
+        el.classList.add(on ? 'status-on' : 'status-off');
+        el.textContent = displayVal;
+    } else {
+        const raw = String(rawVal||'').toLowerCase();
+        const isOn = raw.includes('on') || raw === 'true' || parseFloat(rawVal) > 0;
+        el.classList.add(isOn ? 'status-on' : 'status-off');
+        el.textContent = displayVal;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AUTH CHECK
+────────────────────────────────────────────────────────────────── */
+async function isAuthorizedUser() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+        const response = await fetch('../HomeConfig.json');
+        if (!response.ok) throw new Error('Config load failed');
+        const config = await response.json();
+        const user = config.Users.find(u => u.name.toLowerCase() === username.toLowerCase());
+        return user && user.role.toLowerCase() === 'admin';
+    } catch(err) { return false; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   DYNAMIC OVERRIDE METADATA EXTRACTION
+   Reads SP-Boolean / SP-Numeric / SP-Enum tags from Global.json
+   exactly as the FTU page does, then builds allOverridePointsMeta.
+   Also applies the OR_CONTAINER_MAP so ISOCHW/ISOCW get their
+   OR bubble attached to ISOCHWCMD / ISOCWCMD pill-wraps.
+────────────────────────────────────────────────────────────────── */
+
+/*
+ * For each chiller unit, scan its points array for entries whose id or id2
+ * is one of the SP sentinel values.  Pair each SP point with its matching
+ * display point ID and resolve the graphic container if applicable.
+ *
+ * Returns an array of:
+ *   { pointId, pointName, fullPath, type, rawRealId, graphicContainerId }
+ */
+function extractORMetaFromUnitConfig(unitConfig) {
+    const points     = unitConfig.points || [];
+    const excludedTags = new Set(['SP-Numeric', 'SP-Boolean', 'SP-Enum']);
+    const meta       = [];
+
+    points.forEach(point => {
+        const idVal  = (point.id  || '').trim();
+        const id2Val = (point.id2 || '').trim();
+
+        // Detect which of id / id2 is the SP sentinel
+        const spTag = [idVal, id2Val].find(v =>
+            v === 'SP-Numeric' || v === 'SP-Boolean' || v === 'SP-Enum'
+        );
+        if (!spTag) return;   // not an SP/OR point — skip
+
+        // The "other" value is the display-point ID this SP belongs to
+        const rawRealId = (idVal === spTag ? id2Val : idVal).trim();
+        if (!rawRealId || rawRealId === 'N/A') return;
+
+        // Determine type from the SP sentinel
+        const type = spTag === 'SP-Numeric'  ? 'numeric'
+                   : spTag === 'SP-Boolean'  ? 'boolean'
+                   : /* SP-Enum */             'enum';
+
+        // Resolve which graphic container hosts the OR button.
+        // Check the explicit container map first, then fall back to
+        // the rawRealId itself (if that ID has a graphic position).
+        const graphicContainerId =
+            OR_CONTAINER_MAP[rawRealId]
+            || (GRAPHIC_PILL_POSITIONS[rawRealId] ? rawRealId : null);
+
+        meta.push({
+            pointId:            point.name,   // unique key (Baja point name)
+            pointName:          point.name,
+            fullPath:           point.fullPath,
+            type,
+            rawRealId,                        // the display pill this OR controls
+            graphicContainerId,               // pill-wrap to attach OR button to
+        });
+    });
+
+    return meta;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   OVERRIDE STATE  (shared across all units on this page)
+────────────────────────────────────────────────────────────────── */
+let resolvedORById   = {};   // pointKey → { point, name, type, orBtn, valueEl, unitKey, ... }
+let orCurrentPointId = null;
+let enumPointFacets  = {};
+const orSubscriber   = new baja.Subscriber();
+let authorizedForOR  = false;
+
+function checkIfOverridden(point) {
+    try {
+        const s = point.getOut().getStatus().toString().toLowerCase() || '';
+        if (!s.trim()) return null;
+        if (s.includes('overridden') || s.includes('manual')) return 'OVERRIDDEN';
+        if (s.includes('fault') || s.includes('alarm') || s.includes('down')) return 'FAULT';
+        return null;
+    } catch(e) { return null; }
+}
+
+function setORBubbleState(btn, state) {
+    if (!btn) return;
+    btn.classList.remove('or-active', 'or-fault');
+    if (state === 'OVERRIDDEN') btn.classList.add('or-active');
+    else if (state === 'FAULT') btn.classList.add('or-fault');
+}
+
+orSubscriber.attach('changed', function(prop) {
+    if (prop.getName() !== 'out') return;
+    const pointKey = this._orPointKey;
+    if (!pointKey) return;
+    const info = resolvedORById[pointKey];
+    if (!info) return;
+    const out        = this.getOut();
+    const displayVal = out.getValueDisplay();
+    const rawVal     = out.getValue();
+    const isOvr      = this.getStatus().isOverridden();
+    if (info.orBtn) setORBubbleState(info.orBtn, isOvr ? 'OVERRIDDEN' : null);
+    if (info.valueEl) applyValueToEl(info.valueEl, displayVal, rawVal, isOvr, info.pointDef);
+    updateAlarmRunBadges(info.unitKey, pointKey, rawVal, info.pointDef, displayVal);
+    if (info.pointDef && info.pointDef.special === 'run') {
+        updateRunAnimation(info.unitKey, displayVal);
+    }
+    if (document.getElementById('or-modal') && document.getElementById('or-modal').classList.contains('active') && orCurrentPointId === pointKey) {
+        updateORModalDisplay(this, info.name, info.type, pointKey);
+    }
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   BADGE HELPERS
+────────────────────────────────────────────────────────────────── */
+function updateAlarmRunBadges(unitKey, pointKey, rawVal, pointDef, displayVal) {
+    if (!pointDef) return;
+    const card = document.querySelector(`.chiller-card[data-unit-key="${unitKey}"]`);
+    if (!card) return;
+    if (pointDef.special === 'alarm') {
+        const badge = card.querySelector('.chiller-alarm-badge');
+        if (!badge) return;
+        const isActive = String(rawVal||'').toLowerCase().includes('on') || parseFloat(rawVal) > 0 || String(rawVal||'').toLowerCase() === 'true';
+        badge.classList.toggle('show', isActive);
+    }
+    if (pointDef.special === 'run') {
+        const badge = card.querySelector('.chiller-run-badge');
+        if (!badge) return;
+        badge.classList.toggle('show', isRunning(displayVal));
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   CARD BUILDER
+────────────────────────────────────────────────────────────────── */
+function buildChillerCard(unitKey, unitConfig) {
+    const type        = (unitConfig.Type || 'AIRCOOLED').toUpperCase();
+    const imgSrc      = CHILLER_IMAGES[type] || CHILLER_IMG_DEFAULT;
+    const displayName = decodeNiagaraName(unitKey).replace(/_/g,' ');
+    const pointsById  = {};
+    (unitConfig.points || []).forEach(p => { if (p.id) pointsById[p.id] = p; });
+
+    const presentComps = COMP_IDS.filter(cid => pointsById[cid]);
+
+    // Display defs: exclude _orContainer markers from the standard grid
+    const graphicDefs = POINT_DEFS.filter(def =>
+        !def._orContainer && GRAPHIC_PILL_POSITIONS[def.id] && !!pointsById[def.id]
+    );
+    const allGridDefs = POINT_DEFS.filter(def =>
+        !def._orContainer && !GRAPHIC_PILL_POSITIONS[def.id] && !!pointsById[def.id]
+    );
+
+    const card = document.createElement('div');
+    card.className = 'chiller-card';
+    card.dataset.unitKey  = unitKey;
+    card.dataset.unitName = displayName.toLowerCase();
+    card.dataset.unitType = type.toLowerCase();
+
+    // ── Header ──
+    const hdr = document.createElement('div');
+    hdr.className = 'chiller-card-header';
+    hdr.innerHTML = `
+        <div>
+            <div class="chiller-card-title">${displayName}</div>
+            <div class="chiller-card-type">${type}</div>
+        </div>
+        <div class="chiller-card-actions">
+            <span class="chiller-run-badge">\u25CF RUNNING</span>
+            <span class="chiller-alarm-badge">\u26A0 ALARM</span>
+            <button class="chiller-fullscreen-btn" title="Expand / Collapse" onclick="toggleFullscreen('${unitKey}', this)">\u26F6</button>
+        </div>`;
+    card.appendChild(hdr);
+
+    // ── Image section with overlay pills + run animation ──
+    const imgSec = document.createElement('div');
+    imgSec.className = 'chiller-img-section';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'chiller-graphic-wrap';
+    wrap.innerHTML = `<img class="chiller-base-img" src="${imgSrc}" alt="${displayName}" onerror="this.style.opacity='0.3'"/>`;
+
+    // ── Run animation overlay ──
+    const animCfg    = RUN_ANIM_CONFIG[type] || RUN_ANIM_CONFIG['AIRCOOLED'];
+    const animImgSrc = RUN_ANIM_IMAGES[type]  || RUN_ANIM_IMAGES['AIRCOOLED'];
+    const animDiv    = document.createElement('div');
+    animDiv.className = 'chiller-run-anim';
+    animDiv.style.setProperty('--anim-top',   animCfg.top);
+    animDiv.style.setProperty('--anim-left',  animCfg.left);
+    animDiv.style.setProperty('--anim-width', animCfg.width);
+    animDiv.innerHTML = `<img src="${animImgSrc}" alt="Running animation"/>`;
+    wrap.appendChild(animDiv);
+
+    // ── Graphic overlay pills (display points only) ──
+    graphicDefs.forEach(def => {
+        const pos     = GRAPHIC_PILL_POSITIONS[def.id];
+        const pillKey = `${unitKey}__${def.id}`;
+
+        const pw = document.createElement('div');
+        pw.className = 'pill-wrap';
+        pw.dataset.spanid = def.id;
+        pw.style.top  = pos.top;
+        pw.style.left = pos.left;
+
+        pw.innerHTML = `
+            <div class="point-display" onclick="openGraphPopupForPoint('${unitKey}','${def.id}')">
+                <div class="point-display-inner">
+                    <span class="pill-label">${def.label}</span>
+                    <span class="pill-value status-na" id="pv__${pillKey}">N/A</span>
+                </div>
+            </div>`;
+        // OR button slot — filled later once SP points are resolved
+        wrap.appendChild(pw);
+    });
+
+    // ── OR container pills (ISOCHWCMD, ISOCWCMD) — no display value, just an anchor ──
+    POINT_DEFS.filter(def => def._orContainer && GRAPHIC_PILL_POSITIONS[def.id]).forEach(def => {
+        const pos = GRAPHIC_PILL_POSITIONS[def.id];
+        const pw  = document.createElement('div');
+        pw.className = 'pill-wrap';
+        pw.dataset.spanid = def.id;
+        pw.style.top  = pos.top;
+        pw.style.left = pos.left;
+        // No inner display pill — just the container for the OR button
+        wrap.appendChild(pw);
+    });
+
+    imgSec.appendChild(wrap);
+    card.appendChild(imgSec);
+
+    // ── Data pills grid ──
+    if (allGridDefs.length > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'chiller-data-grid';
+        allGridDefs.forEach(def => {
+            const pillKey = `${unitKey}__${def.id}`;
+            const pill    = document.createElement('div');
+            pill.className = 'data-pill';
+            pill.innerHTML = `
+                <div class="data-pill-wrap">
+                    <div class="data-pill-inner" onclick="openGraphPopupForPoint('${unitKey}','${def.id}')">
+                        <div class="data-pill-label">${def.label}</div>
+                        <div class="data-pill-value status-na" id="pv__${pillKey}">N/A</div>
+                    </div>
+                    <!-- OR button slot populated after SP resolution -->
+                    <div class="or-btn-slot" data-pillkey="${pillKey}"></div>
+                </div>`;
+            grid.appendChild(pill);
+        });
+        card.appendChild(grid);
+    }
+
+    // ── Compressors section ──
+    if (presentComps.length > 0) {
+        const compSec = document.createElement('div');
+        compSec.className = 'comp-section';
+        compSec.innerHTML = `<div class="comp-section-title">Compressors</div>`;
+        const compGrid = document.createElement('div');
+        compGrid.className = 'comp-grid';
+        presentComps.forEach(cid => {
+            const pillKey = `${unitKey}__${cid}`;
+            const cpill   = document.createElement('div');
+            cpill.className = 'data-pill';
+            cpill.innerHTML = `
+                <div class="data-pill-inner" onclick="openGraphPopupForPoint('${unitKey}','${cid}')">
+                    <div class="data-pill-label">${cid}</div>
+                    <div class="data-pill-value status-na" id="pv__${pillKey}">N/A</div>
+                </div>`;
+            compGrid.appendChild(cpill);
+        });
+        compSec.appendChild(compGrid);
+        card.appendChild(compSec);
+    }
+
+    document.getElementById('chiller-grid').appendChild(card);
+    return card;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   GRAPH OPEN (by unit + id)
+────────────────────────────────────────────────────────────────── */
+window.openGraphPopupForPoint = function(unitKey, pointId) {
+    if (!window._chillerConfigCache) return;
+    const unitConfig = window._chillerConfigCache[unitKey];
+    if (!unitConfig) return;
+    const point = (unitConfig.points || []).find(p => p.id === pointId);
+    if (!point) return;
+    const label = decodeNiagaraName(point.name || pointId).replace(/_/g,' ');
+    openGraphPopup(point.fullPath, label, '');
+};
+
+/* ──────────────────────────────────────────────────────────────────
+   FULLSCREEN TOGGLE
+────────────────────────────────────────────────────────────────── */
+window.toggleFullscreen = function(unitKey, btn) {
+    const card     = document.querySelector(`.chiller-card[data-unit-key="${unitKey}"]`);
+    const backdrop = document.getElementById('fullscreen-backdrop');
+    const isFS     = card.classList.contains('fullscreen-card');
+    if (isFS) {
+        card.classList.remove('fullscreen-card');
+        backdrop.classList.remove('active');
+        if (btn) btn.textContent = '\u26F6';
+        card.style.zIndex = '';
+    } else {
+        document.querySelectorAll('.chiller-card.fullscreen-card').forEach(c => {
+            c.classList.remove('fullscreen-card');
+            c.style.zIndex = '';
+            const ob = c.querySelector('.chiller-fullscreen-btn');
+            if (ob) ob.textContent = '\u26F6';
+        });
+        card.classList.add('fullscreen-card');
+        backdrop.classList.add('active');
+        if (btn) btn.textContent = '\u2715';
+    }
+    const q = document.getElementById('chiller-search-input').value.trim();
+    filterChillers(q);
+};
+
+document.getElementById('fullscreen-backdrop').addEventListener('click', function() {
+    document.querySelectorAll('.chiller-card.fullscreen-card').forEach(c => {
+        c.classList.remove('fullscreen-card');
+        c.style.zIndex = '';
+        const ob = c.querySelector('.chiller-fullscreen-btn');
+        if (ob) ob.textContent = '\u26F6';
+    });
+    this.classList.remove('active');
+    const q = document.getElementById('chiller-search-input').value.trim();
+    filterChillers(q);
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   SUBSCRIBE TO A DISPLAY POINT (non-OR data subscription)
+────────────────────────────────────────────────────────────────── */
+function subscribeDisplayPoint(unitKey, pointCfg, def) {
+    const pillKey   = `${unitKey}__${def.id}`;
+    const valueElId = `pv__${pillKey}`;
+    const pointKey  = pillKey;
+
+    baja.Ord.make(pointCfg.fullPath).get({ subscriber: orSubscriber })
+        .then(point => {
+            point._orPointKey = pointKey;
+            const out        = point.getOut();
+            const displayVal = out.getValueDisplay();
+            const rawVal     = out.getValue();
+            const isOvr      = point.getStatus().isOverridden();
+            const valueEl    = document.getElementById(valueElId);
+
+            applyValueToEl(valueEl, displayVal, rawVal, isOvr, def);
+            updateAlarmRunBadges(unitKey, pointKey, rawVal, def, displayVal);
+            if (def.special === 'run') updateRunAnimation(unitKey, displayVal);
+
+            // Store minimal info so the changed handler can update values.
+            // OR button is not set here — it's attached by resolveORPoint().
+            resolvedORById[pointKey] = {
+                point,
+                name:     pointCfg.name || def.id,
+                type:     'display',    // placeholder; OR type comes from SP resolution
+                orBtn:    null,
+                valueEl,
+                unitKey,
+                pointDef: def,
+                isGraphic: !!GRAPHIC_PILL_POSITIONS[def.id],
+            };
+        })
+        .catch(() => {
+            // Hide pill on error
+            const el = document.getElementById(valueElId);
+            if (el) {
+                const pill = el.closest('.data-pill');
+                if (pill) pill.style.display = 'none';
+                const pillWrap = el.closest('.pill-wrap');
+                if (pillWrap) pillWrap.style.display = 'none';
+            }
+        });
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   FACET PARSING  (ported from FTU script)
+────────────────────────────────────────────────────────────────── */
+function parseFacetsFromPoint(point, pointName) {
+    const options = [];
+    // Method 1: getFacets() on the point itself
+    try {
+        const facets = point.getFacets ? point.getFacets() : null;
+        if (facets) {
+            const range = facets.get ? facets.get('range') : null;
+            if (range) {
+                if (typeof range.getSize === 'function') {
+                    for (let i = 0; i < range.getSize(); i++) {
+                        const entry = range.get(i);
+                        options.push({
+                            ordinal: entry.getOrdinal(),
+                            label:   (entry.getDisplayName && entry.getDisplayName()) || String(entry.getOrdinal())
+                        });
+                    }
+                    if (options.length) return options;
+                }
+                const r1 = parseFacetString(range.toString());
+                if (r1.length) return r1;
+            }
+        }
+    } catch(e) { console.warn(`[${pointName}] Facet M1:`, e.message); }
+    // Method 2: getFacets() on getOut()
+    try {
+        const out = point.getOut ? point.getOut() : null;
+        if (out) {
+            const outFacets = out.getFacets ? out.getFacets() : null;
+            if (outFacets) {
+                const range = outFacets.get ? outFacets.get('range') : null;
+                if (range) {
+                    const r2 = parseFacetString(range.toString());
+                    if (r2.length) return r2;
+                }
+            }
+            // Method 3: type facets via getType()
+            try {
+                const val = out.getValue ? out.getValue() : null;
+                if (val && val.getType) {
+                    const typeFacets = val.getType().getFacets ? val.getType().getFacets() : null;
+                    if (typeFacets) {
+                        const range = typeFacets.get ? typeFacets.get('range') : null;
+                        if (range) {
+                            if (typeof range.getSize === 'function') {
+                                const opts = [];
+                                for (let i = 0; i < range.getSize(); i++) {
+                                    const entry = range.get(i);
+                                    opts.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || String(entry.getOrdinal()) });
+                                }
+                                if (opts.length) return opts;
+                            }
+                            const r3 = parseFacetString(range.toString());
+                            if (r3.length) return r3;
+                        }
+                    }
+                }
+            } catch(e3) { console.warn(`[${pointName}] Facet M3:`, e3.message); }
+        }
+    } catch(e2) { console.warn(`[${pointName}] Facet M2:`, e2.message); }
+    return options;
+}
+
+function parseFacetString(s) {
+    const opts  = [];
+    const pairs = s.replace(/[{}]/g,'').match(/([^,=]+)=(\d+)/g);
+    if (pairs) pairs.forEach(p => {
+        const [l, o] = p.split('=');
+        opts.push({ ordinal: parseInt(o, 10), label: l.trim() });
+    });
+    return opts;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   RESOLVE & ATTACH AN OR (SP) POINT
+   Subscribes to the SP/OR Baja point, then attaches the OR button
+   to the correct pill-wrap container on the card.
+────────────────────────────────────────────────────────────────── */
+function resolveORPoint(unitKey, orMeta) {
+    baja.Ord.make(orMeta.fullPath).get({ subscriber: orSubscriber })
+        .then(point => {
+            const pointKey        = `${unitKey}__OR__${orMeta.pointId}`;
+            point._orPointKey     = pointKey;
+            const isOvr           = checkIfOverridden(point);
+
+            // Find (or create) the OR button in the right container on this card
+            const card = document.querySelector(`.chiller-card[data-unit-key="${unitKey}"]`);
+            let orBtn  = null;
+
+            if (card && orMeta.graphicContainerId) {
+                // Try to find the pill-wrap that anchors this OR button
+                const container = card.querySelector(
+                    `.pill-wrap[data-spanid="${orMeta.graphicContainerId}"]`
+                );
+                if (container) {
+                    orBtn = document.createElement('div');
+                    orBtn.className   = 'or-btn-inline or-ready';
+                    orBtn.textContent = 'OR';
+                    orBtn.title       = `Override: ${decodeNiagaraName(orMeta.pointName)}`;
+                    orBtn.onclick     = () => openORModal(pointKey);
+                    container.appendChild(orBtn);
+                }
+            }
+
+            // Also look for a .or-btn-slot in the data-grid that references the rawRealId
+            if (card) {
+                const displayPillKey = `${unitKey}__${orMeta.rawRealId}`;
+                const slot = card.querySelector(`.or-btn-slot[data-pillkey="${displayPillKey}"]`);
+                if (slot) {
+                    const gridOrBtn = document.createElement('div');
+                    gridOrBtn.className   = 'or-btn-inline or-ready';
+                    gridOrBtn.textContent = 'OR';
+                    gridOrBtn.title       = `Override: ${decodeNiagaraName(orMeta.pointName)}`;
+                    gridOrBtn.onclick     = () => openORModal(pointKey);
+                    slot.replaceWith(gridOrBtn);
+                    if (!orBtn) orBtn = gridOrBtn; // use grid btn if no graphic one
+                }
+            }
+
+            if (orBtn) setORBubbleState(orBtn, isOvr);
+
+            // Find the value element for the corresponding display point
+            const displayPillKey = `${unitKey}__${orMeta.rawRealId}`;
+            const valueEl        = document.getElementById(`pv__${displayPillKey}`);
+
+            // Update the display point's cached info with OR button ref
+            if (resolvedORById[displayPillKey]) {
+                resolvedORById[displayPillKey].orBtn = orBtn;
+                resolvedORById[displayPillKey].type  = orMeta.type;
+            }
+
+            resolvedORById[pointKey] = {
+                point,
+                name:              orMeta.pointName,
+                type:              orMeta.type,
+                orBtn,
+                valueEl,           // reuse display point's value element for live updates
+                unitKey,
+                pointDef:          null,
+                isGraphic:         !!orMeta.graphicContainerId,
+                rawRealId:         orMeta.rawRealId,
+                graphicContainerId: orMeta.graphicContainerId,
+            };
+
+            if (orMeta.type === 'enum') {
+                const opts = parseFacetsFromPoint(point, orMeta.pointName);
+                enumPointFacets[pointKey] = opts;
+                if (!opts.length) {
+                    setTimeout(() => {
+                        const retried = parseFacetsFromPoint(point, orMeta.pointName);
+                        if (retried.length) enumPointFacets[pointKey] = retried;
+                    }, 2500);
+                }
+            }
+        })
+        .catch(err => {
+            console.warn(`[OR] Failed to resolve ${orMeta.pointName}:`, err.message);
+        });
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   OR MODAL
+────────────────────────────────────────────────────────────────── */
+const orModal           = document.getElementById('or-modal');
+const orModalCloseBtn   = document.getElementById('or-modal-close-btn');
+const orModalCancelBtn  = document.getElementById('or-modal-cancel-btn');
+const orModalTitle      = document.getElementById('or-modal-title');
+const orModalPointName  = document.getElementById('or-modal-point-name');
+const orModalPointValue = document.getElementById('or-modal-point-value');
+const orNumericControl  = document.getElementById('or-numeric-control');
+const orBooleanControl  = document.getElementById('or-boolean-control');
+const orEnumControl     = document.getElementById('or-enum-control');
+const orModalNumericIn  = document.getElementById('or-modal-numeric-input');
+const orModalCommandDr  = document.getElementById('or-modal-command-dropdown');
+const orModalEnumDr     = document.getElementById('or-modal-enum-dropdown');
+const orModalDurationDr = document.getElementById('or-modal-duration-dropdown');
+const orModalOverrideBtn= document.getElementById('or-modal-override-btn');
+const orModalReleaseBtn = document.getElementById('or-modal-release-btn');
+
+window.openORModal = function(pointKey) {
+    const info = resolvedORById[pointKey];
+    if (!info || !info.point) { alert('Override point not yet loaded. Please wait and try again.'); return; }
+    orCurrentPointId = pointKey;
+    updateORModalDisplay(info.point, info.name, info.type, pointKey);
+    orModal.classList.add('active');
+    if (window.restoreORCountdownDisplay) window.restoreORCountdownDisplay(pointKey);
+};
+
+function updateORModalDisplay(point, pointName, pointType, pointKey) {
+    if (!point) return;
+    const isOvr   = checkIfOverridden(point);
+    const decoded = decodeNiagaraName(pointName);
+    if (orModalTitle)     orModalTitle.textContent     = `Override \u2014 ${decoded}`;
+    if (orModalPointName) orModalPointName.textContent = decoded;
+    const badge = document.getElementById('or-modal-status-badge');
+    if (badge) {
+        if (isOvr === 'OVERRIDDEN') { badge.textContent='\u25C8 OVERRIDDEN'; badge.className='or-status-badge badge-overridden'; }
+        else if (isOvr === 'FAULT') { badge.textContent='\u26A0 FAULT';      badge.className='or-status-badge badge-fault'; }
+        else                        { badge.textContent='\u2B24 AUTO';        badge.className='or-status-badge badge-auto'; }
+    }
+    const mc = document.querySelector('.modal-content');
+    if (mc) { mc.classList.remove('is-overridden','is-fault'); if (isOvr==='OVERRIDDEN') mc.classList.add('is-overridden'); else if (isOvr==='FAULT') mc.classList.add('is-fault'); }
+    if (orModalPointValue) {
+        try {
+            const val = point.getOut().getValueDisplay();
+            orModalPointValue.textContent = val || '\u2014';
+            orModalPointValue.className   = 'modal-point-value';
+            if (isOvr==='OVERRIDDEN') orModalPointValue.classList.add('status-override');
+            else if (isOvr==='FAULT') orModalPointValue.classList.add('status-fault');
+            else { const raw=String(point.getOut().getValue()||'').toLowerCase(); orModalPointValue.classList.add(raw.includes('on')||raw==='true'||parseFloat(raw)>0?'status-on':'status-off'); }
+        } catch(e) { orModalPointValue.textContent='Error'; orModalPointValue.className='modal-point-value status-fault'; }
+    }
+    if (pointKey) { const info=resolvedORById[pointKey]; if (info&&info.orBtn) setORBubbleState(info.orBtn, isOvr); }
+    if (orNumericControl) orNumericControl.style.display='none';
+    if (orBooleanControl) orBooleanControl.style.display='none';
+    if (orEnumControl)    orEnumControl.style.display='none';
+    if (pointType==='numeric') {
+        if (orNumericControl) orNumericControl.style.display='flex';
+        if (orModalNumericIn) { try { const cur=point.getOut().getValueDisplay(); orModalNumericIn.placeholder=cur?`Current: ${cur}`:'Enter value'; } catch(e) { orModalNumericIn.placeholder='Enter value'; } orModalNumericIn.value=''; }
+    } else if (pointType==='boolean') {
+        if (orBooleanControl) orBooleanControl.style.display='flex';
+        if (orModalCommandDr) orModalCommandDr.value='on';
+    } else if (pointType==='enum') {
+        if (orEnumControl) orEnumControl.style.display='flex';
+        populateEnumDropdown(pointKey);
+    }
+}
+
+function populateEnumDropdown(pointKey) {
+    if (!orModalEnumDr) return;
+    orModalEnumDr.innerHTML='';
+    let options = enumPointFacets[pointKey]||[];
+    if (!options.length) {
+        const info=resolvedORById[pointKey];
+        if (info&&info.point) { options=parseFacetsFromPoint(info.point,pointKey); if (options.length) enumPointFacets[pointKey]=options; }
+    }
+    if (!options.length) { const o=document.createElement('option'); o.textContent='\u26A0 No options found'; orModalEnumDr.appendChild(o); return; }
+    [...options].sort((a,b)=>a.ordinal-b.ordinal).forEach(({ordinal,label})=>{ const o=document.createElement('option'); o.value=ordinal; o.textContent=label; orModalEnumDr.appendChild(o); });
+}
+
+function initORModalListeners() {
+    if (orModalCloseBtn)  orModalCloseBtn.addEventListener('click',  ()=>orModal.classList.remove('active'));
+    if (orModalCancelBtn) orModalCancelBtn.addEventListener('click', ()=>orModal.classList.remove('active'));
+    if (orModal) orModal.addEventListener('click', e=>{ if (e.target===orModal) orModal.classList.remove('active'); });
+    if (orModalOverrideBtn) {
+        orModalOverrideBtn.addEventListener('click', ()=>{
+            if (!orCurrentPointId) return;
+            const info = resolvedORById[orCurrentPointId];
+            if (!info||!info.point) return;
+            const duration = orModalDurationDr.value;
+            let durationSec = null;
+            if (duration!=='permanent') { const map={'1min':60,'5min':300,'30min':1800,'1hour':3600,'2hours':7200,'4hours':14400,'8hours':28800}; durationSec=map[duration]; }
+            if (info.type==='numeric') {
+                const v=parseFloat(orModalNumericIn.value); if (isNaN(v)){alert('Please enter a valid number.');return;} performNumericOverride(info.point,v,durationSec);
+            } else if (info.type==='boolean') {
+                const cmd=orModalCommandDr.value;
+                if (cmd==='on') performActiveOverride(info.point,durationSec);
+                else if (cmd==='off') performInactiveOverride(info.point,durationSec);
+                else releaseToAuto(info.point);
+            } else if (info.type==='enum') {
+                const ord=parseInt(orModalEnumDr.value,10); if (isNaN(ord)){alert('Please select a valid option.');return;} performEnumOverride(info.point,ord,durationSec);
+            }
+            if (durationSec && window.startORCountdown) window.startORCountdown(orCurrentPointId, durationSec, null);
+            setTimeout(()=>{ const upd=resolvedORById[orCurrentPointId]; if (upd) updateORModalDisplay(upd.point,upd.name,upd.type,orCurrentPointId); }, 800);
+        });
+    }
+    if (orModalReleaseBtn) {
+        orModalReleaseBtn.addEventListener('click', ()=>{
+            const info=resolvedORById[orCurrentPointId];
+            if (info&&info.point) { if (window.stopORCountdown) window.stopORCountdown(orCurrentPointId); releaseToAuto(info.point); setTimeout(()=>updateORModalDisplay(info.point,info.name,info.type,orCurrentPointId),800); }
+        });
+    }
+}
+
+window.manualORModalRefresh = function() {
+    if (!orCurrentPointId) return;
+    const info=resolvedORById[orCurrentPointId];
+    if (info) updateORModalDisplay(info.point,info.name,info.type,orCurrentPointId);
+};
+
+/* Override actions */
+function performNumericOverride(point, value, durationSec=null) {
+    const p=baja.$('control:NumericOverride'); p.setValue(value);
+    if (durationSec!==null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+    point.invoke({slot:'override',value:p}).then(()=>console.log('Numeric override OK:',value)).catch(e=>console.warn('Numeric override failed:',e.message));
+}
+function performActiveOverride(point, durationSec=null) {
+    const p=baja.$("control:Override");
+    if (durationSec!==null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+    point.invoke({slot:'active',value:p}).then(()=>console.log('Active OK')).catch(e=>console.error(e));
+}
+function performInactiveOverride(point, durationSec=null) {
+    const p=baja.$("control:Override");
+    if (durationSec!==null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+    point.invoke({slot:'inactive',value:p}).then(()=>console.log('Inactive OK')).catch(e=>console.error(e));
+}
+function performEnumOverride(point, ordinal, durationSec=null) {
+    function makeDynEnum(ord) {
+        let d=null;
+        if (baja.DynamicEnum&&typeof baja.DynamicEnum.make==='function'){try{d=baja.DynamicEnum.make(ord);}catch(e){}}
+        if(!d){d=baja.$('baja:DynamicEnum');if(typeof d.setOrdinal==='function')d.setOrdinal(ord);}
+        return d;
+    }
+    const p=baja.$('control:EnumOverride'); p.setValue(makeDynEnum(ordinal));
+    if (durationSec!==null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+    point.invoke({slot:'override',value:p}).then(()=>console.log('Enum override OK:',ordinal)).catch(e=>console.warn('Enum override failed:',e.message));
+}
+function releaseToAuto(point) {
+    point.invoke({slot:'auto'}).then(()=>console.log('Released to AUTO')).catch(e=>console.error(e));
+}
+
+function updateTopbarOverridesDropdown() {
+    const chips = document.getElementById('topbar-or-chips');
+    const btn   = document.getElementById('topbar-or-btn');
+    if (!chips) return;
+    chips.innerHTML='';
+    // Only show the OR (SP) points in the topbar, not display points
+    const orables = Object.entries(resolvedORById).filter(([k,info]) =>
+        k.includes('__OR__') && info.pointDef === null
+    );
+    orables.forEach(([pointKey,info])=>{
+        const isOvr = checkIfOverridden(info.point);
+        const chip = document.createElement('div');
+        chip.className='topbar-or-chip' + (isOvr==='OVERRIDDEN'?' overridden':'');
+        let valText='\u2014';
+        try { valText=info.point.getOut().getValueDisplay()||'\u2014'; } catch(e){}
+        chip.innerHTML=`<span class="topbar-or-chip-name">${decodeNiagaraName(info.name)}</span><span class="topbar-or-chip-value">${valText}</span>`;
+        chip.addEventListener('click',()=>{ document.getElementById('topbar-or-dropdown').classList.remove('open'); openORModal(pointKey); });
+        chips.appendChild(chip);
+    });
+    if (btn && orables.length>0) btn.removeAttribute('disabled');
+}
+
+function startORLiveUpdate() {
+    setInterval(()=>{
+        Object.entries(resolvedORById).forEach(([pointKey, info])=>{
+            if (!info.point) return;
+            const isOvr = checkIfOverridden(info.point);
+            if (info.orBtn) setORBubbleState(info.orBtn, isOvr);
+        });
+        updateTopbarOverridesDropdown();
+    }, 6000);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   PLANT CONTROLLER STATUS — global hierarchy panel
+────────────────────────────────────────────────────────────────── */
+(function initPlantStatus() {
+    const PLANT_POINTS = [
+        {
+            ord:   'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_PlantController/points/OperatingMode',
+            elId:  'psp-op-mode',
+            label: 'Operating Mode',
+            extraClass: '',
+            colorize: function(val) {
+                const v = String(val || '').toLowerCase();
+                if (v === '' || v === 'n/a' || v === '--') return 'val-na';
+                if (v.includes('off') || v === 'false' || v === '0') return 'val-off';
+                if (v.includes('fault') || v.includes('alarm')) return 'val-fault';
+                return 'val-on';
+            }
+        },
+        {
+            ord:   'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_PlantController/points/StdMode_OperStatus',
+            elId:  'psp-std-mode',
+            label: 'Std Mode',
+            extraClass: '',
+            colorize: function(val) {
+                const v = String(val || '').toLowerCase();
+                if (v === '' || v === 'n/a') return 'val-na';
+                if (v.includes('active') || v.includes('on') || v === 'true' || (parseFloat(v) > 0)) return 'val-on';
+                if (v.includes('fault')) return 'val-fault';
+                return 'val-off';
+            }
+        },
+        {
+            ord:   'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_PlantController/points/TwrMode_OperStatus',
+            elId:  'psp-twr-mode',
+            label: 'Twr Mode',
+            extraClass: '',
+            colorize: function(val) {
+                const v = String(val || '').toLowerCase();
+                if (v === '' || v === 'n/a') return 'val-na';
+                if (v.includes('active') || v.includes('on') || v === 'true' || (parseFloat(v) > 0)) return 'val-on';
+                if (v.includes('fault')) return 'val-fault';
+                return 'val-off';
+            }
+        },
+        {
+            ord:   'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_PlantController/points/Stages_On',
+            elId:  'psp-stages-on',
+            label: 'Stages On',
+            extraClass: 'psp-stages-num',
+            colorize: function(val) {
+                const n = parseFloat(val);
+                if (isNaN(n)) return 'val-na';
+                if (n > 0) return 'val-on';
+                return 'val-off';
+            }
+        },
+    ];
+
+    const plantSubscriber = new baja.Subscriber();
+
+    plantSubscriber.attach('changed', function(prop) {
+        if (prop.getName() !== 'out') return;
+        const cfg = this._plantCfg;
+        if (!cfg) return;
+        const el = document.getElementById(cfg.elId);
+        if (!el) return;
+        const displayVal = this.getOut().getValueDisplay();
+        const colorClass = cfg.colorize(displayVal);
+        el.className = 'psp-node-value' + (cfg.extraClass ? ' ' + cfg.extraClass : '') + ' ' + colorClass;
+        el.textContent = displayVal || '\u2014';
+    });
+
+    PLANT_POINTS.forEach(function(cfg) {
+        baja.Ord.make(cfg.ord).get({ subscriber: plantSubscriber })
+            .then(function(point) {
+                point._plantCfg = cfg;
+                const el = document.getElementById(cfg.elId);
+                if (!el) return;
+                const displayVal = point.getOut().getValueDisplay();
+                const colorClass = cfg.colorize(displayVal);
+                el.className = 'psp-node-value' + (cfg.extraClass ? ' ' + cfg.extraClass : '') + ' ' + colorClass;
+                el.textContent = displayVal || '\u2014';
+            })
+            .catch(function(err) {
+                const el = document.getElementById(cfg.elId);
+                if (el) {
+                    el.textContent = 'ERR';
+                    el.className = 'psp-node-value val-fault' + (cfg.extraClass ? ' ' + cfg.extraClass : '');
+                }
+                console.warn('[PlantStatus] Failed to load', cfg.label, ':', err.message);
+            });
+    });
+
+    window.addEventListener('beforeunload', function() {
+        try { plantSubscriber.unsubscribeAll(); } catch(e) {}
+    });
+})();
+
+/* ──────────────────────────────────────────────────────────────────
+   MAIN INIT
+────────────────────────────────────────────────────────────────── */
+async function init() {
+    authorizedForOR = await isAuthorizedUser();
+    if (!authorizedForOR) console.warn('[OR] Non-admin user — override buttons hidden');
+
+    let globalJson;
+    try {
+        const resp = await fetch('../Global.json');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        globalJson = await resp.json();
+    } catch(err) {
+        alert(`Failed to load Global.json: ${err.message}`);
+        document.getElementById('page-loader').classList.add('hidden');
+        return;
+    }
+
+    const vars = globalJson.globalVariables || {};
+
+    // ── Discover chiller units ──
+    const chillerUnits = {};
+    Object.entries(vars).forEach(([key, cfg]) => {
+        const type = (cfg.Type || '').toUpperCase();
+        const name = key.toLowerCase();
+        if (type === 'AIRCOOLED' || type === 'CENT' || name.includes('chiller') || name.includes('_ch_')) {
+            chillerUnits[key] = cfg;
+        }
+    });
+
+    // Fallback: scan for units that have chiller-specific point IDs
+    if (Object.keys(chillerUnits).length === 0) {
+        const chillerIds = new Set(POINT_DEFS.map(d=>d.id).concat(COMP_IDS));
+        Object.entries(vars).forEach(([key, cfg]) => {
+            const points = cfg.points || [];
+            const hasChillerPoint = points.some(p => chillerIds.has(p.id));
+            if (hasChillerPoint) chillerUnits[key] = cfg;
+        });
+    }
+
+    window._chillerConfigCache = chillerUnits;
+    const unitKeys = Object.keys(chillerUnits).sort();
+    const count    = unitKeys.length;
+
+    if (count === 0) {
+        const noRes = document.getElementById('no-results');
+        noRes.style.display = 'block';
+        noRes.textContent = 'No chiller units found in Global.json.';
+        document.getElementById('page-loader').classList.add('hidden');
+        return;
+    }
+
+    // ── Build cards ──
+    unitKeys.forEach(unitKey => { buildChillerCard(unitKey, chillerUnits[unitKey]); });
+    document.getElementById('chiller-search-count').textContent = `${count} unit${count !== 1 ? 's' : ''}`;
+
+    // ── Subscribe to display points ──
+    const pointDefById = {};
+    POINT_DEFS.forEach(def => { pointDefById[def.id] = def; });
+
+    unitKeys.forEach(unitKey => {
+        const unitConfig = chillerUnits[unitKey];
+        const pointsById = {};
+        (unitConfig.points || []).forEach(p => { if (p.id) pointsById[p.id] = p; });
+
+        // Display point subscriptions (non-OR-container, non-SP-tag points)
+        POINT_DEFS.forEach(def => {
+            if (def._orContainer) return;   // skip anchor-only defs
+            if (pointsById[def.id]) {
+                subscribeDisplayPoint(unitKey, pointsById[def.id], def);
+            }
+        });
+
+        // Compressor subscriptions
+        COMP_IDS.forEach(cid => {
+            if (pointsById[cid]) {
+                subscribeDisplayPoint(unitKey, pointsById[cid], { id: cid, label: cid, special: null });
+            }
+        });
+
+        // ── Dynamic OR point resolution from SP tags ──
+        if (authorizedForOR) {
+            const orMetas = extractORMetaFromUnitConfig(unitConfig);
+            orMetas.forEach(meta => resolveORPoint(unitKey, meta));
+        }
+    });
+
+    initORModalListeners();
+    startORLiveUpdate();
+    updateTopbarOverridesDropdown();
+
+    document.getElementById('page-loader').classList.add('hidden');
+    document.getElementById('ahu-header').textContent = `Chiller Plant \u2014 ${count} Unit${count !== 1 ? 's' : ''}`;
+
+    const orBtn = document.getElementById('topbar-or-btn');
+    if (orBtn) {
+        if (!authorizedForOR) { orBtn.disabled=true; orBtn.title='Admin access required for overrides'; }
+        else { orBtn.removeAttribute('disabled'); orBtn.title=`${count} chiller unit(s) loaded`; }
+    }
+}
+
+init();
+window.addEventListener('beforeunload', ()=>{ try { orSubscriber.unsubscribeAll(); } catch(e) {} });
+});
+</script>
+
+</body>
+</html>

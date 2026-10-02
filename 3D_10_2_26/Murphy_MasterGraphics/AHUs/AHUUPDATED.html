@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader {
+  position: fixed; inset: 0; background: #000;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999; transition: opacity 0.4s ease;
+}
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.logo-wrapper { display: flex; align-items: center; gap: 18px; margin-bottom: 15px; }
+.loader-m { width: 80px; height: 80px; }
+.loader-m path { stroke-dasharray: 500; stroke-dashoffset: 500; animation: drawM 1.6s ease-out forwards, glowPulse 2s ease-in-out infinite 1.6s; }
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+@keyframes glowPulse { 0%, 100% { filter: drop-shadow(0 0 4px #00A86B); } 50% { filter: drop-shadow(0 0 18px #00ff99); } }
+.loader-wordmark { font-size: 42px; font-weight: 700; letter-spacing: 2px; color: #111; background: linear-gradient(90deg, #111, #222); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.loader-text { margin-top: 10px; font-size: 14px; letter-spacing: 1px; opacity: 0.7; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 15px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 15px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-image-btn:hover .nav-btn-icon { background: rgba(0,200,255,0.15); border-color: rgba(0,200,255,0.35); }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 12px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px, 0.7vw, 11px); letter-spacing: clamp(1px, 0.3vw, 4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#ahu-header { font-family: var(--font-head); font-size: clamp(12px, 1.4vw, 18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; overflow: hidden; }
+.top-right-controls { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls .divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+#notesButton-top { padding: 5px 10px; background: transparent; border: 1px solid var(--border); border-radius: 5px; color: var(--text-muted); font-family: var(--font-head); font-size: 11px; letter-spacing: 1px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 5px; }
+#notesButton-top:hover { border-color: var(--accent); color: var(--accent); }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px, 0.8vw, 14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+#userDisplay { color: var(--text-primary); font-size: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+
+/* ─── TOPBAR OVERRIDES BUTTON + DROPDOWN ────────────────────────────── */
+#topbar-or-btn {
+  background: rgba(255,171,0,0.06);
+  border: 1px solid rgba(255,171,0,0.2);
+  color: rgba(255,171,0,0.4);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: default;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+#topbar-or-btn:not([disabled]) { background: rgba(255,171,0,0.12); border-color: rgba(255,171,0,0.45); color: var(--amber); cursor: pointer; }
+#topbar-or-btn:not([disabled]):hover { background: rgba(255,171,0,0.25); border-color: var(--amber); box-shadow: 0 0 10px rgba(255,171,0,0.3); }
+#topbar-or-dropdown {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,171,0,0.35);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(255,171,0,0.08);
+  min-width: 200px;
+  max-width: auto;
+}
+#topbar-or-dropdown.open { display: block; }
+#topbar-or-chips { display: flex; flex-direction: column; gap: 6px; }
+.topbar-or-chip { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,171,0,0.07); border: 1px solid rgba(255,171,0,0.2); border-radius: 7px; padding: 6px 10px; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.topbar-or-chip:hover { background: rgba(255,171,0,0.18); border-color: var(--amber); box-shadow: 0 0 8px rgba(255,171,0,0.2); }
+.topbar-or-chip.overridden { border-color: rgba(213,22,223,0.4); background: rgba(213,22,223,0.06); }
+.topbar-or-chip-name { font-family: var(--font-head); font-size: 15px; letter-spacing: 0.5px; color: var(--text-primary); text-transform: uppercase; }
+.topbar-or-chip-value { font-family: var(--font-head); font-size: 15px; font-weight: bold; color: var(--amber); }
+.topbar-or-chip.overridden .topbar-or-chip-value { color: var(--purple); }
+
+/* ─── TOPBAR PILLS ──────────────────────────────────────────────────── */
+.topbar-pill-group { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.topbar-pill { display: flex; flex-direction: column; gap: 1px; padding: 4px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.topbar-pill:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.topbar-pill.pill-alarm { border-color: rgba(255,68,68,0.6); background: rgba(255,68,68,0.08); animation: alarmPulse 1s ease-in-out infinite; }
+.topbar-pill-label { font-family: var(--font-head); font-size: clamp(7px, 0.55vw, 9px); color: var(--text-primary); letter-spacing: 1px; text-transform: uppercase; line-height: 1.2; }
+.topbar-pill-value { font-family: var(--font-head); font-size: clamp(9px, 0.8vw, 13px); font-weight: bold; line-height: 1.3; }
+.topbar-pill-value.status-on    { color: var(--green); }
+.topbar-pill-value.status-off   { color: var(--text-muted); }
+.topbar-pill-value.status-fault { color: var(--red); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1; position: relative; display: flex;
+  justify-content: center; align-items: flex-start; padding: 20px;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 85%, rgba(0,180,220,0.07) 0%, transparent 45%),
+    linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed;
+}
+
+/* ─── AHU CONTAINER ─────────────────────────────────────────────────── */
+.ahu-container { 
+    display: flex; 
+    flex-direction: column; 
+    width: 85%; 
+    max-width: auto; 
+    gap: 12px; 
+    padding: 12px; 
+}
+
+
+/* ─── GRAPHIC CARD ──────────────────────────────────────────────────── */
+.bubbleSP {
+  width: 100%; background: #0a0f1a; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; position: relative;
+  box-shadow: 0 0 40px rgba(0,200,255,0.06), 0 8px 32px rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px); transition: box-shadow 0.3s ease; overflow: hidden; min-height: auto;
+}
+.bubbleSP::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(0,80,140,0.18) 0%, transparent 65%), radial-gradient(ellipse at 75% 30%, rgba(0,40,80,0.14) 0%, transparent 60%), repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,200,255,0.012) 18px, rgba(0,200,255,0.012) 19px);
+  pointer-events: none; z-index: 0;
+}
+.bubbleSP > * { position: relative; z-index: 1; }
+.bubbleSP:hover { box-shadow: 0 0 50px rgba(0,200,255,0.1), 0 8px 40px rgba(0,0,0,0.7); }
+
+/* ─── PILL WRAPS ─────────────────────────────────────────────────────── */
+.pill-wrap { position: absolute; z-index: 5; display: flex; align-items: flex-start; gap: 3px; }
+.point-display { cursor: pointer; font-family: var(--font-head); font-size: clamp(9px, 0.85vw, 13px); white-space: nowrap; }
+.point-display-inner { background: rgba(10,15,25,0.88); border: 1px solid rgba(0,200,255,0.25); border-radius: 6px; padding: clamp(3px, 0.35vw, 5px) clamp(5px, 0.6vw, 10px); display: flex; flex-direction: column; gap: 1px; backdrop-filter: blur(8px); transition: var(--transition); }
+.point-display:hover .point-display-inner { border-color: var(--accent); background: rgba(0,200,255,0.12); box-shadow: 0 0 14px var(--accent-glow); }
+.pill-label { font-size: clamp(7px, 0.62vw, 12px); color: #fff; font-weight: bold; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.pill-value { font-size: clamp(9px, 0.9vw, 13px); font-family: var(--font-head); font-weight: bold; white-space: nowrap; line-height: 1.3; text-shadow: 0 0 8px rgba(0,200,255,0.4); }
+.data-value { font-family: var(--font-head); font-weight: bold; }
+.status-on    { color: var(--green); }
+.status-off   { color: var(--text-muted); }
+.status-override, .override-active { color: var(--purple) !important; }
+.status-fault { color: var(--red); }
+
+/* ─── SP CIRCLE BUTTON ──────────────────────────────────────────────── */
+.sp-btn-inline {
+  display: none;
+  width: clamp(16px, 1.4vw, 22px); height: clamp(16px, 1.4vw, 22px); min-width: clamp(16px, 1.4vw, 22px);
+  background: rgba(0,200,255,0.15); border: 1px solid rgba(0,200,255,0.4); color: var(--accent);
+  border-radius: 50%; align-items: center; justify-content: center;
+  font-size: clamp(7px, 0.55vw, 9px); font-weight: bold; cursor: pointer;
+  font-family: var(--font-head); transition: all 0.2s; flex-shrink: 0; user-select: none;
+  align-self: flex-start; margin-top: 2px;
+}
+.sp-btn-inline.sp-ready { display: flex; }
+.sp-btn-inline:hover { transform: scale(1.15); background: rgba(0,200,255,0.3); box-shadow: 0 0 8px rgba(0,200,255,0.4); }
+
+/* ─── OR CIRCLE BUTTON ──────────────────────────────────────────────── */
+.or-btn-inline {
+  display: none;
+  width: clamp(16px, 1.4vw, 22px); height: clamp(16px, 1.4vw, 22px); min-width: clamp(16px, 1.4vw, 22px);
+  background: rgba(255,171,0,0.18); border: 1px solid rgba(255,171,0,0.55); color: var(--amber);
+  border-radius: 50%; align-items: center; justify-content: center;
+  font-size: clamp(6px, 0.5vw, 8px); font-weight: bold; cursor: pointer;
+  font-family: var(--font-head); transition: all 0.2s; flex-shrink: 0; user-select: none;
+  align-self: flex-start; margin-top: 2px;
+}
+.or-btn-inline.or-ready { display: flex; }
+.or-btn-inline:hover { transform: scale(1.15); background: rgba(255,171,0,0.35); box-shadow: 0 0 8px rgba(255,171,0,0.55); }
+
+/* ─── UNIT DATA TABLE ───────────────────────────────────────────────── */
+#unit-data-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+#unit-data-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; cursor: pointer; user-select: none; transition: var(--transition); }
+#unit-data-panel-header:hover { background: var(--bg-card-hover); }
+#unit-data-panel-title { font-family: var(--font-head); font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; }
+#unit-data-panel-chevron { font-size: 10px; color: var(--text-muted); transition: transform 0.3s ease; }
+#unit-data-panel.open #unit-data-panel-chevron { transform: rotate(180deg); }
+#unit-data-panel-body { display: none; padding: 0 16px 14px; }
+#unit-data-panel.open #unit-data-panel-body { display: block; }
+#unit-data-inner-table { width: 100%; border-collapse: collapse; font-family: var(--font-head); }
+#unit-data-inner-table th { text-align: left; padding: 6px 8px; color: var(--accent); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+#unit-data-inner-table td { padding: 5px 12px; color: var(--text-primary); font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); word-break: break-word; }
+#unit-data-inner-table td:first-child { width: 55%; padding-right: 16px; }
+#unit-data-inner-table td:last-child  { width: 45%; }#unit-data-inner-table tr:last-child td { border-bottom: none; }
+#unit-data-inner-table tr:hover td { background: rgba(0,200,255,0.04); }
+
+/* ─── UNIT DATA TOPBAR DROPDOWN ─────────────────────────────────────── */
+#unitdata-topbar-dropdown {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(0,200,255,0.06);
+    min-width: 320px;
+    max-width: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+#unit-data-inner-table-top td { padding: 5px 12px; color: var(--text-primary); font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04); word-break: break-word; }
+#unit-data-inner-table-top td:first-child { width: 55%; padding-right: 16px; }
+#unitdata-topbar-dropdown.open { display: block; }
+#unitDataButton-top {
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-family: var(--font-head);
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+#unitDataButton-top:hover { border-color: var(--accent); color: var(--accent); }
+#unitDataButton-top.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.08); }
+
+/* ─── AMBER OR MODAL ────────────────────────────────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: var(--bg-panel); border: 1px solid rgba(213,22,223,0.4); border-radius: 14px; padding: 28px; width: 75%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(213,22,223,0.1); animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+.modal-content.amber-modal { border-color: rgba(255,171,0,0.45); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,171,0,0.1); }
+@keyframes modalIn { from { transform: scale(0.92) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid rgba(213,22,223,0.3); }
+.modal-header.amber-header { border-bottom-color: rgba(255,171,0,0.3); }
+.modal-header h2 { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--purple); font-weight: normal; text-transform: uppercase; }
+.modal-header.amber-header h2 { color: var(--amber); }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-point-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; }
+.modal-point-name { font-family: var(--font-head); font-size: 14px; color: var(--purple); margin-bottom: 6px; }
+.modal-point-name.amber-name { color: var(--amber); }
+.modal-point-value { font-family: var(--font-head); font-size: 24px; font-weight: bold; color: var(--text-primary); }
+.modal-point-value.status-on     { color: var(--green); }
+.modal-point-value.status-off    { color: var(--text-muted); }
+.modal-point-value.status-override { color: var(--purple); }
+.modal-point-value.status-fault  { color: var(--red); }
+.modal-controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+.control-group label { font-family: var(--font-head); font-size: 11px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+.control-group input, .control-group select { padding: 10px 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-head); font-size: 14px; transition: var(--transition); }
+.control-group input:focus, .control-group select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.modal-buttons { display: flex; gap: 10px; }
+.modal-btn { flex: 1; padding: 11px 16px; border: none; border-radius: 6px; font-family: var(--font-head); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: var(--transition); }
+.modal-btn-override { background: rgba(213,22,223,0.2); color: var(--purple); border: 1px solid rgba(213,22,223,0.4); }
+.modal-btn-override:hover { background: rgba(213,22,223,0.4); }
+.modal-btn-override.amber-btn { background: rgba(255,171,0,0.15); color: var(--amber); border-color: rgba(255,171,0,0.4); }
+.modal-btn-override.amber-btn:hover { background: rgba(255,171,0,0.3); }
+.modal-btn-release { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+.modal-btn-release:hover { background: rgba(255,68,68,0.3); }
+.modal-btn-cancel { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border); }
+.modal-btn-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+/* ─── GRAPH POPUP ───────────────────────────────────────────────────── */
+.graph-popup-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(10px); z-index: 9999; justify-content: center; align-items: center; }
+.graph-popup-container { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; width: 94vw; max-width: 1400px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,200,255,0.08); }
+.graph-popup-header { background: rgba(0,200,255,0.06); border-bottom: 1px solid var(--border); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.graph-popup-title { font-family: var(--font-head); font-size: 16px; letter-spacing: 2px; color: var(--accent); font-weight: normal; text-transform: uppercase; margin: 0; }
+.graph-popup-close { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 18px; width: 34px; height: 34px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; }
+.graph-popup-close:hover { border-color: var(--red); color: var(--red); }
+.graph-popup-body { flex: 1; padding: 24px; overflow: hidden; background: var(--bg-card); display: flex; flex-direction: column; min-height: 0; }
+.graph-canvas-container { flex: 1; position: relative; min-height: 0; width: 100%; }
+.graph-canvas-container canvas { width: 100% !important; height: 100% !important; }
+.graph-loading { display: flex; justify-content: center; align-items: center; height: 100%; color: var(--accent); font-family: var(--font-head); font-size: 13px; letter-spacing: 2px; }
+.graph-info { margin-top: 12px; padding: 10px 16px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--text-muted); font-family: var(--font-head); flex-shrink: 0; }
+
+/* ─── NOTES MODAL ───────────────────────────────────────────────────── */
+.notes-modal { display: none; position: fixed; z-index: 10000; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); }
+.notes-modal-content { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px; margin: 10% auto; padding: 24px; width: 90%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.notes-modal-content h3 { font-family: var(--font-head); color: var(--accent); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+.notes-close { color: var(--text-muted); float: right; font-size: 22px; cursor: pointer; background: none; border: none; transition: var(--transition); }
+.notes-close:hover { color: var(--red); }
+.note-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.note-row input { flex: 1; padding: 8px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-family: var(--font-head); font-size: 13px; }
+.note-row input:focus { outline: none; border-color: var(--accent); }
+.note-row button { padding: 8px 14px; background: rgba(0,200,255,0.15); color: var(--accent); border: 1px solid rgba(0,200,255,0.3); border-radius: 6px; cursor: pointer; font-family: var(--font-head); font-size: 12px; transition: var(--transition); }
+.note-row button:hover { background: rgba(0,200,255,0.3); }
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── SUMMARY BUTTON ────────────────────────────────────────────────── */
+.ahu-summary-btn { display: block; width: 100%; padding: 13px 28px; background: rgba(0,200,255,0.08); color: var(--accent); border: 1px solid rgba(0,200,255,0.3); border-radius: 8px; font-family: var(--font-head); font-size: 13px; letter-spacing: 3px; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: var(--transition); text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+.ahu-summary-btn:hover { background: rgba(0,200,255,0.18); border-color: var(--accent); box-shadow: 0 0 24px var(--accent-glow); color: var(--accent); text-decoration: none; transform: translateY(-1px); }
+
+/* ─── STATUS GRID ───────────────────────────────────────────────────── */
+.ahu-status-section { display: flex; flex-direction: column; width: 100%; gap: 16px; }
+.status-bubbles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; width: 100%; }
+.bubble { background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: clamp(10px, 1.2vw, 20px); display: flex; align-items: center; justify-content: center; text-align: center; font-family: var(--font-head); font-size: clamp(11px, 0.9vw, 15px); color: var(--text-primary); cursor: pointer; transition: var(--transition); box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+.bubble:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateY(-2px); box-shadow: 0 0 20px var(--accent-glow); }
+.bubble p { margin: 0; color: var(--text-muted); font-size: inherit; }
+
+/* ─── PDF BUTTON ────────────────────────────────────────────────────── */
+#pdf-button-container button { background: rgba(0,200,255,0.1) !important; border: 1px solid var(--border) !important; color: var(--accent) !important; font-family: var(--font-head) !important; border-radius: 8px !important; }
+#pdf-button-container button:hover { background: rgba(0,200,255,0.2) !important; border-color: var(--accent) !important; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; z-index: 1000; gap: 8px; overflow: hidden; }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1; min-width: 0; overflow: hidden; }
+.date-time strong { color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode { background: #d8dde8; }
+body.light-mode .main-content { background: radial-gradient(ellipse at 20% 40%, rgba(0,40,120,0.06) 0%, transparent 55%), linear-gradient(160deg, #cdd3e0 0%, #d4d9e6 40%, #ccd2df 100%); }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background: rgba(220,225,236,0.98); border-color: rgba(0,30,100,0.25); }
+body.light-mode .user-badge { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); color: #334466; }
+body.light-mode .site-label { color: #001f6b; }
+body.light-mode #ahu-header { color: #001040; }
+body.light-mode #userDisplay { color: #001040; }
+body.light-mode .hamburger-line { background: #001f6b; }
+body.light-mode .hamburger-menu { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .side-panel { background: #dde2ed; border-color: rgba(0,30,100,0.2); }
+body.light-mode .side-panel-header h2 { color: #001f6b; }
+body.light-mode .nav-image-btn { background: #e4e8f3; border-color: rgba(0,100,160,0.25); }
+body.light-mode .nav-image-btn:hover { background: #d0d8f0; border-color: #0070b8; }
+body.light-mode .nav-btn-label { color: #1a2035; }
+body.light-mode .bubble { background: rgba(255,255,255,0.75); border-color: rgba(0,30,100,0.2); }
+body.light-mode .point-display-inner { background: rgba(255,255,255,0.9); border-color: rgba(0,30,100,0.45); }
+body.light-mode .pill-label { color: #556688; }
+body.light-mode .pill-value { text-shadow: none; }
+body.light-mode .back-button { background: rgba(255,255,255,0.8); color: #334466; border-color: rgba(0,30,100,0.3); }
+body.light-mode .logout-btn { background: rgba(255,255,255,0.8); color: #1a2035; border-color: rgba(0,100,180,0.3); }
+body.light-mode .section-heading h2 { color: #001f6b; }
+body.light-mode #unit-data-panel { background: rgba(255,255,255,0.8); border-color: rgba(0,30,100,0.2); }
+body.light-mode #unit-data-panel-title { color: #001f6b; }
+body.light-mode #unit-data-inner-table th { color: #001f6b; }
+body.light-mode #unit-data-inner-table td { color: #001040; }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 900px) { .topbar-pill-group { display: none; } }
+@media (max-width: 600px) { #userDisplay { max-width: 50px; } .top-right-controls { display: none; } }
+
+@keyframes alarmPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.7; transform:scale(1.08); } }
+
+#ahu-graphic-wrapper .pill-label { font-size: 20px; }
+#ahu-graphic-wrapper .pill-value { font-size: 20px; font-family: var(--font-head); font-weight: bold; }
+#ahu-graphic-wrapper .point-display-inner { padding: 5px 10px; gap: 5px; }
+#ahu-graphic-wrapper .sp-btn-inline,
+#ahu-graphic-wrapper .or-btn-inline { width: 30px; height: 30px; min-width: 20px; font-size: 20px; }
+
+@keyframes orPulse { 0%, 100% { box-shadow: 0 0 4px rgba(213,22,223,0.5); } 50% { box-shadow: 0 0 14px rgba(213,22,223,0.9), 0 0 28px rgba(213,22,223,0.4); } }
+   
+   /* ─── LOADER — Customer + Murphy branding ───────────────────────────── */
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn {
+  to { transform: scaleX(1); }
+}
+.loader-murphy-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m {
+  width: 30px;
+  height: 30px;
+}
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #888;
+  text-transform: uppercase;
+}
+.loader-murphy-label strong {
+  color: #00A86B;
+  letter-spacing: 2px;
+  font-weight: normal;
+}
+.loader-content .loader-text {
+  margin-top: 18px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.5s ease-out 1.4s forwards;
+}
+   </style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170"
+          fill="none" stroke="#00A86B" stroke-width="18"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading system data…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+    <div class="side-panel-header">
+        <h2>Navigation</h2>
+        <p>Murphy Control Panel</p>
+    </div>
+    <div class="nav-section-label">System Views</div>
+    <div class="nav-image-grid">
+        <a href="../Home.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+        </a>
+        <a href="../FloorPlan.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+        </a>
+        <a href="../Alarms.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="30" r="1.8" fill="var(--amber)"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+        </a>
+        <a href="../Users.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+        </a>
+        <a href="../LogsNUMERIC.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/><rect x="8" y="20" width="5" height="14" fill="#e05252" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent)" rx="1"/><rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+        </a>
+        <a href="../Shedules.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/><line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+        </a>
+    </div>
+    <div class="nav-section-label">Equipment Summaries</div>
+    <div class="nav-image-grid">
+        <a href="AHUSummary/AHUSummary.html" class="nav-image-btn">
+            <div class="nav-btn-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 12 Q9 8 12 12 Q15 16 18 12"/><line x1="2" y1="9" x2="22" y2="9" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2,2"/></svg></div>
+            <div class="nav-btn-text"><span class="nav-btn-label">AHU Summary</span><span class="nav-btn-sublabel">All AHU units</span></div>
+        </a>
+        <div id="equipment-summary-btn"></div>
+    </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+    <div class="top-bar-left">
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </div>
+
+        <div id="topbar-overrides" style="position:relative;">
+            <button id="topbar-or-btn" onclick="toggleTopbarOverrides(event)" disabled title="No overridable points loaded yet">⚡ Overrides</button>
+            <div id="topbar-or-dropdown">
+                <div id="topbar-or-chips"></div>
+            </div>
+        </div>
+
+        <div class="topbar-pill-group">
+            <div class="topbar-pill" id="topbar-ahu-alarm-pill" onclick="openGraphPopupBySpanId('AHU-ALARM')">
+                <span class="topbar-pill-label">AHU Alarm</span>
+                <span class="topbar-pill-value" id="topbar-AHU-ALARM">—</span>
+            </div>
+            <div class="topbar-pill" id="topbar-occupancy-pill" onclick="openGraphPopupBySpanId('Occupancy')">
+                <span class="topbar-pill-label">Occupancy</span>
+                <span class="topbar-pill-value" id="topbar-Occupancy">—</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="top-center">
+        <span class="site-label">Murphy Control</span>
+        <span id="ahu-header">Loading...</span>
+    </div>
+
+    <div class="top-right">
+        <div class="top-right-controls">
+            <button id="notesButton-top" onclick="document.getElementById('notesModal').style.display='block'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Notes
+            </button>
+            <div class="divider"></div>
+            <!-- ── CHANGE 1: Unit Data topbar button (ported from VAV) ── -->
+            <button id="unitDataButton-top" onclick="toggleUnitDataPanelDropdown(event)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="9" x2="9" y2="21"/>
+                </svg>
+                Unit Data
+            </button>
+            <div class="divider"></div>
+            <span>☀</span>
+            <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+                <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+            </div>
+        </div>
+        <div class="user-badge">
+            <span id="userDisplay">—</span>
+        </div>
+    </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+
+    <!-- Notes Modal -->
+    <div id="notesModal" class="notes-modal">
+        <div class="notes-modal-content">
+            <span class="notes-close">&times;</span>
+            <h3>Notes</h3>
+            <div class="note-row"><input type="text" id="Note1" placeholder="Note 1"><button onclick="saveNote('Note1')">Save</button></div>
+            <div class="note-row"><input type="text" id="Note2" placeholder="Note 2"><button onclick="saveNote('Note2')">Save</button></div>
+            <div class="note-row"><input type="text" id="Note3" placeholder="Note 3"><button onclick="saveNote('Note3')">Save</button></div>
+        </div>
+    </div>
+
+    <!-- ── CHANGE 1: Unit Data Topbar Dropdown (ported from VAV) ── -->
+    <div id="unitdata-topbar-dropdown">
+        <div style="padding:10px 16px 6px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:var(--font-head);font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;">Unit Data</span>
+            <span onclick="closeUnitDataDropdown()" style="cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;transition:var(--transition);" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-muted)'">&times;</span>
+        </div>
+        <div style="padding:0 16px 14px;">
+            <table id="unit-data-inner-table-top" style="width:100%;border-collapse:collapse;font-family:var(--font-head);">
+                <thead><tr>
+                    <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Name</th>
+                    <th style="text-align:left;padding:6px 8px;color:var(--accent);font-size:10px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);width:50%">Value</th>
+                </tr></thead>
+                <tbody id="unit-data-tbody-top"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- AHU Container -->
+    <div class="ahu-container">
+
+        <div class="section-heading">
+            <div class="line"></div>
+            <h2>AHU Unit Monitoring</h2>
+            <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+        </div>
+
+        <!-- Graphic Card -->
+        <div id="ahu-wrapper" style="position:relative; width:100%;">
+        <div class="bubbleSP">
+
+            <!-- ── CHANGE 2: PDF button + AHU Summary link (ported from VAV) ── -->
+            <div style="position:absolute; top:2%; right:1%; z-index:100; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                <div id="pdf-button-container"></div>
+                <a href="AHUSummary/AHUSummary.html" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 5px 12px;
+                    background: rgba(0,200,255,0.08);
+                    color: var(--accent);
+                    border: 1px solid rgba(0,200,255,0.3);
+                    border-radius: 6px;
+                    font-family: var(--font-head);
+                    font-size: clamp(9px,0.7vw,12px);
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                    text-decoration: none;
+                    transition: var(--transition);
+                    white-space: nowrap;
+                "
+                onmouseover="this.style.background='rgba(0,200,255,0.18)';this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 14px rgba(0,200,255,0.25)';"
+                onmouseout="this.style.background='rgba(0,200,255,0.08)';this.style.borderColor='rgba(0,200,255,0.3)';this.style.boxShadow='';">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M6 12 Q9 8 12 12 Q15 16 18 12"/>
+                        <line x1="2" y1="9" x2="22" y2="9" stroke="currentColor" stroke-width="1" stroke-dasharray="2,2"/>
+                    </svg>
+                    AHU Summary
+                </a>
+            </div>
+
+            <div id="ahu-graphic-wrapper" style="position:relative; width:60%; margin:0 auto; display:block;">
+                <img id="AHU" src="" style="width:100%; height:auto; display:block; object-fit:contain;" />
+                <img id="Heat-Coils"          src="" style="position:absolute; display:block;" />
+                <img id="Cool-Coils"          src="" style="position:absolute; display:block;" />
+                <img id="Cool-Coils_COOLING"  src="" style="position:absolute; display:block;" />
+                <img id="Cool-Coils_COOLING2" src="" style="position:absolute; display:block;" />
+                <img id="Supply-Fan"          src="" style="position:absolute; display:block;" />
+                <img id="Supply-Fan_Bot1"     src="" style="position:absolute; display:block;" />
+                <img id="Supply-Fan_BoT2"     src="" style="position:absolute; display:block;" />
+                <img id="Supply-Fan_Bot3"     src="" style="position:absolute; display:block;" />
+                <img id="Supply-Fan_Bot4"     src="" style="position:absolute; display:block;" />
+                <img id="Return-Fan"          src="" style="position:absolute; display:block;" />
+                <img id="img-Damper-OA"       src="" style="position:absolute; display:block;" />
+                <img id="img-Damper-Return"   src="" style="position:absolute; display:block;" />
+
+                <!-- Fan Status -->
+                <div class="pill-wrap" data-spanid="Fan-Stat" style="width:8%; top:37%; left:60%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('Fan-Stat')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Fan Status</span>
+                            <span id="Fan-Stat" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mixed Air Temp -->
+                <div class="pill-wrap" data-spanid="MA-T" style="width:8%; top:55%; left:30%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('MA-T')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">MA Temp</span>
+                            <span id="MA-T" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exhaust Fan Status -->
+                <div class="pill-wrap" data-spanid="EF-status" style="width:8%; top:45%; left:10%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('EF-status')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">EF Status</span>
+                            <span id="EF-status" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="or-btn-inline" id="or-EF-status" title="Override EF Status" onclick="openORModal('EF-status')">OR</div>
+                </div>
+
+                <!-- OA Damper Position -->
+                <div class="pill-wrap" data-spanid="DPR-cmd" style="width:8%; top:75%; left:20%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('DPR-cmd')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">OAT Damper Pos</span>
+                            <span id="DPR-cmd" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="sp-btn-inline" id="sp-DPR-OA" title="View OA Damper Setpoint" onclick="showSPData('DPR-OA')">SP</div>
+                    <div class="or-btn-inline" id="or-DPR-OA" title="Override OA Damper" onclick="openORModal('OA-Damp-SP')">OR</div>
+                </div>
+
+                <!-- Return Damper Position -->
+                <div class="pill-wrap" data-spanid="DPR-RTN" style="width:8%; top:25%; left:22%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('DPR-RTN')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Return Damper Pos</span>
+                            <span id="DPR-RTN" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discharge Air Temp -->
+                <div class="pill-wrap" data-spanid="DA-T" style="width:8%; top:70%; left:78%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('DA-T')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Discharge Air Temp</span>
+                            <span id="DA-T" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="sp-btn-inline" id="sp-DAT" title="View DA Temp Setpoint" onclick="showSPData('DAT')">SP</div>
+                    <div class="or-btn-inline" id="or-DAT" title="Override DA Temp Setpoint" onclick="openORModal('DA-T-SP')">OR</div>
+                </div>
+
+                <!-- Cooling Valve -->
+                <div class="pill-wrap" data-spanid="CLG-VLV" id="clc-valve" style="width:8%; top:75%; left:44%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('CLG-VLV')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Cooling Valve</span>
+                            <span id="CLG-VLV" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="or-btn-inline" id="or-CLG-VLV" title="Override Cooling Valve" onclick="openORModal('CLG-VLV')">OR</div>
+                </div>
+
+                <!-- Heating Valve -->
+                <div class="pill-wrap" data-spanid="HTG-VLV" id="htg-valve" style="width:8%; top:75%; left:54%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('HTG-VLV')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Heating Valve</span>
+                            <span id="HTG-VLV" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="or-btn-inline" id="or-HTG-VLV" title="Override Heating Valve" onclick="openORModal('HTG-VLV')">OR</div>
+                </div>
+
+                <!-- Pre-Heat Valve -->
+                <div class="pill-wrap" data-spanid="Pre-HT-VLV" id="pre-valve" style="width:8%; top:75%; left:34%;">
+                    <div class="point-display" onclick="openGraphPopupBySpanId('Pre-HT-VLV')">
+                        <div class="point-display-inner">
+                            <span class="pill-label">Pre-Heat</span>
+                            <span id="Pre-HT-VLV" class="pill-value status-on">—</span>
+                        </div>
+                    </div>
+                    <div class="or-btn-inline" id="or-Pre-HT-VLV" title="Override Pre-Heat Valve" onclick="openORModal('Pre-HT-VLV')">OR</div>
+                </div>
+
+                <!-- Hidden anchors for topbar sync -->
+                <span id="AHU-ALARM" class="pill-value" style="display:none;"></span>
+                <span id="Occupancy" class="pill-value" style="display:none;"></span>
+            </div><!-- /ahu-graphic-wrapper -->
+
+        </div><!-- /bubbleSP -->
+        </div><!-- /ahu-wrapper -->
+
+        <!-- Unit Data Panel -->
+        <!--<div id="unit-data-panel">-->
+        <!--    <div id="unit-data-panel-header" onclick="toggleUnitDataPanel()">-->
+        <!--        <span id="unit-data-panel-title">▸ Unit Data</span>-->
+        <!--        <span id="unit-data-panel-chevron">▼</span>-->
+        <!--    </div>-->
+            <div id="unit-data-panel-body">
+                <table id="unit-data-inner-table">
+                    <thead><tr><th style="width:50%">Name</th><th style="width:50%">Value</th></tr></thead>
+                    <tbody id="unit-data-tbody"></tbody>
+                </table>
+            </div>
+        <!--</div>-->
+
+        <!-- AHU Summary Button -->
+        <!--<a href="AHUSummary/AHUSummary.html" class="ahu-summary-btn">AHU Summary Sheet</a>-->
+
+        <!-- ─── OR MODAL (amber, with enum support) ─────────────────────── -->
+        <div class="modal-overlay" id="or-modal">
+            <div class="modal-content amber-modal">
+                <div class="modal-header amber-header">
+                    <h2 id="or-modal-title">Point Override</h2>
+                    <button class="modal-close" id="or-modal-close-btn">&times;</button>
+                </div>
+                <div class="modal-point-info">
+                    <div class="modal-point-name amber-name" id="or-modal-point-name">No Point Selected</div>
+                    <div class="modal-point-value" id="or-modal-point-value">N/A</div>
+                </div>
+                <div class="modal-controls">
+                    <div class="control-group" id="or-numeric-control" style="display:none;">
+                        <label>Override Value:</label>
+                        <input type="number" id="or-modal-numeric-input" placeholder="Enter value" step="0.1">
+                    </div>
+                    <div class="control-group" id="or-boolean-control" style="display:none;">
+                        <label>Command:</label>
+                        <select id="or-modal-command-dropdown">
+                            <option value="on">ON</option>
+                            <option value="off">OFF</option>
+                            <option value="auto">AUTO</option>
+                        </select>
+                    </div>
+                    <div class="control-group" id="or-enum-control" style="display:none;">
+                        <label>Select Value:</label>
+                        <select id="or-modal-enum-dropdown"></select>
+                    </div>
+                    <div class="control-group">
+                        <label>Duration:</label>
+                        <select id="or-modal-duration-dropdown">
+                            <option value="permanent">Permanent</option>
+                            <option value="1min">1 Minute</option>
+                            <option value="5min">5 Minutes</option>
+                            <option value="30min">30 Minutes</option>
+                            <option value="1hour">1 Hour</option>
+                            <option value="2hours">2 Hours</option>
+                            <option value="4hours">4 Hours</option>
+                            <option value="8hours">8 Hours</option>
+                        </select>
+                    </div>
+                </div>
+               <div class="modal-point-info" id="or-modal-countdown-row" style="display:none; margin-top:-8px; padding:10px 18px;">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+        <span style="font-family:var(--font-head);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Override Expires:</span>
+        <span id="or-modal-countdown-display" style="font-family:var(--font-head);font-size:16px;font-weight:bold;color:var(--purple);animation:orPulse 1.8s ease-in-out infinite;"></span>
+    </div>
+</div>
+<div class="modal-buttons">
+    <button class="modal-btn modal-btn-override amber-btn" id="or-modal-override-btn">Apply Override</button>
+    <button class="modal-btn modal-btn-release" id="or-modal-release-btn">Release to Auto</button>
+    <button class="modal-btn modal-btn-cancel" id="or-modal-cancel-btn">Cancel</button>
+</div>
+<div style="margin-top:-8px;">
+    <button class="modal-btn" onclick="manualORModalRefresh()" style="width:100%;background:rgba(0,200,255,0.06);color:var(--text-muted);border:1px solid var(--border);font-size:10px;letter-spacing:2px;padding:7px;">
+        ↻ REFRESH STATUS
+    </button>
+</div>
+            </div>
+        </div>
+
+        <!-- Status Bubbles Grid (dynamic) -->
+        <div class="ahu-status-section">
+            <div class="status-bubbles-grid"></div>
+        </div>
+
+    </div><!-- /ahu-container -->
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+    <button class="back-button" onclick="history.back()">← Back</button>
+    <div class="date-time">
+        <strong>Current Date &amp; Time</strong><br>
+        <span id="currentDateTime">Loading...</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div style="text-align:right; font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+            Controls by:<br>
+            <span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+        </div>
+        <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+(async function() {
+  try {
+    const response = await fetch('../HomeConfig.json');
+    const data = await response.json();
+    const jobName = (data.JobBuilding || 'Control Panel').toUpperCase();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = jobName;
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+    document.body.addEventListener("click", function(e) {
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 0);
+    });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- UNIT DATA PANEL TOGGLE + TOPBAR UNIT DATA DROPDOWN + TOPBAR OVERRIDES -->
+<script>
+function toggleUnitDataPanel() {
+    const panel = document.getElementById('unit-data-panel');
+    if (panel) panel.classList.toggle('open');
+}
+
+// ── CHANGE 1: Unit Data topbar dropdown functions (ported from VAV) ──
+function toggleUnitDataPanelDropdown(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (!dd || !btn) return;
+    const isOpen = dd.classList.contains('open');
+    if (isOpen) { dd.classList.remove('open'); btn.classList.remove('active'); return; }
+    // Sync table content from the existing tbody
+    const srcTbody  = document.getElementById('unit-data-tbody');
+    const destTbody = document.getElementById('unit-data-tbody-top');
+    if (srcTbody && destTbody) destTbody.innerHTML = srcTbody.innerHTML;
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    dd.style.left = 'auto';
+    dd.classList.add('open');
+    btn.classList.add('active');
+}
+function closeUnitDataDropdown() {
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('active');
+}
+document.addEventListener('click', function(e) {
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd && !dd.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        dd.classList.remove('open');
+        if (btn) btn.classList.remove('active');
+    }
+});
+
+function toggleTopbarOverrides(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('topbar-or-dropdown');
+    const btn = document.getElementById('topbar-or-btn');
+    if (!dd || !btn) return;
+    if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 6) + 'px';
+    dd.style.left = rect.left + 'px';
+    dd.classList.add('open');
+}
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('topbar-or-dropdown');
+    if (dd && !dd.contains(e.target) && e.target.id !== 'topbar-or-btn') dd.classList.remove('open');
+});
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- AUTH CHECK -->
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+    const userDisplay = document.getElementById("userDisplay");
+    if (userDisplay) userDisplay.textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- NOTES -->
+<script>
+require(['baja!', 'baja!control:StringOverride'], function(baja) {
+    'use strict';
+    const resolvedNotes = {};
+    const htmlFilename  = window.location.pathname.split('/').pop().split('.').shift();
+    fetch('../Global.json').then(r => r.json()).then(config => {
+        if (!config.globalVariables?.[htmlFilename]?.points) return;
+        config.globalVariables[htmlFilename].points.forEach(p => {
+            if (p.name === 'Note1' || p.name === 'Note2' || p.name === 'Note3') {
+                baja.Ord.make(p.fullPath).get().then(point => { resolvedNotes[p.name] = point; updateNoteDisplay(p.name); });
+            }
+        });
+        startAutoUpdate();
+    });
+    window.saveNote = function(noteName) {
+        const point = resolvedNotes[noteName], input = document.getElementById(noteName);
+        if (!point || !input) return;
+        const p = baja.$('control:StringOverride'); p.setValue(input.value);
+        point.invoke({ slot: 'override', value: p }).then(() => updateNoteDisplay(noteName));
+    };
+    function updateNoteDisplay(noteName) {
+        const point = resolvedNotes[noteName], input = document.getElementById(noteName);
+        if (!point || !input) return;
+        const val = point.getOut().getValueDisplay();
+        if (document.activeElement !== input) input.value = val || '';
+    }
+    function startAutoUpdate() { setInterval(() => { ['Note1','Note2','Note3'].forEach(updateNoteDisplay); }, 1000); }
+    const modal   = document.getElementById('notesModal');
+    const closeBtn = document.querySelector('.notes-close');
+    if (closeBtn) closeBtn.onclick = () => { modal.style.display = 'none'; };
+    window.onclick = e => { if (e.target === modal) modal.style.display = 'none'; };
+});
+</script>
+
+<!-- ROOM TITLE / STRING WRITABLE -->
+<script>
+require(['baja!', 'baja!control:StringOverride'], function(baja) {
+    'use strict';
+    let resolvedStringPoint = null;
+    const htmlFilename = window.location.pathname.split('/').pop().split('.').shift();
+    fetch('../Global.json').then(r => r.json()).then(config => {
+        if (!config.globalVariables?.[htmlFilename]?.points) return;
+        const point = config.globalVariables[htmlFilename].points.find(p => p.name === 'StringWritable');
+        if (!point) return;
+        baja.Ord.make(point.fullPath).get().then(p => {
+            resolvedStringPoint = p;
+            attachRightClickHandler();
+            updateDisplay();
+            setInterval(updateDisplay, 1000);
+        });
+    });
+    function overrideString(value) {
+        if (!resolvedStringPoint) return;
+        const p = baja.$('control:StringOverride'); p.setValue(value);
+        resolvedStringPoint.invoke({ slot: 'override', value: p }).then(updateDisplay);
+    }
+    function updateDisplay() { /* no visible string-container in this layout */ }
+    function attachRightClickHandler() {
+        const container = document.getElementById('string-container');
+        if (!container) return;
+        container.oncontextmenu = function(e) {
+            e.preventDefault();
+            const currentValue = resolvedStringPoint?.getOut().getValueDisplay() || '';
+            const newValue = prompt('Enter new Room Name:', currentValue);
+            if (newValue !== null) overrideString(newValue);
+        };
+    }
+});
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     GRAPH POPUP + ALARM TEXT COLORS + TOPBAR PILL SYNC
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+const AHU_ELEMENT_IDS = [
+    'Fan-Stat', 'DPR-cmd', 'DPR-RTN', 'DA-T', 'CLG-VLV', 'HTG-VLV', 'Pre-HT-VLV',
+    'MA-T', 'EF-status',
+    'AHU-ALARM', 'Occupancy'
+];
+
+function syncTopbarStatusPills() {
+    const alarmSrc  = document.getElementById('AHU-ALARM');
+    const occSrc    = document.getElementById('Occupancy');
+    const alarmDst  = document.getElementById('topbar-AHU-ALARM');
+    const occDst    = document.getElementById('topbar-Occupancy');
+    if (alarmSrc && alarmDst) {
+        alarmDst.textContent = alarmSrc.textContent;
+        alarmDst.style.color = alarmSrc.classList.contains('status-fault') ? 'var(--red)' : alarmSrc.classList.contains('status-off') ? 'var(--text-muted)' : 'var(--green)';
+    }
+    if (occSrc && occDst) {
+        occDst.textContent = occSrc.textContent;
+        occDst.style.color = occSrc.classList.contains('status-fault') ? 'var(--red)' : occSrc.classList.contains('status-off') ? 'var(--text-muted)' : 'var(--green)';
+    }
+}
+setInterval(syncTopbarStatusPills, 6000);
+
+require(['baja!'], function(baja) {
+    async function updateAllAlarmText() {
+        try {
+            if (!graphPopupConfig) await loadGraphPopupConfig();
+            for (const elementId of AHU_ELEMENT_IDS) {
+                const pointInfo = findPointPath(elementId);
+                if (!pointInfo) continue;
+                const span = document.getElementById(elementId);
+                if (!span) continue;
+                const point   = await baja.Ord.make(pointInfo.path).get();
+                const out     = point.getOut();
+                const status  = out.getStatus().toString();
+                const display = out.getValueDisplay();
+                span.className = span.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value|data-value)\b/g,'').trim();
+                if (status.includes('alarm')) { span.textContent = `${display} ⚠`; span.className = 'pill-value status-fault'; }
+                else { span.textContent = display; span.className = 'pill-value status-on'; }
+            }
+            syncTopbarStatusPills();
+        } catch(err) { console.error('Alarm status read failed:', err); }
+    }
+    updateAllAlarmText();
+    setInterval(updateAllAlarmText, 10000);
+});
+
+let graphPopupConfig = null;
+
+async function loadGraphPopupConfig() {
+    if (graphPopupConfig) return graphPopupConfig;
+    try {
+        const fullFilename = window.location.pathname.split('/').pop();
+        const headerName   = fullFilename.replace('.html','');
+        const response     = await fetch('../Global.json');
+        const jsonData     = await response.json();
+        const ahuConfig    = jsonData.globalVariables[headerName];
+        if (!ahuConfig) throw new Error(`No config for ${headerName}`);
+        graphPopupConfig = { headerName, ahuConfig };
+        return graphPopupConfig;
+    } catch(err) { console.error('Config load failed:', err); throw err; }
+}
+
+function findPointPath(spanId) {
+    if (!graphPopupConfig) return null;
+    const points = graphPopupConfig.ahuConfig.points;
+    let found = points.find(p => p.id === spanId);
+    if (found) return { path: found.fullPath, name: found.name, id: found.id };
+    const spanName = spanId.replace(/-/g,'_');
+    found = points.find(p => p.name === spanName) || points.find(p => p.name === spanId);
+    if (found) return { path: found.fullPath, name: found.name, id: found.id };
+    found = points.find(p =>
+        (p.id && p.id.toLowerCase().includes(spanId.toLowerCase())) ||
+        (p.name && p.name.toLowerCase().includes(spanId.toLowerCase())) ||
+        spanId.toLowerCase().includes(p.name.toLowerCase())
+    );
+    return found ? { path: found.fullPath, name: found.name, id: found.id } : null;
+}
+
+function createGraphPopup() {
+    let popup = document.getElementById('graph-popup-overlay');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'graph-popup-overlay';
+        popup.className = 'graph-popup-overlay';
+        popup.innerHTML = `
+            <div class="graph-popup-container">
+                <div class="graph-popup-header">
+                    <h2 class="graph-popup-title" id="graph-popup-title">24-Hour History</h2>
+                    <button class="graph-popup-close" onclick="closeGraphPopup()">×</button>
+                </div>
+                <div class="graph-popup-body">
+                    <div class="graph-loading" id="graph-loading">Loading historical data...</div>
+                    <div id="graph-canvas-container" style="display:none;flex:1;min-height:0;flex-direction:column;">
+                        <canvas id="history-graph-canvas" style="flex:1;min-height:0;display:block;width:100%;"></canvas>
+                        <div class="graph-info" id="graph-info"></div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(popup);
+        popup.addEventListener('click', e => { if (e.target === popup) closeGraphPopup(); });
+    }
+    return popup;
+}
+
+window.closeGraphPopup = function() {
+    const p = document.getElementById('graph-popup-overlay');
+    if (p) p.style.display = 'none';
+};
+
+function drawHistoryGraph(canvas, data, pointLabel, unit) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const cssWidth  = rect.width, cssHeight = rect.height - 60;
+    canvas.width  = cssWidth * dpr; canvas.height = cssHeight * dpr;
+    canvas.style.width = cssWidth+'px'; canvas.style.height = cssHeight+'px';
+    ctx.scale(dpr, dpr);
+    const W = cssWidth, H = cssHeight;
+    const pad = { top:40, right:40, bottom:60, left:80 };
+    const gW = W-pad.left-pad.right, gH = H-pad.top-pad.bottom;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#0d1117'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#161b27'; ctx.fillRect(pad.left,pad.top,gW,gH);
+    if (!data.length) { ctx.fillStyle='#7a8499'; ctx.font='14px "Courier New"'; ctx.textAlign='center'; ctx.fillText('No data available',W/2,H/2); return; }
+    const values = data.map(d => typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+    const minV = Math.min(...values), maxV = Math.max(...values), rangeV = maxV-minV||1;
+    const yScale = v => pad.top+gH-((v-minV)/rangeV)*gH;
+    const xScale = i => pad.left+(i/(data.length-1))*gW;
+    ctx.strokeStyle='rgba(0,200,255,0.15)'; ctx.lineWidth=1;
+    for (let i=0;i<=5;i++) { const y=pad.top+(gH/5)*i; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+gW,y); ctx.stroke(); ctx.fillStyle='#7a8499'; ctx.font='11px "Courier New"'; ctx.textAlign='right'; ctx.fillText((maxV-(rangeV/5)*i).toFixed(1)+(unit?' '+unit:''),pad.left-10,y+4); }
+    ctx.fillStyle='#7a8499'; ctx.font='11px "Courier New"'; ctx.textAlign='center';
+    for (let i=0;i<6;i++) { const di=Math.floor((i/5)*(data.length-1)); ctx.fillText(data[di].timestamp.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),xScale(di),H-pad.bottom+20); }
+    ctx.strokeStyle='#00c8ff'; ctx.lineWidth=2; ctx.beginPath();
+    data.forEach((pt,i) => { const v=typeof pt.value==='boolean'?(pt.value?1:0):parseFloat(pt.value); if(isNaN(v))return; i===0?ctx.moveTo(xScale(i),yScale(v)):ctx.lineTo(xScale(i),yScale(v)); }); ctx.stroke();
+    ctx.fillStyle='#1e88e5'; data.forEach((pt,i) => { const v=typeof pt.value==='boolean'?(pt.value?1:0):parseFloat(pt.value); if(isNaN(v))return; ctx.beginPath(); ctx.arc(xScale(i),yScale(v),3,0,Math.PI*2); ctx.fill(); });
+    ctx.strokeStyle='rgba(0,200,255,0.4)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(pad.left,pad.top); ctx.lineTo(pad.left,pad.top+gH); ctx.stroke(); ctx.beginPath(); ctx.moveTo(pad.left,pad.top+gH); ctx.lineTo(pad.left+gW,pad.top+gH); ctx.stroke();
+    ctx.fillStyle='#00c8ff'; ctx.font='bold 14px "Courier New"'; ctx.textAlign='center'; ctx.fillText(pointLabel+' — Last 24 Hours',W/2,26);
+}
+
+async function openGraphPopupBySpanId(spanId, customLabel=null) {
+    try {
+        if (!graphPopupConfig) await loadGraphPopupConfig();
+        const pointInfo = findPointPath(spanId);
+        if (!pointInfo) { alert(`Could not find configuration for: ${spanId}`); return; }
+        await openGraphPopup(pointInfo.path, customLabel || pointInfo.name.replace(/_/g,' '), '');
+    } catch(err) { alert('Failed to open graph: ' + err.message); }
+}
+
+async function openGraphPopup(pointPath, pointLabel, unit) {
+    const popup = createGraphPopup();
+    popup.style.display = 'flex';
+    document.getElementById('graph-popup-title').textContent = pointLabel + ' — 24 Hour History';
+    const loadingEl  = document.getElementById('graph-loading');
+    const canvasWrap = document.getElementById('graph-canvas-container');
+    loadingEl.style.display = 'flex'; canvasWrap.style.display = 'none';
+    try {
+        const end = new Date(), start = new Date(end.getTime()-86400000);
+        const data = await loadAHUHistoryData(pointPath, start, end, 2000);
+        if (!data.length) { loadingEl.innerHTML = '<p style="color:var(--text-muted);font-family:var(--font-head)">No data for last 24 hours</p>'; return; }
+        loadingEl.style.display = 'none'; canvasWrap.style.display = 'flex'; canvasWrap.style.flexDirection = 'column'; canvasWrap.style.flex = '1'; canvasWrap.style.minHeight = '0';
+        await new Promise(r => setTimeout(r,50));
+        drawHistoryGraph(document.getElementById('history-graph-canvas'), data, pointLabel, unit);
+        const vals = data.map(d=>typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));
+        const stats = { min:Math.min(...vals), max:Math.max(...vals), avg:vals.reduce((a,b)=>a+b,0)/vals.length, count:data.length };
+        const u = unit?' '+unit:'';
+        document.getElementById('graph-info').innerHTML = `<strong>Statistics:</strong> Min: ${stats.min.toFixed(2)}${u} | Avg: ${stats.avg.toFixed(2)}${u} | Max: ${stats.max.toFixed(2)}${u} | Points: ${stats.count}<br><strong>Range:</strong> ${start.toLocaleString()} → ${end.toLocaleString()}`;
+    } catch(err) { loadingEl.innerHTML = `<p style="color:var(--red);font-family:var(--font-head)">Error: ${err.message}</p>`; }
+}
+
+setTimeout(async () => { try { await loadGraphPopupConfig(); } catch(e) {} }, 200);
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     OVERRIDE SCRIPT — full numeric + boolean + enum support
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!control:EnumOverride'], function(baja) {
+'use strict';
+
+const SP_ID_MAPPING = {
+    'DAT':       'DA-TSP',
+    'DPR-OA':    'OA-Damp-SP',
+};
+
+function resolveGraphicTarget(rawRealId) {
+    if (!rawRealId) return null;
+    const map = {
+        'DA-TSP':       'DA-T',
+        'OA-Damp-SP':    'DPR-cmd',
+        'MA-TSP':        'MA-T',
+        'RA-TSP':        'RA-T',
+        'DPR-cmdSPT':    'DPR-cmd',
+        'Fan-CMD':       'Fan-Stat',
+        'DPR-RTNSP':     'DPR-RTN',
+        'HTG-VLVSP':     'HTG-VLV',
+        'PRE-HT-VLVSP':  'Pre-HT-VLV',
+        'CLG-VLVSP':     'CLG-VLV',
+        'SPACE-TMPSP':   'SPACE-TMP',
+        'EF-CMD':        'EF-status',
+    };
+    return map[rawRealId] !== undefined ? map[rawRealId] : null;
+}
+
+let spPointValues   = {};
+let spPointDetails  = {};
+let enumPointFacets = {};
+
+async function isAuthorizedUser() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return false;
+    try {
+        const response = await fetch('../HomeConfig.json');
+        if (!response.ok) throw new Error('Config load failed');
+        const config = await response.json();
+        const user = config.Users.find(u => u.name.toLowerCase() === username.toLowerCase());
+        if (!user) return false;
+        return user.role.toLowerCase() === 'admin';
+    } catch(err) { console.error('Auth error:', err); return false; }
+}
+
+(async () => {
+    const authorized = await isAuthorizedUser();
+    if (!authorized) {
+        alert('🚫 You do not have Admin rights. User Overrides LOCKED!');
+        document.getElementById("page-loader")?.classList.add("hidden");
+        throw new Error('Unauthorized');
+    }
+
+    function decodeNiagaraName(name) {
+        if (!name) return name;
+        return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+    }
+
+    const fullFilename = window.location.pathname.split('/').pop();
+    const headerName   = fullFilename.replace('.html','');
+    const pathName     = headerName.replace(/-/g,'_');
+    const ahuHeader    = document.getElementById('ahu-header');
+    if (ahuHeader) ahuHeader.textContent = decodeNiagaraName(pathName);
+
+    let allOverridePointsMeta = [];
+
+    async function loadPointsFromJSON() {
+        try {
+            const response = await fetch('../Global.json');
+            if (!response.ok) throw new Error(`Failed: ${response.status}`);
+            const jsonData  = await response.json();
+            const ahuConfig = jsonData.globalVariables[headerName];
+            if (!ahuConfig) { console.warn(`No config for "${headerName}"`); return; }
+
+            ahuConfig.points.forEach(point => {
+                const idVal  = (point.id  || '').trim();
+                const id2Val = (point.id2 || '').trim();
+
+                const spTag = [idVal, id2Val].find(v =>
+                    v === 'SP-Numeric' || v === 'SP-Boolean' || v === 'SP-Enum'
+                );
+
+                const isExplicitSPKey = !spTag && resolveGraphicTarget(idVal) !== null;
+
+                if (!spTag && !isExplicitSPKey) return;
+
+                let type, rawRealId;
+                if (isExplicitSPKey) {
+                    rawRealId = idVal;
+                    type = (point.logBoolean === 'yes_Boolean') ? 'boolean'
+                         : (point.logNumeric  === 'yes_Numeric') ? 'numeric'
+                         : 'numeric';
+                } else {
+                    type      = spTag === 'SP-Numeric' ? 'numeric'
+                              : spTag === 'SP-Boolean' ? 'boolean'
+                              : 'enum';
+                    rawRealId = (idVal === spTag ? id2Val : idVal).trim();
+                }
+
+                const explicitTarget  = resolveGraphicTarget(rawRealId);
+                const graphicTargetId = explicitTarget !== null
+                    ? (explicitTarget || null)
+                    : (rawRealId && rawRealId !== 'N/A' ? rawRealId : null);
+
+                const isGraphic = !!graphicTargetId;
+
+                allOverridePointsMeta.push({
+                    pointId:         point.name,
+                    pointName:       point.name,
+                    fullPath:        point.fullPath,
+                    type,
+                    elementId:       graphicTargetId,
+                    rawRealId,
+                    isGraphic,
+                });
+
+                if (Object.values(SP_ID_MAPPING).includes(point.name)) {
+                    spPointDetails[point.name] = { name: point.name, fullPath: point.fullPath };
+                }
+            });
+
+            console.log(`[OR] Loaded ${allOverridePointsMeta.length} override-eligible points`);
+        } catch(err) { console.error('Error loading override points:', err); }
+    }
+
+    await loadPointsFromJSON();
+
+    let resolvedORById   = {};
+    let orCurrentPointId = null;
+
+    const orModal             = document.getElementById('or-modal');
+    const orModalCloseBtn     = document.getElementById('or-modal-close-btn');
+    const orModalCancelBtn    = document.getElementById('or-modal-cancel-btn');
+    const orModalTitle        = document.getElementById('or-modal-title');
+    const orModalPointName    = document.getElementById('or-modal-point-name');
+    const orModalPointValue   = document.getElementById('or-modal-point-value');
+    const orNumericControl    = document.getElementById('or-numeric-control');
+    const orBooleanControl    = document.getElementById('or-boolean-control');
+    const orEnumControl       = document.getElementById('or-enum-control');
+    const orModalNumericInput = document.getElementById('or-modal-numeric-input');
+    const orModalCommandDrop  = document.getElementById('or-modal-command-dropdown');
+    const orModalEnumDrop     = document.getElementById('or-modal-enum-dropdown');
+    const orModalDurationDrop = document.getElementById('or-modal-duration-dropdown');
+    const orModalOverrideBtn  = document.getElementById('or-modal-override-btn');
+    const orModalReleaseBtn   = document.getElementById('or-modal-release-btn');
+
+    function checkIfOverridden(point) {
+        try {
+            const s = point.getOut().getStatus()?.toString().toLowerCase() || '';
+            if (!s.trim()) return null;
+            if (s.includes('overridden') || s.includes('manual')) return 'OVERRIDDEN';
+            if (s.includes('down'))  return 'DOWN';
+            if (s.includes('fault')) return 'FAULT';
+            return null;
+        } catch(e) { return null; }
+    }
+
+window.manualORModalRefresh = function() {
+    if (!orCurrentPointId) return;
+    const info = resolvedORById[orCurrentPointId];
+    if (info) updateORModalDisplay(info.point, info.name, info.type);
+};
+
+    function parseFacetsFromPoint(point, pointName) {
+        const options = [];
+        try {
+            const facets = point.getFacets ? point.getFacets() : null;
+            if (facets) {
+                const range = facets.get ? facets.get('range') : null;
+                if (range) {
+                    if (typeof range.getSize === 'function') {
+                        for (let i = 0; i < range.getSize(); i++) {
+                            const entry = range.get(i);
+                            options.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || (entry.getTag && entry.getTag()) || String(entry.getOrdinal()) });
+                        }
+                        if (options.length) return options;
+                    }
+                    const r1 = parseFacetString(range.toString(), pointName);
+                    if (r1.length) return r1;
+                }
+            }
+        } catch(e) { console.warn(`[${pointName}] M1 error:`, e.message); }
+        try {
+            const out = point.getOut ? point.getOut() : null;
+            if (out) {
+                const outFacets = out.getFacets ? out.getFacets() : null;
+                if (outFacets) {
+                    const range = outFacets.get ? outFacets.get('range') : null;
+                    if (range) { const r2 = parseFacetString(range.toString(), pointName); if (r2.length) return r2; }
+                }
+                try {
+                    const val = out.getValue ? out.getValue() : null;
+                    if (val && val.getType) {
+                        const valType    = val.getType();
+                        const typeFacets = valType.getFacets ? valType.getFacets() : null;
+                        if (typeFacets) {
+                            const range = typeFacets.get ? typeFacets.get('range') : null;
+                            if (range) {
+                                if (typeof range.getSize === 'function') {
+                                    const opts = [];
+                                    for (let i = 0; i < range.getSize(); i++) { const entry = range.get(i); opts.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || (entry.getTag && entry.getTag()) || String(entry.getOrdinal()) }); }
+                                    if (opts.length) return opts;
+                                }
+                                const r3 = parseFacetString(range.toString(), pointName);
+                                if (r3.length) return r3;
+                            }
+                        }
+                        try {
+                            const typeStr = valType.toString ? valType.toString() : '';
+                            if (typeStr) { const r4 = parseFacetString(typeStr, pointName); if (r4.length) return r4; }
+                        } catch(e4) {}
+                    }
+                } catch(e3) { console.warn(`[${pointName}] M3 error:`, e3.message); }
+            }
+        } catch(e2) { console.warn(`[${pointName}] M2 error:`, e2.message); }
+        return options;
+    }
+
+    function parseFacetString(s, pointName) {
+        const opts  = [];
+        const pairs = s.replace(/[{}]/g,'').match(/([^,=]+)=(\d+)/g);
+        if (pairs) { pairs.forEach(p => { const [l,o] = p.split('='); opts.push({ ordinal: parseInt(o,10), label: l.trim() }); }); }
+        return opts;
+    }
+
+    function populateEnumDropdown(pointId) {
+        if (!orModalEnumDrop) return;
+        orModalEnumDrop.innerHTML = '';
+        let options = enumPointFacets[pointId] || [];
+        if (!options.length) {
+            const info = resolvedORById[pointId];
+            if (info && info.point) { options = parseFacetsFromPoint(info.point, pointId); if (options.length) enumPointFacets[pointId] = options; }
+        }
+        if (!options.length) {
+            const o = document.createElement('option'); o.textContent = '⚠ No options found – check console';
+            orModalEnumDrop.appendChild(o); return;
+        }
+        [...options].sort((a,b) => a.ordinal - b.ordinal).forEach(({ordinal, label}) => {
+            const opt = document.createElement('option'); opt.value = ordinal; opt.textContent = label;
+            orModalEnumDrop.appendChild(opt);
+        });
+    }
+
+    async function resolveAllPoints() {
+        await Promise.all(allOverridePointsMeta.map(async meta => {
+            try {
+                const point = await baja.Ord.make(meta.fullPath).get();
+                if (meta.type === 'enum') {
+                    const facetOptions = parseFacetsFromPoint(point, meta.pointName);
+                    enumPointFacets[meta.pointId] = facetOptions;
+                    if (!facetOptions.length) {
+                        setTimeout(() => {
+                            const retried = parseFacetsFromPoint(point, meta.pointName);
+                            if (retried.length) enumPointFacets[meta.pointId] = retried;
+                        }, 2500);
+                    }
+                }
+                resolvedORById[meta.pointId] = { point, name: meta.pointName, type: meta.type, elementId: meta.elementId, isGraphic: meta.isGraphic };
+            } catch(err) { console.warn(`Failed to resolve "${meta.pointName}":`, err.message); }
+        }));
+
+        await Promise.all(Object.values(SP_ID_MAPPING).map(async spPointId => {
+            const detail = spPointDetails[spPointId];
+            if (!detail) return;
+            try {
+                const point = await baja.Ord.make(detail.fullPath).get();
+                spPointValues[spPointId] = point.getOut().getValueDisplay();
+                Object.entries(SP_ID_MAPPING).forEach(([divId, mappedId]) => {
+                    if (mappedId === spPointId) {
+                        const btn = document.getElementById(`sp-${divId}`);
+                        if (btn) btn.classList.add('sp-ready');
+                    }
+                });
+            } catch(err) { console.warn(`SP point failed "${spPointId}":`, err.message); }
+        }));
+
+        Object.entries(resolvedORById).forEach(([pointId, info]) => {
+            if (!info.isGraphic || !info.elementId) return;
+            const container = document.querySelector(`.pill-wrap[data-spanid="${info.elementId}"]`);
+            if (!container) {
+                const legacyBtn = document.getElementById(`or-${info.elementId}`);
+                if (legacyBtn) {
+                    legacyBtn.onclick = () => openORModal(pointId);
+                    legacyBtn.title   = `Override: ${decodeNiagaraName(info.name)}`;
+                    legacyBtn.classList.add('or-ready');
+                } else {
+                    resolvedORById[pointId].isGraphic = false;
+                }
+                return;
+            }
+            let orBtn = container.querySelector('.or-btn-inline');
+            if (!orBtn) { orBtn = document.createElement('div'); orBtn.className = 'or-btn-inline'; orBtn.textContent = 'OR'; container.appendChild(orBtn); }
+            orBtn.onclick = () => openORModal(pointId);
+            orBtn.title   = `Override: ${decodeNiagaraName(info.name)}`;
+            orBtn.classList.add('or-ready');
+        });
+
+        buildTopbarOverrides();
+        initORModalListeners();
+        startTopbarLiveUpdate();
+        document.getElementById("page-loader")?.classList.add("hidden");
+    }
+
+    resolveAllPoints();
+
+    function buildTopbarOverrides() {
+        const topbarPoints = Object.entries(resolvedORById).filter(([, info]) => !info.isGraphic);
+        const chips = document.getElementById('topbar-or-chips');
+        const btn   = document.getElementById('topbar-or-btn');
+        if (!chips) return;
+        chips.innerHTML = '';
+        topbarPoints.forEach(([pointId, info]) => {
+            let currentVal = '—';
+            try { currentVal = info.point.getOut().getValueDisplay() || '—'; } catch(e) {}
+            const isOvr = checkIfOverridden(info.point);
+            const chip  = document.createElement('div');
+            chip.className = 'topbar-or-chip' + (isOvr ? ' overridden' : '');
+            chip.dataset.pointId = pointId;
+            chip.addEventListener('click', () => { openORModal(pointId); document.getElementById('topbar-or-dropdown')?.classList.remove('open'); });
+            chip.innerHTML = `<span class="topbar-or-chip-name">${decodeNiagaraName(info.name)}</span><span class="topbar-or-chip-value" id="topbar-or-val-${CSS.escape(pointId)}">${currentVal}</span>`;
+            chips.appendChild(chip);
+        });
+        if (btn && topbarPoints.length > 0) { btn.removeAttribute('disabled'); btn.title = `${topbarPoints.length} overridable point${topbarPoints.length > 1 ? 's' : ''}`; }
+    }
+
+    function startTopbarLiveUpdate() {
+        setInterval(() => {
+            Object.entries(resolvedORById).forEach(([pointId, info]) => {
+                if (info.isGraphic) return;
+                const valEl = document.getElementById(`topbar-or-val-${CSS.escape(pointId)}`);
+                const chip  = document.querySelector(`.topbar-or-chip[data-point-id="${pointId}"]`);
+                if (!valEl) return;
+                try { const val = info.point.getOut().getValueDisplay() || '—'; const isOvr = checkIfOverridden(info.point); valEl.textContent = val; if (chip) chip.classList.toggle('overridden', !!isOvr); } catch(e) {}
+            });
+        }, 3000);
+    }
+
+   window.openORModal = function(pointId) {
+    const info = resolvedORById[pointId];
+    if (!info) { alert('Override point not yet loaded. Please wait and try again.'); return; }
+    orCurrentPointId = pointId;
+    updateORModalDisplay(info.point, info.name, info.type);
+    orModal.classList.add('active');
+    document.getElementById('topbar-or-dropdown')?.classList.remove('open');
+    if (window.restoreORCountdownDisplay) window.restoreORCountdownDisplay(pointId);
+};
+
+    function updateORModalDisplay(point, pointName, pointType) {
+        if (!point) return;
+        const isOvr   = checkIfOverridden(point);
+        const decoded = decodeNiagaraName(pointName);
+        if (orModalTitle)     orModalTitle.textContent = `Override — ${decoded}`;
+        if (orModalPointName) { orModalPointName.innerHTML = isOvr ? `<span style="color:var(--amber);">${decoded} (${isOvr})</span>` : decoded; }
+        if (orModalPointValue) {
+            try {
+                const val = point.getOut().getValueDisplay();
+                orModalPointValue.textContent = val;
+                orModalPointValue.className   = 'modal-point-value';
+                const s = point.getStatus();
+                if (s && s.toString().toLowerCase().includes('override')) orModalPointValue.classList.add('status-override');
+                else if (val && val.toString().toLowerCase() === 'false') orModalPointValue.classList.add('status-off');
+                else orModalPointValue.classList.add('status-on');
+            } catch(e) { orModalPointValue.textContent = 'Error'; orModalPointValue.classList.add('status-fault'); }
+        }
+        if (orNumericControl) orNumericControl.style.display = 'none';
+        if (orBooleanControl) orBooleanControl.style.display = 'none';
+        if (orEnumControl)    orEnumControl.style.display    = 'none';
+        if (pointType === 'numeric') {
+            if (orNumericControl) orNumericControl.style.display = 'flex';
+            if (orModalNumericInput) { orModalNumericInput.value = ''; try { const cur = parseFloat(point.getOut().getValueDisplay()); if (!isNaN(cur)) orModalNumericInput.placeholder = `Current: ${cur}`; } catch(e) {} }
+        } else if (pointType === 'boolean') {
+            if (orBooleanControl) orBooleanControl.style.display = 'flex';
+            if (orModalCommandDrop) orModalCommandDrop.value = 'on';
+        } else if (pointType === 'enum') {
+            if (orEnumControl) orEnumControl.style.display = 'flex';
+            populateEnumDropdown(orCurrentPointId);
+        }
+    }
+
+    function initORModalListeners() {
+        if (orModalCloseBtn)  orModalCloseBtn.addEventListener('click',  () => orModal.classList.remove('active'));
+        if (orModalCancelBtn) orModalCancelBtn.addEventListener('click', () => orModal.classList.remove('active'));
+        if (orModal) orModal.addEventListener('click', e => { if (e.target === orModal) orModal.classList.remove('active'); });
+       if (orModalOverrideBtn) {
+    orModalOverrideBtn.addEventListener('click', () => {
+        if (!orCurrentPointId) return;
+        const info = resolvedORById[orCurrentPointId];
+        if (!info) return;
+        const duration = orModalDurationDrop.value;
+        let durationSec = null;
+        if (duration !== 'permanent') { const dmap = {'1min':60,'5min':300,'30min':1800,'1hour':3600,'2hours':7200,'4hours':14400,'8hours':28800}; durationSec = dmap[duration]; }
+        if (info.type === 'numeric') { const v = parseFloat(orModalNumericInput.value); if (isNaN(v)) { alert('Please enter a valid number.'); return; } performNumericOverride(info.point, v, durationSec); }
+        else if (info.type === 'boolean') { const cmd = orModalCommandDrop.value; if (cmd === 'on') performActiveOverride(info.point, durationSec); else if (cmd === 'off') performInactiveOverride(info.point, durationSec); else { releaseToAuto(info.point); if (window.stopORCountdown) window.stopORCountdown(orCurrentPointId); } }
+        else if (info.type === 'enum') { const ordinal = parseInt(orModalEnumDrop.value, 10); if (!isNaN(ordinal)) performEnumOverride(info.point, ordinal, durationSec); }
+
+        // Start countdown for timed overrides
+        if (durationSec && window.startORCountdown) {
+            window.startORCountdown(orCurrentPointId, durationSec, info.elementId);
+        }
+
+        setTimeout(() => { const upd = resolvedORById[orCurrentPointId]; if (upd) updateORModalDisplay(upd.point, upd.name, upd.type); }, 800);
+    });
+}
+      if (orModalReleaseBtn) {
+    orModalReleaseBtn.addEventListener('click', () => {
+        const info = resolvedORById[orCurrentPointId];
+        if (info && info.point) {
+            releaseToAuto(info.point);
+            if (window.stopORCountdown) window.stopORCountdown(orCurrentPointId);
+            setTimeout(() => updateORModalDisplay(info.point, info.name, info.type), 800);
+        }
+    });
+}
+        // setInterval(() => { if (orModal?.classList.contains('active') && orCurrentPointId) { const info = resolvedORById[orCurrentPointId]; if (info) updateORModalDisplay(info.point, info.name, info.type); } }, 2000);
+    }
+
+    function performNumericOverride(point, value, durationSec=null) {
+        const p = baja.$('control:NumericOverride'); p.setValue(value);
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+        point.invoke({slot:'override',value:p}).catch(e => console.warn('Numeric override failed:',e.message));
+    }
+    function performActiveOverride(point, durationSec=null) {
+        const p = baja.$("control:Override");
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+        point.invoke({slot:'active',value:p}).catch(e => console.error(e));
+    }
+    function performInactiveOverride(point, durationSec=null) {
+        const p = baja.$("control:Override");
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+        point.invoke({slot:'inactive',value:p}).catch(e => console.error(e));
+    }
+    function performEnumOverride(point, ordinal, durationSec=null) {
+        function makeDynEnum(ord) {
+            let d = null;
+            if (baja.DynamicEnum && typeof baja.DynamicEnum.make === 'function') { try { d = baja.DynamicEnum.make(ord); } catch(e) {} }
+            if (!d) { d = baja.$('baja:DynamicEnum'); if (typeof d.setOrdinal === 'function') d.setOrdinal(ord); }
+            return d;
+        }
+        const p = baja.$('control:EnumOverride'); p.setValue(makeDynEnum(ordinal));
+        if (durationSec !== null) p.setDuration(baja.RelTime.make({seconds:durationSec}));
+        point.invoke({slot:'override',value:p}).then(() => console.log('Enum override OK:', ordinal)).catch(e => console.warn('Enum override failed:', e.message));
+    }
+    function releaseToAuto(point) { point.invoke({slot:'auto'}).catch(e => console.error(e)); }
+
+    function getActualValueForSP(divId) {
+        const spanMap = { 'DAT':'DA-T', 'DPR-OA':'DPR-cmd' };
+        const spanId  = spanMap[divId];
+        if (!spanId) return null;
+        const el = document.getElementById(spanId);
+        if (!el) return null;
+        const m = (el.textContent||el.innerText).match(/[-+]?\d*\.?\d+/);
+        return m ? parseFloat(m[0]) : null;
+    }
+
+    function createComparisonBar(actual, sp) {
+        const a=parseFloat(actual), s=parseFloat(sp);
+        if (isNaN(a)||isNaN(s)) return '<p style="color:var(--text-muted)">Non-numeric values</p>';
+        const diff=Math.abs(a-s), range=Math.max(a,s)-Math.min(a,s)||1;
+        let color='var(--green)', label='On Target';
+        if (diff>s*0.1) { color='var(--red)'; label='Needs Attention'; }
+        else if (diff>s*0.05) { color='var(--amber)'; label='Slight Deviation'; }
+        const spPos = s===a?50:((s-Math.min(a,s))/range)*100;
+        const aPos  = s===a?50:((a-Math.min(a,s))/range)*100;
+        return `<div style="margin:20px 0;"><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div style="text-align:center;flex:1"><div style="font-size:11px;color:var(--text-muted);font-family:var(--font-head)">Setpoint</div><div style="font-size:24px;font-weight:bold;color:var(--accent);font-family:var(--font-head)">${s}</div></div><div style="text-align:center;flex:1"><div style="font-size:11px;color:var(--text-muted);font-family:var(--font-head)">Actual</div><div style="font-size:24px;font-weight:bold;color:${color};font-family:var(--font-head)">${a}</div></div><div style="text-align:center;flex:1"><div style="font-size:11px;color:var(--text-muted);font-family:var(--font-head)">Diff</div><div style="font-size:24px;font-weight:bold;color:var(--text-muted);font-family:var(--font-head)">${diff.toFixed(2)}</div></div></div><div style="position:relative;height:36px;background:var(--bg-panel);border-radius:18px;overflow:hidden;border:1px solid var(--border);"><div style="position:absolute;left:${spPos}%;top:0;bottom:0;width:2px;background:var(--accent);z-index:2"></div><div style="position:absolute;left:${aPos}%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:${color};border:2px solid var(--bg-deep);border-radius:50%;z-index:3;box-shadow:0 0 8px ${color}"></div></div><div style="text-align:center;margin-top:24px;padding:10px;background:rgba(0,0,0,0.2);border-radius:6px;border-left:3px solid ${color};font-family:var(--font-head);font-size:12px;color:${color}">Status: ${label}</div></div>`;
+    }
+
+    window.showSPData = function(divId) {
+        const spId  = SP_ID_MAPPING[divId];
+        if (!spId) { alert(`No setpoint mapping for: ${divId}`); return; }
+        const val     = spPointValues[spId];
+        const details = spPointDetails[spId];
+        if (val === undefined || !details) { alert(`Setpoint not yet loaded for: ${spId}`); return; }
+        const actual  = getActualValueForSP(divId);
+        const decoded = decodeNiagaraName(details.name);
+        document.getElementById('sp-popup')?.remove();
+        const popup = document.createElement('div');
+        popup.id = 'sp-popup';
+        popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:28px;z-index:10000;min-width:440px;max-width:580px;box-shadow:0 24px 80px rgba(0,0,0,0.6);backdrop-filter:blur(12px);';
+        popup.innerHTML = `<h3 style="margin:0 0 16px;color:var(--accent);font-family:var(--font-head);font-size:13px;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:12px;">${divId} Setpoint</h3><div style="margin:14px 0;font-family:var(--font-head);font-size:12px;"><p style="margin:6px 0;color:var(--text-muted)">Point ID: <span style="color:var(--text-primary)">${spId}</span></p><p style="margin:6px 0;color:var(--text-muted)">Name: <span style="color:var(--text-primary)">${decoded}</span></p><p style="margin:6px 0;color:var(--text-muted);word-break:break-all;font-size:10px">${details.fullPath}</p></div><div style="margin:16px 0;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;"><h4 style="margin:0 0 12px;color:var(--text-muted);font-family:var(--font-head);font-size:11px;letter-spacing:2px;text-transform:uppercase">Comparison</h4>${actual !== null ? createComparisonBar(actual,val) : '<p style="color:var(--text-muted);font-family:var(--font-head);font-size:12px">Actual value unavailable</p>'}</div><button onclick="document.getElementById('sp-popup').remove()" style="width:100%;padding:10px;background:rgba(0,200,255,0.1);color:var(--accent);border:1px solid rgba(0,200,255,0.3);border-radius:6px;cursor:pointer;font-family:var(--font-head);font-size:12px;letter-spacing:2px;text-transform:uppercase;" onmouseover="this.style.background='rgba(0,200,255,0.2)'" onmouseout="this.style.background='rgba(0,200,255,0.1)'">Close</button>`;
+        document.body.appendChild(popup);
+    };
+
+})();
+});
+</script>
+
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     AHU DATA MONITORING — image loading, subscriber, bubble positions
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!'], function(baja) {
+'use strict';
+
+function decodeNiagaraName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+}
+
+const fullFilename  = window.location.pathname.split('/').pop();
+const headerName    = fullFilename.replace('.html','');
+const pathName      = headerName.replace(/-/g,'_');
+const headerElement = document.getElementById('ahu-header');
+if (headerElement) headerElement.textContent = decodeNiagaraName(pathName);
+
+// ── Image asset paths ─────────────────────────────────────────────────
+const IMG_BASE = './AHU_IMAGES/';
+
+// AHU type → background image (main AHU body graphic)
+const typeImages = {
+    'COOL_HEAT':  IMG_BASE + 'COOLHEAT_PREC/AHU_COOL_HEAT.png',
+    'PRE_C':      IMG_BASE + 'COOLHEAT_PREC/AHU_COOL_HEAT.png',
+    'NO_RETURN':      IMG_BASE + 'COOLHEAT_PREC/No_Return.png',
+    'PRE_C_H':    IMG_BASE + 'PRE_C_H/A5B_Econ_H_C_F_noHf_xg_1.gif',
+    'COOLING':    IMG_BASE + 'COOLING/A5B_Econ_H_C_F_noHf_xg_1.gif',
+    'HEATING':    IMG_BASE + 'HEATING/A5B_Econ_H_C_F_noHf_xg_1.gif',
+    'SERIES_H_C': IMG_BASE + 'SERIES_H_C/OA_HC_HC_F_FF_Hf_grayx_1.gif',
+    'SERIES_C':   IMG_BASE + 'SERIES_C/Series_C.png',
+    'FULLBYPASS':   IMG_BASE + 'FULLBYPASS/MUAHU.png',
+
+  
+};
+
+// Damper OA images  — folder: Dampers_StandOA
+// Econ_1  = ~0% open (closed)
+// Econ_4  = ~25% open
+// Econ_7  = ~50% open
+// Econ_10 = ~100% open (fully open)
+const DamperOA = {
+    STANDARD: {
+        open5: IMG_BASE + 'Dampers_StandOA/Econ_10.gif',  // >83% → fully open
+        open3: IMG_BASE + 'Dampers_StandOA/Econ_7.gif',   // >50%
+        open1: IMG_BASE + 'Dampers_StandOA/Econ_4.gif',   // >16%
+        open0: IMG_BASE + 'Dampers_StandOA/Econ_1.gif',   // closed
+    },
+    HEATING_COOLING: {
+        open5: IMG_BASE + 'Dampers_StandOA/Econ_10.gif',
+        open3: IMG_BASE + 'Dampers_StandOA/Econ_7.gif',
+        open1: IMG_BASE + 'Dampers_StandOA/Econ_4.gif',
+        open0: IMG_BASE + 'Dampers_StandOA/Econ_1.gif',
+    },
+    SERIES: {
+        s3: IMG_BASE + 'SERIES_H_C/OAD_10.gif',
+        s2: IMG_BASE + 'Dampers_StandOA/OAD_7.gif',
+        s1: IMG_BASE + 'Dampers_StandOA/OAD_4.gif',
+    s0: null
+},
+    
+    FULLBYPASS: {
+    open5: IMG_BASE + 'FULLBYPASS/OAD_10.gif',
+    open3: IMG_BASE + 'FULLBYPASS/OAD_7.gif',
+    open1: IMG_BASE + 'FULLBYPASS/OAD_4.gif',
+    open0: IMG_BASE + 'FULLBYPASS/OAD_4.gif',
+},
+};
+
+// Damper Return images — folder: Dampers_StandRET
+// (using same filenames as OA until you confirm the RET folder contents)
+const DamperReturn = {
+    STANDARD: {
+        r5: null,
+        r4: null,
+        r3: null,
+        r2: null,
+        r1: null,
+        r0: null,
+    },
+    HEATING_COOLING: {
+        r5: IMG_BASE + 'Dampers_StandRET/Econ_10.gif',
+        r4: IMG_BASE + 'Dampers_StandRET/Econ_7.gif',
+        r3: IMG_BASE + 'Dampers_StandRET/Econ_7.gif',
+        r2: IMG_BASE + 'Dampers_StandRET/Econ_4.gif',
+        r1: IMG_BASE + 'Dampers_StandRET/Econ_4.gif',
+        r0: IMG_BASE + 'Dampers_StandRET/Econ_1.gif',
+    }
+};
+
+// Coil + Fan images — from COOL_HEAT folder
+const Coils = {
+    heatOn:    IMG_BASE + 'COOLHEAT_PREC/Htg_10.gif',       // heating valve open
+    heatOff:   '',                                        // no image when off (blank)
+    heatSeries:IMG_BASE + 'COOLHEAT_PREC/Htg_10.gif',
+    coolOnTop: IMG_BASE + 'COOLHEAT_PREC/Clg_10.gif',       // cooling valve open
+    coolOnBot: IMG_BASE + 'COOLHEAT_PREC/Clg_10.gif',
+    coolOff:   '',                                        // no image when off (blank)
+    coolSeries:IMG_BASE + 'SERIES_C/Coil_20.gif',
+    
+    
+    coolBypass:  IMG_BASE + 'FULLBYPASS/Clg_10.gif',
+heatBypass:  IMG_BASE + 'FULLBYPASS/Htg_10.gif',
+preBypass:   IMG_BASE + 'FULLBYPASS/Pht_10.gif',
+};
+
+// Fan images — from COOL_HEAT folder
+const Fans = {
+    on:  IMG_BASE + 'COOLHEAT_PREC/SupFan_on.gif',   // supply fan running
+    // onBypass: IMG_BASE + 'FULLBYPASS/Fan_on.gif',
+    // on:  IMG_BASE + 'SERIES_C/Fan_on.gif',   // supply fan running
+
+    off: '',                                       // no image when off (blank)
+    
+    
+    retOn:    IMG_BASE + 'COOLHEAT_PREC/RetFan_on.gif',  
+     retOff:   '',   
+};
+
+// ── Bubble positions per AHU type ─────────────────────────────────────
+const BUBBLE_POSITIONS = {
+  ////////////////////////////////////////////////////////////////////////////////////////    
+
+    COOL_HEAT: {
+        'Fan-Stat':    { left:'64.0%', top:'55.5%',  width:'8%' },
+        'DPR-cmd':     { left:'2%',   top:'77%',   width:'8%' },
+        'DPR-RTN':     { left:'2.0%',   top:'30.76%',  width:'8%' },
+        'DA-T':        { left:'85%',   top:'80%',   width:'8%' },
+        'CLG-VLV':     { left:'48%',   top:'90%',   width:'8%' },
+        'MA-T':    { left:'20%', top:'60%', width:'8%' },
+        'EF-status': { left:'39%', top:'25%', width:'8%' },
+        'HTG-VLV':     { left:'40%',   top:'50%',   width:'8%' },
+        'Pre-HT-VLV':  { display:'none' },
+    },
+    PRE_C: {
+        'Fan-Stat':    { left:'64.0%', top:'55.5%',  width:'8%' },
+        'DPR-cmd':     { left:'2%',   top:'77%',   width:'8%' },
+        'DPR-RTN':     { left:'2.0%',   top:'30.76%',  width:'8%' },
+        'DA-T':        { left:'85%',   top:'80%',   width:'8%' },
+        'CLG-VLV':     { left:'48%',   top:'90%',   width:'8%' },
+        'MA-T':    { left:'20%', top:'60%', width:'8%' },
+        'EF-status': { left:'39%', top:'25%', width:'8%' },
+        'Pre-HT-VLV':     { left:'40%',   top:'50%',   width:'8%' },
+        'HTG-VLV':     { display:'none' },
+    },
+    
+        NO_RETURN: {
+        'Fan-Stat':    { left:'63.0%', top:'42.5%',  width:'8%' },
+        'DPR-cmd':     { left:'2%',   top:'60%',   width:'8%' },
+        'DPR-RTN':     {display: 'none' },
+        'DA-T':        { left:'85%',   top:'65%',   width:'8%' },
+        'CLG-VLV':     { left:'43%',   top:'72%',   width:'8%' },
+        'MA-T':    { left:'20%', top:'50%', width:'8%' },
+        'EF-status': {display: 'none' },
+        'Pre-HT-VLV':     { left:'35%',   top:'35%',   width:'8%' },
+        'HTG-VLV':     { display:'none' },
+    },
+////////////////////////////////////////////////////////////////////////////////////////
+
+    PRE_C_H: {
+        'Fan-Stat':    { left:'55.7%', top:'8.5%',  width:'8%' },
+        'DPR-cmd':     { left:'78%',   top:'38%',   width:'8%' },
+        'DPR-RTN':     { left:'63%',   top:'2%',    width:'8%' },
+        'DA-T':        { left:'80%',   top:'50%',   width:'8%' },
+        'CLG-VLV':     { left:'44%',   top:'75%',   width:'8%' },
+        'MA-T':    { left:'30%', top:'55%', width:'8%' },
+'EF-status': { left:'10%', top:'45%', width:'8%' },
+        'HTG-VLV':     { left:'54%',   top:'75%',   width:'8%' },
+        'Pre-HT-VLV':  { left:'34%',   top:'75%',   width:'8%' },
+    },
+    HEATING: {
+        'Fan-Stat':    { left:'55.7%', top:'8.5%',  width:'8%' },
+        'DPR-cmd':     { left:'15%',   top:'47%',   width:'8%' },
+        'DPR-RTN':     { left:'42%',   top:'5.5%',  width:'8%' },
+        'MA-T':    { left:'30%', top:'55%', width:'8%' },
+'EF-status': { left:'10%', top:'45%', width:'8%' },
+        'DA-T':        { left:'80%',   top:'50%',   width:'8%' },
+        'CLG-VLV':     { display:'none' },
+        'HTG-VLV':     { left:'40%',   top:'65%',   width:'8%' },
+        'Pre-HT-VLV':  { display:'none' },
+    },
+    COOLING: {
+        'Fan-Stat':    { left:'55.7%', top:'8.5%',  width:'8%' },
+        'DPR-cmd':     { left:'15%',   top:'47%',   width:'8%' },
+        'DPR-RTN':     { left:'42%',   top:'5.5%',  width:'8%' },
+        'DA-T':        { left:'80%',   top:'50%',   width:'8%' },
+        'MA-T':    { left:'30%', top:'55%', width:'8%' },
+'EF-status': { left:'10%', top:'45%', width:'8%' },
+        'CLG-VLV':     { left:'40%',   top:'65%',   width:'8%' },
+        'HTG-VLV':     { display:'none' },
+        'Pre-HT-VLV':  { display:'none' },
+    },
+    
+    
+    FULLBYPASS: {
+    'Fan-Stat':    { left:'50.0%', top:'25.5%',  width:'8%' },
+    'DPR-cmd':     { left:'2%',   top:'15%',   width:'8%' },
+    'DPR-RTN':     { display:'none' },
+        'DA-T':        {  left:'90%',    top:'30%',   width:'8%'},
+    'CLG-VLV':     { left:'15%',   top:'55%',   width:'8%' },
+    'MA-T':        { display:'none' },
+    'EF-status':   { display:'none' },
+    'HTG-VLV':     { left:'83%',   top:'10%',   width:'8%' },
+    'Pre-HT-VLV':  { display:'none' },
+},
+    
+    SERIES_C: {
+        'Fan-Stat':    { left:'53.7%', top:'5.5%',  width:'8%' },
+        'DPR-cmd':     { left:'5%',   top:'5%',   width:'8%' },
+        'DPR-RTN':     { display:'none' },
+        'MA-T':    { display:'none' },
+        'EF-status': {display:'none' },
+        'DA-T':        { left:'75%',   top:'25%',   width:'8%' },
+        'CLG-VLV':     { left:'33%',   top:'20%',   width:'8%' },
+        'HTG-VLV':     { display:'none' },
+        'Pre-HT-VLV':  { display:'none' },
+    },
+    SERIES_H_C: {
+        'Fan-Stat':    { left:'50.7%', top:'5.5%',  width:'8%' },
+        'DPR-cmd':     { left:'18%',   top:'55%',   width:'8%' },
+        'DPR-RTN':     { display:'none' },
+        'DA-T':        { left:'85%',   top:'50%',   width:'8%' },
+        'CLG-VLV':     { left:'42%',   top:'60%',   width:'8%' },
+        'MA-T':    { left:'30%', top:'55%', width:'8%' },
+'EF-status': { left:'10%', top:'45%', width:'8%' },
+        'HTG-VLV':     { left:'33%',   top:'60%',   width:'8%' },
+        'Pre-HT-VLV':  { display:'none' },
+    },
+};
+
+let globalDeviceType = null;
+let elements   = {};
+let pointIdMap = {};
+const subscriber = new baja.Subscriber();
+
+// ── Config loader ─────────────────────────────────────────────────────
+async function loadGlobalConfig() {
+    try { const r = await fetch('../Global.json'); if (!r.ok) throw new Error(`HTTP ${r.status}`); return await r.json(); }
+    catch(err) { console.error('Failed to load Global.json:', err); return null; }
+}
+
+// ── Set AHU background image ──────────────────────────────────────────
+function setAHUImage(deviceType) {
+    const img = document.getElementById('AHU');
+    if (!img) return;
+    const src = typeImages[deviceType];
+    if (src) { img.src = src; } // width is 100% of wrapper now
+}
+
+// ── Apply bubble positions from lookup table ──────────────────────────
+function applyBubblePositions(deviceType) {
+    const positions = BUBBLE_POSITIONS[deviceType] || BUBBLE_POSITIONS['COOL_HEAT'];
+    Object.entries(positions).forEach(([spanId, pos]) => {
+        const wrap = document.querySelector(`.pill-wrap[data-spanid="${spanId}"]`);
+        if (!wrap) return;
+        if (pos.display === 'none') { wrap.style.display = 'none'; return; }
+        if (pos.left)  wrap.style.left  = pos.left;
+        if (pos.top)   wrap.style.top   = pos.top;
+        if (pos.width) wrap.style.width = pos.width;
+    });
+}
+
+function scaleGraphicWrapper() {
+    const wrapper = document.getElementById('ahu-graphic-wrapper');
+    if (!wrapper) return;
+    // Base design width (what the layout was designed at)
+    const BASE_WIDTH = 1300;
+    const currentWidth = wrapper.offsetWidth;
+    const scale = currentWidth / BASE_WIDTH;
+    // Scale all pills together
+    wrapper.querySelectorAll('.pill-wrap').forEach(pill => {
+        pill.style.transform = `scale(${scale})`;
+        pill.style.transformOrigin = 'top left';
+    });
+}
+
+// Call on load and on resize
+scaleGraphicWrapper();
+const resizeObserver = new ResizeObserver(() => scaleGraphicWrapper());
+resizeObserver.observe(document.getElementById('ahu-graphic-wrapper'));
+window.addEventListener('resize', scaleGraphicWrapper);
+
+// ── Damper OA graphic ─────────────────────────────────────────────────
+function updateDamperGraphic(pointValue) {
+    const img = document.getElementById('img-Damper-OA');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+    const v  = parseFloat(pointValue);
+    let src;
+
+    if (dt === 'HEATING' || dt === 'COOLING') {
+        const d = DamperOA.HEATING_COOLING;
+        src = v>83.3 ? d.open5 : v>50 ? d.open3 : v>16.6 ? d.open1 : d.open0;
+    } else if (dt === 'SERIES_C' || dt === 'SERIES_H_C') {
+        const d = DamperOA.SERIES;
+        src = v>83.3 ? d.s3 : v>50 ? d.s2 : v>16.6 ? d.s1 : d.s0;
+    } else if (dt === 'FULLBYPASS') {
+       const d = DamperOA.FULLBYPASS;
+       src = v>83.3 ? d.open5 : v>50 ? d.open3 : v>16.6 ? d.open1 : d.open0;
+    
+   } else {
+        const d = DamperOA.STANDARD;
+        src = v>83.3 ? d.open5 : v>50 ? d.open3 : v>16.6 ? d.open1 : d.open0;
+    }
+if (!src) {
+    img.removeAttribute("src");   // removes broken image icon
+    img.style.display = "none";   // hides image completely
+    return;
+} else {
+    img.style.display = "block";
+    img.src = src;
+}
+    switch (dt) {
+        case 'PRE_C_H':
+            img.style.cssText += ';width:12.25%;left:27.8%;top:34.65%;'; break;
+            
+        case 'COOL_HEAT': case 'PRE_C':
+            img.style.cssText += ';width:25.10%;left:6.5%; top:33.85%;'; break;
+            
+        case 'HEATING': case 'COOLING':
+            img.style.cssText += ';width:12.5%;left:27.85%;top:37.5%;'; break;
+            
+        case 'SERIES_C':
+            img.style.cssText += ';width:27.55%;left:-8.55%; height: 40%; top:16.15%;'; break;
+            
+        case 'SERIES_H_C':
+            img.style.cssText += ';width:14.0%;left:15.75%;top:7.0%;'; break;
+        
+        case 'FULLBYPASS':
+             img.style.cssText += ';width:14.5%;left:-5%;top:24%;'; break;    
+        default:
+            img.style.cssText += ';width:25.5%; height: 46.0%; left:-.5%;top:17.15%;'; break;   // FOR NO_RETURN
+    }
+}
+
+// ── Damper Return graphic ─────────────────────────────────────────────
+function updateDamperGraphicReturn(pointValue) {
+    const img = document.getElementById('img-Damper-Return');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+    const v  = parseFloat(pointValue);
+    let src;
+
+    if (dt === 'COOL_HEAT') { 
+        img.style.display = 'none'; 
+        return; 
+    }
+
+    if (dt === 'HEATING' || dt === 'COOLING') {
+        const d = DamperReturn.HEATING_COOLING;
+        src = v>83.3 ? d.r5 : v>50 ? d.r3 : v>16.6 ? d.r1 : d.r0;
+    } else {
+        const d = DamperReturn.STANDARD;
+        src = v>83.3 ? d.r5 : v>66.6 ? d.r4 : v>50 ? d.r3 : v>33.3 ? d.r2 : v>16.6 ? d.r1 : d.r0;
+    }
+    img.src = src;
+
+    switch (dt) {
+        case 'PRE_C_H':
+            img.style.cssText += ';width:4%;left:70%;top:36.0%;'; break;
+        case 'COOL_HEAT': case 'PRE_C':
+            // img.style.cssText += ';width:7%;left:15.65%;top:36.75%;'; break;
+        case 'HEATING': case 'COOLING':
+            img.style.cssText += ';width:6.25%;left:32.5%;top:11.75%;'; break;
+
+        default:
+            img.style.cssText += ';width:4%;left:71%;top:36.0%;'; break;
+    }
+}
+
+// ── Heat coils graphic ────────────────────────────────────────────────
+function updateHeatCoilsGraphic(pointValue) {
+    const img = document.getElementById('Heat-Coils');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+    const on = parseFloat(pointValue) >= 1;
+
+    if (dt === 'SERIES_H_C') { img.src = on ? Coils.heatSeries : Coils.heatOff; }
+    else { img.src = on ? Coils.heatOn : Coils.heatOff; }
+
+    switch (dt) {
+        case 'PRE_C_H':
+            img.style.cssText += ';width:7.0%;left:45%;top:45%;'; break;
+        case 'COOL_HEAT': case 'PRE_C':
+            img.style.cssText += ';width:11.5%;left:42.0%;top:59.95%;'; break;
+        case 'HEATING':
+            img.style.cssText += ';width:6%;left:49%;top:51.15%;'; break;
+        case 'COOLING': case 'SERIES_C':
+            img.src = Coils.heatOff; img.style.display = 'none'; break;
+        case 'SERIES_H_C':
+            img.style.cssText += ';width:5.5%;left:37.0%;top:23%;'; break;
+        
+        case 'FULLBYPASS':
+            img.src = on ? Coils.heatBypass : Coils.heatOff;
+           img.style.cssText += ';width:8%;left:40%;top:55%;'; break;
+        default:
+            img.style.cssText += ';width:11.3%;left:38.3%;top:45.5%;'; break; //NO_RETURN IMAGE
+    }
+}
+
+// ── Cooling coils graphic ─────────────────────────────────────────────
+function updateCoolingGraphic(pointValue) {
+    const img = document.getElementById('Cool-Coils');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+const on =
+    pointValue === true ||
+    pointValue === "true" ||
+    parseFloat(pointValue) >= 1;    let imgOn;
+
+    if (dt === 'HEATING' || dt === 'COOLING') imgOn = Coils.coolOnBot;
+    else if (dt === 'SERIES_C' || dt === 'SERIES_H_C') imgOn = Coils.coolSeries;
+    else imgOn = Coils.coolOnTop;
+
+if (!on) {
+    img.removeAttribute("src");
+    img.style.display = "none";
+} else {
+    img.style.display = "block";
+    img.src = imgOn;
+}
+    switch (dt) {
+        case 'PRE_C_H':
+            img.style.cssText += ';width:3.85%;left:40.75%;top:32.85%;'; break;
+        case 'COOL_HEAT': case 'PRE_C':
+            img.style.cssText += ';width:12.75%;left:53.5%;top:62.35%;height:26%;'; break;
+        case 'HEATING':
+            img.src = Coils.coolOff; img.style.display = 'none'; break;
+        case 'COOLING':
+            img.style.cssText += ';width:6%;left:49%;top:51.15%;'; break;
+        case 'SERIES_C':
+            img.style.cssText += ';width:18.5%; height: 37%; left:40.0%;top:31.0%;transform:rotate(0deg);'; break;
+        case 'SERIES_H_C':
+            img.style.cssText += ';width:8.25%;left:44.0%;top:27.85%;'; break;
+        
+        case 'FULLBYPASS':
+           img.src = on ? Coils.coolBypass : Coils.coolOff;
+            img.style.cssText += ';width:8%;left:50%;top:55%;'; break;
+        default:
+            img.style.cssText += ';width:14.1%; height: 25.75%; left:50.2%;top:48.15%;'; break; // NO_RETURN
+    }
+}
+
+
+// ── Supply fan graphic ────────────────────────────────────────────────
+function updateFanGraphic(pointValue) {
+    const img = document.getElementById('Supply-Fan');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+    // const on = parseFloat(pointValue) >= 1;
+const str = String(pointValue ?? '').toLowerCase().trim();
+const on = str === 'true' || str === 'on' || str === 'active' || parseFloat(str) >= 1;   
+// Invert logic: HEATING/COOLING use same sense as RTU, others inverted
+    if (dt === 'HEATING' || dt === 'COOLING' || dt === 'COOL_HEAT') {
+        img.src = on ? Fans.on : Fans.off;
+    }  else {
+        img.src = on ? Fans.off : Fans.on;
+    }
+
+    switch (dt) {
+        case 'PRE_C_H': case 'HEATING': case 'COOLING':
+            img.style.cssText += ';width:5.35%;left:57.10%;top:67.0%;'; break;
+        case 'COOL_HEAT': case 'PRE_C':
+            img.style.cssText += ';width:12.35%;left:65.65%;top:67.95%;'; break;
+        case 'SERIES_C':
+            img.style.cssText += ';width:22.65%;left:57.0%;top:38.25%;'; break;
+            
+        case 'SERIES_H_C':
+            img.style.cssText += ';width:7.0%;left:52.25%;top:32.0%;'; break;
+        
+        case 'FULLBYPASS':
+             img.src = on ? Fans.onBypass : Fans.off;
+             img.style.cssText += ';width:10%;left:60%;top:60%;'; break;    
+      
+        default:
+            img.style.cssText += ';width:12.2%;left:64.0%;top:54.0%;'; break; //NO_RETURN image
+    }
+}
+
+
+function updateReturnFanGraphic(pointValue) {
+    const img = document.getElementById('Return-Fan');
+    if (!img || !globalDeviceType) return;
+    const dt = globalDeviceType.toUpperCase();
+
+    // Accept boolean true/false, "on"/"off", or numeric 0-100
+    const rawStr = String(pointValue || '').toLowerCase();
+    const on = pointValue === true || rawStr === 'true' || rawStr === 'on' ||
+               rawStr === 'active' || parseFloat(pointValue) >= 1;
+
+    if (!on) {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+    } else {
+        img.style.display = 'block';
+        img.src = Fans.retOn;
+    }
+
+    // Position per AHU type — adjust these to fit your graphics
+    img.style.position = 'absolute';
+    switch (dt) {
+        case 'COOL_HEAT': case 'PRE_C':
+            img.style.cssText += ';width:7.0%;left:39.5%;top:7%;'; break;
+        case 'PRE_C_H': case 'HEATING': case 'COOLING':
+            img.style.cssText += ';width:5.35%;left:3%;top:52%;'; break;
+        case 'SERIES_C': case 'SERIES_H_C':
+            img.style.cssText += ';width:7%;left:3%;top:45%;'; break;
+        case 'FULLBYPASS':
+            img.style.cssText += ';width:10%;left:3%;top:52%;'; break;
+        default:
+            img.style.cssText += ';width:12.35%;left:2.5%;top:52%;'; break;
+    }
+}
+
+function buildPointIdMap(devicePoints) {
+    pointIdMap = {};
+    devicePoints.forEach(p => { if (p.id && p.id !== 'N/A') pointIdMap[p.id] = p.name; });
+}
+
+function matchesPointId(elementId, targetPointId) {
+    return pointIdMap[targetPointId] === elementId;
+}
+
+function buildDataPointsFromGlobal(devicePoints) {
+    const localElements  = {};
+    const excludedPoints = new Set(['Note1','Note2','Note3','StringWritable']);
+    const naTableBody    = document.getElementById('unit-data-tbody');
+    devicePoints.forEach(point => {
+        if (!point.id || point.id === 'N/A') {
+            if (excludedPoints.has(point.name)) return;
+            if (!naTableBody) return;
+            const row = naTableBody.insertRow();
+            const nc  = row.insertCell(); nc.textContent = decodeNiagaraName(point.name);
+            const vc  = row.insertCell(); vc.textContent = '—'; vc.id = `na-${point.name}`;
+            localElements[point.name] = vc;
+        } else {
+            const el = document.getElementById(point.id);
+            if (el) localElements[point.name] = el;
+        }
+    });
+    return localElements;
+}
+
+subscriber.attach('changed', function(prop) {
+    if (prop.getName() !== 'out') return;
+    const pointInfo = this.userData;
+    if (!pointInfo || !elements[pointInfo.elementId]) return;
+    const out        = this.getOut();
+    const displayVal = out.getValueDisplay();
+    const value      = out.getValue();
+    const isOverride = this.getStatus().isOverridden();
+    if (matchesPointId(pointInfo.elementId, 'DPR-cmd'))    updateDamperGraphic(value);
+    if (matchesPointId(pointInfo.elementId, 'DPR-RTN'))    updateDamperGraphicReturn(value);
+    if (matchesPointId(pointInfo.elementId, 'Fan-Stat'))   updateFanGraphic(value);
+    if (matchesPointId(pointInfo.elementId, 'CLG-VLV'))    updateCoolingGraphic(value);
+    if (matchesPointId(elementId, 'EF-status'))            updateReturnFanGraphic(value);
+    if (matchesPointId(pointInfo.elementId, 'HTG-VLV') ||
+        matchesPointId(pointInfo.elementId, 'Pre-HT-VLV')) updateHeatCoilsGraphic(value);
+    const el = elements[pointInfo.elementId];
+    if (el && el.tagName !== 'IMG') applyValueToSpan(el, displayVal, value, isOverride);
+});
+
+function applyValueToSpan(el, displayVal, rawVal, isOverride) {
+    el.className = el.className.replace(/\b(status-on|status-off|status-fault|override-active|pill-value|data-value)\b/g,'').trim();
+    const base = el.tagName === 'TD' ? '' : 'pill-value';
+    if (isOverride) {
+        if (base) el.className = `${base} override-active`;
+        el.textContent = `${displayVal} ◈`;
+    } else {
+        const isOn = String(rawVal||'').toLowerCase().includes('on') ||
+                     String(rawVal||'').toLowerCase().includes('true') ||
+                     parseFloat(rawVal) > 0;
+        if (base) el.className = `${base} ${isOn ? 'status-on' : 'status-off'}`;
+        el.textContent = displayVal;
+    }
+}
+
+function subscribeToPoint(pointOrd, elementId) {
+    baja.Ord.make(pointOrd).get({ subscriber })
+        .then(point => {
+            point.userData = { elementId };
+            const out        = point.getOut();
+            const displayVal = out.getValueDisplay();
+            const value      = out.getValue();
+            const isOverride = point.getStatus().isOverridden();
+            if (matchesPointId(elementId, 'DPR-cmd'))    updateDamperGraphic(value);
+            if (matchesPointId(elementId, 'DPR-RTN'))    updateDamperGraphicReturn(value);
+            if (matchesPointId(elementId, 'Fan-Stat'))   updateFanGraphic(value);
+            if (matchesPointId(elementId, 'CLG-VLV'))    updateCoolingGraphic(value);
+            if (matchesPointId(elementId, 'EF-status'))  updateReturnFanGraphic(value);
+            if (matchesPointId(elementId, 'HTG-VLV') ||
+                matchesPointId(elementId, 'Pre-HT-VLV')) updateHeatCoilsGraphic(value);
+            const el = elements[elementId];
+            if (el && el.tagName !== 'IMG') applyValueToSpan(el, displayVal, value, isOverride);
+        })
+        .catch(err => {
+            console.error(`Failed to connect to ${elementId}:`, err);
+            const el = elements[elementId];
+            if (el && el.tagName !== 'IMG') { el.textContent = 'Err'; el.classList.add('status-fault'); }
+        });
+}
+
+async function initializeMonitoring() {
+    const cfg = await loadGlobalConfig();
+    if (!cfg) { showError('Failed to load Global.json'); return; }
+    const deviceConfig = cfg.globalVariables?.[headerName];
+    if (!deviceConfig?.points?.length) { showError(`No config for "${headerName}"`); return; }
+    globalDeviceType = (deviceConfig.Type || 'COOL_HEAT').toUpperCase();
+    setAHUImage(globalDeviceType);
+    applyBubblePositions(globalDeviceType);
+    buildPointIdMap(deviceConfig.points);
+    elements = buildDataPointsFromGlobal(deviceConfig.points);
+    setTimeout(() => {
+        let count = 0;
+        deviceConfig.points.forEach(point => { subscribeToPoint(point.fullPath, point.name); count++; });
+        showSuccess(`Monitoring ${count} points for ${decodeNiagaraName(headerName)}`);
+    }, 500);
+}
+
+function showError(msg) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--red);border-radius:10px;padding:16px 24px;z-index:9999;font-family:var(--font-head);font-size:13px;color:var(--red);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);letter-spacing:1px;max-width:480px;';
+    div.textContent = msg; document.body.appendChild(div);
+    setTimeout(() => { if (document.body.contains(div)) document.body.removeChild(div); }, 15000);
+}
+function showSuccess(msg) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;top:80px;right:20px;background:var(--bg-card);border:1px solid rgba(0,230,118,0.4);border-radius:8px;padding:10px 18px;z-index:9999;font-family:var(--font-head);font-size:12px;color:var(--green);letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+    div.textContent = msg; document.body.appendChild(div);
+    setTimeout(() => { if (document.body.contains(div)) document.body.removeChild(div); }, 5000);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeMonitoring);
+else setTimeout(initializeMonitoring, 100);
+window.addEventListener('beforeunload', () => { if (subscriber) subscriber.unsubscribeAll(); });
+
+});
+</script>
+
+
+<!-- ─── PDF REPORT GENERATOR ─────────────────────────────────────────── -->
+<script>
+let ahuExportHistoryCache = new Map();
+
+function decodeASCIIName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16)));
+}
+
+async function discoverAHUHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointOrd).get()
+                .then(e => e.tags())
+                .then(tagMap => {
+                    const tag = tagMap.get('n:history');
+                    if (tag && tag.toString().trim()) {
+                        let path = tag.toString();
+                        if (!path.startsWith('history:')) path = 'history:' + path;
+                        resolve(path);
+                    } else reject(new Error('No n:history tag on: ' + pointOrd));
+                })
+                .catch(e => reject(new Error('Failed tags: ' + e.message)));
+        });
+    });
+}
+
+async function loadAHUHistoryData(pointPath, startTime, endTime, maxPoints=2000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let historyOrd = ahuExportHistoryCache.get(pointPath);
+            if (!historyOrd) {
+                try { historyOrd = await discoverAHUHistoryOrd(pointPath); ahuExportHistoryCache.set(pointPath, historyOrd); }
+                catch(e) { resolve([]); return; }
+            }
+            require(['baja!'], function(baja) {
+                const q = `${historyOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+                const pts = [];
+                baja.Ord.make(q).get({ cursor: { limit:maxPoints, each: function() { const row=this.get(); const date=new Date(row.get("timestamp").getMillis()); pts.push({timestamp:date,timestampString:date.toLocaleString(),value:row.get("value")}); } } })
+                    .then(()=>resolve(pts)).catch(e=>reject(new Error('BQL failed: '+e.message)));
+            });
+        } catch(e) { reject(e); }
+    });
+}
+
+function getLastSunday() {
+    const today=new Date(), d=new Date(today);
+    d.setDate(today.getDate()-today.getDay()); d.setHours(0,0,0,0); return d;
+}
+
+async function generateAHUWeeklyPDFReport(jsonConfigData) {
+    const container = document.getElementById('pdf-button-container');
+    const orig = container.innerHTML;
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--accent);font-family:var(--font-head);font-size:12px;letter-spacing:2px;">Loading weekly data...</div>';
+    try {
+        const startDate=getLastSunday(), endDate=new Date();
+        const ahuGroups={};
+        Object.keys(jsonConfigData).forEach(n => { const d=jsonConfigData[n]; if(d.points) ahuGroups[n]=d.points.map(p=>({id:p.id||'Unknown',label:decodeASCIIName(p.label||p.name||p.id||'Unknown'),unit:p.unit||'',path:p.path||p.fullPath||''})).filter(p=>p.path); });
+        if (!Object.keys(ahuGroups).length) { container.innerHTML=orig; alert('No AHU data found'); return; }
+        const allPts=[]; Object.keys(ahuGroups).forEach(n=>ahuGroups[n].forEach(p=>allPts.push({ahuName:n,...p})));
+        const allHistory=await Promise.all(allPts.map(pt=>loadAHUHistoryData(pt.path,startDate,endDate,2000).then(data=>({...pt,data})).catch(()=>({...pt,data:[]}))));
+        const pointStats=allHistory.map(ph=>{const vals=ph.data.map(d=>typeof d.value==='boolean'?(d.value?1:0):parseFloat(d.value)).filter(v=>!isNaN(v));const stats=vals.length?{count:vals.length,min:Math.min(...vals),max:Math.max(...vals),avg:vals.reduce((a,b)=>a+b,0)/vals.length}:{count:ph.data.length,hasData:false};return{...ph,stats,latestValue:ph.data.length?ph.data[ph.data.length-1].value:null};});
+        const reportDate=new Date().toLocaleString(),sorted=Object.keys(ahuGroups).sort();
+        let summaryHTML='<div><h2>AHU Summary Statistics</h2>';
+        sorted.forEach(ahuName=>{const pts=pointStats.filter(p=>p.ahuName===ahuName);summaryHTML+=`<h3>${decodeASCIIName(ahuName).replace(/_/g,' ')}</h3><table><thead><tr><th>Point</th><th>Latest</th><th>Min</th><th>Avg</th><th>Max</th><th>Count</th></tr></thead><tbody>`;pts.forEach((pt,i)=>{const bg=i%2===0?'#f5f5f5':'#fff';if(pt.stats.hasData===false){summaryHTML+=`<tr style="background:${bg}"><td>${pt.label}</td><td colspan="5" style="text-align:center;color:#999">No Numeric Data</td></tr>`;}else{let lv='N/A';if(pt.latestValue!==null){if(typeof pt.latestValue==='boolean')lv=pt.latestValue?'ON':'OFF';else if(typeof pt.latestValue==='number')lv=pt.latestValue.toFixed(2)+(pt.unit?' '+pt.unit:'');else lv=String(pt.latestValue);}const u=pt.unit?' '+pt.unit:'';summaryHTML+=`<tr style="background:${bg}"><td>${pt.label}</td><td><strong>${lv}</strong></td><td>${pt.stats.min.toFixed(2)}${u}</td><td>${pt.stats.avg.toFixed(2)}${u}</td><td>${pt.stats.max.toFixed(2)}${u}</td><td>${pt.stats.count}</td></tr>`;}});summaryHTML+='</tbody></table>';});
+        summaryHTML+='</div>';
+        const pdfHTML=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>AHU Weekly Report</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;padding:15mm;font-size:10pt;}.header{text-align:center;margin-bottom:25px;border-bottom:3px solid #00c8ff;padding-bottom:15px;}.header h1{font-size:24pt;margin-bottom:8px;}.info-section{background:#f5f5f5;padding:15px;margin-bottom:20px;border-radius:5px;border:1px solid #ddd;}table{width:100%;border-collapse:collapse;margin-bottom:15px;}thead{background:#0d1117;color:#fff;}th,td{padding:7px 10px;border:1px solid #ddd;font-size:9pt;text-align:left;}h2{font-size:16pt;margin:20px 0 10px;border-bottom:2px solid #00c8ff;padding-bottom:6px;}h3{font-size:12pt;margin:14px 0 8px;}.no-print{position:fixed;top:10px;right:10px;background:#fff;padding:10px;border:2px solid #ddd;border-radius:5px;}@media print{.no-print{display:none;}}</style></head><body><div class="header"><h1>AHU Weekly Performance Report</h1></div><div class="info-section"><p><strong>Generated:</strong> ${reportDate}</p><p><strong>Range:</strong> ${startDate.toLocaleString()} → ${endDate.toLocaleString()}</p><p><strong>Units:</strong> ${sorted.length} | <strong>Points:</strong> ${allPts.length}</p></div>${summaryHTML}<div class="no-print"><button onclick="window.print()" style="padding:10px 20px;background:#0d1117;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:8px;">🖨️ Save PDF</button><button onclick="window.close()" style="padding:10px 20px;background:#546e7a;color:#fff;border:none;border-radius:5px;cursor:pointer;">Close</button></div></body></html>`;
+        container.innerHTML=orig;
+        const win=window.open('','_blank');
+        if(win){win.document.write(pdfHTML);win.document.close();}else alert('Pop-up blocked. Please allow pop-ups.');
+    } catch(err) { container.innerHTML=orig; alert('Failed to generate report: '+err.message); }
+}
+
+function createAHUWeeklyPDFButton(jsonConfigData) {
+    const container=document.getElementById('pdf-button-container');
+    if(!container)return;
+    container.innerHTML='';
+    const btn=document.createElement('button');
+    btn.textContent='📄 Weekly AHU PDF Report';
+    btn.style.cssText='padding:8px 18px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);border-radius:6px;color:var(--accent);cursor:pointer;font-family:var(--font-head);font-size:clamp(9px,0.7vw,12px);letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;';
+    btn.onclick=()=>generateAHUWeeklyPDFReport(jsonConfigData);
+    btn.onmouseover=()=>{btn.style.background='rgba(0,200,255,0.2)';btn.style.borderColor='var(--accent)';};
+    btn.onmouseout=()=>{btn.style.background='rgba(0,200,255,0.1)';btn.style.borderColor='rgba(0,200,255,0.3)';};
+    container.appendChild(btn);
+}
+
+setTimeout(async()=>{
+    try {
+        const fullFilename=window.location.pathname.split('/').pop();
+        const headerName=fullFilename.replace('.html','');
+        const response=await fetch('../Global.json');
+        const jsonData=await response.json();
+        const ahuConfig=jsonData.globalVariables[headerName];
+        if(ahuConfig){const cfg={};cfg[headerName]={points:ahuConfig.points};createAHUWeeklyPDFButton(cfg);}
+    }catch(e){console.error('PDF button init failed:',e);}
+},150);
+</script>
+
+</body>
+</html>
