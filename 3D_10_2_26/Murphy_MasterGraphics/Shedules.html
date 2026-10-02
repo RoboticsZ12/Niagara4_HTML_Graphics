@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Schedules</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #080d14;
+    --surface:      #0d1520;
+    --surface-2:    #111c2b;
+    --border:       rgba(0,180,255,0.12);
+    --border-hover: rgba(0,180,255,0.45);
+    --accent:       #00b4ff;
+    --accent-dim:   rgba(0,180,255,0.18);
+    --accent-glow:  rgba(0,180,255,0.35);
+    --amber:        #ffab00;
+    --green:        #00e676;
+    --red:          #ff5252;
+    --text:         #c8d8ea;
+    --text-dim:     #5a7080;
+    --text-muted:   #334455;
+    --font-ui:      'Rajdhani', sans-serif;
+    --font-mono:    'Share Tech Mono', monospace;
+    --font-body:    'Inter', sans-serif;
+    --top-h:        54px;
+    --bot-h:        44px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body.light-mode {
+    --bg:        #eef2f7;
+    --surface:   #ffffff;
+    --surface-2: #f4f7fc;
+    --border:    rgba(0,100,180,0.14);
+    --border-hover: rgba(0,100,180,0.45);
+    --text:      #1a2535;
+    --text-dim:  #6080a0;
+    --text-muted:#a0b0c0;
+    --accent-dim: rgba(0,120,200,0.1);
+  }
+
+  body { opacity:0; transition: opacity .35s ease; }
+  body.fade-in  { opacity:1; }
+  body.fade-out { opacity:0; }
+
+  /* ── OVERLAY ── */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    backdrop-filter:blur(2px); z-index:100;
+    opacity:0; pointer-events:none;
+    transition: opacity .3s;
+  }
+  .overlay.active { opacity:1; pointer-events:all; }
+
+  /* ── SIDE PANEL ── */
+  .side-panel {
+    position:fixed; top:0; left:-280px; width:260px; height:100%;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    z-index:200; transition: left .3s cubic-bezier(.4,0,.2,1);
+    display:flex; flex-direction:column;
+  }
+  .side-panel.active { left:0; }
+  .side-panel-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .side-panel-header h2 {
+    font-family: var(--font-ui);
+    font-size: 1.8rem; font-weight:700;
+    color: var(--accent); letter-spacing:.1em;
+  }
+  .side-panel-header p {
+    font-size: .7rem; color: var(--text-dim);
+    letter-spacing:.12em; text-transform:uppercase; margin-top:2px;
+  }
+  .side-panel-nav { padding:12px 0; }
+  .side-nav-section-label {
+    font-size:.85rem; letter-spacing:.18em; text-transform:uppercase;
+    color: var(--text-muted); padding: 8px 20px 4px;
+  }
+  .side-nav-link {
+    display:flex; align-items:center; gap:25px;
+    padding:10px 20px; text-decoration:none;
+    color: var(--text); transition: background .18s, color .18s;
+    font-family: var(--font-ui); font-size:1rem; font-weight:500;
+    letter-spacing:.04em;
+  }
+  .side-nav-link:hover { background: var(--accent-dim); color: var(--accent); }
+  .side-nav-icon { width:26px; height:26px; flex-shrink:0; }
+  .side-nav-icon svg { width:100%; height:100%; }
+
+  /* ── TOP BAR ── */
+  .top-bar {
+    position:fixed; top:0; left:0; right:0; height:var(--top-h);
+    background: rgba(8,13,20,.92);
+    backdrop-filter:blur(12px);
+    border-bottom: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px; z-index:50;
+  }
+  body.light-mode .top-bar { background: rgba(238,242,247,.92); }
+
+  .hamburger {
+    width:36px; height:36px; cursor:pointer;
+    display:flex; flex-direction:column; justify-content:center;
+    gap:5px; padding:4px;
+  }
+  .hamburger-line {
+    height:2px; background:var(--text); border-radius:2px;
+    transition: transform .25s, opacity .25s;
+  }
+  .hamburger:hover .hamburger-line { background: var(--accent); }
+  .hamburger.active .hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.active .hamburger-line:nth-child(2) { opacity:0; }
+  .hamburger.active .hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .top-center {
+    position:absolute; left:50%; transform:translateX(-50%);
+    text-align:center; pointer-events:none;
+  }
+  .site-label {
+    display:block; font-family:var(--font-ui);
+    font-size:.95rem; font-weight:600;
+    letter-spacing:.28em; text-transform:uppercase; color: var(--accent);
+  }
+  .page-title {
+    display:block; font-family:var(--font-ui);
+    font-size:.95rem; font-weight:500;
+    letter-spacing:.18em; text-transform:uppercase; color: var(--text);
+  }
+
+  .top-right { display:flex; align-items:center; gap:16px; }
+  .toggle-container { display:flex; align-items:center; gap:8px; }
+  .toggle-label { font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); }
+  .toggle-switch {
+    width:40px; height:22px; background:var(--surface-2);
+    border:1px solid var(--border); border-radius:11px;
+    cursor:pointer; position:relative; transition:background .2s;
+  }
+  .toggle-switch.active { background: rgba(0,180,255,.25); }
+  .toggle-slider {
+    width:16px; height:16px; background:var(--text-dim);
+    border-radius:50%; position:absolute; top:2px; left:2px;
+    transition:transform .25s, background .2s;
+  }
+  .toggle-switch.active .toggle-slider { transform:translateX(18px); background:var(--accent); }
+
+  .user-badge {
+    display:flex; align-items:center; gap:7px;
+    background: var(--surface-2); border:1px solid var(--border);
+    border-radius:20px; padding:4px 12px 4px 8px;
+  }
+  .user-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--green); box-shadow:0 0 6px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  #userDisplay { font-size:.72rem; font-family:var(--font-mono); color:var(--text); letter-spacing:.05em; }
+
+  /* ── MAIN CONTENT ── */
+  .main-content {
+    padding: calc(var(--top-h) + 28px) 32px calc(var(--bot-h) + 28px);
+    max-width: 1500px; margin:0 auto;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    display:flex; align-items:center; gap:16px;
+    margin-bottom: 28px;
+  }
+  .page-header h2 {
+    font-family: var(--font-ui);
+    font-size:1.55rem; font-weight:600;
+    letter-spacing:.22em; text-transform:uppercase;
+    color: var(--text-dim); white-space:nowrap;
+  }
+  .page-header .line {
+    flex:1; height:1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+  .page-header .line:first-child {
+    background: linear-gradient(270deg, var(--border), transparent);
+  }
+
+  /* ── SEARCH / TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px; top: 50%; transform: translateY(-50%);
+    width: 15px; height: 15px;
+    color: var(--text-dim); pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: .82rem;
+    letter-spacing: .04em;
+    padding: 8px 12px 8px 36px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-input:focus {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  body.light-mode .search-input { background: #f4f7fc; }
+
+  .sort-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: .78rem; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase;
+    padding: 7px 14px; border-radius: 5px; cursor: pointer;
+    transition: border-color .2s, color .2s, background .2s;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sort-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .sort-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .results-label {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+
+  /* ── SECTION CARD ── */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .section-header {
+    display:flex; align-items:center; gap:12px;
+    padding:14px 22px;
+    border-bottom:1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .section-header-badge {
+    width:6px; height:6px; border-radius:50%;
+    background: var(--accent); box-shadow:0 0 8px var(--accent);
+    flex-shrink:0;
+  }
+  .section-header h3 {
+    font-family: var(--font-ui);
+    font-size:.95rem; font-weight:600;
+    letter-spacing:.22em; text-transform:uppercase; color: var(--text);
+  }
+  .section-header-count {
+    margin-left:auto; font-family:var(--font-mono);
+    font-size:.85rem; color:var(--text-dim);
+    background: var(--accent-dim); border:1px solid var(--border);
+    border-radius:10px; padding:2px 9px;
+    transition: all .2s;
+  }
+
+  /* ── SCHEDULE GRID ── */
+  .schedule-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap:12px;
+    padding:20px 22px;
+  }
+
+  /* ── SCHEDULE TILE ── */
+  .schedule-tile {
+    position:relative; display:flex; flex-direction:column;
+    padding:16px 18px 14px;
+    background: var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    text-decoration:none;
+    color: var(--text);
+    overflow:hidden; cursor:pointer;
+    transition: border-color .2s, box-shadow .2s, background .2s, transform .18s;
+    opacity:0;
+    animation: tileIn .35s ease forwards;
+  }
+  .schedule-tile::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity:0; transition:opacity .2s;
+  }
+  .schedule-tile:hover {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 24px var(--accent-glow), 0 4px 16px rgba(0,0,0,.3);
+    background: rgba(0,180,255,.05);
+    transform: translateY(-2px);
+  }
+  .schedule-tile:hover::before { opacity:1; }
+  .schedule-tile:active { transform: translateY(0); }
+
+  /* tile hidden by filter */
+  .schedule-tile.hidden {
+    display: none;
+  }
+
+  .tile-station {
+    font-family: var(--font-mono);
+    font-size:.58rem; color:var(--text-muted);
+    letter-spacing:.08em; margin-bottom:4px;
+    text-transform:uppercase; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .tile-slot-path {
+    font-family: var(--font-mono);
+    font-size:.6rem; color:var(--text-dim);
+    letter-spacing:.06em; margin-bottom:10px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .tile-name {
+    font-family: var(--font-ui);
+    font-size:1.2rem; font-weight:600;
+    letter-spacing:.04em; color: var(--text);
+    flex:1;
+  }
+  .tile-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:12px; padding-top:10px;
+    border-top:1px solid var(--border);
+  }
+  .tile-type-badge {
+    font-family:var(--font-mono); font-size:.65rem;
+    letter-spacing:.1em; text-transform:uppercase;
+    padding:2px 8px; border-radius:3px;
+    background:rgba(0,180,255,.12); color:var(--accent);
+    border:1px solid rgba(0,180,255,.22);
+  }
+  .tile-arrow {
+    width:18px; height:18px; opacity:0;
+    transition:opacity .2s, transform .2s;
+    color: var(--accent); flex-shrink:0;
+  }
+  .schedule-tile:hover .tile-arrow { opacity:1; transform:translate(2px,-2px); }
+
+  /* ── NO RESULTS ── */
+  .no-results {
+    grid-column: 1 / -1;
+    padding: 32px 22px; text-align:center;
+    font-size:.75rem; color:var(--text-muted);
+    font-family:var(--font-mono); letter-spacing:.1em;
+  }
+  .no-results-icon {
+    font-size: 2rem; margin-bottom: 10px; opacity: .4;
+  }
+
+  /* empty state */
+  .empty-state {
+    padding:32px 22px; text-align:center;
+    font-size:.75rem; color:var(--text-muted);
+    font-family:var(--font-mono); letter-spacing:.1em;
+  }
+
+  @keyframes tileIn {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position:fixed; bottom:0; left:0; right:0; height:var(--bot-h);
+    background: rgba(8,13,20,.92);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px; z-index:50;
+  }
+  body.light-mode .bottom-bar { background: rgba(238,242,247,.92); }
+
+  .back-btn, .logoff-btn {
+    background:none; border:1px solid var(--border);
+    color:var(--text-dim); font-family:var(--font-ui);
+    font-size:.78rem; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase;
+    padding:5px 14px; border-radius:5px; cursor:pointer;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .back-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+  .logoff-btn:hover { border-color:var(--red); color:var(--red); background:rgba(255,82,82,.1); }
+
+  .datetime-display {
+    font-family:var(--font-mono); font-size:.68rem;
+    color:var(--text-dim); letter-spacing:.08em;
+  }
+
+  @media(max-width:600px){
+    .main-content { padding-left:16px; padding-right:16px; }
+    .schedule-grid { grid-template-columns: 1fr; gap:8px; padding:14px; }
+    .toolbar { gap: 8px; }
+    .results-label { margin-left: 0; width: 100%; }
+  }
+
+  /* ─── NAV IMAGE BUTTONS (matched from Nav page) ────────────────────── */
+.nav-image-btn {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.nav-image-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-image-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateX(3px);
+  text-decoration: none;
+}
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon {
+  width: 60px; height: 60px;
+  border-radius: 8px;
+  background: rgba(0,200,255,0.08);
+  border: 1px solid rgba(0,200,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  transition: var(--transition);
+}
+.nav-image-btn:hover .nav-btn-icon {
+  background: rgba(0,200,255,0.15);
+  border-color: rgba(0,200,255,0.35);
+}
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.nav-btn-sublabel {
+  font-family: var(--font-head);
+  font-size: 15px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+
+
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="BIO_Home.html" data-nav class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span>Building Choice</span>
+    </a>
+
+    <a href="Home.html" data-ahu="Home" data-nav class="nav-image-btn" id="nav-home-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+      <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+      <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Home</span>
+    <span class="nav-btn-sublabel">Main dashboard</span>
+  </div>
+</a>
+
+<a href="FloorPlan.html" data-ahu="FloorPlan" data-nav class="nav-image-btn" id="nav-floorplan-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+      <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+      <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+      <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+      <path d="M22,20 Q28,20 28,26" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+      <line x1="22" y1="20" x2="28" y2="20" stroke="var(--accent)" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Floor Plan</span>
+    <span class="nav-btn-sublabel">Building layout</span>
+  </div>
+</a>
+
+<a href="Alarms.html" data-ahu="Alarms" data-nav class="nav-image-btn" id="nav-alarms-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Alarming</span>
+    <span class="nav-btn-sublabel">System alerts</span>
+  </div>
+</a>
+
+<a href="Users.html" data-nav class="nav-image-btn" id="nav-users-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Users</span>
+    <span class="nav-btn-sublabel">Manage access</span>
+  </div>
+</a>
+
+<a href="LogsNUMERIC.html" data-ahu="LoggingNum" data-nav class="nav-image-btn" id="nav-logs-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+      <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+      <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+      <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+      <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Histories</span>
+    <span class="nav-btn-sublabel">Data logs</span>
+  </div>
+</a>
+
+<a href="Shedules.html" data-ahu="Schedules" data-nav class="nav-image-btn" id="nav-schedules-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+      <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+      <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+      <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+    </svg>
+  </div>
+      <span>Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- top bar -->
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Schedules</span>
+  </div>
+  <div class="top-right">
+    <div class="toggle-container">
+      <span class="toggle-label">Light</span>
+      <div id="toggleSwitch" class="toggle-switch"><div class="toggle-slider"></div></div>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- main content -->
+<div class="main-content">
+
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>Schedule Navigation</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <!-- Search / Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <input
+        class="search-input"
+        id="searchInput"
+        type="text"
+        placeholder="Search schedules…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+    <button class="sort-btn" id="sortBtn" title="Toggle A–Z / Z–A sort">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+        <path d="M2 4h8M2 8h5M2 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M12 3v10M9 10l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      A–Z
+    </button>
+    <span class="results-label" id="resultsLabel"></span>
+  </div>
+
+  <!-- Schedules Section -->
+  <div class="section-card" id="scheduleSection">
+    <div class="section-header">
+      <span class="section-header-badge"></span>
+      <h3>Schedules</h3>
+      <span class="section-header-count" id="scheduleCount">0 schedules</span>
+    </div>
+    <div class="schedule-grid" id="scheduleGrid">
+      <div class="empty-state">Loading schedules…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- bottom bar -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+
+<!-- SCRIPTS -->
+
+<!-- unit query param propagation -->
+<script>
+(function() {
+  const urlUnit = new URLSearchParams(window.location.search).get('unit');
+  if (!urlUnit) return;
+  const unit = encodeURIComponent(urlUnit);
+  const navLinks = {
+    'nav-home-link':      'Home.html?unit=',
+    'nav-floorplan-link': 'FloorPlan.html?unit=',
+    'nav-alarms-link':    'Alarms.html?unit=',
+    'nav-users-link':     'Users.html?unit=',
+    'nav-logs-link':      'LogsNUMERIC.html?unit=',
+    'nav-schedules-link': 'Shedules.html?unit=',
+  };
+  Object.entries(navLinks).forEach(([id, base]) => {
+    const el = document.getElementById(id);
+    if (el) el.href = base + unit;
+  });
+})();
+</script>
+<script>
+(function () {
+  const unit = new URLSearchParams(window.location.search).get('unit');
+  if (!unit) return;
+  document.querySelectorAll('a[data-nav]').forEach(function (a) {
+    a.href = a.getAttribute('href') + '?unit=' + encodeURIComponent(unit);
+  });
+})();
+</script>
+
+<!-- FADE IN -->
+<!-- FADE IN -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+
+// FIX: reset fade state when restored from bfcache (Back/Forward button)
+window.addEventListener('pageshow', function (event) {
+  if (event.persisted) {
+    document.body.classList.remove('fade-out');
+    document.body.classList.add('fade-in');
+  }
+});
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- DATETIME -->
+<script>
+(function startClock() {
+  function tick() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric',
+                   hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent =
+      now.toLocaleString('en-US', opts).replace(',','');
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+const body = document.body;
+const currentTheme = localStorage.getItem('theme') || 'dark';
+if (currentTheme === 'light') {
+  body.classList.add('light-mode');
+  toggleSwitch.classList.add('active');
+}
+toggleSwitch.addEventListener('click', function() {
+  body.classList.toggle('light-mode');
+  toggleSwitch.classList.toggle('active');
+  localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HARDCODED SCHEDULE ORDs
+     ─────────────────────────────────────────────────────────────
+     To add more schedules, simply add another line to SCHEDULE_ORDS.
+     Format: 'station:|slot:/path/to/schedules/SCHEDULE_NAME'
+     The last path segment becomes the schedule name and links to
+     ./Schedules/SCHEDULE_NAME_Schedule.html
+═══════════════════════════════════════════════════════════════ -->
+<script>
+const SCHEDULE_ORDS = [
+  'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_Plant_AD6/schedules/test',
+  // ── ADD MORE ORDs BELOW THIS LINE ──────────────────────────────
+  // 'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_Plant_AD6/schedules/MorningCycle',
+  // 'station:|slot:/Drivers/NiagaraNetwork/BioMerieux_Plant_AD6/schedules/NightSetback',
+  // 'station:|slot:/Drivers/NiagaraNetwork/SomeSite/schedules/WeekendMode',
+];
+
+/* ── HELPERS ── */
+function extractScheduleName(ord) {
+  const slotMatch = ord.match(/slot:(.+)$/i);
+  if (!slotMatch) return null;
+  const parts = slotMatch[1].replace(/\\/g, '/').split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : null;
+}
+function extractStation(ord) {
+  const idx = ord.indexOf('|');
+  return idx > -1 ? ord.substring(0, idx).trim() : ord.trim();
+}
+function extractSlotPath(ord) {
+  const slotMatch = ord.match(/slot:(.+)$/i);
+  if (!slotMatch) return '';
+  const parts = slotMatch[1].replace(/\\/g, '/').split('/').filter(Boolean);
+  parts.pop();
+  return 'slot:/' + parts.join('/');
+}
+
+/* ── PARSE ALL ORDs AT STARTUP ── */
+const ALL_SCHEDULES = SCHEDULE_ORDS
+  .map(ord => ({
+    name:     extractScheduleName(ord),
+    station:  extractStation(ord),
+    slotPath: extractSlotPath(ord),
+    ord
+  }))
+  .filter(s => s.name);
+
+/* ── STATE ── */
+let sortAZ = true;
+
+/* ── BUILD TILE ── */
+function makeTile(schedule, index, urlQuery) {
+  const { name, station, slotPath } = schedule;
+  const href = './Schedules/' + encodeURIComponent(name) + '_Schedule.html' + (urlQuery || '');
+
+  const a = document.createElement('a');
+  a.href = href;
+  a.className = 'schedule-tile';
+  a.setAttribute('data-name', name.toLowerCase());
+  a.style.animationDelay = (index * 55) + 'ms';
+
+  const stationEl = document.createElement('div');
+  stationEl.className = 'tile-station';
+  stationEl.textContent = station || '—';
+  a.appendChild(stationEl);
+
+  const slotEl = document.createElement('div');
+  slotEl.className = 'tile-slot-path';
+  slotEl.textContent = slotPath || '';
+  a.appendChild(slotEl);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'tile-name';
+  nameEl.textContent = name;
+  a.appendChild(nameEl);
+
+  const footer = document.createElement('div');
+  footer.className = 'tile-footer';
+
+  const badge = document.createElement('span');
+  badge.className = 'tile-type-badge';
+  badge.textContent = 'Schedule';
+  footer.appendChild(badge);
+
+  const arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  arrowSvg.setAttribute('viewBox', '0 0 16 16');
+  arrowSvg.setAttribute('fill', 'none');
+  arrowSvg.classList.add('tile-arrow');
+  arrowSvg.innerHTML = '<path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  footer.appendChild(arrowSvg);
+
+  a.appendChild(footer);
+  return a;
+}
+
+/* ── RENDER ── */
+function render() {
+  const grid    = document.getElementById('scheduleGrid');
+  const countEl = document.getElementById('scheduleCount');
+  const urlUnit = new URLSearchParams(window.location.search).get('unit');
+  const uq      = urlUnit ? '?unit=' + encodeURIComponent(urlUnit) : '';
+
+  grid.innerHTML = '';
+
+  const sorted = [...ALL_SCHEDULES].sort((a, b) =>
+    sortAZ
+      ? a.name.localeCompare(b.name)
+      : b.name.localeCompare(a.name)
+  );
+
+  sorted.forEach((s, i) => grid.appendChild(makeTile(s, i, uq)));
+
+  countEl.textContent = ALL_SCHEDULES.length + ' schedule' + (ALL_SCHEDULES.length !== 1 ? 's' : '');
+  applyFilter();
+}
+
+/* ── FILTER (search) ── */
+function applyFilter() {
+  const q       = document.getElementById('searchInput').value.trim().toLowerCase();
+  const tiles   = document.querySelectorAll('#scheduleGrid .schedule-tile');
+  const countEl = document.getElementById('scheduleCount');
+  const label   = document.getElementById('resultsLabel');
+  let visible   = 0;
+
+  tiles.forEach(tile => {
+    const name = tile.getAttribute('data-name') || '';
+    if (!q || name.includes(q)) {
+      tile.classList.remove('hidden');
+      visible++;
+    } else {
+      tile.classList.add('hidden');
+    }
+  });
+
+  /* No-results state */
+  const existing = document.getElementById('noResultsMsg');
+  if (existing) existing.remove();
+  if (visible === 0 && q) {
+    const msg = document.createElement('div');
+    msg.id = 'noResultsMsg';
+    msg.className = 'no-results';
+    msg.innerHTML = '<div class="no-results-icon">🔍</div>No schedules match "' + q + '"';
+    document.getElementById('scheduleGrid').appendChild(msg);
+  }
+
+  countEl.textContent = visible + ' schedule' + (visible !== 1 ? 's' : '');
+  label.textContent   = q ? 'Showing ' + visible + ' of ' + ALL_SCHEDULES.length : '';
+}
+
+/* ── SORT BUTTON ── */
+document.getElementById('sortBtn').addEventListener('click', function () {
+  sortAZ = !sortAZ;
+  this.textContent = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','13'); svg.setAttribute('height','13');
+  svg.setAttribute('viewBox','0 0 16 16'); svg.setAttribute('fill','none');
+  svg.innerHTML = '<path d="M2 4h8M2 8h5M2 12h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 3v10M9 10l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  this.appendChild(svg);
+  this.appendChild(document.createTextNode(' ' + (sortAZ ? 'A–Z' : 'Z–A')));
+  this.classList.toggle('active', !sortAZ);
+  render();
+});
+
+/* ── SEARCH ── */
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+
+/* ── KEYBOARD SHORTCUT: / focuses search ── */
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+    document.getElementById('searchInput').select();
+  }
+});
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', render);
+</script>
+
+</body>
+</html>

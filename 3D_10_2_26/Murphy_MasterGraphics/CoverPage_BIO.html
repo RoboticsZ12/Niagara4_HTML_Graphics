@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Company — Facility Access</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Source+Sans+3:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --maroon:        #7b1c24;
+  --maroon-mid:    #9b2530;
+  --maroon-light:  #c03040;
+  --maroon-deep:   #4a0e13;
+  --green:         #2e7d32;
+  --green-light:   #43a047;
+  --cream:         #f5ede8;
+  --cream-deep:    #e8ddd6;
+  --text-light:    rgba(255,255,255,0.92);
+  --text-muted:    rgba(255,255,255,0.45);
+  --font-head:     'Oswald', sans-serif;
+  --font-body:     'Source Sans 3', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--maroon-deep);
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ── Layered background ── */
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Deep gradient base */
+.bg-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(155,37,48,0.55) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 50% at 0% 100%,   rgba(74,14,19,0.8)  0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 80%,  rgba(46,125,50,0.08) 0%, transparent 55%),
+    linear-gradient(165deg, #1a0608 0%, #3a0e14 35%, #2a0a0f 65%, #0f0305 100%);
+}
+
+/* Subtle noise grain overlay */
+.bg-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Diagonal rule lines */
+.bg-lines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bg-lines::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: repeating-linear-gradient(
+    -55deg,
+    transparent,
+    transparent 80px,
+    rgba(255,255,255,0.012) 80px,
+    rgba(255,255,255,0.012) 81px
+  );
+}
+
+/* Corner accent lines */
+.corner-tl, .corner-br {
+  position: fixed;
+  width: 140px;
+  height: 140px;
+  z-index: 1;
+  pointer-events: none;
+}
+.corner-tl {
+  top: 28px; left: 28px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+.corner-br {
+  bottom: 28px; right: 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+/* Green stripe at very top */
+.top-stripe {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--green) 20%, var(--green-light) 50%, var(--green) 80%, transparent 100%);
+  z-index: 10;
+}
+
+/* Bottom meta bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 42px;
+  background: rgba(0,0,0,0.4);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  z-index: 10;
+}
+.bottom-bar-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+}
+.bottom-bar-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── MAIN CARD ── */
+.card {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 44px 64px 44px;
+  max-width: 560px;
+  width: calc(100% - 48px);
+
+  background: rgba(255,255,255,0.032);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 4px;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 2px 0 rgba(255,255,255,0.06) inset,
+    0 40px 100px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(0,0,0,0.3);
+
+  animation: card-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Card top accent line */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(192,48,64,0.7) 30%, rgba(192,48,64,0.9) 50%, rgba(192,48,64,0.7) 70%, transparent);
+}
+
+/* ── Logo row ── */
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 32px;
+  animation: fade-up 0.7s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.logo-murphy {
+  height: autos;
+  object-fit: contain;
+  opacity: 1;
+}
+
+.logo-divider {
+  width: 1px;
+  height: 64px;
+  background: rgba(255,255,255,0.14);
+  flex-shrink: 0;
+}
+
+.logo-facility {
+  height: 90px;
+  object-fit: contain;
+  opacity: 1;
+  border-radius: 2px;
+}
+
+/* ── Site title area ── */
+.site-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  animation: fade-up 0.7s 0.25s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.site-title {
+  font-family: var(--font-head);
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--text-light);
+  line-height: 1.05;
+  margin-bottom: 10px;
+  animation: fade-up 0.7s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.site-subtitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.38);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  animation: fade-up 0.7s 0.35s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Rule ── */
+.card-rule {
+  width: 64px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(192,48,64,0.6), transparent);
+  margin-bottom: 28px;
+  animation: fade-up 0.7s 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── ENTER BUTTON ── */
+.enter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 52px;
+  height: 62px;
+  background: var(--maroon);
+  color: white;
+  text-decoration: none;
+  border-radius: 2px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease, letter-spacing 0.3s ease;
+  box-shadow: 0 8px 32px rgba(123,28,36,0.45), 0 1px 0 rgba(255,255,255,0.08) inset;
+  animation: fade-up 0.7s 0.45s cubic-bezier(0.22,1,0.36,1) both;
+  white-space: nowrap;
+}
+
+/* Shimmer sweep on hover */
+.enter-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+.enter-btn:hover::before { left: 160%; }
+
+/* Top edge highlight */
+.enter-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 40%, rgba(255,255,255,0.2) 60%, transparent);
+  pointer-events: none;
+}
+
+.enter-btn:hover {
+  background: var(--maroon-mid);
+  box-shadow: 0 12px 48px rgba(123,28,36,0.65), 0 1px 0 rgba(255,255,255,0.1) inset;
+  transform: translateY(-2px);
+  letter-spacing: 6px;
+}
+.enter-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 16px rgba(123,28,36,0.45);
+}
+
+.enter-btn-arrow {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.enter-btn:hover .enter-btn-arrow {
+  opacity: 1;
+  transform: translateX(3px);
+}
+
+/* ── Below button label ── */
+.enter-label {
+  margin-top: 22px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.2);
+  text-transform: uppercase;
+  animation: fade-up 0.7s 0.55s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+/* ── Shared fade-up keyframe ── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="bg-layer"></div>
+<div class="bg-lines"></div>
+<div class="corner-tl"></div>
+<div class="corner-br"></div>
+<div class="top-stripe"></div>
+
+<!-- Bottom meta bar -->
+<div class="bottom-bar">
+  <span class="bottom-bar-text">Murphy Company &nbsp;·&nbsp; Internal Facilities Use Only</span>
+  <div class="bottom-bar-dot"></div>
+  <span class="bottom-bar-text">Building Automation System</span>
+</div>
+
+<!-- Main card -->
+<div class="card">
+
+  <!-- Logo row -->
+  <div class="logo-row">
+    <img class="logo-murphy"
+         src="./IMAGES/murphylogo_Transparent.png"
+         alt="Murphy Company" />
+    <div class="logo-divider"></div>
+    <img class="logo-facility"
+         src="./IMAGES/Bio_Image.png"
+         alt="Facility" />
+  </div>
+
+  <!-- Title -->
+  <div class="site-eyebrow">Facility Control &nbsp;·&nbsp; Operator Access</div>
+  <div class="site-title">Building<br>Graphics</div>
+  <div class="site-subtitle">Automation &amp; Monitoring System</div>
+
+  <div class="card-rule"></div>
+
+  <!-- Enter button -->
+  <a class="enter-btn" href="https://172.16.60.11/file/MurphyGraphics/BIO_Home.html">
+    Enter Facility
+    <svg class="enter-btn-arrow" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3.75 9h10.5M9.75 4.5L14.25 9l-4.5 4.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+  <div class="enter-label">Click to access the facility dashboard</div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - Point Browser</title>
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+    <style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in { opacity: 1; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader {
+  position: fixed; inset: 0; background: #000;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999; transition: opacity 0.4s ease;
+}
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+.loader-divider { width:160px; height:1px; background:linear-gradient(90deg,transparent,rgba(217,59,43,0.45),transparent); margin:12px auto 14px; transform:scaleX(0); animation:loaderDividerIn 0.6s ease-out 0.55s forwards; }
+@keyframes loaderDividerIn { to { transform:scaleX(1); } }
+.loader-murphy-row { display:flex; align-items:center; justify-content:center; gap:10px; opacity:0; animation:loaderMurphyIn 0.6s ease-out 0.9s forwards; }
+@keyframes loaderMurphyIn { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.loader-murphy-row .loader-m { width:30px; height:30px; }
+.loader-murphy-row .loader-m path { stroke-dasharray:500; stroke-dashoffset:500; animation:drawM 1.0s ease-out 1.15s forwards; }
+@keyframes drawM { to { stroke-dashoffset:0; } }
+.loader-murphy-label { font-family:'Courier New',Courier,monospace; font-size:12px; letter-spacing:3px; color:#888; text-transform:uppercase; }
+.loader-murphy-label strong { color:#00A86B; letter-spacing:2px; font-weight:normal; }
+.loader-content .loader-text { margin-top:18px; opacity:0; animation:loaderMurphyIn 0.5s ease-out 1.4s forwards; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; opacity:0; visibility:hidden; transition:var(--transition); }
+.overlay.active { opacity:1; visibility:visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position:fixed; top:0; left:-300px; width:280px; height:100vh; background:var(--bg-panel); border-right:1px solid var(--border); transition:left 0.3s ease; z-index:999999; padding:80px 0 20px; overflow-y:auto; box-shadow:4px 0 40px rgba(0,0,0,0.6); }
+.side-panel.active { left:0; }
+.side-panel-header { padding:16px 18px 14px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+.side-panel-header h2 { font-family:var(--font-head); font-size:15px; letter-spacing:4px; color:var(--accent); font-weight:normal; text-transform:uppercase; }
+.side-panel-header p { font-size:15px; color:var(--text-muted); font-family:var(--font-head); margin-top:3px; }
+.nav-section-label { padding:14px 14px 4px; font-family:var(--font-head); font-size:12px; letter-spacing:3px; color:var(--text-muted); text-transform:uppercase; }
+.nav-image-grid { padding:10px 14px; display:flex; flex-direction:column; gap:7px; }
+.nav-image-btn { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; text-decoration:none; transition:var(--transition); position:relative; overflow:hidden; }
+.nav-image-btn::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); opacity:0; transition:opacity 0.2s; }
+.nav-image-btn:hover { border-color:var(--accent); background:var(--bg-card-hover); transform:translateX(3px); text-decoration:none; }
+.nav-image-btn:hover::before { opacity:1; }
+.nav-btn-icon { width:40px; height:40px; border-radius:8px; background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; }
+.nav-btn-text { display:flex; flex-direction:column; gap:2px; }
+.nav-btn-label { font-family:var(--font-head); font-size:12px; color:var(--text-primary); letter-spacing:0.5px; }
+.nav-btn-sublabel { font-family:var(--font-head); font-size:11px; color:var(--text-muted); letter-spacing:0.5px; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background:rgba(13,17,23,0.97); border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 12px; height:64px; flex-shrink:0; position:relative; z-index:100; backdrop-filter:blur(12px); gap:8px; }
+.top-bar::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); pointer-events:none; }
+.top-bar-left { display:flex; align-items:center; gap:8px; }
+.top-center { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.site-label { font-family:var(--font-head); font-size:11px; letter-spacing:4px; color:var(--accent); text-transform:uppercase; white-space:nowrap; }
+.page-title { font-family:var(--font-head); font-size:18px; font-weight:normal; letter-spacing:1px; color:var(--text-primary); white-space:nowrap; }
+.top-right { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.user-badge { background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:13px; color:var(--text-muted); display:flex; align-items:center; gap:6px; font-family:var(--font-head); }
+#userDisplay { color:var(--text-primary); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width:36px; height:36px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; transition:var(--transition); flex-shrink:0; }
+.hamburger-menu:hover { border-color:var(--accent); background:var(--bg-card-hover); }
+.hamburger-line { width:18px; height:2px; background:var(--text-primary); border-radius:2px; transition:var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity:0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+    linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed;
+  gap: 16px;
+}
+
+/* ─── SEARCH PANEL ──────────────────────────────────────────────────── */
+.search-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 0 30px rgba(0,200,255,0.04), 0 8px 24px rgba(0,0,0,0.4);
+}
+.search-panel-header { display:flex; align-items:center; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.search-panel-header h2 { font-family:var(--font-head); font-size:11px; letter-spacing:4px; color:var(--accent); text-transform:uppercase; font-weight:normal; }
+.search-panel-header .line { flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+/* ─── SEARCH CONTROLS ROW ───────────────────────────────────────────── */
+.search-controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+.preset-select-wrap { position:relative; flex:0 0 auto; }
+.preset-select-wrap::after { content:'▾'; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--accent); pointer-events:none; font-size:12px; }
+#preset-select { appearance:none; background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:var(--font-head); font-size:12px; letter-spacing:0.5px; padding:9px 32px 9px 12px; cursor:pointer; min-width:220px; transition:var(--transition); }
+#preset-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+#preset-select:hover { border-color:var(--accent); }
+
+.query-input-wrap { position:relative; flex:1; min-width:200px; }
+.query-input-wrap .query-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--accent); font-size:14px; pointer-events:none; }
+#neql-input { width:100%; background:var(--bg-panel); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:var(--font-head); font-size:13px; padding:9px 12px 9px 34px; transition:var(--transition); }
+#neql-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+#neql-input::placeholder { color:var(--text-muted); }
+
+#search-btn { display:flex; align-items:center; gap:7px; padding:9px 20px; background:rgba(0,200,255,0.12); border:1px solid rgba(0,200,255,0.4); border-radius:6px; color:var(--accent); font-family:var(--font-head); font-size:12px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:var(--transition); flex-shrink:0; }
+#search-btn:hover { background:rgba(0,200,255,0.25); border-color:var(--accent); box-shadow:0 0 12px var(--accent-glow); }
+#search-btn:active { transform:scale(0.97); }
+#search-btn:disabled { opacity:0.4; cursor:default; pointer-events:none; }
+
+.search-meta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.max-results-wrap { display:flex; align-items:center; gap:8px; font-family:var(--font-head); font-size:11px; color:var(--text-muted); letter-spacing:1px; }
+.max-results-wrap label { text-transform:uppercase; }
+#max-results-input { width:70px; background:var(--bg-panel); border:1px solid var(--border); border-radius:5px; color:var(--text-primary); font-family:var(--font-head); font-size:12px; padding:5px 8px; text-align:center; }
+#max-results-input:focus { outline:none; border-color:var(--accent); }
+
+/* ID count badge */
+#id-count-badge { display:none; align-items:center; gap:6px; padding:4px 12px; background:rgba(123,94,167,0.1); border:1px solid rgba(123,94,167,0.35); border-radius:20px; font-family:var(--font-head); font-size:11px; color:var(--accent2); letter-spacing:1px; }
+#id-count-badge.visible { display:flex; }
+
+#result-count-badge { display:none; align-items:center; gap:6px; padding:4px 12px; background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.3); border-radius:20px; font-family:var(--font-head); font-size:11px; color:var(--green); letter-spacing:1px; }
+#result-count-badge.visible { display:flex; }
+#result-count-badge.zero { background:rgba(255,171,0,0.08); border-color:rgba(255,171,0,0.3); color:var(--amber); }
+
+#active-query-display { display:none; padding:7px 12px; background:rgba(0,200,255,0.05); border:1px solid rgba(0,200,255,0.18); border-radius:6px; font-family:var(--font-head); font-size:11px; color:var(--text-muted); letter-spacing:0.5px; }
+#active-query-display.visible { display:block; }
+#active-query-display strong { color:var(--accent); }
+
+/* ─── RESULTS PANEL ─────────────────────────────────────────────────── */
+.results-panel { background:#0a0f1a; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 0 40px rgba(0,200,255,0.04), 0 8px 32px rgba(0,0,0,0.5); flex:1; display:flex; flex-direction:column; }
+
+/* 4 columns: Name/Device | Path | Value | Actions */
+.results-table-header { display:grid; grid-template-columns:2fr 3fr 1fr 90px; gap:0; background:rgba(0,200,255,0.06); border-bottom:1px solid var(--border); padding:0; }
+.results-table-header .rth-cell { padding:10px 14px; font-family:var(--font-head); font-size:10px; letter-spacing:3px; color:var(--accent); text-transform:uppercase; border-right:1px solid var(--border); user-select:none; cursor:pointer; transition:background 0.15s; display:flex; align-items:center; gap:5px; }
+.results-table-header .rth-cell:last-child { border-right:none; }
+.results-table-header .rth-cell:hover { background:rgba(0,200,255,0.1); }
+.rth-sort-icon { opacity:0.35; font-size:9px; }
+.rth-cell.sort-asc .rth-sort-icon::after { content:'▲'; opacity:1; color:var(--accent); }
+.rth-cell.sort-desc .rth-sort-icon::after { content:'▼'; opacity:1; color:var(--accent); }
+
+#results-list { flex:1; overflow-y:auto; min-height:200px; }
+
+.results-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:60px 20px; color:var(--text-muted); font-family:var(--font-head); font-size:13px; letter-spacing:1px; text-align:center; }
+.results-empty svg { opacity:0.2; }
+.results-empty .empty-hint { font-size:11px; opacity:0.6; }
+
+.results-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:60px 20px; color:var(--accent); font-family:var(--font-head); font-size:13px; letter-spacing:2px; }
+.spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ─── RESULT ROW ────────────────────────────────────────────────────── */
+.result-row { display:grid; grid-template-columns:2fr 3fr 1fr 90px; gap:0; border-bottom:1px solid rgba(0,200,255,0.06); transition:background 0.15s; cursor:pointer; animation:rowIn 0.25s ease-out both; }
+@keyframes rowIn { from{opacity:0;transform:translateX(-6px);} to{opacity:1;transform:translateX(0);} }
+.result-row:hover { background:var(--bg-card-hover); }
+.result-row:last-child { border-bottom:none; }
+
+.result-cell { padding:12px 14px; border-right:1px solid rgba(0,200,255,0.06); display:flex; flex-direction:column; justify-content:center; gap:3px; overflow:hidden; min-width:0; }
+.result-cell:last-child { border-right:none; }
+
+.result-name { font-family:var(--font-head); font-size:13px; color:var(--text-primary); font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* device sub-label shown below point name */
+.result-device { font-family:var(--font-head); font-size:9px; color:var(--accent2); letter-spacing:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.result-path { font-family:var(--font-head); font-size:10px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:0.2px; }
+.result-value { font-family:var(--font-head); font-size:15px; font-weight:bold; color:var(--green); white-space:nowrap; }
+.result-status { font-family:var(--font-head); font-size:10px; color:var(--text-muted); letter-spacing:1px; }
+.result-status.ok       { color:rgba(0,230,118,0.6); }
+.result-status.alarm    { color:var(--red); }
+.result-status.fault    { color:var(--red); }
+.result-status.override { color:var(--purple); }
+
+.result-actions { display:flex; align-items:center; justify-content:center; gap:6px; }
+.action-btn { width:30px; height:30px; background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.2); border-radius:6px; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--transition); font-size:13px; }
+.action-btn:hover { background:rgba(0,200,255,0.2); border-color:var(--accent); color:var(--accent); }
+.action-btn.hist-btn:hover { background:rgba(123,94,167,0.2); border-color:var(--accent2); color:var(--accent2); }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background:rgba(13,17,23,0.97); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 12px; height:50px; flex-shrink:0; z-index:1000; gap:8px; }
+.back-button { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); padding:6px 12px; cursor:pointer; font-family:var(--font-head); font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px; transition:var(--transition); }
+.back-button:hover { border-color:var(--accent); color:var(--accent); }
+.date-time { font-family:var(--font-head); font-size:11px; color:var(--text-muted); text-align:center; letter-spacing:1px; }
+.date-time strong { color:var(--text-primary); display:block; }
+.logout-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); padding:6px 12px; cursor:pointer; font-family:var(--font-head); font-size:13px; letter-spacing:1px; display:flex; align-items:center; gap:6px; transition:var(--transition); }
+.logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position:relative; width:40px; height:22px; background:var(--bg-card); border-radius:25px; cursor:pointer; transition:all 0.3s ease; border:1px solid var(--border); }
+.toggle-slider { position:absolute; top:2px; left:2px; width:16px; height:16px; background:var(--text-muted); border-radius:50%; transition:all 0.3s; }
+.toggle-switch.active .toggle-slider { transform:translateX(18px); background:var(--amber); }
+.top-right-controls { display:flex; align-items:center; gap:10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:5px 12px; }
+.top-right-controls span { font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode { background:#d8dde8; }
+body.light-mode .main-content { background:radial-gradient(ellipse at 20% 40%,rgba(0,40,120,0.06) 0%,transparent 55%),linear-gradient(160deg,#cdd3e0 0%,#d4d9e6 40%,#ccd2df 100%); }
+body.light-mode .top-bar,body.light-mode .bottom-bar { background:rgba(220,225,236,0.98); border-color:rgba(0,30,100,0.25); }
+body.light-mode .user-badge { background:rgba(255,255,255,0.85); border-color:rgba(0,30,100,0.3); color:#334466; }
+body.light-mode .site-label { color:#001f6b; }
+body.light-mode .page-title { color:#001040; }
+body.light-mode #userDisplay { color:#001040; }
+body.light-mode .hamburger-line { background:#001f6b; }
+body.light-mode .hamburger-menu { background:rgba(255,255,255,0.85); border-color:rgba(0,30,100,0.3); }
+body.light-mode .side-panel { background:#dde2ed; border-color:rgba(0,30,100,0.2); }
+body.light-mode .side-panel-header h2 { color:#001f6b; }
+body.light-mode .nav-image-btn { background:#e4e8f3; border-color:rgba(0,100,160,0.25); color:#1a2035; }
+body.light-mode .nav-image-btn:hover { background:#d0d8f0; border-color:#0070b8; }
+body.light-mode .search-panel { background:#e8edf5; border-color:rgba(0,60,140,0.22); }
+body.light-mode .search-panel-header h2 { color:#001f6b; }
+body.light-mode #preset-select { background:#fff; border-color:rgba(0,60,160,0.3); color:#001040; }
+body.light-mode #neql-input { background:#fff; border-color:rgba(0,60,160,0.3); color:#001040; }
+body.light-mode #max-results-input { background:#fff; border-color:rgba(0,60,160,0.3); color:#001040; }
+body.light-mode #search-btn { background:rgba(0,30,100,0.1); border-color:rgba(0,30,100,0.4); color:#001f6b; }
+body.light-mode #active-query-display { background:rgba(0,30,100,0.05); border-color:rgba(0,30,100,0.2); }
+body.light-mode #active-query-display strong { color:#001f6b; }
+body.light-mode .results-panel { background:#edf1f8; }
+body.light-mode .results-table-header { background:rgba(0,30,100,0.06); border-color:rgba(0,30,100,0.15); }
+body.light-mode .results-table-header .rth-cell { color:#001f6b; border-color:rgba(0,30,100,0.1); }
+body.light-mode .result-row { border-color:rgba(0,30,100,0.08); }
+body.light-mode .result-row:hover { background:#dde3ef; }
+body.light-mode .result-name { color:#001040; }
+body.light-mode .result-device { color:#5544aa; }
+body.light-mode .result-path { color:#445566; }
+body.light-mode .result-value { color:#006633; }
+body.light-mode .action-btn { background:rgba(0,30,100,0.06); border-color:rgba(0,30,100,0.2); color:#334466; }
+body.light-mode .action-btn:hover { background:rgba(0,30,100,0.15); border-color:#001f6b; color:#001f6b; }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    </style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170" fill="none" stroke="#00A86B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading Global.json…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="BIO_Home.html" data-nav class="side-nav-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span>Building Choice</span>
+    </a>
+
+    <a href="Home.html" class="side-nav-link" id="nav-home-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="#c8cfe0" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="#c8cfe0" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </span>
+      <span>Home</span>
+    </a>
+
+    <a href="FloorPlan.html" class="side-nav-link" id="nav-floorplan-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="#c8cfe0" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="#c8cfe0" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="#c8cfe0" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="#00c8ff" stroke-width="1.5"/>
+        </svg>
+      </span>
+      <span>Floor Plan</span>
+    </a>
+
+    <a href="Alarms.html" class="side-nav-link" id="nav-alarms-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="20,5 37,34 3,34" fill="none" stroke="#ffab00" stroke-width="2.2" stroke-linejoin="round"/>
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.08)"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="#ffab00" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="#ffab00"/>
+        </svg>
+      </span>
+      <span>Alarming</span>
+    </a>
+
+    <a href="Users.html" class="side-nav-link" id="nav-users-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="#c8cfe0" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="#c8cfe0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="#00c8ff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span>Users</span>
+    </a>
+
+    <a href="LogsNUMERIC.html" class="side-nav-link" id="nav-logs-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="#c8cfe0" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="#ffab00" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="#00c8ff" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="#00e676" rx="1"/>
+        </svg>
+      </span>
+      <span>Histories</span>
+    </a>
+
+    <a href="Shedules.html" class="side-nav-link" id="nav-schedules-link">
+      <span class="side-nav-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span>Schedules</span>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+    <div class="top-bar-left">
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </div>
+    </div>
+    <div class="top-center">
+        <span class="site-label">Murphy Control</span>
+        <span class="page-title">Point Browser</span>
+    </div>
+    <div class="top-right">
+        <div class="top-right-controls">
+            <span>☀</span>
+            <div class="toggle-switch" id="toggleSwitch">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+        <div class="user-badge">
+            <span id="userDisplay">—</span>
+        </div>
+    </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+
+    <!-- Search Panel -->
+    <div class="search-panel">
+        <div class="search-panel-header">
+            <div class="line"></div>
+            <h2>Global.json — Point Browser by ID</h2>
+            <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+        </div>
+
+        <div class="search-controls">
+            <!-- ID selector: unique .id values across all devices in Global.json -->
+            <div class="preset-select-wrap">
+                <select id="preset-select" title="Select a point ID from Global.json">
+                    <option value="" disabled selected>— Loading IDs… —</option>
+                </select>
+            </div>
+
+            <!-- Optional text filter on device name / path -->
+            <div class="query-input-wrap">
+                <span class="query-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" id="neql-input" placeholder="Filter by device name or path…" />
+            </div>
+
+            <button id="search-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Search
+            </button>
+        </div>
+
+        <div class="search-meta">
+            <div class="max-results-wrap">
+                <label for="max-results-input">Max Results:</label>
+                <input type="number" id="max-results-input" value="200" min="1" max="5000" />
+            </div>
+            <div id="id-count-badge" class="visible">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span id="id-count-text">0 IDs loaded</span>
+            </div>
+            <div id="result-count-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="result-count-text">0 results</span>
+            </div>
+            <div id="active-query-display">
+                Showing: <strong id="active-query-text"></strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div class="results-panel">
+        <div class="results-table-header">
+            <div class="rth-cell" data-sort="name">Point Name / Device <span class="rth-sort-icon"></span></div>
+            <div class="rth-cell" data-sort="path">ORD / Path <span class="rth-sort-icon"></span></div>
+            <div class="rth-cell" data-sort="value">Value <span class="rth-sort-icon"></span></div>
+            <div class="rth-cell" style="cursor:default;">Actions</div>
+        </div>
+        <div id="results-list">
+            <div class="results-empty" id="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>Select a point ID then press Search</span>
+                <span class="empty-hint">Finds every device in Global.json that has that ID and fetches its live value</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+    <button class="back-button" onclick="history.back()">← Back</button>
+    <div class="date-time"><strong id="currentDateTime">Loading...</strong></div>
+    <div style="display:flex;align-items:center;gap:16px;">
+        <div style="text-align:right;font-family:var(--font-head);font-size:10px;letter-spacing:1px;color:var(--text-muted);line-height:1.4;">
+            Controls by:<br><span style="color:var(--accent);font-size:12px;letter-spacing:2px;">MURPHY</span>
+        </div>
+        <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════ SCRIPTS ═══ -->
+
+<!-- unit query param propagation -->
+<script>
+(function() {
+  const urlUnit = new URLSearchParams(window.location.search).get('unit');
+  if (!urlUnit) return;
+  const unit = encodeURIComponent(urlUnit);
+  const navLinks = {
+    'nav-home-link':      'Home.html?unit=',
+    'nav-floorplan-link': 'FloorPlan.html?unit=',
+    'nav-alarms-link':    'Alarms.html?unit=',
+    'nav-users-link':     'Users.html?unit=',
+    'nav-logs-link':      'LogsNUMERIC.html?unit=',
+    'nav-schedules-link': 'Shedules.html?unit=',
+  };
+  Object.entries(navLinks).forEach(([id, base]) => {
+    const el = document.getElementById(id);
+    if (el) el.href = base + unit;
+  });
+})();
+</script>
+<script>
+(async function() {
+  try {
+    const r = await fetch('HomeConfig.json');
+    const d = await r.json();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = (d.JobBuilding || 'Control Panel').toUpperCase();
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => { document.body.classList.add('fade-in'); });
+</script>
+
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+    document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+    sessionStorage.removeItem('SyncedSessionStorage');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('role');
+    window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+
+<!-- ══════════════════════════════ GLOBAL.JSON POINT BROWSER ENGINE ════ -->
+<script>
+require(['baja!'], function(baja) {
+'use strict';
+
+// ── State ────────────────────────────────────────────────────────────
+let currentResults   = [];
+let sortCol          = null;
+let sortDir          = 'asc';
+let searchInProgress = false;
+let globalConfig     = null;   // parsed Global.json
+
+// ── DOM refs ─────────────────────────────────────────────────────────
+const presetSelect  = document.getElementById('preset-select');
+const neqlInput     = document.getElementById('neql-input');
+const searchBtn     = document.getElementById('search-btn');
+const resultsList   = document.getElementById('results-list');
+const countBadge    = document.getElementById('result-count-badge');
+const countText     = document.getElementById('result-count-text');
+const idCountBadge  = document.getElementById('id-count-badge');
+const idCountText   = document.getElementById('id-count-text');
+const activeDisplay = document.getElementById('active-query-display');
+const activeText    = document.getElementById('active-query-text');
+const maxInput      = document.getElementById('max-results-input');
+
+// ════════════════════════════════════════════════════════════════════
+// STEP 1 — Load Global.json.
+// Walk every device → every point → collect unique .id values
+// (skip blank / 'N/A' / SP tag IDs like 'SP-Numeric' etc.)
+// ════════════════════════════════════════════════════════════════════
+const SKIP_IDS = new Set(['N/A', 'SP-Numeric', 'SP-Boolean', 'SP-Enum', '']);
+
+async function loadGlobalConfig() {
+    try {
+        const response = await fetch('Global.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        globalConfig = await response.json();
+        populateIDDropdown();
+    } catch(err) {
+        console.error('[Browser] Failed to load Global.json:', err);
+        presetSelect.innerHTML = '<option value="" disabled selected>⚠ Could not load Global.json</option>';
+    } finally {
+        document.getElementById('page-loader')?.classList.add('hidden');
+    }
+}
+
+function populateIDDropdown() {
+    const vars = globalConfig?.globalVariables;
+    if (!vars) return;
+
+    // Collect all unique non-trivial IDs across every device
+    const idSet = new Set();
+    for (const deviceKey of Object.keys(vars)) {
+        const points = vars[deviceKey]?.points;
+        if (!Array.isArray(points)) continue;
+        for (const point of points) {
+            const id = (point.id || '').trim();
+            if (id && !SKIP_IDS.has(id)) idSet.add(id);
+        }
+    }
+
+    const sortedIds = [...idSet].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+    presetSelect.innerHTML = '<option value="" disabled selected>— Select a Point ID —</option>';
+    for (const id of sortedIds) {
+        const opt = document.createElement('option');
+        opt.value       = id;
+        opt.textContent = id;
+        presetSelect.appendChild(opt);
+    }
+
+    // Update ID count badge
+    idCountText.textContent = `${sortedIds.length} unique ID${sortedIds.length !== 1 ? 's' : ''} loaded`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// STEP 2 — On Search:
+//   (a) Find every point across all devices whose .id === selectedId
+//   (b) Apply optional device-name / path text filter
+//   (c) Fetch live value for each via baja.Ord.make(fullPath).get()
+// ════════════════════════════════════════════════════════════════════
+async function runSearch() {
+    if (searchInProgress || !globalConfig) return;
+
+    const selectedId = presetSelect.value;
+    if (!selectedId) { alert('Please select a point ID first.'); return; }
+
+    const filterText = neqlInput.value.trim().toLowerCase();
+    const maxResults = parseInt(maxInput.value) || 200;
+
+    searchInProgress   = true;
+    searchBtn.disabled = true;
+
+    showLoading();
+    activeText.textContent = filterText
+        ? `ID: "${selectedId}"  ·  filter: "${filterText}"`
+        : `ID: "${selectedId}"`;
+    activeDisplay.classList.add('visible');
+    countBadge.classList.remove('visible');
+
+    try {
+        const pointDefs = collectPointDefs(selectedId, filterText, maxResults);
+
+        if (!pointDefs.length) {
+            currentResults = [];
+            renderResults([]);
+            showResultCount(0);
+            return;
+        }
+
+        const results = await fetchAllPointValues(pointDefs);
+        currentResults = results;
+        renderResults(results);
+        showResultCount(results.length);
+
+    } catch(err) {
+        console.error('[Browser] Search failed:', err);
+        showError(err.message);
+    } finally {
+        searchInProgress   = false;
+        searchBtn.disabled = false;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Collect all point definitions whose .id matches selectedId
+// ════════════════════════════════════════════════════════════════════
+function collectPointDefs(selectedId, filterText, maxResults) {
+    const vars = globalConfig.globalVariables;
+    const defs = [];
+
+    for (const deviceKey of Object.keys(vars)) {
+        const points = vars[deviceKey]?.points;
+        if (!Array.isArray(points)) continue;
+
+        for (const point of points) {
+            // Must match the selected ID exactly
+            if ((point.id || '').trim() !== selectedId) continue;
+
+            const fullPath = point.fullPath || point.path || '';
+            if (!fullPath) continue;
+
+            // Optional text filter — match against device key or path
+            if (filterText) {
+                const haystack = (deviceKey + ' ' + fullPath).toLowerCase();
+                if (!haystack.includes(filterText)) continue;
+            }
+
+            defs.push({
+                name:     decodeNiagara(point.name || point.id || 'Unknown'),
+                id:       selectedId,
+                fullPath: fullPath,
+                device:   deviceKey,
+            });
+
+            if (defs.length >= maxResults) return defs;
+        }
+    }
+
+    return defs;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Fetch live values in parallel batches of 20
+// ════════════════════════════════════════════════════════════════════
+async function fetchAllPointValues(pointDefs) {
+    const BATCH_SIZE = 20;
+    const results    = [];
+
+    for (let i = 0; i < pointDefs.length; i += BATCH_SIZE) {
+        const batch   = pointDefs.slice(i, i + BATCH_SIZE);
+        const settled = await Promise.all(batch.map(def => fetchSinglePoint(def)));
+        results.push(...settled);
+    }
+
+    return results;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Fetch one point value — mirrors the FTU script approach:
+//   baja.Ord.make(fullPath).get()
+//   → point.getOut().getValueDisplay()
+// ════════════════════════════════════════════════════════════════════
+async function fetchSinglePoint(def) {
+    try {
+        const point = await baja.Ord.make(def.fullPath).get();
+
+        let valueDisplay = '';
+        let statusRaw    = '';
+
+        try {
+            const out = point.getOut();
+            if (out) {
+                valueDisplay = safeStr(out.getValueDisplay());
+                if (!valueDisplay) valueDisplay = safeStr(out.getValue());
+                statusRaw = safeStr(out.getStatus());
+            }
+        } catch(e) { /* no getOut — try fallbacks */ }
+
+        if (!valueDisplay) { try { valueDisplay = safeStr(point.getValue());         } catch(_) {} }
+        if (!valueDisplay) { try { valueDisplay = safeStr(point.getValueDisplay());  } catch(_) {} }
+        if (!valueDisplay) { try { valueDisplay = safeStr(point.getDisplayString()); } catch(_) {} }
+        if (!valueDisplay) { try { valueDisplay = safeStr(point.getDisplay());       } catch(_) {} }
+        if (!statusRaw)    { try { statusRaw    = safeStr(point.getStatus());        } catch(_) {} }
+
+        let isOverridden = false;
+        try { isOverridden = point.getStatus().isOverridden(); } catch(_) {}
+
+        return {
+            name:   def.name,
+            path:   def.fullPath,
+            value:  valueDisplay || '—',
+            status: isOverridden ? 'override' : normalizeStatus(statusRaw),
+            device: def.device,
+        };
+
+    } catch(err) {
+        console.warn(`[Browser] Could not fetch "${def.name}" (${def.fullPath}):`, err.message);
+        return {
+            name:   def.name,
+            path:   def.fullPath,
+            value:  '⚠ Unavailable',
+            status: 'fault',
+            device: def.device,
+        };
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Helpers
+// ════════════════════════════════════════════════════════════════════
+function safeStr(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string')  return v;
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    const methods = ['getValueDisplay','getDisplayString','getDisplay','encode','toString'];
+    for (const m of methods) {
+        try { if (typeof v[m] === 'function') { const s = v[m](); if (typeof s === 'string' && s.length > 0) return s; } } catch(e) {}
+    }
+    return String(v);
+}
+
+function decodeNiagara(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+function normalizeStatus(s) {
+    if (!s) return 'ok';
+    const l = s.toLowerCase().replace(/[{}]/g, '').trim();
+    if (!l || l === 'ok') return 'ok';
+    if (l.includes('alarm'))    return 'alarm';
+    if (l.includes('fault'))    return 'fault';
+    if (l.includes('override')) return 'override';
+    if (l.includes('down'))     return 'fault';
+    return l;
+}
+
+function escapeHTML(s)  { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeAttr(s)  { return String(s || '').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// ── Wire up controls ──────────────────────────────────────────────
+neqlInput.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+searchBtn.addEventListener('click', runSearch);
+
+document.querySelectorAll('.rth-cell[data-sort]').forEach(cell => {
+    cell.addEventListener('click', function() {
+        const col = this.dataset.sort;
+        if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+        else { sortCol = col; sortDir = 'asc'; }
+        document.querySelectorAll('.rth-cell[data-sort]').forEach(c => c.classList.remove('sort-asc','sort-desc'));
+        this.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+        renderResults(currentResults);
+    });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// Render
+// ════════════════════════════════════════════════════════════════════
+function renderResults(raw) {
+    let data = raw.slice();
+    if (sortCol) {
+        data.sort((a, b) => {
+            const va = (a[sortCol] || '').toLowerCase();
+            const vb = (b[sortCol] || '').toLowerCase();
+            if (sortDir === 'asc') return va < vb ? -1 : va > vb ? 1 : 0;
+            return vb < va ? -1 : vb > va ? 1 : 0;
+        });
+    }
+
+    resultsList.innerHTML = '';
+
+    if (!data.length) {
+        const el = document.createElement('div');
+        el.className = 'results-empty';
+        el.innerHTML = `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>No results found</span>
+            <span class="empty-hint">No device in Global.json has a point with this ID, or the filter excluded all matches</span>`;
+        resultsList.appendChild(el);
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+    data.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        row.style.animationDelay = `${Math.min(idx * 0.025, 0.5)}s`;
+
+        const sc = ['alarm','fault','override'].includes(item.status) ? item.status : 'ok';
+        const sl = item.status === 'ok' ? '{ok}' : `{${item.status}}`;
+
+        // Device name shown as a sub-label under the point name
+        const deviceLabel = item.device
+            ? decodeNiagara(item.device.replace(/_/g, ' '))
+            : '';
+
+        row.innerHTML = `
+            <div class="result-cell">
+                <div class="result-name">${escapeHTML(item.name)}</div>
+                ${deviceLabel ? `<div class="result-device">${escapeHTML(deviceLabel)}</div>` : ''}
+            </div>
+            <div class="result-cell">
+                <div class="result-path" title="${escapeHTML(item.path)}">${escapeHTML(item.path)}</div>
+            </div>
+            <div class="result-cell">
+                <div class="result-value">${escapeHTML(item.value)}</div>
+                <div class="result-status ${sc}">${sl}</div>
+            </div>
+            <div class="result-cell result-actions">
+                <button class="action-btn" title="Copy ORD to clipboard" onclick="copyORD('${escapeAttr(item.path)}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="action-btn hist-btn" title="View 24h history chart" onclick="openHistoryChart('${escapeAttr(item.path)}','${escapeAttr(item.name)}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+            </div>`;
+        frag.appendChild(row);
+    });
+    resultsList.appendChild(frag);
+}
+
+function showLoading() {
+    resultsList.innerHTML = `<div class="results-loading"><div class="spinner"></div><span>Fetching live values…</span></div>`;
+}
+function showError(msg) {
+    resultsList.innerHTML = `<div class="results-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:var(--red);">Fetch failed</span><span class="empty-hint">${escapeHTML(msg)}</span></div>`;
+    countBadge.classList.remove('visible');
+}
+function showResultCount(n) {
+    countBadge.classList.add('visible');
+    countText.textContent = `${n} result${n !== 1 ? 's' : ''}`;
+    countBadge.classList.toggle('zero', n === 0);
+}
+
+// ── Actions ───────────────────────────────────────────────────────
+window.copyORD = function(path) {
+    navigator.clipboard.writeText(path)
+        .then(() => showToast('ORD copied: ' + path.split('/').pop()))
+        .catch(() => showToast('ORD: ' + path.split('/').pop()));
+};
+
+window.openHistoryChart = function(pointPath, pointName) {
+    showHistoryPopup(pointPath, pointName);
+};
+
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 18px;z-index:9999;font-family:var(--font-head);font-size:12px;color:var(--accent);letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.3s;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// History popup — unchanged from original
+// ════════════════════════════════════════════════════════════════════
+let historyCache = new Map();
+
+async function discoverHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        baja.Ord.make(pointOrd).get()
+            .then(e => e.tags())
+            .then(tagMap => {
+                const tag = tagMap.get('n:history');
+                if (tag && tag.toString().trim()) {
+                    let path = tag.toString();
+                    if (!path.startsWith('history:')) path = 'history:' + path;
+                    resolve(path);
+                } else reject(new Error('No n:history tag'));
+            })
+            .catch(e => reject(new Error('Tags failed: ' + e.message)));
+    });
+}
+
+async function loadHistoryData(pointPath, startTime, endTime, maxPoints) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let hOrd = historyCache.get(pointPath);
+            if (!hOrd) {
+                try { hOrd = await discoverHistoryOrd(pointPath); historyCache.set(pointPath, hOrd); }
+                catch(e) { resolve([]); return; }
+            }
+            const q = `${hOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+            const pts = [];
+            baja.Ord.make(q).get({ cursor: { limit: maxPoints, each: function() {
+                const row  = this.get();
+                const date = new Date(row.get('timestamp').getMillis());
+                pts.push({ timestamp: date, value: row.get('value') });
+            }}})
+            .then(() => resolve(pts))
+            .catch(e  => reject(new Error('BQL failed: ' + e.message)));
+        } catch(e) { reject(e); }
+    });
+}
+
+function showHistoryPopup(pointPath, pointName) {
+    let popup = document.getElementById('history-popup-overlay');
+    if (!popup) {
+        popup = document.createElement('div');
+        popup.id = 'history-popup-overlay';
+        popup.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);z-index:9999;justify-content:center;align-items:center;';
+        popup.innerHTML = `
+            <div style="width:94vw;max-width:1200px;height:82vh;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 80px rgba(0,0,0,0.7);">
+                <div style="background:rgba(0,200,255,0.06);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;">
+                    <h2 id="hist-title" style="font-family:var(--font-head);font-size:13px;letter-spacing:2px;color:var(--accent);font-weight:normal;text-transform:uppercase;margin:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">History</h2>
+                    <button onclick="closeHistoryPopup()" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>
+                </div>
+                <div id="hist-stats" style="padding:10px 18px 0;display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-panel);"></div>
+                <div style="flex:1;padding:10px 18px 14px;display:flex;flex-direction:column;gap:6px;min-height:0;background:var(--bg-card);">
+                    <div id="hist-loading" style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--accent);font-family:var(--font-head);font-size:13px;letter-spacing:2px;">Loading…</div>
+                    <div id="hist-canvas-wrap" style="display:none;flex:1;position:relative;min-height:0;cursor:crosshair;">
+                        <canvas id="hist-canvas" style="display:block;width:100%;height:100%;"></canvas>
+                        <div id="hist-tooltip" style="display:none;position:absolute;pointer-events:none;background:rgba(13,17,23,0.96);border:1px solid rgba(0,200,255,0.45);border-radius:8px;padding:7px 12px;font-family:var(--font-head);font-size:11px;color:var(--text-primary);white-space:nowrap;z-index:10;"></div>
+                    </div>
+                </div>
+            </div>`;
+        popup.addEventListener('click', e => { if (e.target === popup) closeHistoryPopup(); });
+        document.body.appendChild(popup);
+    }
+
+    popup.style.display = 'flex';
+    document.getElementById('hist-title').textContent         = pointName + ' — 24h History';
+    document.getElementById('hist-loading').style.display     = 'flex';
+    document.getElementById('hist-loading').textContent       = 'Loading historical data…';
+    document.getElementById('hist-canvas-wrap').style.display = 'none';
+    document.getElementById('hist-stats').innerHTML           = '';
+
+    const endTime   = new Date();
+    const startTime = new Date(endTime.getTime() - 86400000);
+
+    loadHistoryData(pointPath, startTime, endTime, 2000).then(data => {
+        if (!data.length) {
+            document.getElementById('hist-loading').innerHTML = '<span style="color:var(--text-muted);font-family:var(--font-head);letter-spacing:2px;">No history data for last 24 hours</span>';
+            return;
+        }
+        document.getElementById('hist-loading').style.display    = 'none';
+        document.getElementById('hist-canvas-wrap').style.display = 'flex';
+        document.getElementById('hist-canvas-wrap').style.flex    = '1';
+        document.getElementById('hist-canvas-wrap').style.minHeight = '0';
+        setTimeout(() => drawSimpleChart(document.getElementById('hist-canvas'), data, pointName, ''), 60);
+    }).catch(err => {
+        document.getElementById('hist-loading').innerHTML = `<span style="color:var(--red);font-family:var(--font-head);">Error: ${escapeHTML(err.message)}</span>`;
+    });
+}
+
+window.closeHistoryPopup = function() {
+    const p = document.getElementById('history-popup-overlay');
+    if (p) p.style.display = 'none';
+};
+
+function drawSimpleChart(canvas, data, label, unit) {
+    const PAD = { top:24, right:24, bottom:48, left:60 };
+    const W   = canvas.offsetWidth  || 800;
+    const H   = canvas.offsetHeight || 360;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    const gW = W - PAD.left - PAD.right;
+    const gH = H - PAD.top  - PAD.bottom;
+
+    const rawVals = data.map(d => typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value)).filter(v=>!isNaN(v));
+    if (!rawVals.length) return;
+    const minV = Math.min(...rawVals), maxV = Math.max(...rawVals);
+    const rangeV = (maxV - minV) || 1;
+    const lo = minV - rangeV*0.1, hi = maxV + rangeV*0.1, rng = hi - lo;
+
+    const times = data.map(d => d.timestamp.getTime());
+    const minT  = Math.min(...times), maxT = Math.max(...times), rngT = (maxT - minT) || 1;
+
+    const xOf = t => PAD.left + ((t - minT) / rngT) * gW;
+    const yOf = v => PAD.top  + gH - ((v - lo) / rng) * gH;
+
+    ctx.fillStyle = '#0a0f1a'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(0,200,255,0.015)'; ctx.fillRect(PAD.left,PAD.top,gW,gH);
+
+    ctx.font = '10px Courier New'; ctx.fillStyle = 'rgba(122,132,153,0.75)'; ctx.textAlign = 'right';
+    for (let i=0;i<=5;i++) {
+        const v = lo + (rng/5)*i, y = yOf(v);
+        ctx.strokeStyle = 'rgba(0,200,255,0.07)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+gW,y); ctx.stroke();
+        ctx.fillText(v.toFixed(1), PAD.left-6, y+4);
+    }
+    ctx.textAlign = 'center';
+    for (let i=0;i<=6;i++) {
+        const t = minT + (rngT/6)*i, x = xOf(t), ts = new Date(t);
+        ctx.fillText(ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), x, PAD.top+gH+14);
+        ctx.fillText(ts.toLocaleDateString([],{month:'short',day:'numeric'}), x, PAD.top+gH+26);
+    }
+
+    const grad = ctx.createLinearGradient(0,PAD.top,0,PAD.top+gH);
+    grad.addColorStop(0,'rgba(0,200,255,0.15)'); grad.addColorStop(1,'rgba(0,200,255,0.01)');
+    ctx.beginPath();
+    let first = true;
+    data.forEach(d => {
+        const v = typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value);
+        if (isNaN(v)) return;
+        const x = xOf(d.timestamp.getTime()), y = yOf(v);
+        first ? ctx.moveTo(x,y) : ctx.lineTo(x,y); first = false;
+    });
+    ctx.lineTo(xOf(maxT),PAD.top+gH); ctx.lineTo(PAD.left,PAD.top+gH);
+    ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+
+    ctx.beginPath(); first = true;
+    data.forEach(d => {
+        const v = typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value);
+        if (isNaN(v)) return;
+        const x = xOf(d.timestamp.getTime()), y = yOf(v);
+        first ? ctx.moveTo(x,y) : ctx.lineTo(x,y); first = false;
+    });
+    ctx.strokeStyle = '#00c8ff'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,200,255,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(PAD.left,PAD.top,gW,gH);
+
+    const avg = rawVals.reduce((a,b)=>a+b,0)/rawVals.length;
+    const u = unit ? ' '+unit : '';
+    const statsEl = document.getElementById('hist-stats');
+    if (statsEl) {
+        const mk = (lbl,val,col) => `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:7px;padding:5px 12px;font-family:var(--font-head);"><span style="color:var(--text-muted);display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;">${lbl}</span><strong style="color:${col};font-size:13px;">${val}</strong></div>`;
+        statsEl.innerHTML = mk('Min',minV.toFixed(2)+u,'#7b5ea7') + mk('Avg',avg.toFixed(2)+u,'#ffab00') + mk('Max',maxV.toFixed(2)+u,'#00e676') + mk('Points',rawVals.length,'#e8ecf4');
+    }
+}
+
+// ── Kick everything off ───────────────────────────────────────────
+loadGlobalConfig();
+
+}); // end require(['baja!'])
+</script>
+
+</body>
+</html>

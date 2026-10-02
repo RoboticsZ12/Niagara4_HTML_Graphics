@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mass Point Override</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+<style>
+/* ══════════════════════════ RESET & ROOT ══════════════════════════ */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --bg-deep:#0d1117; --bg-panel:#161b27; --bg-card:#1e2535; --bg-card-hover:#252d42;
+  --accent:#00c8ff; --accent-glow:rgba(0,200,255,0.25); --accent2:#7b5ea7;
+  --green:#00e676; --red:#ff4444; --amber:#ffab00; --purple:#d516df;
+  --text-primary:#e8ecf4; --text-muted:#7a8499;
+  --border:rgba(0,200,255,0.15); --border-hover:rgba(0,200,255,0.45);
+  --radius:10px; --font-head:'Courier New',Courier,monospace;
+  --transition:0.2s cubic-bezier(0.4,0,0.2,1);
+}
+html,body{height:100%;}
+body{
+  background:var(--bg-deep); color:var(--text-primary); font-family:var(--font-head);
+  min-height:100vh; display:flex; flex-direction:column; opacity:0; transition:opacity .5s ease;
+}
+body.fade-in{opacity:1;}
+body.fade-out{opacity:0; transition:opacity .25s ease;}
+
+/* ══════════════════════════ PAGE LOADER ══════════════════════════ */
+#page-loader{position:fixed; inset:0; background:#05070c; z-index:9999; display:flex; align-items:center; justify-content:center; transition:opacity .4s ease;}
+#page-loader.hidden{opacity:0; pointer-events:none;}
+.loader-content{text-align:center; font-family:var(--font-head); color:#ccc;}
+.loader-m{width:80px; height:80px;}
+.loader-m path{stroke-dasharray:500; stroke-dashoffset:500; animation:drawM 1.6s ease-out forwards, glowPulse 2s ease-in-out infinite 1.6s;}
+@keyframes drawM{to{stroke-dashoffset:0;}}
+@keyframes glowPulse{0%,100%{filter:drop-shadow(0 0 4px #00A86B);} 50%{filter:drop-shadow(0 0 18px #00ff99);}}
+.loader-title{margin-top:14px; font-size:13px; letter-spacing:4px; color:var(--accent); text-transform:uppercase;}
+.loader-sub{margin-top:6px; font-size:11px; letter-spacing:1px; color:var(--text-muted);}
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn { to { transform: scaleX(1); } }
+.loader-murphy-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m { width: 30px; height: 30px; }
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500; stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px; letter-spacing: 3px; color: #888; text-transform: uppercase;
+}
+.loader-murphy-label strong { color: #00A86B; letter-spacing: 2px; font-weight: normal; }
+.loader-content .loader-text { margin-top: 18px; opacity: 0; animation: loaderMurphyIn 0.5s ease-out 1.4s forwards; }
+/* ══════════════════════════ OVERLAY ══════════════════════════ */
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; opacity:0; visibility:hidden; transition:var(--transition);}
+.overlay.active{opacity:1; visibility:visible;}
+
+/* ══════════════════════════ NAV DRAWER ══════════════════════════ */
+.nav-drawer{position:fixed; top:0; left:-300px; width:280px; height:100vh; background:var(--bg-panel); border-right:1px solid var(--border);
+  transition:left .3s ease; z-index:999999; padding:24px 0 20px; overflow-y:auto; box-shadow:4px 0 40px rgba(0,0,0,0.6);}
+.nav-drawer.active{left:0;}
+.nav-drawer-header{padding:12px 18px 14px; border-bottom:1px solid var(--border); margin-bottom:8px;}
+.nav-drawer-header h2{font-size:14px; letter-spacing:4px; color:var(--accent); font-weight:normal; text-transform:uppercase;}
+.nav-drawer-header p{font-size:12px; color:var(--text-muted); margin-top:3px;}
+.nav-section-label{padding:14px 14px 4px; font-size:10px; letter-spacing:3px; color:var(--text-muted); text-transform:uppercase;}
+.nav-grid{padding:8px 14px; display:flex; flex-direction:column; gap:7px;}
+.nav-btn{display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border);
+  border-radius:8px; cursor:pointer; text-decoration:none; transition:var(--transition); position:relative; overflow:hidden;}
+.nav-btn::before{content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); opacity:0; transition:opacity .2s;}
+.nav-btn:hover{border-color:var(--accent); background:var(--bg-card-hover); transform:translateX(3px);}
+.nav-btn:hover::before{opacity:1;}
+.nav-btn-icon{width:36px; height:36px; border-radius:8px; background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.15);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px;}
+.nav-btn-label{font-size:12px; color:var(--text-primary); letter-spacing:.5px; display:block;}
+.nav-btn-sub{font-size:10px; color:var(--text-muted); letter-spacing:.5px;}
+
+/* ══════════════════════════ TOP BAR ══════════════════════════ */
+.top-bar{background:rgba(13,17,23,0.97); border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto 1fr;
+  align-items:center; padding:0 14px; height:60px; flex-shrink:0; position:relative; z-index:100; backdrop-filter:blur(12px); gap:10px;}
+.top-bar::after{content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.top-bar-left{display:flex; align-items:center; gap:10px; min-width:0; overflow:hidden;}
+.top-center{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0;}
+.site-label{font-size:clamp(8px,0.7vw,11px); letter-spacing:clamp(1px,0.3vw,4px); color:var(--accent); text-transform:uppercase; white-space:nowrap;}
+#page-header{font-size:clamp(13px,1.4vw,18px); letter-spacing:1px; color:var(--text-primary); white-space:nowrap;}
+.top-right{display:flex; align-items:center; gap:8px; justify-content:flex-end; min-width:0;}
+.match-count{font-size:clamp(9px,0.7vw,12px); color:var(--text-muted); background:var(--bg-card); border:1px solid var(--border);
+  border-radius:20px; padding:5px 12px; white-space:nowrap;}
+.match-count b{color:var(--accent);}
+
+.top-right-controls{display:flex; align-items:center; gap:10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:5px 12px;}
+.top-right-controls .divider{width:1px; height:20px; background:var(--border); flex-shrink:0;}
+.topbar-btn{padding:5px 10px; background:transparent; border:1px solid var(--border); border-radius:5px; color:var(--text-muted);
+  font-family:var(--font-head); font-size:11px; letter-spacing:1px; cursor:pointer; transition:var(--transition); display:flex; align-items:center; gap:5px;}
+.topbar-btn:hover{border-color:var(--accent); color:var(--accent);}
+.topbar-btn.active{border-color:var(--accent); color:var(--accent); background:rgba(0,200,255,0.08);}
+
+.toggle-switch{position:relative; width:40px; height:22px; background:var(--bg-card); border-radius:25px; cursor:pointer; transition:var(--transition); border:1px solid var(--border);}
+.toggle-switch:hover{border-color:var(--accent);}
+.toggle-slider{position:absolute; top:2px; left:2px; width:16px; height:16px; background:var(--text-muted); border-radius:50%; transition:all .3s cubic-bezier(0.4,0,0.2,1);}
+.toggle-switch.active .toggle-slider{transform:translateX(18px); background:var(--amber);}
+
+.user-badge{background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:clamp(10px,0.8vw,13px);
+  color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-shrink:0; white-space:nowrap;}
+#userInfo{color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;}
+
+.hamburger-menu{width:34px; height:34px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; cursor:pointer;
+  display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; transition:var(--transition); flex-shrink:0; position:relative; z-index:1001;}
+.hamburger-menu:hover{border-color:var(--accent); background:var(--bg-card-hover);}
+.hamburger-line{width:16px; height:2px; background:var(--text-primary); border-radius:2px; transition:var(--transition);}
+.hamburger-menu.active .hamburger-line:nth-child(1){transform:rotate(45deg) translate(4px,4px);}
+.hamburger-menu.active .hamburger-line:nth-child(2){opacity:0;}
+.hamburger-menu.active .hamburger-line:nth-child(3){transform:rotate(-45deg) translate(4px,-4px);}
+
+/* ══════════════════════════ BOTTOM BAR ══════════════════════════ */
+.bottom-bar{background:rgba(13,17,23,0.97); border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;
+  padding:0 14px; height:50px; flex-shrink:0; z-index:1000; gap:8px; overflow:hidden;}
+.back-button,.logout-btn{background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); padding:6px 12px; cursor:pointer;
+  font-family:var(--font-head); font-size:clamp(10px,0.8vw,13px); letter-spacing:1px; display:flex; align-items:center; gap:6px; transition:var(--transition); flex-shrink:0; white-space:nowrap;}
+.back-button:hover{border-color:var(--accent); color:var(--accent);}
+.logout-btn:hover{border-color:var(--red); color:var(--red);}
+.date-time{font-size:clamp(8px,0.65vw,13px); color:var(--text-muted); text-align:center; letter-spacing:1px; flex:1 1 auto; min-width:0;}
+.date-time strong{color:var(--text-primary); display:block; white-space:nowrap;}
+
+/* ══════════════════════════ MAIN CONTENT ══════════════════════════ */
+.main-content{flex:1; overflow-y:auto; display:flex; flex-direction:column;
+  background:radial-gradient(ellipse at 15% 0%, rgba(0,200,255,0.06) 0%, transparent 55%), radial-gradient(ellipse at 85% 100%, rgba(123,94,167,0.08) 0%, transparent 50%), var(--bg-deep);}
+
+.filter-row{display:flex; gap:10px; padding:16px 22px; flex-wrap:wrap; border-bottom:1px solid var(--border); align-items:flex-end;}
+.ctl-group{display:flex; flex-direction:column; gap:5px;}
+.ctl-group label{font-size:10px; letter-spacing:1.5px; color:var(--text-muted); text-transform:uppercase;}
+.ctl-group input,.ctl-group select{padding:9px 10px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border);
+  border-radius:6px; font-family:var(--font-head); font-size:13px; transition:var(--transition);}
+.ctl-group input:focus,.ctl-group select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow);}
+
+main.body-main{flex:1; display:flex; gap:0; min-height:0;}
+#tableWrap{flex:1; overflow:auto; padding:16px 22px;}
+#emptyState{color:var(--text-muted); font-size:12px; letter-spacing:1px; padding:60px 0; text-align:center;}
+
+table{width:100%; border-collapse:collapse; font-size:12px;}
+thead th{position:sticky; top:0; background:var(--bg-panel); text-align:left; padding:9px 10px; color:var(--accent);
+  font-size:10px; letter-spacing:2px; text-transform:uppercase; border-bottom:1px solid var(--border); z-index:2;}
+thead th.sortable{cursor:pointer; user-select:none; transition:var(--transition);}
+thead th.sortable:hover{color:#fff;}
+thead th.sortable .sort-arrow{display:inline-block; margin-left:4px; opacity:0.35; font-size:9px;}
+thead th.sortable.sort-active .sort-arrow{opacity:1; color:var(--accent);}
+tbody td{padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); transition:var(--transition);}
+tbody tr:hover td{background:rgba(0,200,255,0.04);}
+tbody tr.row-selected td{background:rgba(0,200,255,0.09);}
+tbody tr.row-selected:hover td{background:rgba(0,200,255,0.13);}
+tbody tr.row-selected{box-shadow:inset 3px 0 0 var(--accent);}
+input[type=checkbox]{width:15px; height:15px; cursor:pointer; accent-color:var(--accent);}
+
+.type-badge{display:inline-block; padding:2px 8px; border-radius:10px; font-size:9px; letter-spacing:1px; text-transform:uppercase; border:1px solid transparent;}
+.type-numeric{background:rgba(0,200,255,0.12); color:var(--accent); border-color:rgba(0,200,255,0.3);}
+.type-boolean{background:rgba(0,230,118,0.12); color:var(--green); border-color:rgba(0,230,118,0.3);}
+.type-enum{background:rgba(213,22,223,0.12); color:var(--purple); border-color:rgba(213,22,223,0.3);}
+
+.status-badge{display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:20px; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; font-weight:bold;}
+.status-auto{background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.25); color:var(--green);}
+.status-overridden{background:rgba(213,22,223,0.15); border:1px solid rgba(213,22,223,0.5); color:var(--purple); animation:badgePulse 2s ease-in-out infinite;}
+.status-fault{background:rgba(255,68,68,0.15); border:1px solid rgba(255,68,68,0.5); color:var(--red); animation:badgeFaultPulse 1.2s ease-in-out infinite;}
+.status-offline{background:rgba(122,132,153,0.08); border:1px solid var(--border); color:var(--text-muted); font-style:italic;}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 rgba(213,22,223,0);} 50%{box-shadow:0 0 10px rgba(213,22,223,0.5);}}
+@keyframes badgeFaultPulse{0%,100%{box-shadow:0 0 0 rgba(255,68,68,0);} 50%{box-shadow:0 0 10px rgba(255,68,68,0.6);}}
+
+#sidePanel{width:340px; flex-shrink:0; border-left:1px solid var(--border); background:var(--bg-panel); padding:18px; display:flex; flex-direction:column; gap:14px; overflow-y:auto;}
+#sidePanel h2{font-size:12px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; font-weight:normal; border-bottom:1px solid var(--border); padding-bottom:8px;}
+#selCount{font-size:11px; color:var(--text-muted);}
+#selCount b{color:var(--text-primary);}
+
+.btn{padding:11px 14px; border-radius:8px; border:none; font-family:var(--font-head); font-size:11px; letter-spacing:1px; text-transform:uppercase;
+  cursor:pointer; transition:var(--transition); box-shadow:0 2px 10px rgba(0,0,0,0.25);}
+.btn-apply{background:rgba(255,171,0,0.15); color:var(--amber); border:1px solid rgba(255,171,0,0.4);}
+.btn-apply:hover{background:rgba(255,171,0,0.3); box-shadow:0 0 14px rgba(255,171,0,0.25);}
+.btn-release{background:rgba(255,68,68,0.15); color:var(--red); border:1px solid rgba(255,68,68,0.3);}
+.btn-release:hover{background:rgba(255,68,68,0.3); box-shadow:0 0 14px rgba(255,68,68,0.25);}
+.btn-selall{background:var(--bg-card); color:var(--text-muted); border:1px solid var(--border); width:100%; box-shadow:none;}
+.btn-selall:hover{border-color:var(--accent); color:var(--accent);}
+.btn:disabled{opacity:0.4; cursor:not-allowed; box-shadow:none;}
+
+#durationSelect.duration-permanent{border-color:var(--red); color:var(--red); background:rgba(255,68,68,0.08); box-shadow:0 0 0 2px rgba(255,68,68,0.15);}
+
+#log{flex:1; min-height:120px; max-height:260px; overflow-y:auto; background:#0a0f1a; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:11px; line-height:1.6;}
+#log div.ok{color:var(--green);} #log div.err{color:var(--red);} #log div.info{color:var(--text-muted);}
+
+/* ══════════════════════════ CONFIRM MODAL ══════════════════════════ */
+.confirm-modal{display:none; position:fixed; z-index:100000; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); align-items:center; justify-content:center;}
+.confirm-modal.open{display:flex;}
+.confirm-modal-content{background:var(--bg-panel); border:1px solid var(--border); border-radius:14px; padding:24px; width:90%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.confirm-modal-content.danger{border-color:rgba(255,68,68,0.5);}
+.confirm-modal-content h3{font-size:14px; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; color:var(--text-primary);}
+.confirm-modal-content.danger h3{color:var(--red);}
+.confirm-modal-content p{font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:18px;}
+.confirm-modal-content p b{color:var(--text-primary);}
+.confirm-modal-actions{display:flex; gap:10px; justify-content:flex-end;}
+.confirm-btn{padding:9px 16px; border-radius:7px; font-family:var(--font-head); font-size:11px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:var(--transition); border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted);}
+.confirm-btn:hover{border-color:var(--accent); color:var(--accent);}
+.confirm-btn.confirm-primary{background:rgba(255,171,0,0.15); color:var(--amber); border-color:rgba(255,171,0,0.4);}
+.confirm-btn.confirm-primary:hover{background:rgba(255,171,0,0.3);}
+.confirm-btn.confirm-danger{background:rgba(255,68,68,0.15); color:var(--red); border-color:rgba(255,68,68,0.4);}
+.confirm-btn.confirm-danger:hover{background:rgba(255,68,68,0.3);}
+
+/* ══════════════════════════ SYSTEM OVERRIDE FOOTER STAT ══════════════════════════ */
+.override-stat{display:flex; align-items:center; gap:6px; font-size:clamp(8px,0.65vw,11px); color:var(--text-muted); letter-spacing:1px; white-space:nowrap;}
+.override-stat .dot{width:7px; height:7px; border-radius:50%; background:var(--text-muted); flex-shrink:0;}
+.override-stat.has-overrides .dot{background:var(--purple); box-shadow:0 0 6px rgba(213,22,223,0.6); animation:badgePulse 2s ease-in-out infinite;}
+.override-stat.has-overrides{color:var(--purple);}
+.override-stat b{color:inherit;}
+
+/* ══════════════════════════ NOTES MODAL ══════════════════════════ */
+.notes-modal{display:none; position:fixed; z-index:10000; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px);}
+.notes-modal-content{background:var(--bg-panel); border:1px solid var(--border); border-radius:14px; margin:10% auto; padding:24px; width:90%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.notes-modal-content h3{color:var(--accent); font-size:14px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;}
+.notes-modal-content .notes-hint{font-size:10px; color:var(--text-muted); margin-bottom:14px; letter-spacing:.5px;}
+.notes-close{color:var(--text-muted); float:right; font-size:22px; cursor:pointer; line-height:1; background:none; border:none; transition:var(--transition);}
+.notes-close:hover{color:var(--red);}
+.note-row{display:flex; gap:8px; margin-bottom:10px;}
+.note-row input{flex:1; padding:8px 12px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); font-family:var(--font-head); font-size:13px;}
+.note-row input:focus{outline:none; border-color:var(--accent);}
+
+/* ══════════════════════════ SELECTION SUMMARY DROPDOWN ══════════════════════════ */
+#unitdata-topbar-dropdown{display:none; position:fixed; z-index:99999; background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+  padding:0; box-shadow:0 8px 32px rgba(0,0,0,0.5); min-width:320px; max-width:480px; max-height:60vh; overflow-y:auto;}
+#unitdata-topbar-dropdown.open{display:block;}
+#unit-data-inner-table-top{width:100%; border-collapse:collapse; font-family:var(--font-head);}
+#unit-data-inner-table-top th{text-align:left; padding:6px 8px; color:var(--accent); font-size:10px; letter-spacing:2px; text-transform:uppercase; border-bottom:1px solid var(--border);}
+#unit-data-inner-table-top td{padding:5px 8px; color:var(--text-primary); font-size:11px; border-bottom:1px solid rgba(255,255,255,0.04);}
+#unit-data-inner-table-top tr:hover td{background:rgba(0,200,255,0.04);}
+
+/* ══════════════════════════ LIVE TREND STUDIO ══════════════════════════ */
+.gu-overlay{overflow-y:auto; display:none; position:fixed; inset:0; z-index:20000;
+  background:radial-gradient(ellipse at 50% 0%, rgba(123,94,167,0.14) 0%, transparent 55%), rgba(4,6,12,0.88); backdrop-filter:blur(10px); align-items:center; justify-content:center;}
+.gu-overlay.active{display:flex;}
+.gu-shell{width:95vw; max-width:1400px; height:90vh; background:linear-gradient(180deg,#12101c 0%,#0c0e17 100%); border:1px solid rgba(123,94,167,0.4);
+  border-radius:20px; box-shadow:0 30px 100px rgba(0,0,0,0.75); display:flex; flex-direction:column; overflow:hidden; animation:guIn .3s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes guIn{from{transform:scale(.94) translateY(20px); opacity:0;} to{transform:scale(1) translateY(0); opacity:1;}}
+.gu-titlebar{display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid rgba(123,94,167,0.3);
+  background:linear-gradient(90deg,rgba(123,94,167,0.10),transparent 60%); flex-shrink:0;}
+.gu-titlebar-left{display:flex; align-items:center; gap:14px;}
+.gu-badge{font-size:11px; letter-spacing:3px; color:#00e6b8; border:1px solid rgba(0,230,184,0.4); background:rgba(0,230,184,0.08); padding:4px 10px; border-radius:20px;}
+.gu-titlebar-left h2{font-weight:normal; font-size:16px; letter-spacing:1px; color:#e8ecf4;}
+.gu-titlebar-right{display:flex; align-items:center; gap:8px;}
+.gu-icon-btn{background:rgba(123,94,167,0.12); border:1px solid rgba(123,94,167,0.4); color:#c9b8e0; font-family:var(--font-head); font-size:11px;
+  letter-spacing:1px; padding:7px 12px; border-radius:8px; cursor:pointer; transition:.2s;}
+.gu-icon-btn:hover{background:rgba(123,94,167,0.25); border-color:#7b5ea7;}
+.gu-icon-btn.gu-close{background:rgba(255,68,68,0.1); border-color:rgba(255,68,68,0.35); color:#ff8888; font-size:14px; padding:7px 11px;}
+.gu-icon-btn.gu-close:hover{background:rgba(255,68,68,0.25); border-color:#ff4444;}
+.gu-body{flex:1; min-height:0; overflow-y:auto; padding:18px 22px 26px; display:flex; flex-direction:column; gap:16px;}
+.gu-controls{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; background:rgba(123,94,167,0.06); border:1px solid rgba(123,94,167,0.22); border-radius:12px; padding:12px 16px;}
+.gu-control-block{display:flex; flex-direction:column; gap:5px; min-width:150px;}
+.gu-control-block label{font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#a596c0;}
+.gu-control-block select,.gu-control-block input[type="date"]{padding:7px 10px; background:#16131f; border:1px solid rgba(123,94,167,0.3); border-radius:6px; color:#e8ecf4; font-family:var(--font-head); font-size:12px;}
+.gu-refresh-btn{padding:8px 18px; background:rgba(0,230,184,0.1); border:1px solid rgba(0,230,184,0.4); color:#00e6b8; border-radius:6px;
+  font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; margin-left:auto; transition:.2s;}
+.gu-refresh-btn:hover{background:rgba(0,230,184,0.22); box-shadow:0 0 14px rgba(0,230,184,0.25);}
+.gu-series-row{display:flex; flex-wrap:wrap; gap:10px;}
+.gu-series-card{flex:1 1 240px; max-width:320px; background:#14121e; border:1px solid rgba(123,94,167,0.3); border-radius:10px; padding:12px;}
+.gu-series-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+.gu-series-swatch{width:12px; height:12px; border-radius:3px; flex-shrink:0;}
+.gu-series-title{font-size:13px; letter-spacing:.5px;}
+.gu-series-remove{background:none; border:none; color:#ff6666; cursor:pointer; font-size:14px;}
+.gu-series-card select{width:100%; padding:7px 9px; background:#0d0b14; border:1px solid rgba(123,94,167,0.3); border-radius:6px; color:#e8ecf4; font-family:var(--font-head); font-size:12px;}
+.gu-add-series{flex:1 1 200px; max-width:320px; border:1px dashed rgba(123,94,167,0.4); border-radius:10px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#a596c0; font-size:11px; letter-spacing:2px; transition:.2s; min-height:74px;}
+.gu-add-series:hover{border-color:#7b5ea7; background:rgba(123,94,167,0.07);}
+.gu-individual-wrap{display:flex; flex-direction:column; gap:12px;}
+.gu-ind-card{background:#100e19; border:1px solid rgba(123,94,167,0.22); border-radius:12px; overflow:hidden;}
+.gu-ind-head{display:flex; align-items:center; justify-content:space-between; padding:9px 14px; background:rgba(123,94,167,0.08); border-bottom:1px solid rgba(123,94,167,0.2);}
+.gu-ind-title{font-size:13px; letter-spacing:.5px;}
+.gu-ind-stats{display:flex; gap:14px; padding:8px 14px; font-size:11px; color:#a596c0; flex-wrap:wrap;}
+.gu-ind-stats b{color:#e8ecf4;}
+.gu-ind-canvas-wrap canvas{width:100%; display:block;}
+.gu-combined-wrap{background:#100e19; flex:1 0 300px; min-height:300px; border:1px solid rgba(0,230,184,0.3); border-radius:14px; overflow:hidden; box-shadow:0 0 30px rgba(0,230,184,0.05);}
+.gu-combined-header{display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:rgba(0,230,184,0.06); border-bottom:1px solid rgba(0,230,184,0.25);
+  font-size:11px; letter-spacing:3px; color:#00e6b8; text-transform:uppercase;}
+.gu-combined-canvas-wrap{position:relative; height:100%;}
+.gu-combined-canvas-wrap canvas{width:100%; display:block; height:100%; cursor:crosshair;}
+.gu-readout{position:absolute; top:10px; right:14px; background:rgba(10,8,16,0.92); border:1px solid rgba(0,230,184,0.35); border-radius:8px; padding:8px 12px; font-size:11px; color:#d8d8e0; display:none; pointer-events:none; min-width:160px;}
+.gu-readout.visible{display:block;}
+.gu-empty{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#6a6480; font-size:12px; letter-spacing:2px; text-transform:uppercase; text-align:center;}
+@media(max-width:800px){.gu-shell{width:100vw; height:100vh; border-radius:0;}}
+
+/* ══════════════════════════ LIGHT MODE ══════════════════════════ */
+body.light-mode{background:#d8dde8;}
+body.light-mode .main-content{background:radial-gradient(ellipse at 20% 0%, rgba(0,40,120,0.05) 0%, transparent 55%), linear-gradient(160deg,#cdd3e0 0%,#d4d9e6 40%,#ccd2df 100%);}
+body.light-mode .top-bar,body.light-mode .bottom-bar{background:rgba(220,225,236,0.98); border-color:rgba(0,30,100,0.25);}
+body.light-mode .user-badge,body.light-mode .top-right-controls,body.light-mode .back-button,body.light-mode .logout-btn,body.light-mode .match-count{background:rgba(255,255,255,0.85); border-color:rgba(0,30,100,0.3); color:#334466;}
+body.light-mode #userInfo,body.light-mode #page-header,body.light-mode .site-label{color:#001040;}
+body.light-mode .hamburger-line{background:#001f6b;}
+body.light-mode .hamburger-menu{background:rgba(255,255,255,0.85); border-color:rgba(0,30,100,0.3);}
+body.light-mode .nav-drawer{background:#dde2ed; border-color:rgba(0,30,100,0.2);}
+body.light-mode .nav-drawer-header h2{color:#001f6b;}
+body.light-mode .nav-btn{background:#e4e8f3; border-color:rgba(0,100,160,0.25); color:#1a2035;}
+body.light-mode .nav-btn:hover{background:#d0d8f0; border-color:#0070b8;}
+body.light-mode .date-time{color:#334466;}
+body.light-mode .filter-row,body.light-mode #sidePanel{background:rgba(255,255,255,0.4); border-color:rgba(0,30,100,0.15);}
+body.light-mode .ctl-group input,body.light-mode .ctl-group select{background:#fff; color:#111827; border-color:rgba(0,60,160,0.3);}
+body.light-mode thead th{background:#e4e9f4; color:#0044aa; border-color:rgba(0,30,100,0.15);}
+body.light-mode tbody td{color:#1a2035; border-color:rgba(0,30,100,0.08);}
+body.light-mode tbody tr.row-selected td{background:rgba(0,68,170,0.10);}
+body.light-mode #log{background:#eef1f8; border-color:rgba(0,30,100,0.15); color:#1a2035;}
+body.light-mode .btn-selall{background:#e4e8f3; color:#334466; border-color:rgba(0,30,100,0.25);}
+body.light-mode #emptyState{color:#556;}
+body.light-mode .notes-modal-content,body.light-mode #unitdata-topbar-dropdown{background:#edf1f8; border-color:rgba(0,60,160,0.25);}
+body.light-mode .note-row input{background:#fff; color:#111827; border-color:rgba(0,60,160,0.3);}
+body.light-mode .confirm-modal-content{background:#edf1f8; border-color:rgba(0,60,160,0.25);}
+body.light-mode .confirm-modal-content p{color:#445;}
+body.light-mode .confirm-modal-content p b{color:#111827;}
+
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px;}
+
+@media(max-width:900px){.match-count{display:none;} .top-right-controls>span{display:none;} .top-right-controls .divider{display:none;}}
+@media(max-width:600px){#userInfo{max-width:60px;}}
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 15px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 15px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 12px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ PAGE LOADER ═══ -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+
+    <img src="./IMAGES/download.gif"
+         alt="Loading..."
+         style="width:200px; height:200px; margin:10px auto; display:block; opacity:0; animation:loaderMurphyIn 0.25s ease-out 0.25s forwards;">
+
+    <div class="loader-murphy-row">
+        <svg class="loader-m" viewBox="0 0 200 200">
+            <path d="M20 170 V30 L100 110 L180 30 V170"
+              fill="none" stroke="#00A86B" stroke-width="18"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading system data…</div>
+  </div>
+</div>
+
+<!-- ═══ OVERLAY + NAV DRAWER ═══ -->
+<div class="overlay" id="overlay"></div>
+<div class="nav-drawer" id="navDrawer">
+  <div class="nav-drawer-header"><h2>Navigation</h2><p>Murphy Control Panel</p></div>
+  <div class="nav-section-label">System Views</div>
+   <div class="nav-image-grid">
+
+        <a href="./Home.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+                    <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+        </a>
+
+        <a href="./FloorPlan.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+                    <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+        </a>
+
+        <a href="./Alarms.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+        </a>
+
+        <a href="./Users.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+        </a>
+
+        <a href="./LogsNUMERIC.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+                    <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+                    <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+                    <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+                    <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+        </a>
+
+        <a href="./Shedules.html" class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+                    <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+        </a>
+
+    </div>
+</div>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div><div class="hamburger-line"></div><div class="hamburger-line"></div>
+    </div>
+    <div class="match-count">Matches: <b id="matchCountDisplay">0</b></div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span id="page-header">Mass Point Override</span>
+  </div>
+
+  <div class="top-right">
+    <div class="top-right-controls">
+      <!--<button id="notesButton-top" class="topbar-btn" onclick="document.getElementById('notesModal').style.display='block'">📝 Notes</button>-->
+      <!--<div class="divider"></div>-->
+      <!--<button id="unitDataButton-top" class="topbar-btn" onclick="toggleSelectionSummary(event)">▤ Selection</button>-->
+      <!--<div class="divider"></div>-->
+      <!--<button id="graphUtilButton-top" class="topbar-btn" onclick="openGraphUtilityModal()">📈 Trend</button>-->
+      <!--<div class="divider"></div>-->
+      <span>☀</span>
+      <div class="toggle-switch" id="toggleSwitch"><div class="toggle-slider"></div></div>
+    </div>
+    <div class="user-badge"><span id="userInfo">—</span></div>
+  </div>
+</div>
+
+<!-- ═══ Selection Summary dropdown ═══ -->
+<div id="unitdata-topbar-dropdown">
+  <div style="padding:10px 16px 6px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+    <span style="font-size:10px; letter-spacing:3px; color:var(--accent); text-transform:uppercase;">Selected Points</span>
+    <span onclick="closeSelectionSummary()" style="cursor:pointer; color:var(--text-muted); font-size:16px; line-height:1;">&times;</span>
+  </div>
+  <div style="padding:0 16px 14px;">
+    <table id="unit-data-inner-table-top">
+      <thead><tr><th>Device</th><th>Point</th><th>Type</th></tr></thead>
+      <tbody id="selection-summary-tbody"><tr><td colspan="3" style="color:var(--text-muted);padding:12px 8px;">No points selected.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ Notes modal (session notes, local only — no baja point behind this page) ═══ -->
+<div id="notesModal" class="notes-modal">
+  <div class="notes-modal-content">
+    <span class="notes-close" onclick="document.getElementById('notesModal').style.display='none'">&times;</span>
+    <h3>Notes</h3>
+    <div class="notes-hint">Saved locally in this browser.</div>
+    <div class="note-row"><input type="text" id="Note1" placeholder="Note 1"><button class="btn btn-selall" style="width:auto;padding:8px 14px;" onclick="saveLocalNote('Note1')">Save</button></div>
+    <div class="note-row"><input type="text" id="Note2" placeholder="Note 2"><button class="btn btn-selall" style="width:auto;padding:8px 14px;" onclick="saveLocalNote('Note2')">Save</button></div>
+    <div class="note-row"><input type="text" id="Note3" placeholder="Note 3"><button class="btn btn-selall" style="width:auto;padding:8px 14px;" onclick="saveLocalNote('Note3')">Save</button></div>
+  </div>
+</div>
+
+<!-- ═══ Confirm modal (mass override / release confirmation) ═══ -->
+<div id="confirmModal" class="confirm-modal">
+  <div class="confirm-modal-content" id="confirmModalContent">
+    <h3 id="confirmModalTitle">Confirm Action</h3>
+    <p id="confirmModalBody">Are you sure?</p>
+    <div class="confirm-modal-actions">
+      <button class="confirm-btn" onclick="window.__muCloseConfirm()">Cancel</button>
+      <button class="confirm-btn" id="confirmModalOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Live Trend Studio ═══ -->
+<div class="gu-overlay" id="gu-overlay">
+  <div class="gu-shell">
+    <div class="gu-titlebar">
+      <div class="gu-titlebar-left">
+        <span class="gu-badge">◈ LIVE TREND STUDIO</span>
+        <h2 id="gu-unit-title">All Points</h2>
+      </div>
+      <div class="gu-titlebar-right">
+        <button class="gu-icon-btn" onclick="guExportCSV()">⇩ CSV</button>
+        <button class="gu-icon-btn" onclick="guExportPNG()">⇩ PNG</button>
+        <button class="gu-icon-btn gu-close" onclick="closeGraphUtilityModal()">✕</button>
+      </div>
+    </div>
+    <div class="gu-body">
+      <div class="gu-controls">
+        <div class="gu-control-block"><label>Date</label><input type="date" id="gu-date"></div>
+        <div class="gu-control-block"><label>Range</label>
+          <select id="gu-range">
+            <option value="all">Full Day</option><option value="60">1 Hour</option><option value="240">4 Hours</option>
+            <option value="480">8 Hours</option><option value="720">12 Hours</option>
+          </select>
+        </div>
+        <button class="gu-refresh-btn" onclick="guRefresh()">↻ Refresh</button>
+      </div>
+      <div class="gu-series-row" id="gu-series-row"></div>
+      <div class="gu-individual-wrap" id="gu-individual-wrap"></div>
+      <div class="gu-combined-wrap">
+        <div class="gu-combined-header">
+          <span>◈ Combined Overlay</span>
+          <button class="gu-icon-btn" id="gu-reset-zoom" style="display:none;" onclick="guResetZoom()">⊞ Reset Zoom</button>
+        </div>
+        <div class="gu-combined-canvas-wrap" id="gu-combined-canvas-wrap">
+          <canvas id="gu-combined-canvas"></canvas>
+          <div class="gu-readout" id="gu-readout"></div>
+          <div class="gu-empty" id="gu-combined-empty">Select points above to begin graphing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ bajaWarning ═══ -->
+<div id="bajaWarning" style="display:none; background:rgba(255,68,68,0.1); border-bottom:1px solid rgba(255,68,68,0.4); color:var(--red); padding:10px 22px; font-size:12px; letter-spacing:.5px; line-height:1.5;"></div>
+
+<div class="filter-row">
+  <div class="ctl-group" style="min-width:280px;">
+    <label>Point ID Filter</label>
+    <select id="idFilterSelect">
+      <option value="">— Select Point ID —</option>
+      <option value="DA-TSP">DA Temp Spt OR</option>
+      <option value="DPR-Pos">Damper OR</option>
+      <option value="Reheat1">Reheat OR</option>
+      <option value="Space-Setpoint">Space Setpoint OR</option>
+    </select>
+  </div>
+  <div class="ctl-group" style="min-width:260px;">
+    <label>Search (Device / Point)</label>
+    <input type="text" id="deviceSearchInput" placeholder="e.g. VAV 15, Office, Breakroom…">
+  </div>
+</div>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+<div class="main-content">
+  <main class="body-main">
+    <div id="tableWrap">
+      <div id="emptyState">Select a point-ID filter above to load matching points from every device.</div>
+      <table id="resultsTable" style="display:none;">
+        <thead>
+          <tr>
+            <th style="width:34px;"><input type="checkbox" id="selectAllBox"></th>
+            <th class="sortable" data-sort-key="device">Device<span class="sort-arrow">▲▼</span></th>
+            <th class="sortable" data-sort-key="point">Point<span class="sort-arrow">▲▼</span></th>
+            <th class="sortable" data-sort-key="type">Type<span class="sort-arrow">▲▼</span></th>
+            <th class="sortable" data-sort-key="live">Live Value<span class="sort-arrow">▲▼</span></th>
+            <th class="sortable" data-sort-key="status">Status<span class="sort-arrow">▲▼</span></th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <div id="sidePanel">
+      <h2>Override Controls</h2>
+      <div id="selCount">Selected: <b>0</b> point(s)</div>
+      <button class="btn btn-selall" id="selAllBtn">Select / Deselect All Visible</button>
+
+      <div class="ctl-group" id="numericCtl" style="display:none;">
+        <label>Numeric Value</label>
+        <input type="number" id="numericInput" step="0.1" placeholder="Enter value">
+      </div>
+      <div class="ctl-group" id="booleanCtl" style="display:none;">
+        <label>Command</label>
+        <select id="booleanSelect"><option value="on">ON</option><option value="off">OFF</option><option value="auto">RELEASE TO AUTO</option></select>
+      </div>
+      <div class="ctl-group" id="enumCtl" style="display:none;">
+        <label>Enum Value (from first selected point's facets)</label>
+        <select id="enumSelect"></select>
+      </div>
+      <div class="ctl-group">
+        <label>Duration</label>
+        <select id="durationSelect">
+          <option value="permanent">Permanent</option><option value="1min">1 Minute</option>
+          <option value="5min" selected>5 Minutes</option><option value="30min">30 Minutes</option>
+          <option value="1hour">1 Hour</option><option value="2hours">2 Hours</option>
+          <option value="4hours">4 Hours</option><option value="8hours">8 Hours</option>
+        </select>
+      </div>
+
+      <button class="btn btn-apply" id="applyBtn">Apply Override to Selected</button>
+      <button class="btn btn-release" id="releaseBtn">Release Selected to Auto</button>
+
+      <h2 style="margin-top:6px;">Activity Log</h2>
+      <div id="log"><div class="info">Ready.</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══ BOTTOM BAR ═══ -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">← Back</button>
+  <div class="override-stat" id="overrideStat"><span class="dot"></span><span>System overrides: <b id="overrideStatCount">0</b></span></div>
+  <div class="date-time"><strong>Current Date &amp; Time</strong><span id="currentDateTime">Loading...</span></div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div style="text-align:right; font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+      Controls by:<br><span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+    </div>
+    <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+  </div>
+</div>
+
+<script>
+(async function() {
+  try {
+    const response = await fetch('./HomeConfig.json');
+    const data = await response.json();
+    const jobName = (data.JobBuilding || 'Control Panel').toUpperCase();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = jobName;
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+  document.body.addEventListener("click", function(e) {
+    const link = e.target.closest("a");
+    if (!link) return;
+    if (link.hostname !== location.hostname) return;
+    console.log('DEBUG pathname:', link.pathname); // ← add this
+    e.preventDefault();
+    if (link.pathname.endsWith('/Home.html')) {
+        console.log('DEBUG: clearing murphyNavTreeState'); // ← add this
+        localStorage.removeItem('murphyNavTreeState');
+    }
+
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 0);
+    });
+});
+</script>
+<script>
+/* ══════════════════════════════════ PAGE CHROME (loader / fade / nav drawer / clock / theme / logoff) ══════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('fade-in');
+    document.body.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+        document.body.classList.remove('fade-in');
+        document.body.classList.add('fade-out');
+        document.getElementById('page-loader')?.classList.remove('hidden');
+        setTimeout(() => { window.location.href = link.href; }, 0);
+    });
+});
+window.addEventListener('load', () => {
+    setTimeout(() => document.getElementById('page-loader')?.classList.add('hidden'), 350);
+});
+
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const navDrawer     = document.getElementById('navDrawer');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', () => { hamburgerMenu.classList.toggle('active'); navDrawer.classList.toggle('active'); overlay.classList.toggle('active'); });
+overlay.addEventListener('click', () => { hamburgerMenu.classList.remove('active'); navDrawer.classList.remove('active'); overlay.classList.remove('active'); });
+
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime(); setInterval(updateDateTime, 1000);
+
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', () => {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+
+function handleLogoff() {
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('SyncedSessionStorage');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('role');
+    window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+
+/* Local (non-baja) session notes — this page has no single bound device, so notes persist per-browser */
+(function() {
+    ['Note1','Note2','Note3'].forEach(k => {
+        const saved = localStorage.getItem('muNote_' + k);
+        const el = document.getElementById(k);
+        if (el && saved) el.value = saved;
+    });
+})();
+window.saveLocalNote = function(key) {
+    const el = document.getElementById(key);
+    if (!el) return;
+    localStorage.setItem('muNote_' + key, el.value);
+    window.__muLog && window.__muLog(`Saved ${key} locally.`, 'ok');
+};
+
+/* Selection Summary dropdown (repurposed "Unit Data" button — shows currently checked points) */
+window.toggleSelectionSummary = function(e) {
+    e.stopPropagation();
+    const dd  = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd.classList.contains('open')) { dd.classList.remove('open'); btn.classList.remove('active'); return; }
+    refreshSelectionSummary();
+    const rect = btn.getBoundingClientRect();
+    dd.style.top = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+    dd.style.left = 'auto';
+    dd.classList.add('open'); btn.classList.add('active');
+};
+window.closeSelectionSummary = function() {
+    document.getElementById('unitdata-topbar-dropdown')?.classList.remove('open');
+    document.getElementById('unitDataButton-top')?.classList.remove('active');
+};
+document.addEventListener('click', e => {
+    const dd = document.getElementById('unitdata-topbar-dropdown');
+    const btn = document.getElementById('unitDataButton-top');
+    if (dd && !dd.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) closeSelectionSummary();
+});
+function refreshSelectionSummary() {
+    const tbody = document.getElementById('selection-summary-tbody');
+    const matches = window.__muCurrentMatches || [];
+    const selected = window.__muSelectedIdx || new Set();
+    if (!selected.size) { tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted);padding:12px 8px;">No points selected.</td></tr>'; return; }
+    const decode = window.__muDecodeName || (n => n);
+    tbody.innerHTML = [...selected].map(i => {
+        const m = matches[i]; if (!m) return '';
+        return `<tr><td>${decode(m.deviceName)}</td><td>${decode(m.point.name)}</td><td><span class="type-badge type-${m.type}">${m.type}</span></td></tr>`;
+    }).join('');
+}
+
+/* ══════════════════════════════ CONFIRM MODAL HELPER ══════════════════════════ */
+window.__muConfirm = function(opts) {
+    // opts: { title, bodyHTML, okLabel, danger, onConfirm }
+    const modal   = document.getElementById('confirmModal');
+    const content = document.getElementById('confirmModalContent');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const bodyEl  = document.getElementById('confirmModalBody');
+    const okBtn   = document.getElementById('confirmModalOkBtn');
+    titleEl.textContent = opts.title || 'Confirm Action';
+    bodyEl.innerHTML = opts.bodyHTML || 'Are you sure?';
+    content.classList.toggle('danger', !!opts.danger);
+    okBtn.className = 'confirm-btn ' + (opts.danger ? 'confirm-danger' : 'confirm-primary');
+    okBtn.textContent = opts.okLabel || 'Confirm';
+    const newOk = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOk, okBtn);
+    newOk.addEventListener('click', () => { window.__muCloseConfirm(); opts.onConfirm && opts.onConfirm(); });
+    modal.classList.add('open');
+};
+window.__muCloseConfirm = function() {
+    document.getElementById('confirmModal').classList.remove('open');
+};
+document.getElementById('confirmModal').addEventListener('click', e => {
+    if (e.target.id === 'confirmModal') window.__muCloseConfirm();
+});
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   PART 1 — MAIN APP: runs immediately, needs only fetch(), no baja.
+   Handles auth gate, Global.json scan, table render, selection.
+   Override calls themselves are deferred to Part 2 (baja-dependent).
+════════════════════════════════════════════════════════════════ */
+(function() {
+'use strict';
+
+let globalConfig   = null;
+let currentMatches = [];
+const selectedIdx  = window.__muSelectedIdx = new Set();
+const enumFacetCache = window.__muEnumFacetCache = {};
+let sortState = { key: null, dir: 1 };
+
+window.__muCurrentMatches = currentMatches;
+
+function decodeName(name) {
+    if (!name) return name;
+    return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16))).replace(/_/g,' ');
+}
+window.__muDecodeName = decodeName;
+
+function log(msg, cls) {
+    const el = document.getElementById('log');
+    const div = document.createElement('div');
+    div.className = cls || 'info';
+    div.textContent = msg;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+}
+window.__muLog = log;
+
+async function getUserRole() {
+    const username = sessionStorage.getItem('username');
+    if (!username) return null;
+    try {
+        const res = await fetch('./HomeConfig.json');
+        const cfg = await res.json();
+        const user = cfg.Users.find(u => u.name.toLowerCase() === username.toLowerCase());
+        return user ? user.role.toLowerCase() : null;
+    } catch(e) { console.error('Auth error:', e); return null; }
+}
+
+function detectPointType(point) {
+    const idVal  = (point.id  || '').trim();
+    const id2Val = (point.id2 || '').trim();
+    const spTag  = [idVal, id2Val].find(v => v === 'SP-Numeric' || v === 'SP-Boolean' || v === 'SP-Enum');
+    if (spTag === 'SP-Numeric') return 'numeric';
+    if (spTag === 'SP-Boolean') return 'boolean';
+    if (spTag === 'SP-Enum')    return 'enum';
+    if (point.logBoolean === 'yes_Boolean') return 'boolean';
+    if (point.logNumeric === 'yes_Numeric') return 'numeric';
+    return 'numeric';
+}
+
+function pointMatchesFilter(point, filterKey) {
+    const f = filterKey.trim().toLowerCase();
+    const idVal  = (point.id  || '').trim().toLowerCase();
+    const id2Val = (point.id2 || '').trim().toLowerCase();
+    return idVal === f || id2Val === f || idVal.includes(f) || id2Val.includes(f);
+}
+
+async function loadGlobalConfig() {
+    if (globalConfig) return globalConfig;
+    const res = await fetch('./Global.json');
+    if (!res.ok) throw new Error(`Global.json HTTP ${res.status}`);
+    globalConfig = await res.json();
+    return globalConfig;
+}
+
+async function runFilter(filterKey) {
+    currentMatches.length = 0;
+    selectedIdx.clear();
+    sortState = { key: null, dir: 1 };
+    updateSortHeaders();
+    const searchBox = document.getElementById('deviceSearchInput');
+    if (searchBox) searchBox.value = '';
+    document.getElementById('resultsBody').innerHTML = '';
+    document.getElementById('resultsTable').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('emptyState').textContent = 'Loading…';
+
+    let cfg;
+    try { cfg = await loadGlobalConfig(); }
+    catch(err) { document.getElementById('emptyState').textContent = `Failed to load Global.json: ${err.message}`; return; }
+    const vars = cfg.globalVariables || {};
+
+     const seenPaths = new Set();
+    Object.entries(vars).forEach(([deviceName, deviceCfg]) => {
+        (deviceCfg.points || []).forEach(point => {
+            if (!point.fullPath) return;
+            if (!pointMatchesFilter(point, filterKey)) return;
+            const dedupeKey = `${deviceName}::${point.fullPath}`;
+            if (seenPaths.has(dedupeKey)) return;
+            seenPaths.add(dedupeKey);
+            currentMatches.push({ deviceName, point, type: detectPointType(point), resolvedPoint: null, path: point.fullPath });
+        });
+    });
+
+    document.getElementById('matchCountDisplay').textContent = currentMatches.length;
+
+    if (!currentMatches.length) {
+        document.getElementById('emptyState').textContent = `No points found matching "${filterKey}" in Global.json.`;
+        updateSideControls();
+        refreshSelectionSummary();
+        return;
+    }
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsTable').style.display = 'table';
+    renderTable();
+    updateSideControls();
+
+    if (window.__muBajaReadyFn) window.__muBajaReadyFn();
+}
+
+/* ══════════════════════ SORTING ══════════════════════ */
+const STATUS_SORT_RANK = { 'FAULT':0, 'OVERRIDDEN':1, 'AUTO':2, 'OFFLINE':3 };
+
+function getRowSortValue(m, key) {
+    switch(key) {
+        case 'device': return decodeName(m.deviceName).toLowerCase();
+        case 'point':  return decodeName(m.point.name).toLowerCase();
+        case 'type':   return m.type;
+        case 'live': {
+            if (!m.resolvedPoint) return -Infinity;
+            try {
+                const v = parseFloat(m.resolvedPoint.getOut().getValueDisplay());
+                return isNaN(v) ? m.resolvedPoint.getOut().getValueDisplay() : v;
+            } catch(e) { return -Infinity; }
+        }
+        case 'status': {
+            if (!m.resolvedPoint) return STATUS_SORT_RANK.OFFLINE;
+            try {
+                const s = window.__muCheckStatus ? window.__muCheckStatus(m.resolvedPoint) : 'AUTO';
+                return STATUS_SORT_RANK[s] ?? 9;
+            } catch(e) { return 9; }
+        }
+        default: return '';
+    }
+}
+
+function applySort() {
+    if (!sortState.key) return;
+    currentMatches.sort((a, b) => {
+        const av = getRowSortValue(a, sortState.key);
+        const bv = getRowSortValue(b, sortState.key);
+        let cmp;
+        if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+        else cmp = String(av).localeCompare(String(bv));
+        return cmp * sortState.dir;
+    });
+}
+
+function updateSortHeaders() {
+    document.querySelectorAll('#resultsTable thead th.sortable').forEach(th => {
+        th.classList.toggle('sort-active', th.dataset.sortKey === sortState.key);
+        const arrow = th.querySelector('.sort-arrow');
+        if (!arrow) return;
+        if (th.dataset.sortKey === sortState.key) arrow.textContent = sortState.dir === 1 ? '▲' : '▼';
+        else arrow.textContent = '▲▼';
+    });
+}
+
+document.querySelectorAll('#resultsTable thead th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        // preserve selection across sort by remembering selected paths
+        const selectedPaths = new Set([...selectedIdx].map(i => currentMatches[i]?.path).filter(Boolean));
+        const key = th.dataset.sortKey;
+        if (sortState.key === key) sortState.dir *= -1;
+        else { sortState.key = key; sortState.dir = 1; }
+        applySort();
+        // rebuild selectedIdx against new order
+        selectedIdx.clear();
+        currentMatches.forEach((m, i) => { if (selectedPaths.has(m.path)) selectedIdx.add(i); });
+        updateSortHeaders();
+        renderTable();
+        filterVisibleRows(document.getElementById('deviceSearchInput').value || '');
+        updateSideControls();
+    });
+});
+
+function renderTable() {
+    const tbody = document.getElementById('resultsBody');
+    tbody.innerHTML = '';
+    currentMatches.forEach((m, idx) => {
+        const tr = document.createElement('tr');
+        if (selectedIdx.has(idx)) tr.classList.add('row-selected');
+        tr.innerHTML = `
+            <td><input type="checkbox" class="rowChk" data-idx="${idx}" ${selectedIdx.has(idx) ? 'checked' : ''}></td>
+            <td>${decodeName(m.deviceName)}</td>
+            <td>${decodeName(m.point.name)}</td>
+            <td><span class="type-badge type-${m.type}">${m.type}</span></td>
+            <td id="live-${idx}">${window.__muBajaLoaded ? '—' : 'n/a (offline)'}</td>
+            <td id="status-${idx}"><span class="status-badge ${window.__muBajaLoaded ? 'status-auto' : 'status-offline'}">${window.__muBajaLoaded ? '—' : 'OFFLINE'}</span></td>`;
+        tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.rowChk').forEach(cb => {
+        cb.addEventListener('change', e => {
+            const i = parseInt(e.target.dataset.idx, 10);
+            const tr = e.target.closest('tr');
+            if (e.target.checked) { selectedIdx.add(i); tr?.classList.add('row-selected'); }
+            else { selectedIdx.delete(i); tr?.classList.remove('row-selected'); }
+            updateSideControls();
+            if (document.getElementById('unitdata-topbar-dropdown').classList.contains('open')) refreshSelectionSummary();
+        });
+    });
+}
+window.__muRenderTable = renderTable;
+
+
+function filterVisibleRows(searchText) {
+    const q = searchText.trim().toLowerCase();
+    let visibleCount = 0;
+    document.querySelectorAll('#resultsBody tr').forEach(tr => {
+        const cb = tr.querySelector('.rowChk');
+        if (!cb) return;
+        const idx = parseInt(cb.dataset.idx, 10);
+        const m = currentMatches[idx];
+        if (!m) return;
+        const haystack = `${decodeName(m.deviceName)} ${decodeName(m.point.name)}`.toLowerCase();
+        const match = !q || haystack.includes(q);
+        tr.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+    });
+    document.getElementById('matchCountDisplay').textContent = visibleCount;
+}
+window.__muFilterVisibleRows = filterVisibleRows;
+
+/* Debounced search input (150ms) */
+(function() {
+    let debounceTimer = null;
+    document.getElementById('deviceSearchInput').addEventListener('input', e => {
+        const val = e.target.value;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => filterVisibleRows(val), 150);
+    });
+})();
+
+function updateSideControls() {
+    const n = selectedIdx.size;
+    document.getElementById('selCount').innerHTML = `Selected: <b>${n}</b> point(s)`;
+
+    const selectedTypes = new Set([...selectedIdx].map(i => currentMatches[i].type));
+    document.getElementById('numericCtl').style.display = selectedTypes.has('numeric') ? 'flex' : 'none';
+    document.getElementById('booleanCtl').style.display = selectedTypes.has('boolean') ? 'flex' : 'none';
+    document.getElementById('enumCtl').style.display    = selectedTypes.has('enum')    ? 'flex' : 'none';
+
+    if (selectedTypes.has('enum')) {
+        const firstEnumIdx = [...selectedIdx].find(i => currentMatches[i].type === 'enum');
+        const opts = enumFacetCache[firstEnumIdx] || [];
+        const sel = document.getElementById('enumSelect');
+        sel.innerHTML = opts.length
+            ? opts.sort((a,b)=>a.ordinal-b.ordinal).map(o => `<option value="${o.ordinal}">${o.label}</option>`).join('')
+            : `<option value="">No facets found</option>`;
+    }
+
+    const applyBtn   = document.getElementById('applyBtn');
+    const releaseBtn = document.getElementById('releaseBtn');
+
+    applyBtn.textContent   = n ? `Apply Override to Selected (${n})` : 'Apply Override to Selected';
+    releaseBtn.textContent = n ? `Release Selected to Auto (${n})` : 'Release Selected to Auto';
+
+    if (!window.__muBajaLoaded) {
+        applyBtn.disabled = true; applyBtn.title = 'Override system unavailable — baja failed to load';
+        releaseBtn.disabled = true; releaseBtn.title = 'Override system unavailable — baja failed to load';
+    } else {
+        releaseBtn.disabled = n === 0;
+        releaseBtn.title = n === 0 ? 'Select at least one point' : '';
+
+        // Apply button: also require a usable value for the selected type(s)
+        let hasUsableValue = n > 0;
+        if (n > 0) {
+            if (selectedTypes.has('numeric') && !selectedTypes.has('boolean') && !selectedTypes.has('enum')) {
+                const v = document.getElementById('numericInput').value;
+                hasUsableValue = v !== '' && !isNaN(parseFloat(v));
+            } else if (selectedTypes.has('enum') && !selectedTypes.has('numeric') && !selectedTypes.has('boolean')) {
+                const v = document.getElementById('enumSelect').value;
+                hasUsableValue = v !== '' && !isNaN(parseInt(v, 10));
+            }
+            // mixed-type selections or boolean-only are always considered usable (boolean has a default command;
+            // mixed selections are validated per-row at apply time and skipped individually if unusable)
+        }
+        applyBtn.disabled = n === 0 || !hasUsableValue;
+        applyBtn.title = n === 0 ? 'Select at least one point' : (!hasUsableValue ? 'Enter a value for the selected point type first' : '');
+    }
+}
+window.__muUpdateSideControls = updateSideControls;
+
+document.getElementById('numericInput').addEventListener('input', updateSideControls);
+document.getElementById('enumSelect').addEventListener('change', updateSideControls);
+
+/* Highlight Permanent duration selection */
+const durationSelectEl = document.getElementById('durationSelect');
+function updateDurationHighlight() {
+    durationSelectEl.classList.toggle('duration-permanent', durationSelectEl.value === 'permanent');
+}
+durationSelectEl.addEventListener('change', updateDurationHighlight);
+updateDurationHighlight();
+
+document.getElementById('selectAllBox').addEventListener('change', e => {
+    const check = e.target.checked;
+    document.querySelectorAll('#resultsBody tr').forEach(tr => {
+        if (tr.style.display === 'none') return; // skip filtered-out rows
+        const cb = tr.querySelector('.rowChk');
+        if (!cb) return;
+        cb.checked = check;
+        const i = parseInt(cb.dataset.idx, 10);
+        if (check) { selectedIdx.add(i); tr.classList.add('row-selected'); }
+        else { selectedIdx.delete(i); tr.classList.remove('row-selected'); }
+    });
+    updateSideControls();
+});
+document.getElementById('selAllBtn').addEventListener('click', () => {
+    const box = document.getElementById('selectAllBox');
+    box.checked = !box.checked;
+    box.dispatchEvent(new Event('change'));
+});
+
+function buildOverrideSummary() {
+    const n = selectedIdx.size;
+    const durationKey = document.getElementById('durationSelect').value;
+    const durationLabel = document.getElementById('durationSelect').selectedOptions[0].textContent;
+    const selectedTypes = new Set([...selectedIdx].map(i => currentMatches[i].type));
+    let valueDesc = '';
+    if (selectedTypes.size === 1) {
+        const t = [...selectedTypes][0];
+        if (t === 'numeric') valueDesc = `set to <b>${document.getElementById('numericInput').value || '—'}</b>`;
+        else if (t === 'boolean') valueDesc = `commanded <b>${document.getElementById('booleanSelect').selectedOptions[0].textContent}</b>`;
+        else if (t === 'enum') valueDesc = `set to <b>${document.getElementById('enumSelect').selectedOptions[0]?.textContent || '—'}</b>`;
+    } else {
+        valueDesc = 'overridden per their individual controls';
+    }
+    return `You're about to override <b>${n} point${n===1?'':'s'}</b>, ${valueDesc}, for <b>${durationLabel}</b>.` +
+        (durationKey === 'permanent' ? '<br><br>⚠ This is a <b>permanent</b> override — it will stay in effect until manually released.' : '');
+}
+
+document.getElementById('applyBtn').addEventListener('click', async () => {
+    if (!window.__muBajaLoaded) { log('✗ Override system unavailable — baja never loaded.', 'err'); return; }
+    if (!selectedIdx.size) { log('No points selected.', 'err'); return; }
+    const n = selectedIdx.size;
+    const durationKey = document.getElementById('durationSelect').value;
+    const doApply = () => window.__muApplyOverride();
+    if (n > 1 || durationKey === 'permanent') {
+        window.__muConfirm({
+            title: 'Confirm Mass Override',
+            bodyHTML: buildOverrideSummary(),
+            okLabel: `Override ${n} Point${n===1?'':'s'}`,
+            danger: durationKey === 'permanent',
+            onConfirm: doApply
+        });
+    } else {
+        doApply();
+    }
+});
+document.getElementById('releaseBtn').addEventListener('click', async () => {
+    if (!window.__muBajaLoaded) { log('✗ Override system unavailable — baja never loaded.', 'err'); return; }
+    if (!selectedIdx.size) { log('No points selected.', 'err'); return; }
+    const n = selectedIdx.size;
+    const doRelease = () => window.__muReleaseSelected();
+    if (n > 1) {
+        window.__muConfirm({
+            title: 'Confirm Release to Auto',
+            bodyHTML: `You're about to release <b>${n} points</b> back to AUTO control.`,
+            okLabel: `Release ${n} Points`,
+            danger: false,
+            onConfirm: doRelease
+        });
+    } else {
+        doRelease();
+    }
+});
+
+document.getElementById('idFilterSelect').addEventListener('change', e => {
+    const key = e.target.value;
+    if (key) runFilter(key);
+    else {
+        currentMatches.length = 0;
+        selectedIdx.clear();
+        document.getElementById('resultsTable').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('emptyState').textContent = 'Select a point-ID filter above to load matching points from every device.';
+        document.getElementById('matchCountDisplay').textContent = '0';
+        updateSideControls();
+    }
+});
+
+(async () => {
+    const role = await getUserRole();
+    const ALLOWED = ['admin', 'tech', 'tech2'];
+    if (!role || !ALLOWED.includes(role)) {
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--red);font-family:var(--font-head);">🚫 You do not have rights to use Mass Override.</div>';
+        throw new Error('Unauthorized');
+    }
+    document.getElementById('userInfo').textContent = `${sessionStorage.getItem('username')} · ${role.toUpperCase()}`;
+})();
+
+})();
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   PART 2 — BAJA-DEPENDENT: live values, facet lookups, override calls.
+════════════════════════════════════════════════════════════════ */
+window.__muBajaLoaded = false;
+
+function __muShowBajaWarning(msg) {
+    const w = document.getElementById('bajaWarning');
+    if (!w) return;
+    w.style.display = 'block';
+    w.textContent = msg;
+}
+
+setTimeout(() => {
+    if (!window.__muBajaLoaded) {
+        __muShowBajaWarning(
+            '⚠ Override system offline: the Niagara baja module failed to load (commonly a 403/404 on ' +
+            '/requirejs/config.js — this page needs to be opened through an authenticated Niagara web session, ' +
+            'not a raw file/download view). You can still browse and search points below; overrides are disabled.'
+        );
+        if (window.__muUpdateSideControls) window.__muUpdateSideControls();
+        if (window.__muCurrentMatches && window.__muCurrentMatches.length && window.__muRenderTable) window.__muRenderTable();
+    }
+}, 5000);
+
+if (window.requirejs) {
+    requirejs.onError = function(err) {
+        console.error('RequireJS error:', err);
+        if (!window.__muBajaLoaded) {
+            __muShowBajaWarning(
+                '⚠ Override system offline: RequireJS failed to load the baja module (' + (err.requireType || 'load error') +
+                '). This is a hosting/permissions issue, not a bug in the point search. Overrides are disabled; ' +
+                'the point list below still works.'
+            );
+            if (window.__muUpdateSideControls) window.__muUpdateSideControls();
+        }
+    };
+}
+
+require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride', 'baja!control:EnumOverride'], function(baja) {
+'use strict';
+window.__muBajaLoaded = true;
+document.getElementById('bajaWarning').style.display = 'none';
+
+const subscriber = new baja.Subscriber();
+const decodeName = window.__muDecodeName;
+const log        = window.__muLog;
+const enumFacetCache = window.__muEnumFacetCache;
+
+function parseFacetString(s) {
+    const opts  = [];
+    const pairs = s.replace(/[{}]/g,'').match(/([^,=]+)=(\d+)/g);
+    if (pairs) pairs.forEach(p => { const [l,o] = p.split('='); opts.push({ ordinal: parseInt(o,10), label: l.trim() }); });
+    return opts;
+}
+function parseFacetsFromPoint(point) {
+    try {
+        const facets = point.getFacets ? point.getFacets() : null;
+        if (facets) {
+            const range = facets.get ? facets.get('range') : null;
+            if (range) {
+                if (typeof range.getSize === 'function') {
+                    const opts = [];
+                    for (let i = 0; i < range.getSize(); i++) {
+                        const entry = range.get(i);
+                        opts.push({ ordinal: entry.getOrdinal(), label: (entry.getDisplayName && entry.getDisplayName()) || (entry.getTag && entry.getTag()) || String(entry.getOrdinal()) });
+                    }
+                    if (opts.length) return opts;
+                }
+                const r1 = parseFacetString(range.toString());
+                if (r1.length) return r1;
+            }
+        }
+    } catch(e) {}
+    try {
+        const out = point.getOut ? point.getOut() : null;
+        const outFacets = out && out.getFacets ? out.getFacets() : null;
+        const range = outFacets && outFacets.get ? outFacets.get('range') : null;
+        if (range) { const r2 = parseFacetString(range.toString()); if (r2.length) return r2; }
+    } catch(e) {}
+    return [];
+}
+
+function performNumericOverride(point, value, durationSec) {
+    const p = baja.$('control:NumericOverride');
+    p.setValue(value);
+    if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+    return point.invoke({ slot:'override', value:p });
+}
+function performActiveOverride(point, durationSec) {
+    const p = baja.$('control:Override');
+    if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+    return point.invoke({ slot:'active', value:p });
+}
+function performInactiveOverride(point, durationSec) {
+    const p = baja.$('control:Override');
+    if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+    return point.invoke({ slot:'inactive', value:p });
+}
+function performEnumOverride(point, ordinal, durationSec) {
+    let d = null;
+    if (baja.DynamicEnum && typeof baja.DynamicEnum.make === 'function') {
+        try { d = baja.DynamicEnum.make(ordinal); } catch(e) {}
+    }
+    if (!d) { d = baja.$('baja:DynamicEnum'); if (typeof d.setOrdinal === 'function') d.setOrdinal(ordinal); }
+    const p = baja.$('control:EnumOverride');
+    p.setValue(d);
+    if (durationSec !== null) p.setDuration(baja.RelTime.make({ seconds: durationSec }));
+    return point.invoke({ slot:'override', value:p });
+}
+function releaseToAuto(point) {
+    return point.invoke({ slot:'auto' });
+}
+function checkIfOverridden(point) {
+    try {
+        const s = point.getOut().getStatus()?.toString().toLowerCase() || '';
+        if (s.includes('overridden') || s.includes('manual')) return 'OVERRIDDEN';
+        if (s.includes('fault') || s.includes('alarm') || s.includes('down')) return 'FAULT';
+        return 'AUTO';
+    } catch(e) { return 'AUTO'; }
+}
+window.__muCheckStatus = checkIfOverridden;
+
+function updateRowLive(idx) {
+    const matches = window.__muCurrentMatches;
+    const m = matches[idx];
+    if (!m || !m.resolvedPoint) return;
+    const liveEl   = document.getElementById(`live-${idx}`);
+    const statusEl = document.getElementById(`status-${idx}`);
+    if (!liveEl || !statusEl) return;
+    try {
+        liveEl.textContent = m.resolvedPoint.getOut().getValueDisplay() || '—';
+        const st = checkIfOverridden(m.resolvedPoint);
+        const cls = st === 'OVERRIDDEN' ? 'status-overridden' : st === 'FAULT' ? 'status-fault' : 'status-auto';
+        statusEl.innerHTML = `<span class="status-badge ${cls}">${st}</span>`;
+    } catch(e) {}
+    updateSystemOverrideCount();
+}
+
+function updateSystemOverrideCount() {
+    const matches = window.__muCurrentMatches || [];
+    let count = 0;
+    matches.forEach(m => {
+        if (!m.resolvedPoint) return;
+        try { if (checkIfOverridden(m.resolvedPoint) === 'OVERRIDDEN') count++; } catch(e) {}
+    });
+    const el = document.getElementById('overrideStatCount');
+    const wrap = document.getElementById('overrideStat');
+    if (el) el.textContent = count;
+    if (wrap) wrap.classList.toggle('has-overrides', count > 0);
+}
+
+subscriber.attach('changed', function(prop) {
+    if (prop.getName() !== 'out') return;
+    if (this._muIdx !== undefined) updateRowLive(this._muIdx);
+});
+
+async function resolveAllMatches() {
+    const matches = window.__muCurrentMatches;
+    await Promise.all(matches.map(async (m, idx) => {
+        if (m.resolvedPoint) return;
+        try {
+            const point = await baja.Ord.make(m.path).get({ subscriber });
+            point._muIdx = idx;
+            m.resolvedPoint = point;
+            updateRowLive(idx);
+            if (m.type === 'enum') enumFacetCache[idx] = parseFacetsFromPoint(point);
+        } catch(err) {
+            const statusEl = document.getElementById(`status-${idx}`);
+            if (statusEl) statusEl.innerHTML = `<span class="status-badge status-fault">ERR</span>`;
+        }
+    }));
+    updateSystemOverrideCount();
+}
+
+window.__muBajaReadyFn = function() {
+    if (window.__muCurrentMatches && window.__muCurrentMatches.length) {
+        window.__muRenderTable();
+        resolveAllMatches();
+        window.__muUpdateSideControls();
+    }
+};
+window.__muBajaReadyFn();
+
+const DURATION_MAP = { '1min':60,'5min':300,'30min':1800,'1hour':3600,'2hours':7200,'4hours':14400,'8hours':28800 };
+
+window.__muApplyOverride = async function() {
+    const matches = window.__muCurrentMatches;
+    const selectedIdx = window.__muSelectedIdx;
+    const durationKey = document.getElementById('durationSelect').value;
+    const durationSec = durationKey === 'permanent' ? null : DURATION_MAP[durationKey];
+    const numVal   = parseFloat(document.getElementById('numericInput').value);
+    const boolCmd  = document.getElementById('booleanSelect').value;
+    const enumOrd  = parseInt(document.getElementById('enumSelect').value, 10);
+
+    for (const idx of selectedIdx) {
+        const m = matches[idx];
+        if (!m.resolvedPoint) { log(`✗ ${decodeName(m.point.name)}: not yet resolved`, 'err'); continue; }
+        try {
+            if (m.type === 'numeric') {
+                if (isNaN(numVal)) { log(`↷ Skipped ${decodeName(m.point.name)}: no numeric value entered`, 'err'); continue; }
+                await performNumericOverride(m.resolvedPoint, numVal, durationSec);
+            } else if (m.type === 'boolean') {
+                if (boolCmd === 'on')       await performActiveOverride(m.resolvedPoint, durationSec);
+                else if (boolCmd === 'off') await performInactiveOverride(m.resolvedPoint, durationSec);
+                else                        await releaseToAuto(m.resolvedPoint);
+            } else if (m.type === 'enum') {
+                if (isNaN(enumOrd)) { log(`↷ Skipped ${decodeName(m.point.name)}: no enum value selected`, 'err'); continue; }
+                await performEnumOverride(m.resolvedPoint, enumOrd, durationSec);
+            }
+            log(`✓ ${decodeName(m.deviceName)} — ${decodeName(m.point.name)}`, 'ok');
+        } catch(err) {
+            log(`✗ ${decodeName(m.deviceName)} — ${decodeName(m.point.name)}: ${err.message}`, 'err');
+        }
+    }
+    setTimeout(() => { matches.forEach((m, i) => updateRowLive(i)); updateSystemOverrideCount(); }, 800);
+};
+
+window.__muReleaseSelected = async function() {
+    const matches = window.__muCurrentMatches;
+    const selectedIdx = window.__muSelectedIdx;
+    for (const idx of selectedIdx) {
+        const m = matches[idx];
+        if (!m.resolvedPoint) continue;
+        try { await releaseToAuto(m.resolvedPoint); log(`✓ Released ${decodeName(m.deviceName)} — ${decodeName(m.point.name)} to AUTO`, 'ok'); }
+        catch(err) { log(`✗ Failed to release ${decodeName(m.point.name)}: ${err.message}`, 'err'); }
+    }
+    setTimeout(() => { matches.forEach((m, i) => updateRowLive(i)); updateSystemOverrideCount(); }, 800);
+};
+
+window.addEventListener('beforeunload', () => { try { subscriber.unsubscribeAll(); } catch(e) {} });
+
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     HISTORY LOADER — shared by the Live Trend Studio
+════════════════════════════════════════════════════════════════════════ -->
+<script>
+let __muHistoryOrdCache = new Map();
+
+async function discoverAHUHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        require(['baja!'], function(baja) {
+            baja.Ord.make(pointOrd).get().then(e => e.tags()).then(tagMap => {
+                const tag = tagMap.get('n:history');
+                if (tag && tag.toString().trim()) {
+                    let path = tag.toString();
+                    if (!path.startsWith('history:')) path = 'history:' + path;
+                    resolve(path);
+                } else reject(new Error('No n:history tag on: ' + pointOrd));
+            }).catch(e => reject(new Error('Failed tags: ' + e.message)));
+        });
+    });
+}
+
+async function loadAHUHistoryData(pointPath, startTime, endTime, maxPoints=5000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let historyOrd = __muHistoryOrdCache.get(pointPath);
+            if (!historyOrd) {
+                try { historyOrd = await discoverAHUHistoryOrd(pointPath); __muHistoryOrdCache.set(pointPath, historyOrd); }
+                catch(e) { resolve([]); return; }
+            }
+            require(['baja!'], function(baja) {
+                const q = `${historyOrd}|bql:select timestamp, value where timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}' order by timestamp`;
+                const pts = [];
+                baja.Ord.make(q).get({ cursor: { limit:maxPoints, each: function() {
+                    const row  = this.get();
+                    const date = new Date(row.get("timestamp").getMillis());
+                    pts.push({ timestamp: date, timestampString: date.toLocaleString(), value: row.get("value") });
+                }}})
+                .then(()=>resolve(pts)).catch(e=>reject(new Error('BQL failed: '+e.message)));
+            });
+        } catch(e) { reject(e); }
+    });
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     LIVE TREND STUDIO — points sourced from every device in Global.json
+════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+    'use strict';
+    const GU_COLORS = ['#00c8ff','#00e676','#ffab00','#d516df','#ff4444','#7b5ea7','#00e6b8','#ff8a3d','#5ec2ff','#c9ff5e'];
+
+    let guConfig            = null;
+    let guSeries            = [];
+    let guSeriesCounter     = 0;
+    let guCombinedZoom      = { start: 0, end: 1 };
+    let guCombinedDragging  = false;
+    let guCombinedDragX0    = 0;
+    let guCombinedDragZoom0 = null;
+
+    function decodeName(name) {
+        if (!name) return name;
+        return name.replace(/\$([0-9a-fA-F]{2})/g, (m,h) => String.fromCharCode(parseInt(h,16))).replace(/_/g,' ');
+    }
+
+    async function guLoadConfig() {
+        if (guConfig) return guConfig;
+        const res  = await fetch('./Global.json');
+        const data = await res.json();
+        const vars = data.globalVariables || {};
+        const points = [];
+        Object.entries(vars).forEach(([deviceName, deviceCfg]) => {
+            (deviceCfg.points || []).forEach(p => {
+                if (!p.fullPath) return;
+                if (['Note1','Note2','Note3','StringWritable'].includes(p.name)) return;
+                points.push({ name: p.name, label: `${decodeName(deviceName)} — ${decodeName(p.name)}`, fullPath: p.fullPath, unit: p.unit || '' });
+            });
+        });
+        points.sort((a,b) => a.label.localeCompare(b.label));
+        guConfig = { points };
+        return guConfig;
+    }
+
+    window.openGraphUtilityModal = async function() {
+        const overlay = document.getElementById('gu-overlay');
+        if (!overlay) return;
+        overlay.classList.add('active');
+        const titleEl = document.getElementById('gu-unit-title');
+        if (titleEl) titleEl.textContent = 'Loading…';
+        try {
+            await guLoadConfig();
+            if (titleEl) titleEl.textContent = 'All Devices — Mass Override';
+            const dateInput = document.getElementById('gu-date');
+            if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().slice(0,10);
+            if (!guSeries.length) guAddSeriesCard();
+            else guRenderSeriesRow();
+        } catch(err) {
+            if (titleEl) titleEl.textContent = 'Error loading configuration';
+            console.error('Graph utility load failed:', err);
+        }
+    };
+    window.closeGraphUtilityModal = function() {
+        document.getElementById('gu-overlay')?.classList.remove('active');
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const overlay = document.getElementById('gu-overlay');
+        if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) closeGraphUtilityModal(); });
+    });
+
+    function guAddSeriesCard() {
+        const uid   = 'gu-s' + (++guSeriesCounter);
+        const color = GU_COLORS[guSeries.length % GU_COLORS.length];
+        guSeries.push({ uid, name:'', path:'', unit:'', color, data:[], loading:false });
+        guRenderSeriesRow();
+    }
+    function guRemoveSeriesCard(uid) {
+        guSeries = guSeries.filter(s => s.uid !== uid);
+        guRenderSeriesRow(); guRenderIndividualCharts(); guRenderCombinedChart();
+    }
+    function guRenderSeriesRow() {
+        const row = document.getElementById('gu-series-row');
+        if (!row) return;
+        const cardsHTML = guSeries.map(s => {
+            const options = (guConfig?.points || []).map(p => `<option value="${p.name}|${p.fullPath}" ${p.fullPath === s.path ? 'selected' : ''}>${p.label}</option>`).join('');
+            return `
+            <div class="gu-series-card" data-uid="${s.uid}">
+                <div class="gu-series-card-head">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                        <span class="gu-series-swatch" style="background:${s.color};"></span>
+                        <span class="gu-series-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.name ? decodeName(s.name) : 'Select Point'}</span>
+                    </div>
+                    <button class="gu-series-remove" onclick="window.__guRemoveSeries('${s.uid}')">✕</button>
+                </div>
+                <select onchange="window.__guSeriesPointChange('${s.uid}', this.value)">
+                    <option value="">— Select Point —</option>${options}
+                </select>
+            </div>`;
+        }).join('');
+        row.innerHTML = cardsHTML + `<div class="gu-add-series" onclick="window.__guAddSeries()">+ Add Point</div>`;
+    }
+    window.__guAddSeries = guAddSeriesCard;
+    window.__guRemoveSeries = guRemoveSeriesCard;
+    window.__guSeriesPointChange = function(uid, val) {
+        const s = guSeries.find(x => x.uid === uid);
+        if (!s) return;
+        if (!val) { s.name=''; s.path=''; s.unit=''; s.data=[]; }
+        else {
+            const [name, fullPath] = val.split('|');
+            const pt = (guConfig?.points || []).find(p => p.fullPath === fullPath);
+            s.name = name; s.path = fullPath; s.unit = pt ? pt.unit : '';
+        }
+        guRenderSeriesRow(); guRenderIndividualCharts(); guRenderCombinedChart();
+    };
+
+    window.guRefresh = async function() {
+        const active = guSeries.filter(s => s.path);
+        if (!active.length) {
+            document.getElementById('gu-combined-empty').style.display = 'block';
+            document.getElementById('gu-individual-wrap').innerHTML = '';
+            return;
+        }
+        const dateVal  = document.getElementById('gu-date')?.value;
+        const rangeVal = document.getElementById('gu-range')?.value || 'all';
+        let endTime, startTime;
+        if (dateVal) {
+            const dayStart = new Date(dateVal + 'T00:00:00');
+            const dayEnd   = new Date(dateVal + 'T23:59:59');
+            const now      = new Date();
+            endTime   = dayEnd > now ? now : dayEnd;
+            startTime = dayStart;
+        } else { endTime = new Date(); startTime = new Date(endTime.getTime() - 86400000); }
+        if (rangeVal !== 'all') {
+            const mins = parseInt(rangeVal, 10);
+            const rangedStart = new Date(endTime.getTime() - mins * 60000);
+            if (rangedStart > startTime) startTime = rangedStart;
+        }
+        active.forEach(s => s.loading = true);
+        guRenderIndividualCharts();
+        await Promise.all(active.map(async s => {
+            try { s.data = await loadAHUHistoryData(s.path, startTime, endTime, 4000); }
+            catch(err) { console.error('Failed to load history for', s.name, err); s.data = []; }
+            s.loading = false;
+        }));
+        guRenderIndividualCharts();
+        guCombinedZoom = { start: 0, end: 1 };
+        guRenderCombinedChart();
+    };
+
+    function guRenderIndividualCharts() {
+        const wrap = document.getElementById('gu-individual-wrap');
+        if (!wrap) return;
+        const active = guSeries.filter(s => s.path);
+        wrap.innerHTML = active.map(s => `
+            <div class="gu-ind-card" data-uid="${s.uid}">
+                <div class="gu-ind-head"><span class="gu-ind-title" style="color:${s.color}">● ${decodeName(s.name)}</span></div>
+                <div class="gu-ind-stats" id="gu-ind-stats-${s.uid}"></div>
+                <div class="gu-ind-canvas-wrap"><canvas id="gu-ind-canvas-${s.uid}" height="140"></canvas></div>
+            </div>`).join('');
+        active.forEach(s => {
+            const canvas  = document.getElementById(`gu-ind-canvas-${s.uid}`);
+            const statsEl = document.getElementById(`gu-ind-stats-${s.uid}`);
+            if (!canvas) return;
+            if (s.loading) {
+                canvas.width = canvas.offsetWidth || 300; canvas.height = 140;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = '#a596c0'; ctx.font = '11px Courier New'; ctx.textAlign = 'center';
+                ctx.fillText('Loading…', canvas.width/2, canvas.height/2);
+                return;
+            }
+            guDrawIndividualChart(canvas, s);
+            if (statsEl) guUpdateIndStats(statsEl, s);
+        });
+    }
+    function guUpdateIndStats(el, s) {
+        const vals = s.data.map(d => typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value)).filter(v => !isNaN(v));
+        if (!vals.length) { el.innerHTML = '<span>No numeric data</span>'; return; }
+        const min = Math.min(...vals), max = Math.max(...vals), avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+        const u = s.unit ? ' ' + s.unit : '';
+        el.innerHTML = `<span>Min: <b>${min.toFixed(2)}${u}</b></span><span>Avg: <b>${avg.toFixed(2)}${u}</b></span><span>Max: <b>${max.toFixed(2)}${u}</b></span><span>n=<b>${vals.length}</b></span>`;
+    }
+    function guDrawIndividualChart(canvas, s) {
+        const W = canvas.offsetWidth || canvas.parentElement.offsetWidth || 400, H = 140;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = W*dpr; canvas.height = H*dpr; canvas.style.width = W+'px'; canvas.style.height = H+'px';
+        const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+        const pad = { top:8, right:10, bottom:18, left:44 };
+        const gW = W - pad.left - pad.right, gH = H - pad.top - pad.bottom;
+        ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect(pad.left, pad.top, gW, gH);
+        const rawVals = s.data.map(d => typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value)).filter(v => !isNaN(v));
+        if (!rawVals.length) { ctx.fillStyle = '#6a6480'; ctx.font = '10px Courier New'; ctx.textAlign = 'center'; ctx.fillText('No numeric data', W/2, H/2); return; }
+        const minV = Math.min(...rawVals), maxV = Math.max(...rawVals);
+        const rangeV = (maxV - minV) || 1, padV = rangeV*0.12, lo = minV-padV, hi = maxV+padV, rng = hi-lo;
+        const xOf = i => pad.left + (i / Math.max(s.data.length-1,1)) * gW;
+        const yOf = v => pad.top + gH - ((v-lo)/rng) * gH;
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+        for (let i=0;i<=2;i++) { const y = pad.top + (gH/2)*i; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+gW,y); ctx.stroke(); }
+        ctx.fillStyle = '#a596c0'; ctx.font = '9px Courier New'; ctx.textAlign = 'right';
+        ctx.fillText(hi.toFixed(1), pad.left-4, pad.top+8);
+        ctx.fillText(lo.toFixed(1), pad.left-4, pad.top+gH);
+        ctx.beginPath(); let first = true;
+        s.data.forEach((d,i) => { const v = typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value); if (isNaN(v)) return; first ? ctx.moveTo(xOf(i), yOf(v)) : ctx.lineTo(xOf(i), yOf(v)); first = false; });
+        ctx.strokeStyle = s.color; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
+    }
+    function guGetVisibleRange() {
+        const active = guSeries.filter(s => s.path && s.data.length);
+        if (!active.length) return null;
+        let minT = Infinity, maxT = -Infinity;
+        active.forEach(s => s.data.forEach(d => { const t = d.timestamp.getTime(); if (t<minT) minT=t; if (t>maxT) maxT=t; }));
+        return { minT, maxT, active };
+    }
+    function guRenderCombinedChart() {
+        const canvas = document.getElementById('gu-combined-canvas');
+        const emptyEl = document.getElementById('gu-combined-empty');
+        const resetBtn = document.getElementById('gu-reset-zoom');
+        if (!canvas) return;
+        const range = guGetVisibleRange();
+        if (!range) {
+            if (emptyEl) emptyEl.style.display = 'block';
+            const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+            if (resetBtn) resetBtn.style.display = 'none';
+            return;
+        }
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = (guCombinedZoom.start > 0 || guCombinedZoom.end < 1) ? 'inline-block' : 'none';
+        guDrawCombinedChart(canvas, range);
+    }
+    function guDrawCombinedChart(canvas, range) {
+        const wrap = document.getElementById('gu-combined-canvas-wrap');
+        const W = wrap.offsetWidth || 900, H = wrap.offsetHeight || 340;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = W*dpr; canvas.height = H*dpr; canvas.style.width = W+'px'; canvas.style.height = H+'px';
+        const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+        const pad = { top:20, right:20, bottom:36, left:20 };
+        const gW = W - pad.left - pad.right, gH = H - pad.top - pad.bottom;
+        ctx.fillStyle = '#0d0b14'; ctx.fillRect(pad.left, pad.top, gW, gH);
+        const fullSpan = range.maxT - range.minT || 1;
+        const zStart = range.minT + guCombinedZoom.start * fullSpan;
+        const zEnd   = range.minT + guCombinedZoom.end   * fullSpan;
+        const zSpan  = (zEnd - zStart) || 1;
+        const xOf = t => pad.left + ((t - zStart)/zSpan) * gW;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+        ctx.fillStyle = '#8a84a0'; ctx.font = '9px Courier New'; ctx.textAlign = 'center';
+        for (let i=0;i<=5;i++) {
+            const t = zStart + (zSpan/5)*i, x = xOf(t);
+            ctx.beginPath(); ctx.moveTo(x,pad.top); ctx.lineTo(x,pad.top+gH); ctx.stroke();
+            const dt = new Date(t);
+            ctx.fillText(dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), x, pad.top+gH+14);
+            ctx.fillText(dt.toLocaleDateString([], {month:'short',day:'numeric'}), x, pad.top+gH+26);
+        }
+        ctx.save(); ctx.beginPath(); ctx.rect(pad.left, pad.top, gW, gH); ctx.clip();
+        range.active.forEach(s => {
+            const rawVals = s.data.map(d => typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value)).filter(v=>!isNaN(v));
+            if (!rawVals.length) return;
+            const minV = Math.min(...rawVals), maxV = Math.max(...rawVals), rngV = (maxV-minV) || 1;
+            const yOf = v => pad.top + gH - ((v-minV)/rngV) * gH * 0.9 - gH*0.05;
+            ctx.beginPath(); let first = true;
+            s.data.forEach(d => {
+                const v = typeof d.value === 'boolean' ? (d.value?1:0) : parseFloat(d.value);
+                if (isNaN(v)) return;
+                const x = xOf(d.timestamp.getTime()), y = yOf(v);
+                first ? ctx.moveTo(x,y) : ctx.lineTo(x,y); first = false;
+            });
+            ctx.strokeStyle = s.color; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke();
+        });
+        if (canvas._guHoverT !== undefined) {
+            const hx = xOf(canvas._guHoverT);
+            if (hx >= pad.left && hx <= pad.left+gW) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+                ctx.beginPath(); ctx.moveTo(hx,pad.top); ctx.lineTo(hx,pad.top+gH); ctx.stroke(); ctx.setLineDash([]);
+            }
+        }
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(123,94,167,0.35)'; ctx.lineWidth = 1;
+        ctx.strokeRect(pad.left, pad.top, gW, gH);
+        canvas._guState = { xOf, pad, gW, gH, zStart, zEnd, zSpan, range };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('gu-combined-canvas');
+        const wrap = document.getElementById('gu-combined-canvas-wrap');
+        const readout = document.getElementById('gu-readout');
+        if (!canvas || !wrap) return;
+        canvas.addEventListener('mousedown', e => { guCombinedDragging = true; guCombinedDragX0 = e.clientX; guCombinedDragZoom0 = { ...guCombinedZoom }; wrap.style.cursor = 'grabbing'; });
+        window.addEventListener('mouseup', () => { guCombinedDragging = false; wrap.style.cursor = 'crosshair'; });
+        canvas.addEventListener('mousemove', e => {
+            const st = canvas._guState;
+            if (!st) return;
+            if (guCombinedDragging) {
+                const rect = wrap.getBoundingClientRect();
+                const dx = (e.clientX - guCombinedDragX0) / rect.width;
+                const span = guCombinedDragZoom0.end - guCombinedDragZoom0.start;
+                let ns = guCombinedDragZoom0.start - dx*span, ne = guCombinedDragZoom0.end - dx*span;
+                if (ns<0) { ne-=ns; ns=0; } if (ne>1) { ns-=(ne-1); ne=1; }
+                guCombinedZoom = { start: Math.max(0,ns), end: Math.min(1,ne) };
+                guRenderCombinedChart(); return;
+            }
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.offsetWidth / rect.width;
+            const mx = (e.clientX - rect.left) * scaleX;
+            if (mx < st.pad.left || mx > st.pad.left+st.gW) { if (readout) readout.classList.remove('visible'); return; }
+            const frac = (mx - st.pad.left) / st.gW;
+            const t = st.zStart + frac * st.zSpan;
+            canvas._guHoverT = t;
+            let html = `<div style="color:#ffffff;font-size:13px;margin-bottom:4px;">${new Date(t).toLocaleString()}</div>`;
+            st.range.active.forEach(s => {
+                if (!s.data.length) return;
+                let nearest = s.data[0], bestDiff = Infinity;
+                s.data.forEach(d => { const diff = Math.abs(d.timestamp.getTime() - t); if (diff < bestDiff) { bestDiff = diff; nearest = d; } });
+                const v = typeof nearest.value === 'boolean' ? (nearest.value?'ON':'OFF') : (isNaN(parseFloat(nearest.value)) ? String(nearest.value) : parseFloat(nearest.value).toFixed(2));
+                const u = s.unit && typeof nearest.value !== 'boolean' ? ' '+s.unit : '';
+                html += `<div style="display:flex;justify-content:space-between;gap:14px;"><span style="color:${s.color}">● ${decodeName(s.name)}</span><b>${v}${u}</b></div>`;
+            });
+            if (readout) { readout.innerHTML = html; readout.classList.add('visible'); }
+            guRenderCombinedChart();
+        });
+        canvas.addEventListener('mouseleave', () => { if (readout) readout.classList.remove('visible'); canvas._guHoverT = undefined; guRenderCombinedChart(); });
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) / rect.width;
+            const span = guCombinedZoom.end - guCombinedZoom.start;
+            const factor = e.deltaY > 0 ? 1.15 : 0.87;
+            const nspan = Math.min(1, Math.max(0.02, span*factor));
+            let ns = guCombinedZoom.start + mx*span - mx*nspan, ne = ns + nspan;
+            if (ns<0) { ne-=ns; ns=0; } if (ne>1) { ns-=(ne-1); ne=1; }
+            guCombinedZoom = { start: Math.max(0,ns), end: Math.min(1,ne) };
+            guRenderCombinedChart();
+        }, { passive:false });
+        const ro = new ResizeObserver(() => guRenderCombinedChart());
+        ro.observe(wrap);
+    });
+
+    window.guResetZoom = function() { guCombinedZoom = { start:0, end:1 }; guRenderCombinedChart(); };
+
+    window.guExportCSV = function() {
+        const active = guSeries.filter(s => s.path && s.data.length);
+        if (!active.length) { alert('No data to export. Click Refresh first.'); return; }
+        const tsSet = new Set();
+        active.forEach(s => s.data.forEach(d => tsSet.add(d.timestamp.getTime())));
+        const allTs = Array.from(tsSet).sort((a,b)=>a-b);
+        const header = ['Timestamp', ...active.map(s => decodeName(s.name) + (s.unit ? ` (${s.unit})` : ''))];
+        const rows = [header.join(',')];
+        const maps = active.map(s => { const m = new Map(); s.data.forEach(d => m.set(d.timestamp.getTime(), d.value)); return m; });
+        allTs.forEach(t => {
+            const row = [new Date(t).toLocaleString()];
+            maps.forEach(m => { const v = m.get(t); row.push(v === undefined ? '' : (typeof v === 'boolean' ? (v?'ON':'OFF') : v)); });
+            rows.push(row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+        });
+        const blob = new Blob([rows.join('\n')], { type:'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `mass_override_trend_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    };
+    window.guExportPNG = function() {
+        const canvas = document.getElementById('gu-combined-canvas');
+        if (!canvas) return;
+        const active = guSeries.filter(s => s.path && s.data.length);
+        if (!active.length) { alert('No chart to export. Click Refresh first.'); return; }
+        const dpr = window.devicePixelRatio || 1;
+        const out = document.createElement('canvas');
+        out.width = canvas.width; out.height = canvas.height + 40*dpr;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#0d0b14'; ctx.fillRect(0,0,out.width,out.height);
+        ctx.drawImage(canvas, 0, 40*dpr);
+        ctx.fillStyle = '#e8ecf4'; ctx.font = `${14*dpr}px Arial`;
+        ctx.fillText('Mass Override — Combined Overlay', 10*dpr, 22*dpr);
+        out.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `mass_override_chart_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.png`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        });
+    };
+})();
+</script>
+
+</body>
+</html>

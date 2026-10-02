@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "zones": {
+    "CAV_101": {
+      "pos": [
+        1,
+        1.895,
+        -0.833
+      ]
+    },
+    "CAV_114": {
+      "pos": [
+        1,
+        1.937,
+        0.714
+      ]
+    },
+    "CAV_102": {
+      "pos": [
+        0.949,
+        1.749,
+        1
+      ]
+    }
+  },
+  "images": [
+    {
+      "src": "place",
+      "pos": [
+        1,
+        1.895,
+        -0.833
+      ],
+      "s": 1
+    },
+    {
+      "src": "place",
+      "pos": [
+        0.662,
+        1.917,
+        1
+      ],
+      "s": 1
+    },
+    {
+      "src": "place",
+      "pos": [
+        0.949,
+        1.749,
+        1
+      ],
+      "s": 1
+    },
+    {
+      "src": "place",
+      "pos": [
+        1,
+        1.937,
+        0.714
+      ],
+      "s": 1
+    }
+  ],
+  "highlights": [
+    {
+      "id": "hl_1790951303028",
+      "name": "Floor 0 — Lower Level",
+      "href": "Floor_Plans/Lower_Level_Floor0.html",
+      "color": "#00b4ff",
+      "poly": null,
+      "box": {
+        "min": [
+          -1.004,
+          -0.001,
+          -1.004
+        ],
+        "max": [
+          1.004,
+          0.355,
+          1.004
+        ]
+      }
+    },
+    {
+      "id": "hl_1790951317858",
+      "name": "Floor 2 — Second Floor",
+      "href": "Floor_Plans/Second_Floor_Floor2.html",
+      "color": "#ffab00",
+      "poly": null,
+      "box": {
+        "min": [
+          -1.004,
+          0.286,
+          -1.004
+        ],
+        "max": [
+          1.004,
+          0.606,
+          1.004
+        ]
+      }
+    },
+    {
+      "id": "hl_1790951329634",
+      "name": "Floor 3 — Third Floor",
+      "href": "Floor_Plans/Third_Floor_Floor3.html",
+      "color": "#00e676",
+      "poly": null,
+      "box": {
+        "min": [
+          -1.004,
+          0.828,
+          -1.004
+        ],
+        "max": [
+          1.004,
+          1.325,
+          1.004
+        ]
+      }
+    },
+    {
+      "id": "hl_1790951336368",
+      "name": "Floor 0 — Lower Level",
+      "href": "Floor_Plans/Lower_Level_Floor0.html",
+      "color": "#c07fff",
+      "poly": null,
+      "box": {
+        "min": [
+          -1.004,
+          1.551,
+          -1.004
+        ],
+        "max": [
+          1.004,
+          2.002,
+          1.004
+        ]
+      }
+    }
+  ],
+  "equip": {
+    "RTU3_Surgery": {
+      "label": "RTU3_Surgery",
+      "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/BooleanWritable",
+      "other": [
+        {
+          "name": "Alarm Relay",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/AlarmRelay_OutputStatus"
+        },
+        {
+          "name": "Diagnostic Present",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/DiagnosticPresent"
+        },
+        {
+          "name": "Static Pressure",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/Space_StaticPressure_SetpointActive"
+        },
+        {
+          "name": "OA Flow",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/Outdoor_AirFlow_Active"
+        },
+        {
+          "name": "Compressor 1A Status",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/Compressor_1A_Status"
+        },
+        {
+          "name": "Unit Mode",
+          "ord": "station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/HeatCool_ModeStatus"
+        }
+      ],
+      "poly": [
+        [
+          0.519,
+          2,
+          0.844
+        ],
+        [
+          0.535,
+          2,
+          0.685
+        ],
+        [
+          0.774,
+          2,
+          0.682
+        ],
+        [
+          0.76,
+          2,
+          0.829
+        ]
+      ],
+      "linkOrd": "file:^Murphy_MasterGraphics/RTUs/RTU3_Surgery.html",
+      "link": "/file/Murphy_MasterGraphics/RTUs/RTU3_Surgery.html?unit=RTU3_Surgery"
+    }
+  },
+  "custom": {
+    "cu_1790953452143": {
+      "label": "Building Avg Temp",
+      "ord": "station:|slot:/Building_Temp/BuildingAvg",
+      "pos": [
+        -0.55,
+        1.422,
+        0.816
+      ]
+    }
+  }
+}
