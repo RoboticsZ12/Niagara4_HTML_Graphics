@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - VFD Monitoring</title>
+
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader {
+  position: fixed; inset: 0; background: #000;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999; transition: opacity 0.4s ease;
+}
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn { to { transform: scaleX(1); } }
+.loader-murphy-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m { width: 30px; height: 30px; }
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500; stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px; letter-spacing: 3px; color: #888; text-transform: uppercase;
+}
+.loader-murphy-label strong { color: #00A86B; letter-spacing: 2px; font-weight: normal; }
+.loader-content .loader-text {
+  margin-top: 18px; opacity: 0;
+  animation: loaderMurphyIn 0.5s ease-out 1.4s forwards;
+}
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 15px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 15px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 12px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px, 0.7vw, 11px); letter-spacing: clamp(1px, 0.3vw, 4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#page-header-top { font-family: var(--font-head); font-size: clamp(12px, 1.4vw, 18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; overflow: hidden; }
+.top-right-controls { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls .divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.top-right-controls span { font-family: var(--font-head); font-size: clamp(8px, 0.6vw, 10px); letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px, 0.8vw, 14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+.user-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+#userDisplay { color: var(--text-primary); font-size: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+    flex: 1;
+    position: relative;
+    overflow-y: auto;
+    padding: 20px;
+    background: radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 85%, rgba(0,180,220,0.07) 0%, transparent 45%),
+                linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+    background-attachment: fixed;
+}
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; z-index: 1000; gap: 8px; overflow: hidden; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.date-time strong { color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode { background: #d8dde8; }
+body.light-mode .main-content { background: radial-gradient(ellipse at 20% 40%, rgba(0,40,120,0.06) 0%, transparent 55%), linear-gradient(160deg, #cdd3e0 0%, #d4d9e6 40%, #ccd2df 100%); }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background: rgba(220,225,236,0.98); border-color: rgba(0,30,100,0.25); }
+body.light-mode .user-badge { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); color: #334466; }
+body.light-mode .site-label { color: #001f6b; }
+body.light-mode #page-header-top { color: #001040; }
+body.light-mode #userDisplay { color: #001040; }
+body.light-mode .hamburger-line { background: #001f6b; }
+body.light-mode .hamburger-menu { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .side-panel { background: #dde2ed; border-color: rgba(0,30,100,0.2); }
+body.light-mode .side-panel-header h2 { color: #001f6b; }
+body.light-mode .nav-image-btn { background: #e4e8f3; border-color: rgba(0,100,160,0.25); color: #1a2035; }
+body.light-mode .nav-image-btn:hover { background: #d0d8f0; border-color: #0070b8; }
+body.light-mode .nav-image-btn .nav-btn-label { color: #1a2035; }
+body.light-mode .top-right-controls { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .back-button { background: rgba(255,255,255,0.8); color: #334466; border-color: rgba(0,30,100,0.3); }
+body.light-mode .logout-btn { background: rgba(255,255,255,0.8); color: #1a2035; border-color: rgba(0,100,180,0.3); }
+body.light-mode .section-heading h2 { color: #001f6b; }
+body.light-mode .bottom-bar .date-time { color: #334466; }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 700px) { .top-right-controls { display: none; } #userDisplay { max-width: 50px; } }
+
+/* ══════════════════════════════════════════════════════════
+   VFD-SPECIFIC STYLES  (original — unchanged)
+══════════════════════════════════════════════════════════ */
+
+    /* ── VFD UNIT CARDS ───────────────────────────────────── */
+    .vfd-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(560px, 1fr));
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+
+    .vfd-unit {
+        background: rgba(15,20,40,0.75);
+        border-radius: 22px;
+        border: 1px solid rgba(100,200,255,0.15);
+        padding: 22px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s;
+    }
+    .vfd-unit:hover { border-color: rgba(123,66,255,0.35); }
+
+    .vfd-unit-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 16px; padding-bottom: 12px;
+        border-bottom: 1px solid rgba(0,242,255,0.12);
+    }
+    .vfd-unit-name {
+        font-size: 1.1em; font-weight: 700;
+        background: linear-gradient(135deg, #00f2ff 0%, #7b42ff 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text; letter-spacing: 0.5px;
+    }
+    .vfd-run-badge {
+        font-size: 0.75em; padding: 4px 14px; border-radius: 20px;
+        border: 1px solid rgba(0,242,255,0.4); color: #00f2ff;
+        background: rgba(0,242,255,0.08); transition: all 0.3s;
+    }
+
+    /* ── GAUGES ROW ───────────────────────────────────────── */
+    .gauges-row {
+        display: grid;
+        grid-template-columns: repeat(var(--gauge-count, 6), 1fr);
+        gap: 6px; margin-bottom: 14px;
+    }
+    .gauge-cell { display: flex; flex-direction: column; align-items: center; }
+    .gauge-cell-title {
+        font-size: 0.62em; color: rgba(0,242,255,0.85);
+        text-transform: uppercase; letter-spacing: 0.5px;
+        font-weight: 600; margin-bottom: 3px;
+    }
+    .gauge-wrap { position: relative; width: 100%; aspect-ratio: 1; }
+    .gauge-wrap svg { width: 100%; height: 100%; display: block; }
+    .gauge-readout {
+        position: absolute; bottom: 17%; left: 50%;
+        transform: translateX(-50%); text-align: center;
+        line-height: 1.1; pointer-events: none;
+    }
+    .gauge-readout-num {
+        font-size: 0.82em; font-weight: 700; color: #fff; white-space: nowrap;
+        display: block; filter: drop-shadow(0 0 6px rgba(0,242,255,0.4));
+    }
+    .gauge-readout-unit { font-size: 0.55em; color: rgba(123,66,255,0.9); display: block; }
+
+    /* ── STATUS ROW ───────────────────────────────────────── */
+    .status-row {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;
+    }
+    .status-cell {
+        background: rgba(20,25,55,0.55); border-radius: 10px;
+        border: 1px solid rgba(0,242,255,0.15); padding: 7px 10px;
+        transition: border-color 0.3s, transform 0.2s;
+    }
+    .status-cell:hover { border-color: rgba(123,66,255,0.35); transform: translateY(-1px); }
+    .status-cell-label {
+        font-size: 0.6em; color: rgba(255,255,255,0.42);
+        text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;
+    }
+    .status-cell-value {
+        font-size: 0.88em; font-weight: 600; color: #00f2ff;
+        text-shadow: 0 0 8px rgba(0,242,255,0.3); word-break: break-word;
+    }
+    .status-cell-value.s-on    { color: #00ff88; text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+    .status-cell-value.s-off   { color: #ff0066; text-shadow: 0 0 8px rgba(255,0,102,0.4); }
+    .status-cell-value.s-fault { color: #ff8800; text-shadow: 0 0 8px rgba(255,136,0,0.4); }
+    .status-cell-value.s-ovr   { color: #b366ff; text-shadow: 0 0 8px rgba(179,102,255,0.4); }
+
+    /* ── N/A INLINE CELLS ────────────────────────────────── */
+    .na-row {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 8px; margin-top: 8px; padding-top: 8px;
+        border-top: 1px solid rgba(0,242,255,0.06);
+    }
+    .na-cell {
+        background: rgba(255,255,255,0.02); border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.05); padding: 6px 10px;
+        transition: border-color 0.3s;
+    }
+    .na-cell:hover { border-color: rgba(255,255,255,0.1); }
+    .na-cell-label {
+        font-size: 0.55em; color: rgba(255,255,255,0.25);
+        text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px;
+    }
+    .na-cell-value {
+        font-size: 0.82em; font-weight: 500;
+        color: rgba(255,255,255,0.45); word-break: break-word;
+    }
+
+    /* ── EXPORT CONTROLS ─────────────────────────────────── */
+    .export-controls {
+        margin-top: 14px; display: flex; gap: 10px;
+        justify-content: center; flex-wrap: wrap;
+    }
+    .export-btn {
+        padding: 10px 20px;
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.3);
+        border-radius: 8px; color: var(--accent);
+        cursor: pointer; font-size: 0.9em; font-weight: 600;
+        font-family: var(--font-head); letter-spacing: 1px;
+        text-transform: uppercase; transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+    .export-btn:hover {
+        background: rgba(0,200,255,0.2);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,200,255,0.2);
+    }
+
+    /* ── VFD DIAGRAM IMAGE ───────────────────────────────── */
+    .vfd-diagram-wrap {
+        text-align: center; margin-bottom: 24px;
+    }
+    .vfd-diagram-wrap img {
+        max-width: 100%; max-height: 220px; object-fit: contain;
+        filter: drop-shadow(0 0 18px rgba(0,200,255,0.25)); opacity: 0.92;
+    }
+</style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170"
+          fill="none" stroke="#00A86B" stroke-width="18"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading VFD data…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+    <div class="side-panel-header">
+        <h2>Navigation</h2>
+        <p>Murphy Control Panel</p>
+    </div>
+
+    <div class="nav-section-label">System Views</div>
+    <div class="nav-image-grid">
+
+        <a href="../Home.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+                    <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+        </a>
+
+        <a href="../FloorPlan.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+                    <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+                    <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+        </a>
+
+        <a href="../Alarms.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+                    <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+        </a>
+
+        <a href="../Users.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+        </a>
+
+        <a href="../LogsNUMERIC.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+                    <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+                    <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+                    <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+                    <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+        </a>
+
+        <a href="../Shedules.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+                    <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                    <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+                    <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+                    <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+        </a>
+
+    </div>
+
+    <div class="nav-section-label">Equipment Summaries</div>
+    <div class="nav-image-grid">
+        <a href="../Summary/vfdSummarysheet.html" data-nav class="nav-image-btn">
+            <div class="nav-btn-icon">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+                    <circle cx="20" cy="20" r="14" fill="none" stroke="var(--accent)" stroke-width="2"/>
+                    <path d="M20 20 L20 8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M20 20 L28 26" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="20" cy="20" r="2.5" fill="var(--accent)"/>
+                </svg>
+            </div>
+            <div class="nav-btn-text"><span class="nav-btn-label">VFD Summary</span><span class="nav-btn-sublabel">All VFD units</span></div>
+        </a>
+        <div id="equipment-summary-btn"></div>
+    </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+    <div class="top-bar-left">
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+            <div class="hamburger-line"></div>
+        </div>
+    </div>
+
+    <div class="top-center">
+        <span class="site-label">Murphy Control</span>
+        <span id="page-header-top">VFD Monitoring</span>
+    </div>
+
+    <div class="top-right">
+        <div class="top-right-controls">
+            <span>☀</span>
+            <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+                <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+            </div>
+        </div>
+        <div class="user-badge">
+            <div class="user-dot"></div>
+            <span id="userDisplay">—</span>
+        </div>
+    </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+
+    <div style="max-width:1600px; margin:0 auto;">
+
+        <div class="section-heading">
+            <div class="line"></div>
+            <h2>VFD Monitoring</h2>
+            <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+        </div>
+
+        <!-- Export controls (populated by JS) -->
+        <div class="export-controls" id="export-controls"></div>
+
+        <!-- VFD diagram -->
+        <div class="vfd-diagram-wrap">
+            <img src="VFD.svg" alt="VFD Diagram"
+                 onerror="this.style.display='none'"
+                 style="max-width:100%; max-height:220px; object-fit:contain;" />
+        </div>
+
+        <!-- VFD unit cards (injected by JS) -->
+        <div class="vfd-grid" id="vfd-grid"></div>
+
+    </div>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar" style="position:relative;">
+    <button class="back-button" onclick="history.back()">← Back</button>
+    <div class="date-time">
+        <strong>Current Date &amp; Time</strong>
+        <span id="currentDateTime">Loading...</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div style="text-align:right; font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+            Controls by:<br>
+            <span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+        </div>
+        <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════════════════ -->
+
+<!-- LOADER JOB NAME -->
+<script>
+(async function() {
+  try {
+    const response = await fetch('../HomeConfig.json');
+    const data = await response.json();
+    const jobName = (data.JobBuilding || 'Control Panel').toUpperCase();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = jobName;
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.body.classList.add("fade-in");
+    document.body.addEventListener("click", function(e) {
+        const link = e.target.closest("a");
+        if (!link) return;
+        if (link.hostname !== location.hostname) return;
+        e.preventDefault();
+
+        // Clear the nav tree state whenever the Home link is used
+        if (link.pathname.endsWith('/Home.html')) {
+            localStorage.removeItem('murphyNavTreeState');
+        }
+
+        document.body.classList.remove("fade-in");
+        document.body.classList.add("fade-out");
+        const loader = document.getElementById("page-loader");
+        if (loader) loader.classList.remove("hidden");
+        setTimeout(() => { window.location.href = link.href; }, 0);
+    });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+    hamburgerMenu.classList.toggle('active');
+    sidePanel.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+    hamburgerMenu.classList.remove('active');
+    sidePanel.classList.remove('active');
+    overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', function() {
+    document.body.classList.toggle('light-mode');
+    toggleSwitch.classList.toggle('active');
+    localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- AUTH CHECK -->
+<script>
+window.onload = function() {
+    const username = sessionStorage.getItem('username');
+    if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+    const userDisplay = document.getElementById("userDisplay");
+    if (userDisplay) userDisplay.textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- EQUIPMENT SUMMARY BTN -->
+<script>
+(async function loadEquipmentSummaryBtn() {
+    try {
+        const response = await fetch('../Global.json');
+        const data = await response.json();
+        const vars = data.globalVariables || {};
+        const keys = Object.keys(vars);
+        const hasRTU = keys.some(k => k.toLowerCase().includes('rtu'));
+        const hasAHU = keys.some(k => k.toLowerCase().includes('ahu'));
+        const container = document.getElementById('equipment-summary-btn');
+        if (!container) return;
+        if (hasRTU) {
+            container.innerHTML = `<a href="../Summary/rtuSummarysheet.html" data-nav class="nav-image-btn"><div class="nav-btn-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="8" cy="12" r="2"/><line x1="13" y1="9" x2="19" y2="9" stroke="var(--accent)" stroke-width="1.5"/><line x1="13" y1="12" x2="19" y2="12" stroke="var(--accent)" stroke-width="1.5"/><line x1="13" y1="15" x2="17" y2="15" stroke="var(--accent)" stroke-width="1.5"/></svg></div><div class="nav-btn-text"><span class="nav-btn-label">RTU Summary</span><span class="nav-btn-sublabel">All RTU units</span></div></a>`;
+        } else if (hasAHU) {
+            container.innerHTML = `<a href="../Summary/ahuSummarysheet.html" data-nav class="nav-image-btn"><div class="nav-btn-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 12 Q9 8 12 12 Q15 16 18 12"/><line x1="2" y1="9" x2="22" y2="9" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2,2"/></svg></div><div class="nav-btn-text"><span class="nav-btn-label">AHU Summary</span><span class="nav-btn-sublabel">All AHU units</span></div></a>`;
+        }
+    } catch(e) { console.warn('Could not load equipment summary button:', e); }
+})();
+</script>
+
+<!-- URL unit param passthrough for nav links -->
+<script>
+(function () {
+  const unit = new URLSearchParams(window.location.search).get('unit');
+  if (!unit) return;
+  document.querySelectorAll('a[data-nav]').forEach(function (a) {
+    const sep = a.href.includes('?') ? '&' : '?';
+    a.href = a.href + sep + 'unit=' + encodeURIComponent(unit);
+  });
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     GAUGE DRAWING HELPERS  (original — unchanged)
+══════════════════════════════════════════════════════════════════ -->
+<script>
+function polarXY(cx, cy, r, angleDeg) {
+    const rad = (angleDeg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function arcD(cx, cy, r, startAngle, endAngle) {
+    const s = polarXY(cx, cy, r, startAngle - 135);
+    const e = polarXY(cx, cy, r, endAngle - 135);
+    const large = (endAngle - startAngle) > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+
+function buildGaugeSVG(uid, gKey, g, sz) {
+    const cx = sz / 2, cy = sz / 2, r = sz * 0.37, sw = sz * 0.075;
+    const gid = `${uid}__${gKey}`;
+    const ticksHTML = buildTicks(cx, cy, r, sz);
+    const labelsHTML = buildLabels(cx, cy, r, g.max, sz);
+    return `<svg viewBox="0 0 ${sz} ${sz}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gbg-${gid}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(30,35,60,0.45)"/>
+      <stop offset="100%" style="stop-color:rgba(40,45,75,0.45)"/>
+    </linearGradient>
+    <linearGradient id="gval-${gid}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   style="stop-color:${g.c1}"/>
+      <stop offset="50%"  style="stop-color:${g.c2}"/>
+      <stop offset="100%" style="stop-color:${g.c3}"/>
+    </linearGradient>
+  </defs>
+  <path d="${arcD(cx,cy,r,0,270)}" stroke="url(#gbg-${gid})" stroke-width="${sw}" fill="none" stroke-linecap="round"/>
+  <path id="garc-${gid}" d="${arcD(cx,cy,r,0,0.01)}" stroke="url(#gval-${gid})" stroke-width="${sw}" fill="none" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${g.glow})"/>
+  <circle cx="${cx}" cy="${cy}" r="${r * 0.38}" fill="url(#gval-${gid})" opacity="0.06"/>
+  ${ticksHTML}
+  ${labelsHTML}
+</svg>`;
+}
+
+function buildTicks(cx, cy, r, sz) {
+    const n = 27, inner = r - sz * 0.1, outer = r - sz * 0.04;
+    let out = '';
+    for (let i = 0; i <= n; i++) {
+        const angle = (i / n) * 270 - 135;
+        const a = polarXY(cx, cy, inner, angle);
+        const b = polarXY(cx, cy, outer, angle);
+        const major = i % 3 === 0;
+        out += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${major ? 'rgba(0,242,255,0.35)' : 'rgba(100,150,200,0.18)'}" stroke-width="${major ? 1.5 : 0.8}"/>`;
+    }
+    return out;
+}
+
+function buildLabels(cx, cy, r, max, sz) {
+    const lr = r - sz * 0.25;
+    const vals = [0, '', '', max / 2, '', '', max];
+    let out = '';
+    for (let i = 0; i < 7; i++) {
+        if (vals[i] === '') continue;
+        const angle = (i / 6) * 270 - 135;
+        const p = polarXY(cx, cy, lr, angle);
+        out += `<text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="middle" font-size="${sz * 0.095}" fill="rgba(0,242,255,0.65)" font-weight="600">${vals[i]}</text>`;
+    }
+    return out;
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     VFD UNIT BUILDER  (original — unchanged)
+══════════════════════════════════════════════════════════════════ -->
+<script>
+const GAUGE_DEFS = [
+    { key:'freq',    label:'Freq',    unit:'Hz',  max:60,   c1:'#00ff88', c2:'#00f2ff', c3:'#7b42ff', glow:'rgba(0,255,136,0.6)' },
+    { key:'current', label:'Current', unit:'A',   max:100,  c1:'#ff0066', c2:'#ff8800', c3:'#ff006e', glow:'rgba(255,0,102,0.6)' },
+    { key:'power',   label:'Power',   unit:'kW',  max:5000, c1:'#b366ff', c2:'#ff006e', c3:'#7b42ff', glow:'rgba(179,102,255,0.6)' },
+    { key:'speed',   label:'Speed',   unit:'RPM', max:2500, c1:'#00f2ff', c2:'#7b42ff', c3:'#00d9ff', glow:'rgba(0,242,255,0.6)' },
+    { key:'torque',  label:'Torque',  unit:'%',   max:100,  c1:'#ff8800', c2:'#ff006e', c3:'#7b42ff', glow:'rgba(255,136,0,0.6)' },
+    { key:'voltage', label:'Voltage', unit:'V',   max:500,  c1:'#00f2ff', c2:'#00ff88', c3:'#7b42ff', glow:'rgba(0,242,255,0.6)' },
+];
+
+const GAUGE_ID_MAP = {
+    'FREQ':      'freq',
+    'CURRENT':   'current',
+    'KW':        'power',
+    'SPEED':     'speed',
+    'SP':        'speed',
+    'TORQUE':    'torque',
+    'VOLTAGE':   'voltage',
+    'FREQUENCY': 'freq',
+    'POWER':     'power',
+};
+
+const STATUS_POINT_META = {
+    'RunStatus':  { label: 'Run Status' },
+    'DriveReady': { label: 'Drive Ready' },
+    'F1':         { label: 'Active Fault 1', isFault: true },
+    'F2':         { label: 'Active Fault 2', isFault: true },
+    'F3':         { label: 'Active Fault 3', isFault: true },
+    'F4':         { label: 'Active Fault 4', isFault: true },
+    'F5':         { label: 'Active Fault 5', isFault: true },
+    'SpeedRef':   { label: 'Speed Ref' },
+    'AccelTime':  { label: 'Accel Time' },
+    'DecelTime':  { label: 'Decel Time' },
+    'DCBusVolt':  { label: 'DC Bus Volt' },
+    'MotorTemp':  { label: 'Motor Temp' },
+    'DriveTemp':  { label: 'Drive Temp' },
+};
+
+function createVFDUnit(unitId, unitName, activeGaugeKeys) {
+    const sz = 110;
+    const card = document.createElement('div');
+    card.className = 'vfd-unit';
+    card.id = `vfd-unit-${unitId}`;
+
+    const header = document.createElement('div');
+    header.className = 'vfd-unit-header';
+    header.innerHTML = `
+        <div class="vfd-unit-name">${unitName}</div>
+        <div class="vfd-run-badge" id="badge-${unitId}">Connecting…</div>
+    `;
+    card.appendChild(header);
+
+    const activeDefs = GAUGE_DEFS.filter(g => activeGaugeKeys.has(g.key));
+    const gaugesRow = document.createElement('div');
+    gaugesRow.className = 'gauges-row';
+    gaugesRow.style.setProperty('--gauge-count', activeDefs.length);
+
+    activeDefs.forEach(g => {
+        const cell = document.createElement('div');
+        cell.className = 'gauge-cell';
+        const gid = `${unitId}__${g.key}`;
+        cell.innerHTML = `
+            <div class="gauge-cell-title">${g.label}</div>
+            <div class="gauge-wrap">
+                ${buildGaugeSVG(unitId, g.key, g, sz)}
+                <div class="gauge-readout">
+                    <span class="gauge-readout-num" id="gnum-${gid}">0</span>
+                    <span class="gauge-readout-unit">${g.unit}</span>
+                </div>
+            </div>
+        `;
+        gaugesRow.appendChild(cell);
+    });
+    card.appendChild(gaugesRow);
+
+    const statusRow = document.createElement('div');
+    statusRow.className = 'status-row';
+    statusRow.id = `status-row-${unitId}`;
+    card.appendChild(statusRow);
+
+    const naRow = document.createElement('div');
+    naRow.className = 'na-row';
+    naRow.id = `na-row-${unitId}`;
+    card.appendChild(naRow);
+
+    return card;
+}
+
+function addStatusCell(unitId, pointName) {
+    const row = document.getElementById(`status-row-${unitId}`);
+    if (!row || document.getElementById(`scell-${unitId}-${pointName}`)) return;
+    const meta = STATUS_POINT_META[pointName] || { label: pointName };
+    const cell = document.createElement('div');
+    cell.className = 'status-cell';
+    cell.id = `scell-${unitId}-${pointName}`;
+    cell.innerHTML = `
+        <div class="status-cell-label">${meta.label}</div>
+        <div class="status-cell-value" id="sval-${unitId}-${pointName}">—</div>
+    `;
+    row.appendChild(cell);
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     GAUGE UPDATE  (original — unchanged)
+══════════════════════════════════════════════════════════════════ -->
+<script>
+function updateGauge(unitId, gaugeKey, numericValue) {
+    const g = GAUGE_DEFS.find(x => x.key === gaugeKey);
+    if (!g) return;
+    const gid = `${unitId}__${gaugeKey}`;
+    const arcEl = document.getElementById(`garc-${gid}`);
+    const numEl = document.getElementById(`gnum-${gid}`);
+    if (!arcEl || !numEl) return;
+    const safe = parseFloat(numericValue);
+    if (isNaN(safe)) return;
+    const sz = 110, cx = sz/2, cy = sz/2, r = sz * 0.37;
+    const clamped = Math.min(Math.max(safe, 0), g.max);
+    const angle = (clamped / g.max) * 270;
+    arcEl.setAttribute('d', arcD(cx, cy, r, 0, Math.max(angle, 0.01)));
+}
+
+function updateStatusCell(unitId, pointName, displayVal, isOn, isFault, isOverride) {
+    const el = document.getElementById(`sval-${unitId}-${pointName}`);
+    if (!el) return;
+    el.textContent = displayVal;
+    el.className = 'status-cell-value';
+    if (isOverride) el.classList.add('s-ovr');
+    else if (isFault) el.classList.add('s-fault');
+    else if (isOn) el.classList.add('s-on');
+    else el.classList.add('s-off');
+}
+
+function updateRunBadge(unitId, isRunning) {
+    const badge = document.getElementById(`badge-${unitId}`);
+    if (!badge) return;
+    if (isRunning) {
+        badge.textContent = 'Running';
+        badge.style.color = '#00ff88';
+        badge.style.borderColor = 'rgba(0,255,136,0.4)';
+        badge.style.background = 'rgba(0,255,136,0.08)';
+    } else {
+        badge.textContent = 'Stopped';
+        badge.style.color = '#ff0066';
+        badge.style.borderColor = 'rgba(255,0,102,0.4)';
+        badge.style.background = 'rgba(255,0,102,0.08)';
+    }
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     BAJA / NIAGARA INTEGRATION  (original — unchanged)
+══════════════════════════════════════════════════════════════════ -->
+<script>
+require(['baja!'], function (baja) {
+    'use strict';
+
+    const fullFilename = window.location.pathname.split('/').pop();
+    const headerName   = fullFilename.replace('.html', '');
+    const pathName     = headerName.replace(/-/g, '_');
+
+    const pageHeaderTop = document.getElementById('page-header-top');
+    if (pageHeaderTop) pageHeaderTop.textContent = `${pathName} — VFD Monitoring`;
+
+    console.log('[VFD] filename:', fullFilename, '| headerName:', headerName);
+
+    let allDataPoints    = {};
+    let pointElementMap  = {};
+    const unitNames      = {};
+    let exportHistoryCache = new Map();
+
+    async function loadGlobalConfig() {
+        try {
+            const r = await fetch('../Global.json');
+            if (r.ok) {
+                const j = await r.json();
+                console.log('[VFD] Loaded Global.json via ../Global.json');
+                return j;
+            }
+            throw new Error(`HTTP ${r.status}`);
+        } catch (e) {
+            console.error('[VFD] Could not load Global.json:', e.message);
+            return null;
+        }
+    }
+
+    function extractAllVFDs(globalConfig) {
+        if (!globalConfig || !globalConfig.globalVariables) return [];
+        return Object.entries(globalConfig.globalVariables)
+            .filter(([, val]) => {
+                const t = (val.Type || val.type || '').trim().toUpperCase();
+                return t === 'VFD';
+            })
+            .map(([key, val]) => ({
+                id:       key,
+                name:     val.displayName || key.replace(/-/g, '_'),
+                basePath: val.basePath || `station:|slot:/Drivers/BcpBacnetNetwork/${key}/points/{pointName}`,
+                points:   val.points || [],
+            }));
+    }
+
+    function buildUnitPoints(unit) {
+        allDataPoints[unit.id] = {};
+        const activeGaugeKeys = new Set();
+
+        unit.points.forEach(point => {
+            const ord = point.fullPath || unit.basePath.replace('{pointName}', point.name);
+            allDataPoints[unit.id][point.name] = ord;
+
+            let gaugeKey = null;
+            if (point.id && point.id !== 'N/A') {
+                const idUp = point.id.toUpperCase();
+                gaugeKey = GAUGE_ID_MAP[idUp] || null;
+                if (!gaugeKey) {
+                    for (const [kw, gk] of Object.entries(GAUGE_ID_MAP)) {
+                        if (idUp.includes(kw)) { gaugeKey = gk; break; }
+                    }
+                }
+            }
+
+            if (gaugeKey) activeGaugeKeys.add(gaugeKey);
+
+            const mapKey = `${unit.id}::${point.name}`;
+            pointElementMap[mapKey] = {
+                unitId:    unit.id,
+                pointName: point.name,
+                pointId:   point.id,
+                gaugeKey:  gaugeKey,
+            };
+
+            if (!gaugeKey && point.id && point.id !== 'N/A') {
+                addStatusCell(unit.id, point.name);
+            }
+
+            if (!point.id || point.id === 'N/A') {
+                addNATableRow(unit.id, point.name);
+            }
+        });
+
+        return activeGaugeKeys;
+    }
+
+    function ensureNAPanel() {}
+
+    function addNATableRow(unitId, pointName) {
+        const cellId = `na-${unitId}-${pointName}`;
+        if (document.getElementById(cellId)) return;
+        const naRow = document.getElementById(`na-row-${unitId}`);
+        if (!naRow) return;
+        const cell = document.createElement('div');
+        cell.className = 'na-cell';
+        cell.innerHTML = `
+            <div class="na-cell-label">${pointName.replace(/_/g, ' ')}</div>
+            <div class="na-cell-value" id="${cellId}">—</div>
+        `;
+        naRow.appendChild(cell);
+    }
+
+    const subscriber = new baja.Subscriber();
+
+    subscriber.attach('changed', function (prop) {
+        if (prop.getName() !== 'out') return;
+        const info = this.userData;
+        if (!info) return;
+        handlePointValue(
+            info.unitId,
+            info.pointName,
+            info.pointId,
+            info.gaugeKey,
+            this.getOut(),
+            this.getStatus().isOverridden()
+        );
+    });
+
+    function handlePointValue(unitId, pointName, pointId, gaugeKey, out, isOverridden) {
+        const displayValue = out.getValueDisplay();
+        const value        = out.getValue();
+        const numVal       = parseFloat(value) || 0;
+
+        if (gaugeKey) {
+            const parsed = parseFloat(String(displayValue).replace(/[^\d.\-]/g, ''));
+            const gaugeVal = isNaN(parsed) ? numVal : parsed;
+            updateGauge(unitId, gaugeKey, gaugeVal);
+
+            const numEl = document.getElementById(`gnum-${unitId}__${gaugeKey}`);
+            if (numEl) {
+                const stripped = String(displayValue).replace(/\s*(RPM|rpm|Hz|hz|%|kW|kw|KW|A|V)\s*$/i, '').trim();
+                numEl.textContent = stripped !== '' ? stripped : (isNaN(gaugeVal) ? '0' : gaugeVal.toFixed(2));
+            }
+
+            if (gaugeKey === 'speed' || gaugeKey === 'freq') {
+                updateRunBadge(unitId, gaugeVal > 0);
+            }
+            return;
+        }
+
+        if (!pointId || pointId === 'N/A') {
+            const el = document.getElementById(`na-${unitId}-${pointName}`);
+            if (el) el.textContent = displayValue;
+            return;
+        }
+
+        addStatusCell(unitId, pointName);
+        const isOn     = value && (value.toString().toLowerCase().includes('on') || numVal > 0);
+        const isFault  = STATUS_POINT_META[pointName]?.isFault &&
+                         displayValue.toLowerCase() !== 'no fault' &&
+                         displayValue !== '0' && displayValue !== 'None';
+        updateStatusCell(unitId, pointName, displayValue, isOn, isFault, isOverridden);
+
+        if (pointId === 'RunStatus' || pointName === 'RunStatus') {
+            updateRunBadge(unitId, isOn);
+        }
+    }
+
+    function subscribeToPoint(unitId, pointName, pointId, gaugeKey, ord) {
+        baja.Ord.make(ord).get({ subscriber: subscriber })
+            .then(point => {
+                point.userData = { unitId, pointName, pointId, gaugeKey };
+                handlePointValue(
+                    unitId, pointName, pointId, gaugeKey,
+                    point.getOut(),
+                    point.getStatus().isOverridden()
+                );
+                const badge = document.getElementById(`badge-${unitId}`);
+                if (badge && badge.textContent === 'Connecting…') {
+                    badge.textContent = 'Connected';
+                    badge.style.color = '#00f2ff';
+                }
+                console.log(`[VFD] ✅ ${unitId} / ${pointName}`);
+            })
+            .catch(err => {
+                console.error(`[VFD] ❌ ${unitId} / ${pointName}:`, err);
+                const naEl = document.getElementById(`na-${unitId}-${pointName}`);
+                if (naEl) { naEl.textContent = 'Err'; naEl.style.color = '#f56565'; }
+            });
+    }
+
+    async function init() {
+        console.log('[VFD] Initializing…');
+        const globalConfig = await loadGlobalConfig();
+        if (!globalConfig) { showError('Could not load Global.json'); return; }
+
+        const allVFDs = extractAllVFDs(globalConfig);
+        if (!allVFDs.length) { showError('No VFD devices found in Global.json'); return; }
+
+        const grid = document.getElementById('vfd-grid');
+        allVFDs.forEach(unit => {
+            unitNames[unit.id] = unit.name;
+
+            const activeGaugeKeys = new Set();
+            unit.points.forEach(point => {
+                if (point.id && point.id !== 'N/A') {
+                    const idUp = point.id.toUpperCase();
+                    let gk = GAUGE_ID_MAP[idUp] || null;
+                    if (!gk) {
+                        for (const [kw, g] of Object.entries(GAUGE_ID_MAP)) {
+                            if (idUp.includes(kw)) { gk = g; break; }
+                        }
+                    }
+                    if (gk) activeGaugeKeys.add(gk);
+                }
+            });
+
+            const card = createVFDUnit(unit.id, unit.name, activeGaugeKeys);
+            grid.appendChild(card);
+
+            buildUnitPoints(unit);
+        });
+
+        let total = 0;
+        allVFDs.forEach(unit => {
+            Object.entries(allDataPoints[unit.id] || {}).forEach(([pName, ord]) => {
+                const info = pointElementMap[`${unit.id}::${pName}`];
+                if (info) {
+                    subscribeToPoint(unit.id, pName, info.pointId, info.gaugeKey, ord);
+                    total++;
+                }
+            });
+        });
+
+        console.log(`[VFD] Subscribed to ${total} total points across ${allVFDs.length} VFDs`);
+        showSuccess(`Monitoring ${allVFDs.length} VFDs — ${total} points`);
+        createExportControls(allVFDs);
+
+        // Hide loader once connected
+        document.getElementById('page-loader')?.classList.add('hidden');
+    }
+
+    function showError(msg) {
+        document.getElementById('page-loader')?.classList.add('hidden');
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--red);border-radius:10px;padding:16px 24px;z-index:9999;font-family:var(--font-head);font-size:13px;color:var(--red);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);letter-spacing:1px;max-width:480px;';
+        d.innerHTML = `<strong>Error</strong><br>${msg}`;
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 15000);
+    }
+
+    function showSuccess(msg) {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:80px;right:20px;background:var(--bg-card);border:1px solid rgba(0,230,118,0.4);border-radius:8px;padding:10px 18px;z-index:9999;font-family:var(--font-head);font-size:12px;color:var(--green);letter-spacing:1px;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+        d.textContent = msg;
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 5000);
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (subscriber) subscriber.unsubscribeAll();
+    });
+
+    // ══════════════════════════════════════════════════════════════
+    //  HISTORY & EXPORT  (original — unchanged)
+    // ══════════════════════════════════════════════════════════════
+
+    async function discoverHistoryOrd(pointOrd) {
+        return new Promise((resolve, reject) => {
+            baja.Ord.make(pointOrd).get()
+                .then(entity => entity.tags())
+                .then(tagMap => {
+                    const tag = tagMap.get('n:history');
+                    if (tag && tag.toString().trim()) {
+                        let hp = tag.toString();
+                        if (!hp.startsWith('history:')) hp = 'history:' + hp;
+                        resolve(hp);
+                    } else {
+                        reject(new Error('No n:history tag on ' + pointOrd));
+                    }
+                })
+                .catch(reject);
+        });
+    }
+
+    async function loadHistoryData(pointOrd, startTime, endTime, maxPoints = 1000) {
+        let histOrd = exportHistoryCache.get(pointOrd);
+        if (!histOrd) {
+            try { histOrd = await discoverHistoryOrd(pointOrd); exportHistoryCache.set(pointOrd, histOrd); }
+            catch (e) { return []; }
+        }
+        return new Promise((resolve, reject) => {
+            const cond = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+            const bql  = histOrd + '|bql:select timestamp, value where ' + cond + ' order by timestamp';
+            const rows = [];
+            baja.Ord.make(bql).get({
+                cursor: {
+                    limit: maxPoints,
+                    each: function () {
+                        const row = this.get();
+                        const ts  = new Date(row.get('timestamp').getMillis());
+                        rows.push({ timestamp: ts, timestampString: ts.toLocaleString(), value: row.get('value') });
+                    }
+                }
+            }).then(() => resolve(rows)).catch(reject);
+        });
+    }
+
+    async function exportAllCSV() {
+        showSuccess('Preparing CSV…');
+        const endDate = new Date();
+        const startDate = new Date(); startDate.setDate(startDate.getDate() - 1);
+        const allPoints = [];
+        for (const [uid, pts] of Object.entries(allDataPoints)) {
+            for (const [pName, ord] of Object.entries(pts)) allPoints.push({ unitId: uid, name: pName, path: ord });
+        }
+        if (!allPoints.length) { showError('No points to export'); return; }
+
+        const results = await Promise.all(allPoints.map(p =>
+            loadHistoryData(p.path, startDate, endDate).then(data => ({ ...p, data }))
+        ));
+
+        const tsMap = new Map();
+        results.forEach(pr => {
+            pr.data.forEach(r => {
+                if (!tsMap.has(r.timestampString)) tsMap.set(r.timestampString, { timestamp: r.timestampString });
+                tsMap.get(r.timestampString)[`${pr.unitId}::${pr.name}`] = r.value;
+            });
+        });
+
+        const rows = Array.from(tsMap.values()).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        if (!rows.length) { showError('No history data in range'); return; }
+
+        const headers = ['Timestamp', ...allPoints.map(p => `${p.unitId}_${p.name}`)];
+        let csv = headers.join(',') + '\n';
+        rows.forEach(row => {
+            csv += [row.timestamp, ...allPoints.map(p => {
+                const v = row[`${p.unitId}::${p.name}`];
+                if (v === undefined || v === null) return '';
+                const s = String(v);
+                return (s.includes(',') || s.includes('"')) ? `"${s.replace(/"/g, '""')}"` : s;
+            })].join(',') + '\n';
+        });
+
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+        a.download = `VFD_history_${startDate.toISOString().slice(0,10)}_to_${endDate.toISOString().slice(0,10)}.csv`;
+        a.style.display = 'none';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        showSuccess(`CSV exported — ${rows.length} rows`);
+    }
+
+    async function generatePDF() {
+        showSuccess('Building PDF report…');
+        const endDate = new Date();
+        const startDate = new Date(); startDate.setDate(startDate.getDate() - 1);
+
+        const allPoints = [];
+        for (const [uid, pts] of Object.entries(allDataPoints)) {
+            for (const [pName, ord] of Object.entries(pts)) allPoints.push({ unitId: uid, name: pName, path: ord });
+        }
+
+        const results = await Promise.all(allPoints.map(p =>
+            loadHistoryData(p.path, startDate, endDate).then(data => ({ ...p, data }))
+        ));
+
+        function unit(name) {
+            const n = name.toLowerCase();
+            if (n.includes('freq')) return 'Hz';
+            if (n.includes('current')) return 'A';
+            if (n.includes('power') || n.includes('kw')) return 'kW';
+            if (n.includes('speed')) return 'RPM';
+            if (n.includes('torque')) return '%';
+            if (n.includes('voltage')) return 'V';
+            return '';
+        }
+
+        const stats = results.map(pr => {
+            const nums = pr.data.map(d => parseFloat(d.value)).filter(v => !isNaN(v));
+            return {
+                label: `${pr.unitId} — ${pr.name}`,
+                unit: unit(pr.name),
+                count: pr.data.length,
+                min: nums.length ? Math.min(...nums) : null,
+                max: nums.length ? Math.max(...nums) : null,
+                avg: nums.length ? nums.reduce((a,b) => a+b, 0) / nums.length : null,
+                latest: pr.data.length ? parseFloat(pr.data[pr.data.length-1].value) : null,
+                data: pr.data,
+            };
+        });
+
+        let statsRows = stats.map((s,i) => {
+            const bg = i%2===0?'#f5f5f5':'#fff';
+            if (s.min === null) return `<tr style="background:${bg}"><td>${s.label}</td><td colspan="5" style="text-align:center;color:#999">No numeric data</td></tr>`;
+            return `<tr style="background:${bg}">
+                <td style="padding:8px;border:1px solid #ddd">${s.label}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:right"><b>${s.latest !== null ? s.latest.toFixed(2) : '—'} ${s.unit}</b></td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.min.toFixed(2)} ${s.unit}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.avg.toFixed(2)} ${s.unit}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.max.toFixed(2)} ${s.unit}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center">${s.count}</td>
+            </tr>`;
+        }).join('');
+
+        let detailHTML = stats.filter(s => s.data.length > 0).map(s => {
+            const rows = s.data.slice(-50).reverse().map((r,i) => {
+                const bg = i%2===0?'#f9f9f9':'#fff';
+                const v  = parseFloat(r.value);
+                return `<tr style="background:${bg}"><td style="padding:6px 8px;border:1px solid #ddd">${r.timestampString}</td><td style="padding:6px 8px;border:1px solid #ddd;text-align:right;font-family:monospace">${isNaN(v)?r.value:v.toFixed(2)}</td></tr>`;
+            }).join('');
+            const note = s.data.length > 50 ? `<p style="text-align:center;color:#90a4ae;font-size:9pt">Showing most recent 50 of ${s.data.length}</p>` : '';
+            return `<div style="page-break-inside:avoid;margin-top:28px">
+                <h3 style="color:#37474f;font-size:13pt;margin-bottom:8px">${s.label}</h3>
+                <table style="width:100%;border-collapse:collapse;font-size:9pt">
+                    <thead style="background:#1e3c72;color:white"><tr><th style="padding:8px;text-align:left;border:1px solid #ddd">Timestamp</th><th style="padding:8px;text-align:right;border:1px solid #ddd">Value${s.unit?' ('+s.unit+')':''}</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>${note}
+            </div>`;
+        }).join('');
+
+        const pdfHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>VFD Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;padding:15mm;font-size:10pt}
+.hdr{text-align:center;margin-bottom:25px;border-bottom:3px solid #1e3c72;padding-bottom:15px}
+.hdr h1{color:#1e3c72;font-size:22pt;margin-bottom:6px}
+.hdr p{color:#555;font-size:10pt}
+.info{background:#f0f4ff;padding:15px;margin-bottom:20px;border-radius:5px;border:1px solid #c0ccee}
+table{width:100%;border-collapse:collapse}
+th{padding:10px;text-align:left;font-weight:bold}
+td{padding:8px}
+.ftr{margin-top:30px;text-align:center;color:#90a4ae;font-size:9pt;border-top:1px solid #e0e0e0;padding-top:10px}
+@media print{.noprint{display:none}}
+</style>
+</head><body>
+<div class="hdr">
+  <h1>⚡ VFD Performance Report</h1>
+  <p>Murphy Control Panel — VFD Monitoring</p>
+</div>
+<div class="info">
+  <p><b>Report Generated:</b> ${new Date().toLocaleString()}</p>
+  <p><b>Range:</b> ${startDate.toLocaleString()} → ${endDate.toLocaleString()}</p>
+  <p><b>VFDs:</b> ${Object.keys(allDataPoints).length} | <b>Points:</b> ${allPoints.length}</p>
+</div>
+<h2 style="color:#1e3c72;font-size:16pt;margin:20px 0 10px;border-bottom:2px solid #26c6da;padding-bottom:6px">Statistics Summary</h2>
+<table style="border-collapse:collapse">
+  <thead style="background:#1e3c72;color:white"><tr>
+    <th style="padding:10px;border:1px solid #ddd">Point</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Latest</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Min</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Avg</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Max</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:center">Count</th>
+  </tr></thead>
+  <tbody>${statsRows}</tbody>
+</table>
+<div style="page-break-before:always">
+  <h2 style="color:#1e3c72;font-size:16pt;margin:20px 0 10px;border-bottom:2px solid #26c6da;padding-bottom:6px">Detailed Historical Data</h2>
+  ${detailHTML}
+</div>
+<div class="ftr"><p>Murphy Control Panel — VFD Monitoring</p><p>${new Date().toLocaleString()}</p></div>
+<div class="noprint" style="position:fixed;top:10px;right:10px;background:#fff;padding:10px;border:2px solid #1e3c72;border-radius:5px">
+  <button onclick="window.print()" style="padding:10px 22px;background:#1e3c72;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:8px">🖨 Save as PDF</button>
+  <button onclick="window.close()" style="padding:10px 22px;background:#546e7a;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px">Close</button>
+</div>
+</body></html>`;
+
+        const w = window.open('', '_blank');
+        if (w) { w.document.write(pdfHTML); w.document.close(); showSuccess('PDF ready — click Save as PDF'); }
+        else showError('Pop-up blocked. Please allow pop-ups.');
+    }
+
+    function createExportControls(allVFDs) {
+        const wrap = document.getElementById('export-controls');
+        if (!wrap) return;
+
+        const csvBtn = document.createElement('button');
+        csvBtn.textContent = '📊 Export CSV History';
+        csvBtn.className = 'export-btn';
+        csvBtn.onclick = exportAllCSV;
+        wrap.appendChild(csvBtn);
+
+        const pdfBtn = document.createElement('button');
+        pdfBtn.textContent = '📄 Generate PDF Report';
+        pdfBtn.className = 'export-btn';
+        pdfBtn.onclick = generatePDF;
+        wrap.appendChild(pdfBtn);
+    }
+
+    init().then(() => {
+        console.log('[VFD] Fully initialized.');
+    }).catch(err => {
+        console.error('[VFD] Init failed:', err);
+        showError('Failed to initialize: ' + err.message);
+        document.getElementById('page-loader')?.classList.add('hidden');
+    });
+
+}); // end require
+</script>
+
+</body>
+</html>

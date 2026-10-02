@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAV Box – Operator Quick Reference</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --maroon:        #7b1c24;
+  --maroon-mid:    #9b2530;
+  --maroon-light:  #c03040;
+  --maroon-pale:   #f5e8e9;
+  --maroon-tint:   #fdf2f2;
+  --green-accent:  #2e7d32;
+  --green-light:   #e8f5e9;
+  --blue-accent:   #1565c0;
+  --blue-light:    #e3f2fd;
+  --blue-pale:     #bbdefb;
+  --blue-tint:     #f0f7ff;
+  --amber:         #b45309;
+  --amber-light:   #fef3c7;
+  --bg:            #f7f4f1;
+  --bg-white:      #ffffff;
+  --bg-off:        #f0ece8;
+  --border:        #d8ccc8;
+  --border-strong: #b5a09a;
+  --text-dark:     #1a1210;
+  --text-mid:      #4a3530;
+  --text-muted:    #7a6560;
+  --rule:          #c8b8b4;
+  --font-head:     'Oswald', sans-serif;
+  --font-body:     'Source Sans 3', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+  --shadow-sm:     0 1px 3px rgba(100,30,30,0.08);
+  --shadow-md:     0 4px 16px rgba(100,30,30,0.10);
+  --shadow-lg:     0 8px 32px rgba(100,30,30,0.13);
+  --radius:        6px;
+  --transition:    0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text-dark);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ── HEADER ── */
+.page-header {
+  background: var(--maroon);
+  color: white;
+  padding: 0;
+  margin: 0 -20px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.header-stripe {
+  height: 4px;
+  background: linear-gradient(90deg, #2e7d32 0%, #43a047 40%, #2e7d32 100%);
+}
+.header-inner { padding: 28px 36px 24px; position: relative; }
+.header-logos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+.logo-murphy img { display: block; width: auto; height: auto; line-height: 0; }
+.logo-fsi {
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.65);
+  text-align: right;
+  line-height: 1.4;
+}
+.logo-fsi strong { color: rgba(255,255,255,0.9); font-size: 15px; display: block; }
+
+.header-title {
+  font-family: var(--font-head);
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: white;
+  line-height: 1.0;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.header-title .amp { color: rgba(255,255,255,0.45); font-weight: 300; }
+.header-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.header-rule { height: 1px; background: rgba(255,255,255,0.15); margin: 18px 0 0; }
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 36px;
+  background: rgba(0,0,0,0.15);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 1.5px;
+}
+
+/* ── DEVICE BANNER ── */
+#device-banner {
+  background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin: 12px 36px 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#device-banner .db-label { color: rgba(255,255,255,0.35); }
+#device-name { color: rgba(255,255,255,0.9); letter-spacing: 1px; }
+
+/* ── STATUS PILL ── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.status-ok     { background: rgba(46,125,50,0.2); border:1px solid rgba(46,125,50,0.5); color:#2e7d32; }
+.status-warn   { background: rgba(180,83,9,0.2);  border:1px solid rgba(180,83,9,0.5);  color:#b45309; }
+.status-fault  { background: rgba(192,48,64,0.2); border:1px solid rgba(192,48,64,0.5); color:#c03040; }
+.status-info   { background: rgba(74,53,48,0.1);  border:1px solid rgba(74,53,48,0.3);  color:#4a3530; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 32px 0 14px;
+}
+.section-label h2 {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--maroon);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.section-label .line { flex: 1; height: 1px; background: var(--rule); }
+
+/* ── QUICK STATUS BAR ── */
+.quick-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+.qs-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.qs-divider {
+  width: 1px; height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+/* Hide dividers that are adjacent to hidden items */
+.qs-divider.hidden { display: none; }
+.qs-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.qs-item.hidden { display: none; }
+.qs-item-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.qs-item-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-dark);
+}
+.qs-item-val.qs-ok   { color: var(--green-accent); }
+.qs-item-val.qs-warn { color: var(--amber); }
+.qs-item-val.qs-bad  { color: var(--maroon-light); }
+.qs-spacer { flex: 1; }
+.qs-timestamp {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ── SUPPORT BUTTON ── */
+.support-btn-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.support-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--maroon);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  text-decoration: none;
+  position: relative;
+}
+.support-btn:hover { background: var(--maroon-mid); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.support-btn:active { transform: translateY(0); }
+.support-btn-icon { font-size: 15px; }
+.support-btn-sub {
+  font-size: 11px;
+  opacity: 0.75;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+}
+
+/* ── SUPPORT MODAL ── */
+.support-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.support-modal-overlay.open { display: flex; }
+.support-modal {
+  background: var(--bg-white);
+  border-radius: 10px;
+  padding: 32px 36px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  text-align: center;
+}
+.support-modal-close {
+  position: absolute;
+  top: 14px; right: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 4px;
+}
+.support-modal-close:hover { color: var(--text-dark); }
+.support-modal-icon {
+  width: 56px; height: 56px;
+  background: var(--maroon-pale);
+  border: 2px solid #e4b0b5;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 16px;
+}
+.support-modal h3 {
+  font-family: var(--font-head);
+  font-size: 20px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--maroon);
+  margin-bottom: 6px;
+}
+.support-modal-dept {
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.support-phone {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 32px;
+  letter-spacing: 3px;
+  color: var(--maroon);
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: color var(--transition);
+}
+.support-phone:hover { color: var(--maroon-light); }
+.support-phone-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.support-hours {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px;
+  background: var(--bg-off);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.support-hours strong { color: var(--text-dark); }
+.support-call-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--maroon);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--transition);
+}
+.support-call-btn:hover { background: var(--maroon-mid); }
+
+/* ── ACCORDION ── */
+.accordion { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+
+.acc-item {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+.acc-item:hover { box-shadow: var(--shadow-md); }
+.acc-item.open  { box-shadow: var(--shadow-md); }
+
+.acc-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+  position: relative;
+}
+.acc-trigger:hover { background: var(--bg-off); }
+.acc-item.open .acc-trigger { background: var(--maroon-tint); }
+.acc-item.rtu-item.open .acc-trigger { background: var(--blue-tint); }
+.acc-item.log-item.open .acc-trigger { background: #f5f0ff; }
+
+.acc-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.acc-icon.readings-icon { background: var(--maroon-pale); border: 1.5px solid #f4a7b0; }
+.acc-icon.issues-icon   { background: var(--green-light); border: 1.5px solid #a5d6a7; }
+.acc-icon.rtu-icon      { background: var(--blue-light);  border: 1.5px solid var(--blue-pale); }
+.acc-icon.log-icon      { background: #ede7f6; border: 1.5px solid #ce93d8; }
+.acc-icon.sequence-icon { background: #fff3e0; border: 1.5px solid #ffcc80; }
+
+.acc-title-wrap { flex: 1; }
+.acc-title {
+  font-family: var(--font-head);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dark);
+}
+.acc-subtitle { font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 1px; }
+
+.acc-item.readings-item.open .acc-title { color: var(--maroon); }
+.acc-item.issues-item.open .acc-title   { color: var(--green-accent); }
+.acc-item.rtu-item.open .acc-title      { color: var(--blue-accent); }
+.acc-item.log-item.open .acc-title      { color: #6a1b9a; }
+.acc-item.sequence-item.open .acc-title { color: #e65100; }
+
+.acc-chevron {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-off);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform var(--transition), background var(--transition);
+  flex-shrink: 0;
+}
+.acc-chevron svg { width: 12px; height: 12px; transition: transform var(--transition); }
+.acc-item.open .acc-chevron { background: var(--maroon); }
+.acc-item.rtu-item.open .acc-chevron { background: var(--blue-accent); }
+.acc-item.log-item.open .acc-chevron { background: #6a1b9a; }
+.acc-item.sequence-item.open .acc-chevron { background: #e65100; }
+.acc-item.open .acc-chevron svg { transform: rotate(180deg); }
+.acc-item.open .acc-chevron svg path { stroke: white; }
+
+.acc-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+.acc-body-inner { padding: 0 24px 24px; border-top: 1px solid var(--border); }
+
+.acc-item.readings-item  { border-left: 3px solid var(--maroon); }
+.acc-item.issues-item    { border-left: 3px solid var(--green-accent); }
+.acc-item.rtu-item       { border-left: 3px solid var(--blue-accent); }
+.acc-item.log-item       { border-left: 3px solid #6a1b9a; }
+.acc-item.sequence-item  { border-left: 3px solid #e65100; }
+
+/* ── RTU SELECTOR ── */
+.rtu-selector-wrap {
+  margin: 18px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rtu-selector-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+  white-space: nowrap;
+}
+.rtu-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--blue-pale);
+  border-radius: var(--radius);
+  background: var(--bg-white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-dark);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%231565c0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
+.rtu-select:focus {
+  border-color: var(--blue-accent);
+  box-shadow: 0 0 0 3px rgba(21,101,192,0.12);
+}
+.rtu-select:hover { border-color: var(--blue-accent); }
+
+.rtu-no-units {
+  padding: 20px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── RTU CONTENT AREA ── */
+#rtu-content-area { margin-top: 4px; }
+
+.rtu-unit-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--blue-pale);
+}
+.rtu-unit-name {
+  font-family: var(--font-head);
+  font-size: 17px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+}
+.rtu-unit-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--blue-light);
+  border: 1px solid var(--blue-pale);
+  color: var(--blue-accent);
+  text-transform: uppercase;
+}
+.rtu-section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+  margin: 20px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rtu-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--blue-pale);
+}
+
+/* RTU readings table */
+.rtu-readings-table {
+  width: 100%; border-collapse: collapse;
+  margin-top: 8px; font-size: 14px;
+}
+.rtu-readings-table thead tr { background: var(--blue-tint); border-bottom: 2px solid var(--blue-pale); }
+.rtu-readings-table thead th {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+  font-weight: normal;
+  text-align: left;
+}
+.rtu-readings-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+.rtu-readings-table tbody tr:last-child { border-bottom: none; }
+.rtu-readings-table tbody tr:hover { background: var(--blue-tint); }
+.rtu-readings-table td { padding: 12px 16px; vertical-align: top; }
+
+/* RTU issues table */
+.rtu-issues-table {
+  width: 100%; border-collapse: collapse;
+  margin-top: 8px; font-size: 14px;
+}
+.rtu-issues-table thead tr { background: var(--blue-tint); border-bottom: 2px solid var(--blue-pale); }
+.rtu-issues-table thead th {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+  font-weight: normal;
+  text-align: left;
+}
+.rtu-issues-table tbody tr { border-bottom: 1px solid var(--border); }
+.rtu-issues-table tbody tr:last-child { border-bottom: none; }
+.rtu-issues-table tbody tr:hover { background: var(--blue-tint); }
+.rtu-issues-table td { padding: 12px 16px; vertical-align: top; }
+
+.rtu-loading {
+  padding: 28px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--blue-accent);
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+.rtu-loading::before { content: '⟳ '; animation: spin 1.2s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TABLES ── */
+.ref-table {
+  width: 100%; border-collapse: collapse;
+  margin-top: 16px; font-size: 14px;
+}
+.ref-table thead tr { background: var(--bg-off); border-bottom: 2px solid var(--border-strong); }
+.ref-table thead th {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--maroon);
+  font-weight: normal;
+  text-align: left;
+}
+.ref-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+.ref-table tbody tr:last-child { border-bottom: none; }
+.ref-table tbody tr:hover { background: var(--maroon-tint); }
+.ref-table td { padding: 12px 16px; vertical-align: top; }
+
+/* ── NAME + READING combined cell ── */
+.td-name-block { display: flex; flex-direction: column; gap: 3px; }
+.td-point-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+.td-reading {
+  font-family: var(--font-mono); font-size: 11px; color: var(--maroon);
+  white-space: nowrap; font-weight: normal; opacity: 0.75;
+}
+.td-reading-blue {
+  font-family: var(--font-mono); font-size: 11px; color: var(--blue-accent);
+  white-space: nowrap; font-weight: normal; opacity: 0.75;
+}
+
+.td-meaning { color: var(--text-dark); font-weight: 500; }
+.td-why     { color: var(--text-muted); font-size: 13px; }
+.td-live    {
+  font-family: var(--font-mono); font-size: 13px;
+  font-weight: bold; white-space: nowrap;
+}
+.td-live.val-ok    { color: var(--green-accent); }
+.td-live.val-warn  { color: var(--amber); }
+.td-live.val-fault { color: var(--maroon-light); }
+.td-live.val-na    { color: var(--text-muted); }
+
+/* ── ISSUES TABLE ── */
+.issues-table thead th { color: var(--green-accent); }
+.issues-table thead tr { border-bottom-color: #81c784; }
+.td-symptom {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--maroon-light); font-weight: bold;
+}
+.td-cause { color: var(--text-muted); font-size: 13px; }
+.td-check { color: var(--text-dark); font-size: 13px; line-height: 1.7; }
+.check-tag {
+  display: inline; font-family: var(--font-mono); font-size: 11px;
+  color: var(--maroon); background: var(--maroon-pale);
+  padding: 1px 6px; border-radius: 3px; border: 1px solid #e4b0b5; white-space: nowrap;
+}
+.point-tag {
+  display: inline; font-family: var(--font-mono); font-size: 11px;
+  color: #1565c0; background: #e3f2fd;
+  padding: 1px 6px; border-radius: 3px; border: 1px solid #90caf9; white-space: nowrap;
+}
+.val-tag {
+  display: inline; font-family: var(--font-mono); font-size: 11px;
+  color: #2e7d32; background: #e8f5e9;
+  padding: 1px 6px; border-radius: 3px; border: 1px solid #a5d6a7; white-space: nowrap; font-weight: bold;
+}
+
+tr.issue-row-fault { background: rgba(192,48,64,0.05); }
+tr.issue-row-warn  { background: rgba(180,83,9,0.04); }
+tr.issue-row-info  { background: transparent; }
+
+/* ── ISSUE GROUP HEADER ── */
+.issue-group-header td {
+  background: var(--bg-off);
+  border-top: 2px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.rtu-issue-group-header td {
+  background: var(--blue-tint);
+  border-top: 2px solid var(--blue-pale);
+  border-bottom: 1px solid var(--blue-pale);
+  padding: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--blue-accent);
+}
+
+/* ── SEQUENCE / OPERATING MODES ── */
+.sequence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.seq-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  border-top: 3px solid var(--border-strong);
+}
+.seq-card.seq-cool   { border-top-color: var(--blue-accent); }
+.seq-card.seq-heat   { border-top-color: #e65100; }
+.seq-card.seq-dead   { border-top-color: var(--green-accent); }
+.seq-card.seq-fan    { border-top-color: #6a1b9a; }
+.seq-card.seq-off    { border-top-color: var(--text-muted); }
+.seq-card-title {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+.seq-card.seq-cool .seq-card-title   { color: var(--blue-accent); }
+.seq-card.seq-heat .seq-card-title   { color: #e65100; }
+.seq-card.seq-dead .seq-card-title   { color: var(--green-accent); }
+.seq-card.seq-fan .seq-card-title    { color: #6a1b9a; }
+.seq-card-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.seq-card-body strong { color: var(--text-dark); }
+.seq-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--bg-off);
+  color: var(--text-mid);
+  margin-bottom: 8px;
+}
+
+/* ── EVENT LOG ── */
+.event-log {
+  margin-top: 16px;
+}
+.event-log-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.event-filter-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  color: var(--text-muted);
+}
+.event-filter-btn.active { background: #6a1b9a; border-color: #6a1b9a; color: white; }
+.event-filter-btn:hover:not(.active) { background: var(--bg-off); }
+.event-log-spacer { flex: 1; }
+.event-clear-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background var(--transition);
+}
+.event-clear-btn:hover { background: var(--maroon-pale); color: var(--maroon); border-color: #e4b0b5; }
+
+/* FIX: Event list scroll — show ~4 rows then scroll */
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Subtle scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--bg-off);
+}
+.event-list::-webkit-scrollbar { width: 6px; }
+.event-list::-webkit-scrollbar-track { background: var(--bg-off); border-radius: 3px; }
+.event-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+.event-list::-webkit-scrollbar-thumb:hover { background: var(--maroon-mid); }
+
+.event-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.event-row.evt-fault { border-left: 3px solid var(--maroon-light); }
+.event-row.evt-warn  { border-left: 3px solid var(--amber); }
+.event-row.evt-info  { border-left: 3px solid var(--text-muted); }
+.event-row.evt-ok    { border-left: 3px solid var(--green-accent); }
+.event-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 80px;
+  margin-top: 1px;
+}
+.event-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.evt-fault .event-dot { background: var(--maroon-light); }
+.evt-warn  .event-dot { background: var(--amber); }
+.evt-info  .event-dot { background: var(--text-muted); }
+.evt-ok    .event-dot { background: var(--green-accent); }
+.event-msg { flex: 1; color: var(--text-dark); }
+.event-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-off);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  align-self: flex-start;
+}
+.event-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── LOADING SKELETON ── */
+.skeleton-row { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.skeleton-cell {
+  height: 14px; border-radius: 4px;
+  background: linear-gradient(90deg, #eee 25%, #f8f8f8 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── FOOTER ── */
+.page-footer {
+  margin-top: auto; padding: 16px 24px;
+  background: var(--maroon);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+}
+.footer-text { font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.8px; }
+.footer-badge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); padding: 4px 12px; border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; }
+</style>
+</head>
+<body>
+
+  <!-- SUPPORT MODAL -->
+  <div class="support-modal-overlay" id="support-modal-overlay" onclick="closeSupportModal(event)">
+    <div class="support-modal">
+      <button class="support-modal-close" onclick="document.getElementById('support-modal-overlay').classList.remove('open')" aria-label="Close">×</button>
+      <div class="support-modal-icon">📞</div>
+      <h3>Contact Support</h3>
+      <div class="support-modal-dept">Murphy Company — Facilities Support</div>
+      <a href="tel:+13143789158" class="support-phone">(314) 378-9158</a>
+      <div class="support-phone-label">Main Support Line</div>
+      <div class="support-hours">
+        <strong>Hours of Operation</strong><br>
+        Monday – Friday &nbsp;·&nbsp; 7:00 AM – 5:00 PM CST<br>
+        After-hours emergency dispatch available
+      </div>
+      <a href="tel:+13143789158" class="support-call-btn">📞 &nbsp;Tap to Call Now</a>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="header-stripe"></div>
+    <div class="header-inner">
+      <div class="header-logos">
+        <div class="logo-murphy">
+  <img src="data:image/png;base64,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"
+  alt="Murphy Logo" />
+        </div>
+        <div class="logo-fsi">
+          <strong id="header-job-name">Murphy Control Panel</strong>
+          Operator Quick Reference
+        </div>
+      </div>
+      <div class="header-title" id="page-header-title">VAV <span class="amp">&</span> FTU</div>
+      <div class="header-sub" id="page-header-sub">Operator Quick Reference &nbsp;·&nbsp; Temperature &amp; Airflow Control</div>
+      <div id="device-banner">
+        <span class="db-label">DEVICE:</span>
+        <span id="device-name">Loading…</span>
+        <span id="device-type-label" style="color:rgba(255,255,255,0.4);font-size:10px;letter-spacing:1px;"></span>
+      </div>
+      <div class="header-rule"></div>
+    </div>
+    <div class="header-meta">
+      <span>MURPHY CO. &nbsp;·&nbsp; INTERNAL FACILITIES USE ONLY</span>
+      <span id="doc-ref">VAV-FTU-REF-001</span>
+    </div>
+  </div>
+
+  <!-- SUPPORT BUTTON -->
+  <div class="support-btn-wrap">
+    <button class="support-btn" onclick="document.getElementById('support-modal-overlay').classList.add('open')">
+      <span class="support-btn-icon">📞</span>
+      Contact Support
+      <span class="support-btn-sub">(314) 378-9158</span>
+    </button>
+  </div>
+
+  <!-- QUICK STATUS BAR -->
+  <!-- FIX: Each item has an id for show/hide. Dividers keyed by data-after attribute -->
+  <div class="quick-status-bar" id="quick-status-bar">
+    <span class="qs-label">Live Status</span>
+    <div class="qs-divider" id="qsd-0"></div>
+    <div class="qs-item" id="qsi-space-temp">
+      <span class="qs-item-label">Space Temp</span>
+      <span class="qs-item-val val-na" id="qs-space-temp">—</span>
+    </div>
+    <div class="qs-divider" id="qsd-1"></div>
+    <div class="qs-item" id="qsi-setpoint">
+      <span class="qs-item-label">Setpoint</span>
+      <span class="qs-item-val val-na" id="qs-setpoint">—</span>
+    </div>
+    <div class="qs-divider" id="qsd-2"></div>
+    <div class="qs-item" id="qsi-airflow">
+      <span class="qs-item-label">Airflow</span>
+      <span class="qs-item-val val-na" id="qs-airflow">—</span>
+    </div>
+    <div class="qs-divider" id="qsd-3"></div>
+    <div class="qs-item" id="qsi-airflow-sp">
+      <span class="qs-item-label">Airflow SP</span>
+      <span class="qs-item-val val-na" id="qs-airflow-sp">—</span>
+    </div>
+    <div class="qs-divider" id="qsd-4"></div>
+    <div class="qs-item" id="qsi-mode">
+      <span class="qs-item-label">Mode</span>
+      <span class="qs-item-val val-na" id="qs-mode">—</span>
+    </div>
+    <div class="qs-spacer"></div>
+    <span class="qs-timestamp" id="qs-timestamp">Not yet updated</span>
+  </div>
+
+  <!-- SECTION LABEL -->
+  <div class="section-label">
+    <h2>Reference Sections</h2>
+    <div class="line"></div>
+  </div>
+
+  <!-- ACCORDION -->
+  <div class="accordion">
+
+    <!-- KEY READINGS -->
+    <div class="acc-item readings-item" id="item-readings">
+      <button class="acc-trigger" onclick="toggle('item-readings')">
+        <div class="acc-icon readings-icon">📋</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Key Readings at a Glance</div>
+          <div class="acc-subtitle" id="readings-subtitle">Loading sensor points from device…</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div id="readings-table-container">
+            <table class="ref-table" id="readings-skeleton">
+              <thead><tr><th>Point Name</th><th>What It Means</th><th>Why It Matters</th><th>Live Value</th></tr></thead>
+              <tbody>
+                <tr><td colspan="4"><div class="skeleton-row"><div class="skeleton-cell" style="width:15%;"></div><div class="skeleton-cell" style="width:35%;"></div><div class="skeleton-cell" style="width:35%;"></div><div class="skeleton-cell" style="width:10%;"></div></div></td></tr>
+                <tr><td colspan="4"><div class="skeleton-row"><div class="skeleton-cell" style="width:18%;"></div><div class="skeleton-cell" style="width:30%;"></div><div class="skeleton-cell" style="width:38%;"></div><div class="skeleton-cell" style="width:10%;"></div></div></td></tr>
+                <tr><td colspan="4"><div class="skeleton-row"><div class="skeleton-cell" style="width:20%;"></div><div class="skeleton-cell" style="width:28%;"></div><div class="skeleton-cell" style="width:38%;"></div><div class="skeleton-cell" style="width:10%;"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMON ISSUES -->
+    <div class="acc-item issues-item" id="item-issues">
+      <button class="acc-trigger" onclick="toggle('item-issues')">
+        <div class="acc-icon issues-icon">🔍</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Common Issues &amp; What to Check</div>
+          <div class="acc-subtitle" id="issues-subtitle">Analyzing live data for this device…</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div id="issues-table-container">
+            <table class="ref-table issues-table">
+              <thead><tr><th>Symptom / Observation</th><th>Likely Cause</th><th>What to Check</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td colspan="4"><div class="skeleton-row"><div class="skeleton-cell" style="width:20%;"></div><div class="skeleton-cell" style="width:30%;"></div><div class="skeleton-cell" style="width:35%;"></div><div class="skeleton-cell" style="width:10%;"></div></div></td></tr>
+                <tr><td colspan="4"><div class="skeleton-row"><div class="skeleton-cell" style="width:18%;"></div><div class="skeleton-cell" style="width:32%;"></div><div class="skeleton-cell" style="width:36%;"></div><div class="skeleton-cell" style="width:10%;"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT LOG -->
+    <div class="acc-item log-item" id="item-log">
+      <button class="acc-trigger" onclick="toggle('item-log')">
+        <div class="acc-icon log-icon">📝</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Session Event Log</div>
+          <div class="acc-subtitle" id="log-subtitle">Changes detected during this session will appear here</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div class="event-log">
+            <div class="event-log-toolbar">
+              <button class="event-filter-btn active" onclick="filterLog('all',this)">All</button>
+              <button class="event-filter-btn" onclick="filterLog('fault',this)">Faults</button>
+              <button class="event-filter-btn" onclick="filterLog('warn',this)">Warnings</button>
+              <button class="event-filter-btn" onclick="filterLog('ok',this)">Cleared</button>
+              <div class="event-log-spacer"></div>
+              <button class="event-clear-btn" onclick="clearLog()">Clear Log</button>
+            </div>
+            <div class="event-list" id="event-list">
+              <div class="event-empty">No events recorded yet — log updates as point values change</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RTU / AHU FEEDING DEVICE -->
+    <div class="acc-item rtu-item" id="item-rtu" style="display:none;">
+      <button class="acc-trigger" onclick="toggle('item-rtu')">
+        <div class="acc-icon rtu-icon">🏭</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">RTU / AHU Feeding Device</div>
+          <div class="acc-subtitle" id="rtu-subtitle">Select the upstream unit supplying this terminal</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div class="rtu-selector-wrap" id="rtu-selector-wrap">
+            <span class="rtu-selector-label">Select Unit:</span>
+            <select class="rtu-select" id="rtu-unit-select" onchange="onRtuSelect(this.value)">
+              <option value="">— Choose an RTU or AHU —</option>
+            </select>
+          </div>
+          <div id="rtu-content-area"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /accordion -->
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <span class="footer-text">Murphy Company &nbsp;·&nbsp; Internal facilities use only</span>
+    <span class="footer-badge" id="footer-device">VAV-FTU-REF-001</span>
+  </div>
+
+<script>
+/* ── Modal close on overlay click ───────────────────── */
+function closeSupportModal(e) {
+  if (e.target === document.getElementById('support-modal-overlay')) {
+    document.getElementById('support-modal-overlay').classList.remove('open');
+  }
+}
+
+/* ── Accordion ─────────────────────────────────────────── */
+function toggle(id) {
+  const item = document.getElementById(id);
+  const body = item.querySelector('.acc-body');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.acc-item').forEach(el => {
+    el.classList.remove('open');
+    el.querySelector('.acc-body').style.maxHeight = '0';
+  });
+  if (!isOpen) {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 80 + 'px';
+  }
+}
+
+function refreshAccordionHeight(id) {
+  const item = document.getElementById(id);
+  if (!item || !item.classList.contains('open')) return;
+  const body = item.querySelector('.acc-body');
+  body.style.maxHeight = 'none';
+  setTimeout(() => { body.style.maxHeight = (body.scrollHeight + 80) + 'px'; }, 50);
+}
+
+/* ── Decode Niagara encoded names ─────────────────────── */
+function decodeName(name) {
+  if (!name) return name;
+  return name.replace(/\$([0-9a-fA-F]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)))
+             .replace(/_/g, ' ');
+}
+
+/* ── Dynamic header title based on device type ─────────── */
+function setHeaderTitle(deviceKey, deviceType) {
+  const titleEl = document.getElementById('page-header-title');
+  const subEl   = document.getElementById('page-header-sub');
+  const seqTitle = document.getElementById('sequence-acc-title');
+  if (!titleEl) return;
+
+  const key = (deviceKey || '').toUpperCase();
+  const typ = (deviceType || '').toUpperCase();
+
+  let label = 'VAV <span class="amp">&amp;</span> FTU';
+  let sub   = 'Operator Quick Reference &nbsp;·&nbsp; Temperature &amp; Airflow Control';
+  let seqL  = 'Operating Sequence';
+
+  if (typ.includes('RTU') || typ.includes('ROOFTOP')) {
+    label = 'RTU'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Rooftop Unit'; seqL = 'RTU Operating Sequence';
+  } else if (typ.includes('AHU') || typ.includes('AIR HANDLER')) {
+    label = 'AHU'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Air Handling Unit'; seqL = 'AHU Operating Sequence';
+  } else if (typ.includes('MAU')) {
+    label = 'MAU'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Makeup Air Unit'; seqL = 'MAU Operating Sequence';
+  } else if (typ.includes('FTU') || key.includes('FTU')) {
+    label = 'FTU'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Fan Terminal Unit'; seqL = 'FTU Operating Sequence';
+  } else if (typ.includes('VAV') || key.includes('VAV')) {
+    label = 'VAV'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Variable Air Volume'; seqL = 'VAV Operating Sequence';
+  } else if (typ.includes('UH') || typ.includes('UNIT HEATER')) {
+    label = 'Unit Heater'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Unit Heater Control'; seqL = 'Unit Heater Sequence';
+  } else if (typ === 'COOLING ONLY' || typ === 'N/A' || !deviceType) {
+    label = 'VAV'; sub = 'Operator Quick Reference &nbsp;·&nbsp; Cooling Only Terminal'; seqL = 'VAV Operating Sequence';
+  }
+
+  titleEl.innerHTML = label;
+  if (subEl) subEl.innerHTML = sub;
+  if (seqTitle) seqTitle.textContent = seqL;
+
+  buildSequenceCards(typ, key);
+}
+
+/* ── Build operating sequence cards ───────────────────── */
+function buildSequenceCards(typ, key) {
+  const container = document.getElementById('sequence-container');
+  if (!container) return;
+
+  const isRTU = typ.includes('RTU') || typ.includes('AHU') || typ.includes('MAU');
+  const isFTU = typ.includes('FTU') || key.includes('FTU');
+
+  if (isRTU) {
+    container.innerHTML = `
+      <div class="seq-card seq-cool">
+        <div class="seq-badge">COOLING MODE</div>
+        <div class="seq-card-title">Mechanical Cooling</div>
+        <div class="seq-card-body">Compressor(s) stage on. CCV opens to cool supply air to <strong>SA-SP</strong>. Supply fan speeds up if duct static drops below setpoint.</div>
+      </div>
+      <div class="seq-card seq-dead">
+        <div class="seq-badge">ECONOMIZER</div>
+        <div class="seq-card-title">Free Cooling</div>
+        <div class="seq-card-body">When OA-Temp is below enthalpy or dry-bulb lockout, OAD opens to use outdoor air instead of mechanical cooling.</div>
+      </div>
+      <div class="seq-card seq-heat">
+        <div class="seq-badge">HEATING MODE</div>
+        <div class="seq-card-title">Heating Coil</div>
+        <div class="seq-card-body">HCV opens to heat supply air when SA-Temp drops below morning warmup setpoint or during heating season operation.</div>
+      </div>
+      <div class="seq-card seq-fan">
+        <div class="seq-badge">FAN CONTROL</div>
+        <div class="seq-card-title">VFD / Static Reset</div>
+        <div class="seq-card-body">Supply fan speed modulates to maintain <strong>Duct-SP-SP</strong>. Speed resets down when zone demands are low (supply air reset).</div>
+      </div>
+    `;
+  } else if (isFTU) {
+    container.innerHTML = `
+      <div class="seq-card seq-dead">
+        <div class="seq-badge">OCCUPIED — COMFORT</div>
+        <div class="seq-card-title">Deadband</div>
+        <div class="seq-card-body">Space is within deadband. Fan runs at minimum. Primary damper delivers minimum ventilation CFM. No reheat.</div>
+      </div>
+      <div class="seq-card seq-cool">
+        <div class="seq-badge">COOLING MODE</div>
+        <div class="seq-card-title">Damper Modulates</div>
+        <div class="seq-card-body">Primary damper opens toward maximum CFM. Fan runs at high speed. Upstream RTU supplies cold primary air.</div>
+      </div>
+      <div class="seq-card seq-heat">
+        <div class="seq-badge">HEATING MODE</div>
+        <div class="seq-card-title">Reheat + Fan</div>
+        <div class="seq-card-body">Damper goes to minimum. Reheat fires (<strong>Reheat1</strong> → <strong>Reheat2</strong>) to raise discharge air to <strong>DA-T-SP</strong>. Fan circulates warm air.</div>
+      </div>
+      <div class="seq-card seq-off">
+        <div class="seq-badge">UNOCCUPIED</div>
+        <div class="seq-card-title">Setback Mode</div>
+        <div class="seq-card-body">Wider temp deadband. Fan cycles only to prevent freeze or extreme overheat. Primary damper typically closed.</div>
+      </div>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="seq-card seq-dead">
+        <div class="seq-badge">OCCUPIED — COMFORT</div>
+        <div class="seq-card-title">Deadband</div>
+        <div class="seq-card-body">Space is within the setpoint deadband. Damper holds at minimum CFM. No heating or cooling output.</div>
+      </div>
+      <div class="seq-card seq-cool">
+        <div class="seq-badge">COOLING MODE</div>
+        <div class="seq-card-title">Damper Opens</div>
+        <div class="seq-card-body">Space above setpoint. <strong>DPR-Pos</strong> modulates from minimum toward 100%. Cold primary air from RTU cools the space.</div>
+      </div>
+      <div class="seq-card seq-heat">
+        <div class="seq-badge">HEATING MODE</div>
+        <div class="seq-card-title">Reheat Fires</div>
+        <div class="seq-card-body">Space below setpoint. Damper goes to minimum. <strong>Reheat1</strong> energizes to raise <strong>DA-T</strong> to <strong>DA-T-SP</strong>. Stage 2 if needed.</div>
+      </div>
+      <div class="seq-card seq-off">
+        <div class="seq-badge">UNOCCUPIED</div>
+        <div class="seq-card-title">Setback Mode</div>
+        <div class="seq-card-body">Wider setback setpoints. Box maintains minimum airflow only. Reheat fires only at extreme low-limit to prevent freezing.</div>
+      </div>
+    `;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   FIX: Quick Status Bar — dynamic show/hide per item
+   Now includes Airflow-SP; items auto-hide when no data.
+   After updating visibility, fix adjacent dividers too.
+══════════════════════════════════════════════════════════ */
+function updateQuickStatus(liveValues) {
+  const get = makeGetter(liveValues);
+
+  // FIX: Expanded ID lookups — covers all unit types
+  const spaceTemp  = get('Space-Temp','SpaceTemp','Zone-Temp','ZoneTemp','Rm-TMP','SPACE-TMP','Space-TMP');
+  const spaceSP    = get('Space-Setpoint','SpaceSetpoint','EFF-SPACE-SP','Temp-Eff-Spt','SPACE-TMPSP','Space-TMPSP');
+  const airflow    = get('Air-Flow','Airflow','AirFlow','CFM');
+  const airflowSP  = get('AirFlow-SP','Air-Flow-SP','AirflowSP','AirFlowSP','CFM-SP','CFMSP');
+  const mode       = get('HVACModeStatus','ModeStatus','ModeStatus','Mode','BoxMode');
+
+  /* Helper: set a qs item visible/hidden and update its value */
+  function setQsItem(itemId, valId, hasData, content, extraClass) {
+    const item = document.getElementById(itemId);
+    const val  = document.getElementById(valId);
+    if (!item || !val) return;
+    if (!hasData) {
+      item.classList.add('hidden');
+    } else {
+      item.classList.remove('hidden');
+      val.textContent = content;
+      val.className = 'qs-item-val' + (extraClass ? ' ' + extraClass : '');
+    }
+  }
+
+  // Space Temp
+  if (spaceTemp !== null) {
+    const n  = parseFloat(spaceTemp);
+    const sp = spaceSP !== null ? parseFloat(spaceSP) : null;
+    let cls = '';
+    if (sp !== null) {
+      const delta = n - sp;
+      cls = Math.abs(delta) < 2 ? 'qs-ok' : delta > 3 ? 'qs-bad' : 'qs-warn';
+    }
+    setQsItem('qsi-space-temp','qs-space-temp', true, n.toFixed(1)+'°F', cls);
+  } else {
+    setQsItem('qsi-space-temp','qs-space-temp', false);
+  }
+
+  // Setpoint
+  if (spaceSP !== null) {
+    setQsItem('qsi-setpoint','qs-setpoint', true, parseFloat(spaceSP).toFixed(1)+'°F', '');
+  } else {
+    setQsItem('qsi-setpoint','qs-setpoint', false);
+  }
+
+  // Airflow
+  if (airflow !== null) {
+    setQsItem('qsi-airflow','qs-airflow', true, parseFloat(airflow).toFixed(0)+' cfm', '');
+  } else {
+    setQsItem('qsi-airflow','qs-airflow', false);
+  }
+
+  // Airflow SP (NEW)
+  if (airflowSP !== null) {
+    setQsItem('qsi-airflow-sp','qs-airflow-sp', true, parseFloat(airflowSP).toFixed(0)+' cfm', '');
+  } else {
+    setQsItem('qsi-airflow-sp','qs-airflow-sp', false);
+  }
+
+  // Mode
+  if (mode !== null) {
+    const ms = String(mode).toLowerCase();
+    const cls = ms.includes('cool') ? 'qs-ok' : ms.includes('heat') ? 'qs-warn' : (ms.includes('alarm')||ms.includes('fault')) ? 'qs-bad' : '';
+    setQsItem('qsi-mode','qs-mode', true, String(mode), cls);
+  } else {
+    setQsItem('qsi-mode','qs-mode', false);
+  }
+
+  // Fix dividers: hide dividers that come before/after hidden items
+  // Simple approach: hide divider if the item immediately after it is hidden,
+  // OR if ALL items are hidden (just show label + timestamp)
+  const items = ['qsi-space-temp','qsi-setpoint','qsi-airflow','qsi-airflow-sp','qsi-mode'];
+  const dividers = ['qsd-0','qsd-1','qsd-2','qsd-3','qsd-4'];
+  // divider[i] precedes items[i]
+  items.forEach((itemId, i) => {
+    const item = document.getElementById(itemId);
+    const div  = document.getElementById(dividers[i]);
+    if (!item || !div) return;
+    if (item.classList.contains('hidden')) {
+      div.classList.add('hidden');
+    } else {
+      // Also hide if ALL preceding items were hidden (no visible item before this divider)
+      const anyVisibleBefore = items.slice(0, i).some(id => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains('hidden');
+      });
+      if (!anyVisibleBefore) {
+        div.classList.add('hidden');
+      } else {
+        div.classList.remove('hidden');
+      }
+    }
+  });
+
+  const qsTS = document.getElementById('qs-timestamp');
+  if (qsTS) {
+    const now = new Date();
+    qsTS.textContent = 'Updated ' + now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+/* ── Session Event Log ─────────────────────────────────── */
+let _eventLog     = [];
+let _prevValues   = {};
+let _logFilter    = 'all';
+
+function logEvent(type, message, tag) {
+  const now = new Date();
+  const ts  = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  _eventLog.unshift({ type, message, tag, ts });
+  if (_eventLog.length > 100) _eventLog.pop();
+  renderLog();
+  const sub = document.getElementById('log-subtitle');
+  if (sub) sub.textContent = `${_eventLog.length} event${_eventLog.length!==1?'s':''} recorded this session`;
+  refreshAccordionHeight('item-log');
+}
+
+function renderLog() {
+  const list = document.getElementById('event-list');
+  if (!list) return;
+  const filtered = _logFilter === 'all' ? _eventLog : _eventLog.filter(e => e.type === _logFilter);
+  if (!filtered.length) {
+    list.innerHTML = '<div class="event-empty">No events match the current filter</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => `
+    <div class="event-row evt-${e.type}">
+      <div class="event-time">${e.ts}</div>
+      <div class="event-dot"></div>
+      <div class="event-msg">${e.message}</div>
+      ${e.tag ? `<span class="event-tag">${e.tag}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function filterLog(type, btn) {
+  _logFilter = type;
+  document.querySelectorAll('.event-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLog();
+}
+
+function clearLog() {
+  _eventLog = [];
+  _prevValues = {};
+  renderLog();
+  const sub = document.getElementById('log-subtitle');
+  if (sub) sub.textContent = 'Log cleared — changes detected during this session will appear here';
+}
+
+function detectChanges(pointId, pointName, newVal) {
+  const prev = _prevValues[pointId];
+  if (prev === undefined) { _prevValues[pointId] = newVal; return; }
+  if (prev === newVal) return;
+  _prevValues[pointId] = newVal;
+
+  const lc  = String(newVal).toLowerCase();
+  const pvc = String(prev).toLowerCase();
+  let type  = 'info';
+
+  if (lc.includes('alarm') || lc.includes('fault') || lc.includes('fail')) type = 'fault';
+  else if (pvc.includes('alarm') || pvc.includes('fault') || pvc.includes('fail')) type = 'ok';
+  else {
+    const pn = parseFloat(prev), nn = parseFloat(newVal);
+    if (!isNaN(pn) && !isNaN(nn)) {
+      const delta = Math.abs(nn - pn);
+      if (delta > 5) type = 'warn';
+    }
+  }
+
+  logEvent(type, `<strong>${decodeName(pointName)}</strong>: ${prev} → ${newVal}`, pointId);
+}
+
+/* ── Type helpers ──────────────────────────────────────── */
+function isVAVorFTU(typeStr) {
+  if (!typeStr) return false;
+  const t = typeStr.toUpperCase();
+  return t.includes('VAV') || t.includes('FTU') || t.includes('FAN') || t.includes('TERMINAL');
+}
+
+function isRTUorAHU(typeStr) {
+  if (!typeStr) return false;
+  const t = typeStr.toUpperCase();
+  return t.includes('RTU') || t.includes('AHU') || t.includes('MAU') ||
+         t.includes('AIR HANDLER') || t.includes('ROOFTOP') ||
+         (t.includes('UNIT HEATER') && !t.includes('FTU'));
+}
+
+/* ══════════════════════════════════════════════════════════
+   POINT KNOWLEDGE BASE — expanded with all unit type IDs
+══════════════════════════════════════════════════════════ */
+const POINT_KB = {
+  // VAV / FTU points
+  'DA-T':           { meaning: 'Discharge Air Temp – temperature of air leaving the VAV box into the duct', why: 'Should rise above supply temp when reheat fires; near supply temp when cooling' },
+  'DA-TSP':         { meaning: 'Discharge Air Temperature Setpoint – target DAT the controller is chasing', why: 'Compare to DA-T to see if the heating/cooling valve is achieving its target' },
+  'DA-T-SP':        { meaning: 'Discharge Air Temperature Setpoint (alternate naming)', why: 'Same as DA-TSP — compare to DA-T to verify discharge control loop performance' },
+  'Air-Flow':       { meaning: 'Measured airflow in CFM delivered into the space', why: 'Compare to AirFlow-SP; high deviation indicates damper or duct issue' },
+  'Airflow':        { meaning: 'Measured airflow in CFM (RTU/AHU point name)', why: 'Should track setpoint within tolerance; significant drop indicates duct restriction or fan issue' },
+  'AirFlow-SP':     { meaning: 'Airflow Setpoint – commanded CFM the VAV/FTU is trying to deliver', why: 'Defines the target delivery rate; mismatch with actual = control or mechanical issue' },
+  'Air-Flow-SP':    { meaning: 'Airflow Setpoint (alternate naming)', why: 'Same as AirFlow-SP — the target CFM for this terminal unit' },
+  'DPR-Pos':        { meaning: 'Damper position feedback (0% = fully closed, 100% = fully open)', why: 'Should correlate with airflow — high command with low airflow = stuck damper or actuator' },
+  'Damp-Pos-Cmd':   { meaning: 'Damper position command – the signal sent to the actuator', why: 'Compare to DPR-Pos to verify actuator is responding to commands' },
+  'DPR-Pos-CMD':    { meaning: 'Damper position command (FTU naming)', why: 'Compare to actual position; mismatch indicates actuator slippage or binding' },
+  'Occupancy':      { meaning: 'Occupancy state — Occupied or Unoccupied/Standby', why: 'Drives setpoint setback when unoccupied; verify schedule matches actual use patterns' },
+  'OccupancyCMD':   { meaning: 'Occupancy command — manually override the occupancy schedule', why: 'Used to force occupied mode for events or after-hours use; should return to auto after use' },
+  'Reheat1':        { meaning: 'Reheat stage 1 command — whether the first heating stage is active', why: 'Should fire when space is below setpoint; if on with no DAT rise = coil/valve issue' },
+  'Reheat1SP':      { meaning: 'Reheat stage 1 setpoint — the threshold at which stage 1 engages', why: 'Confirms the control sequence staging point' },
+  'Space-Temp':     { meaning: 'Room temperature measured at the wall sensor right now', why: 'Primary feedback signal — compared to Space-Setpoint to determine operating mode' },
+  'Space-Setpoint': { meaning: 'Active space temperature setpoint the room is being controlled to', why: 'Delta from Space-Temp drives damper position and reheat/cooling demand' },
+  'EFF-SPACE-SP':   { meaning: 'Effective Space Setpoint – the actual target the box is chasing (adjusted)', why: 'Accounts for occupancy offsets; what the controls really use as the control target' },
+  'HVACModeStatus': { meaning: 'System-level HVAC operating mode string from the controller', why: 'Confirms what sequence the box is actually running (Cool, Heat, Deadband, Fan-Only, etc.)' },
+  'Mode':           { meaning: 'Current device operating mode (Cool / Reheat / Standby / Off)', why: 'Quick confirmation of active control sequence; mismatched mode = control logic issue' },
+  'Fan-Stat':       { meaning: 'Fan status — whether the series or parallel fan is running', why: 'Fan-powered terminals need fan to circulate air; no fan = no delivery regardless of damper' },
+  'Fan-CMD':        { meaning: 'Fan command — the controller output ordering the fan on or off', why: 'Compare to Fan-Stat to confirm fan is responding to command; mismatch = wiring or relay fault' },
+  'Fan-Cmd':        { meaning: 'Fan command (alternate naming)', why: 'Same as Fan-CMD — compare to Fan-Stat; mismatch = wiring or relay fault' },
+  // RTU points
+  'RTU-ALARM':      { meaning: 'RTU-level alarm output — active when any unit fault is present', why: 'Master alarm flag; investigate active alarms in unit controller when this trips' },
+  'RA-T':           { meaning: 'Return Air Temperature — air temperature returning from conditioned spaces', why: 'Delta between return and supply tells you how much the unit is conditioning the air' },
+  'Static':         { meaning: 'Discharge static pressure in the supply duct system', why: 'Too low = fan not keeping up with demand; too high = boxes at minimum, duct strain' },
+  'StaticSP':       { meaning: 'Discharge static pressure setpoint', why: 'Compare to Static to verify fan VFD speed control loop is working correctly' },
+  'DPR-cmd-OA':     { meaning: 'Outside air damper position — how much outdoor air is being mixed in', why: 'Excessive OAD position in summer increases cooling load on the unit significantly' },
+  'DPR-cmd-OA-CMD': { meaning: 'Outside air damper command — the controller signal to the OA damper actuator', why: 'Compare to DPR-cmd-OA; mismatch = actuator or wiring fault' },
+  'DPR-cmd-RET':    { meaning: 'Return air damper position — modulates in opposition to OA damper', why: 'Should work inversely with OA damper; verify linkage and actuator operation' },
+  'EF-STAT':        { meaning: 'Exhaust fan status — whether the exhaust fan is running', why: 'Must balance with supply fan for proper building pressurization; failure causes positive pressure buildup' },
+  'COMP-STAT1':     { meaning: 'Compressor 1 status — whether the first refrigerant compressor stage is running', why: 'Off status alone is NOT a fault — only a fault if space is warm and CLG-CAP is elevated with no cooling achieved' },
+  'COMP-STAT2':     { meaning: 'Compressor 2 status — second compressor stage status', why: 'Off status alone is NOT a fault — only a fault if Comp 1 is running and high cooling demand is not met' },
+  'Space-TMP':      { meaning: 'Space temperature reading (RTU point naming convention)', why: 'Primary feedback for RTU zone control; compare to setpoint to assess comfort conditions' },
+  'CLG-CAP':        { meaning: 'Cooling capacity output (0–100%) — how hard the cooling is being driven', why: 'High CLG-CAP with rising space temp = undersized or refrigerant/coil problem; 0% means no cooling commanded' },
+  'HTG-CAP':        { meaning: 'Heating capacity output (0–100%) — how hard heating is being driven', why: 'High HTG-CAP with no DAT rise = failed coil, stuck valve, or no hot water supply' },
+  'ModeStatus':     { meaning: 'RTU operating mode status — the active control sequence string', why: 'Confirms which RTU sequence is running; check for alarm or fault strings' },
+  // AHU points
+  'AHU-ALARM':      { meaning: 'AHU-level alarm output — active when any unit fault is triggered', why: 'Master alarm flag; navigate to controller alarm log when this is active' },
+  'MA-T':           { meaning: 'Mixed Air Temperature — blend of outdoor and return air before coils', why: 'Too high = economizer damper may be stuck or outdoor air damper over-opened in warm weather' },
+  'MA-TSP':         { meaning: 'Mixed Air Temperature Setpoint — target mixed air temp for economizer control', why: 'Compare to MA-T to verify economizer control loop is working' },
+  'OA-T':           { meaning: 'Outside Air Temperature reading', why: 'Context for system load — extreme OA temps explain high CLG/HTG capacity demands and economizer decisions' },
+  'RA-TSP':         { meaning: 'Return Air Temperature Setpoint', why: 'Target for return air control strategies; compare to RA-T to assess control performance' },
+  'DPR-cmd':        { meaning: 'OA Damper Position — outside air damper commanded position', why: 'High position in hot weather = stuck damper or control error increasing cooling load' },
+  'DPR-cmdSPT':     { meaning: 'OA Damper Command Setpoint — the target position for the OA damper', why: 'Compare to DPR-cmd to verify actuator is following the setpoint' },
+  'EF-status':      { meaning: 'Exhaust Fan Status — whether the exhaust fan is currently running', why: 'Must run with supply fan to maintain proper building pressurization' },
+  'EF-CMD':         { meaning: 'Exhaust Fan Command — controller output calling the exhaust fan on', why: 'Compare to EF-status; mismatch = relay, contactor, or wiring fault' },
+  'DPR-RTN':        { meaning: 'Return Damper position — modulates in opposition to OA damper', why: 'Should work inversely with OA damper in economizer operation' },
+  'DPR-RTNSP':      { meaning: 'Return Damper Setpoint — commanded position for return air damper', why: 'Compare to DPR-RTN to verify actuator response' },
+  'HTG-VLV':        { meaning: 'Heating Valve position (0% = closed, 100% = full heating flow)', why: 'Open valve during cooling season = simultaneous heat/cool, energy waste' },
+  'HTG-VLVSP':      { meaning: 'Heating Valve Setpoint — commanded valve position', why: 'Compare to HTG-VLV to verify valve actuator is responding' },
+  'Pre-HT-VLV':     { meaning: 'Pre-Heat Valve position — valve on the upstream pre-heat coil', why: 'Protects AHU from freezestat trips in cold weather; should open when OA-T is near freezing' },
+  'Pre-HT-VLVSP':   { meaning: 'Pre-Heat Valve Setpoint — commanded position for pre-heat valve', why: 'Compare to Pre-HT-VLV to verify valve control' },
+  'CLG-VLV':        { meaning: 'Cooling Valve position — chilled water valve to cooling coil (0%=closed, 100%=open)', why: 'High position with warm supply air = low chilled water temp or flow problem' },
+  'CLG-VLVSP':      { meaning: 'Cooling Valve Setpoint — commanded position for cooling valve', why: 'Compare to CLG-VLV to verify valve actuator is responding correctly' },
+  'SPACE-TMP':      { meaning: 'Space Temperature (AHU point naming convention)', why: 'Zone comfort feedback; compare to SPACE-TMPSP to assess if AHU is meeting space demand' },
+  'SPACE-TMPSP':    { meaning: 'Space Temperature Setpoint (AHU point naming convention)', why: 'The target zone temperature; compare to SPACE-TMP to assess control performance' },
+  'power':          { meaning: 'VFD Power — electrical power draw of the fan VFD', why: 'Rising power at same speed = mechanical restriction or duct blockage increasing fan work' },
+  'current':        { meaning: 'VFD Current — amperage drawn by fan motor through the drive', why: 'High current at normal speed = motor strain, possible bearing failure or overload' },
+  'frequency':      { meaning: 'VFD Frequency — drive output frequency controlling fan speed (Hz)', why: 'Direct indicator of commanded fan speed; compare to speed % for consistency' },
+  'torque':         { meaning: 'VFD Torque — mechanical torque output of the fan motor', why: 'High torque at low speed = mechanical restriction; normal torque = healthy drive operation' },
+  'voltage':        { meaning: 'VFD Voltage — output voltage from drive to motor', why: 'Voltage instability can cause motor heating and VFD faults' },
+  'speed':          { meaning: 'VFD Speed — fan speed as a percentage of full rated speed', why: 'Compare to static pressure setpoint; should track duct static demand' },
+  'fault':          { meaning: 'VFD Alarm/Fault — active fault code from the variable frequency drive', why: 'Any active VFD fault should be investigated immediately; can mean no air delivery' },
+};
+
+function getPointKnowledge(id) {
+  if (!id) return null;
+  if (POINT_KB[id]) return POINT_KB[id];
+  const lc = id.toLowerCase();
+  for (const [key, val] of Object.entries(POINT_KB)) {
+    if (lc === key.toLowerCase() || lc.includes(key.toLowerCase()) || key.toLowerCase().includes(lc)) return val;
+  }
+  return null;
+}
+
+function describePoint(point) {
+  const kb = getPointKnowledge(point.id || point.name);
+  if (kb) return kb;
+  const name = decodeName(point.name || '');
+  const lc = name.toLowerCase();
+  let meaning = name;
+  let why = 'Monitor against expected range; compare to paired setpoint or command';
+  if (lc.includes('temp') || lc.includes('tmp'))          { meaning = `${name} – temperature reading`; why = 'Compare to setpoint to verify control loop is working'; }
+  else if (lc.includes('flow') || lc.includes('cfm'))     { meaning = `${name} – airflow measurement`; why = 'Verify supply air is being delivered at the commanded setpoint'; }
+  else if (lc.includes('damp'))                           { meaning = `${name} – damper position`; why = 'Should track airflow demand; stuck damper = no control authority'; }
+  else if (lc.includes('heat') || lc.includes('reheat'))  { meaning = `${name} – heating element status or setpoint`; why = 'Should be active only when space is below setpoint'; }
+  else if (lc.includes('sp') || lc.includes('setpoint') || lc.includes('spt')) { meaning = `${name} – control setpoint`; why = 'The target the controller is trying to achieve'; }
+  else if (lc.includes('mode') || lc.includes('status'))  { meaning = `${name} – operating mode or system status`; why = 'Confirms which control sequence is active'; }
+  else if (lc.includes('occ') || lc.includes('occup'))    { meaning = `${name} – occupancy signal`; why = 'Drives setback when space is unoccupied'; }
+  else if (lc.includes('cap'))                            { meaning = `${name} – capacity output (%)`; why = 'High sustained capacity suggests the system is struggling to meet load'; }
+  else if (lc.includes('comp'))                           { meaning = `${name} – compressor status`; why = 'Off alone is not a fault — only concern if space is warm and cooling demand is unmet'; }
+  else if (lc.includes('fan') || lc.includes(' sf'))      { meaning = `${name} – fan status or command`; why = 'Fan must be running for any air delivery; verify command vs status'; }
+  else if (lc.includes('valve') || lc.includes('ccv') || lc.includes('hcv')) { meaning = `${name} – control valve position`; why = 'Valve position drives heating or cooling capacity delivered to coil'; }
+  else if (lc.includes('filter') || lc.includes('dp'))   { meaning = `${name} – differential pressure across filters`; why = 'Rising DP means filters are loading up and airflow is being restricted'; }
+  else if (lc.includes('static') || lc.includes('duct')) { meaning = `${name} – duct static pressure`; why = 'Controls VFD speed; low static = fan not keeping up, high static = boxes at minimum'; }
+  return { meaning, why };
+}
+
+/* ── Lookup helpers ─────────────────────────────────────── */
+function makeGetter(liveValues) {
+  return function get(...ids) {
+    for (const id of ids) {
+      for (const [k, v] of Object.entries(liveValues)) {
+        if (k === id || k.toLowerCase() === id.toLowerCase()) return v;
+        if (k.toLowerCase().replace(/[-_\s]/g,'') === id.toLowerCase().replace(/[-_\s]/g,'')) return v;
+      }
+    }
+    return null;
+  };
+}
+
+function numOf(v) {
+  if (v === null || v === undefined) return null;
+  const n = parseFloat(String(v).replace(/[^\d.\-]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+function strOf(v) {
+  return v !== null && v !== undefined ? String(v).toLowerCase().trim() : null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIAGNOSTICS ENGINE — VAV/FTU
+══════════════════════════════════════════════════════════ */
+function diagnose(points, liveValues) {
+  const issues = [];
+  const get = makeGetter(liveValues);
+
+  // FIX: Expanded ID lookups to cover all unit type naming conventions
+  const spaceTemp    = numOf(get('Space-Temp','SpaceTemp','Zone-Temp','ZoneTemp','Rm-TMP','RmTMP','SPACE-TMP','Space-TMP'));
+  const spaceSP      = numOf(get('Space-Setpoint','SpaceSetpoint','EFF-SPACE-SP','EffSpaceSP','Temp-Eff-Spt','TempEffSpt','SPACE-TMPSP','Space-TMPSP'));
+  const dat          = numOf(get('DA-T','DAT','DischargeAirTemp','Discharge-Air-Temp'));
+  const datSP        = numOf(get('DA-T-SP','DA-TSP','DATSP','DischargeSP','DischargeAirTempSP'));
+  const airflow      = numOf(get('Air-Flow','Airflow','AirFlow','CFM'));
+  const airflowSP    = numOf(get('AirFlow-SP','Air-Flow-SP','AirflowSP','AirFlowSP','CFM-SP','CFMSP'));
+  const damperCmd    = numOf(get('DPR-Pos','DamperPos','DamperCmd','Damper-Pos','Damp-Pos-Cmd','DPR-Pos-CMD'));
+  const clgCap       = numOf(get('CLG-CAP','ClgCap','CoolingCap','Cooling-Cap'));
+  const htgCap       = numOf(get('HTG-CAP','HtgCap','HeatingCap','Heating-Cap'));
+  const reheat1Raw   = get('Reheat1','HeatStg1','Heat-Stg-1','HeatStage1');
+  const reheat1SPRaw = get('Reheat1SP','HeatStg1SP','Heat-Stg-1-SP','Reheat1-SP');
+  const reheat2Raw   = get('Reheat2','HeatStg2','Heat-Stg-2','HeatStage2');
+  const compStat1Raw = get('COMP-STAT1','CompStat1','Comp-Stat1','Compressor1');
+  const compStat2Raw = get('COMP-STAT2','CompStat2','Comp-Stat2','Compressor2');
+  const modeRaw      = get('HVACModeStatus','ModeStatus','Mode','BoxMode','HVACMode');
+  const occupRaw     = get('Occupancy','OccupancyStatus','Occ-Status');
+  const fanStatRaw   = get('Fan-Stat','FanStat','FanStatus','Fan-Status');
+  const fanCmdRaw    = get('Fan-Cmd','FanCmd','Fan-Command','Fan-CMD');
+  const saTemp       = numOf(get('SA-Temp','SATemp','SupplyAirTemp','Supply-Air-Temp'));
+  const oaTemp       = numOf(get('OA-Temp','OATemp','OA-T','OutsideAirTemp','Outside-Air-Temp'));
+
+  const modeStr    = strOf(modeRaw)   || '';
+  const fanStatStr = strOf(fanStatRaw) || '';
+  const fanCmdStr  = strOf(fanCmdRaw)  || '';
+
+  const inCool   = modeStr.includes('cool') || modeStr.includes('clg');
+  const inHeat   = modeStr.includes('heat') || modeStr.includes('htg') || modeStr.includes('reheat');
+  const inAlarm  = modeStr.includes('alarm') || modeStr.includes('fault') || modeStr.includes('fail');
+
+  const reheat1On = reheat1Raw !== null && (strOf(reheat1Raw).includes('en') || strOf(reheat1Raw) === 'on' || strOf(reheat1Raw) === '1' || strOf(reheat1Raw).includes('true') || strOf(reheat1Raw).includes('active'));
+  const reheat2On = reheat2Raw !== null && (strOf(reheat2Raw).includes('en') || strOf(reheat2Raw) === 'on' || strOf(reheat2Raw) === '1' || strOf(reheat2Raw).includes('true') || strOf(reheat2Raw).includes('active'));
+  const fanRunning = fanStatStr.includes('run') || fanStatStr === 'on' || fanStatStr === '1' || fanStatStr.includes('true');
+  const fanCmd     = fanCmdStr.includes('on') || fanCmdStr === '1' || fanCmdStr.includes('true') || fanCmdStr.includes('en');
+
+  if (spaceTemp !== null && spaceSP !== null) {
+    const delta = spaceTemp - spaceSP;
+    if (delta > 3) {
+      const cfmNote = airflow !== null ? ` Airflow reading is <span class="val-tag">${airflow.toFixed(0)} cfm</span>.` : '';
+      const clgNote = clgCap !== null ? ` CLG-CAP at <span class="val-tag">${clgCap.toFixed(0)}%</span>.` : '';
+      issues.push({
+        group: 'Space Temp vs Setpoint', severity: delta > 5 ? 'fault' : 'warn',
+        symptom:  `Space Temp <span class="val-tag">${spaceTemp.toFixed(1)}F</span> is <strong>${delta.toFixed(1)}F above</strong> Space Setpoint <span class="val-tag">${spaceSP.toFixed(1)}F</span>`,
+        cause:    inCool ? 'Box in Cool Mode but space is not recovering to setpoint' : 'Space above setpoint — cooling demand not being met',
+        check:    `Verify the RTU or AHU is supplying adequately cold air. Check <span class="point-tag">DPR-Pos</span> — if damper is at or near 100% and space still can't recover, the issue is upstream supply air temperature or capacity.${cfmNote}${clgNote}`,
+      });
+    } else if (delta < -3) {
+      const reheatNote = reheat1Raw !== null
+        ? (reheat1On ? ` Reheat1 is <span class="val-tag">ENABLED</span>.` : ` Reheat1 is <span class="val-tag">OFF</span> — coil is NOT firing despite heating demand.`)
+        : '';
+      const datNote = dat !== null ? ` DA-T reads <span class="val-tag">${dat.toFixed(1)}F</span>${datSP !== null ? ` vs setpoint of <span class="val-tag">${datSP.toFixed(1)}F</span>` : ''}.` : '';
+      const htgNote = htgCap !== null ? ` HTG-CAP at <span class="val-tag">${htgCap.toFixed(0)}%</span>.` : '';
+      issues.push({
+        group: 'Space Temp vs Setpoint', severity: delta < -5 ? 'fault' : 'warn',
+        symptom:  `Space Temp <span class="val-tag">${spaceTemp.toFixed(1)}F</span> is <strong>${Math.abs(delta).toFixed(1)}F below</strong> Space Setpoint <span class="val-tag">${spaceSP.toFixed(1)}F</span>`,
+        cause:    inHeat ? 'Box in Reheat Mode but space is not recovering to setpoint' : 'Space below setpoint — heating demand not being met',
+        check:    `Check <span class="point-tag">Reheat1</span> and <span class="point-tag">HTG-CAP</span> to confirm heat is on. Also check RTU/AHU DA-T for cooling only boxes. ${reheatNote}${datNote}${htgNote}`,
+      });
+    } else {
+      issues.push({
+        group: 'Space Temp vs Setpoint', severity: 'info',
+        symptom:  `Space Temp <span class="val-tag">${spaceTemp.toFixed(1)}F</span> within <strong>${Math.abs(delta).toFixed(1)}F</strong> of Setpoint <span class="val-tag">${spaceSP.toFixed(1)}F</span>`,
+        cause:    'Space temperature is tracking setpoint within normal deadband range',
+        check:    'No action required. Continue monitoring. If complaints persist check sensor calibration and wall sensor placement.',
+      });
+    }
+  }
+
+  if (dat !== null && datSP !== null) {
+    const delta = dat - datSP;
+    if (delta > 5 && !reheat1On) {
+      issues.push({
+        group: 'Discharge Air Temp vs DA-T Setpoint', severity: delta > 10 ? 'fault' : 'warn',
+        symptom:  `DA-T <span class="val-tag">${dat.toFixed(1)}F</span> is <strong>${delta.toFixed(1)}F above</strong> DA-T setpoint <span class="val-tag">${datSP.toFixed(1)}F</span> with reheat OFF`,
+        cause:    'Discharge air is warmer than commanded without active reheat — RTU supply air may be too warm, or reheat valve/contactor is stuck open',
+        check:    `Verify <span class="point-tag">Reheat1</span> is truly off. Check upstream RTU supply air temperature. A stuck-open hot water reheat valve or welded electric heat contactor produces this symptom.`,
+      });
+    } else if (delta < -5 && reheat1On) {
+      issues.push({
+        group: 'Discharge Air Temp vs DA-T Setpoint', severity: 'fault',
+        symptom:  `DA-T <span class="val-tag">${dat.toFixed(1)}F</span> is <strong>${Math.abs(delta).toFixed(1)}F below</strong> DA-T setpoint <span class="val-tag">${datSP.toFixed(1)}F</span> — Reheat1 is ENABLED`,
+        cause:    'Reheat commanded ON but discharge temperature is not rising — coil is not producing heat',
+        check:    `For electric reheat: check breaker panel, SCR firing board, and controller output voltage. For hot water reheat: check control valve, confirm hot water flow, and verify boiler is running.`,
+      });
+    } else if (dat > 90) {
+      issues.push({
+        group: 'Discharge Air Temp vs DA-T Setpoint', severity: 'fault',
+        symptom:  `DA-T critically high at <span class="val-tag">${dat.toFixed(1)}F</span>`,
+        cause:    'Runaway reheat, stuck heating valve fully open, or RTU supplying extremely warm air',
+        check:    `Immediately verify <span class="point-tag">Reheat1</span> and <span class="point-tag">Reheat2</span> command states. Check for welded contactor or wide-open hot water valve. DA-T above 90°F can damage ductwork.`,
+      });
+    } else {
+      issues.push({
+        group: 'Discharge Air Temp vs DA-T Setpoint', severity: 'info',
+        symptom:  `DA-T <span class="val-tag">${dat.toFixed(1)}F</span> tracking DA-T setpoint <span class="val-tag">${datSP.toFixed(1)}F</span> normally`,
+        cause:    'Discharge air temperature is within acceptable range of setpoint',
+        check:    'No action required. Monitor during peak heating season for adequate capacity.',
+      });
+    }
+  }
+
+  if (airflow !== null || airflowSP !== null || damperCmd !== null) {
+    const group = 'Airflow & Damper';
+    if (airflow !== null && airflowSP !== null) {
+      const delta = airflow - airflowSP;
+      const pct = airflowSP > 0 ? (delta / airflowSP) * 100 : 0;
+      if (pct < -25 && damperCmd !== null && damperCmd > 50) {
+        issues.push({
+          group, severity: 'fault',
+          symptom:  `Airflow <span class="val-tag">${airflow.toFixed(0)} cfm</span> is <strong>${Math.abs(delta).toFixed(0)} cfm below</strong> setpoint <span class="val-tag">${airflowSP.toFixed(0)} cfm</span> — Damper at <span class="val-tag">${damperCmd.toFixed(0)}%</span>`,
+          cause:    'Damper is open but airflow is not tracking — actuator, blade, or flow sensor issue',
+          check:    `Physically verify <span class="point-tag">DPR-Pos</span> matches blade position. Check velocity pressure pickup tube for blockage. If airflow reads zero with damper above 50%, suspect failed sensor or clogged pitot.`,
+        });
+      } else if (pct > 30) {
+        issues.push({
+          group, severity: 'warn',
+          symptom:  `Airflow <span class="val-tag">${airflow.toFixed(0)} cfm</span> is <strong>${delta.toFixed(0)} cfm above</strong> setpoint <span class="val-tag">${airflowSP.toFixed(0)} cfm</span>`,
+          cause:    'Delivering more air than commanded — damper may be over-traveling or flow setpoint is too low',
+          check:    `Check <span class="point-tag">DPR-Pos</span> position vs commanded. Verify actuator is not over-rotating (check mechanical stops). Confirm flow setpoint is properly programmed.`,
+        });
+      } else {
+        issues.push({
+          group, severity: 'info',
+          symptom:  `Airflow <span class="val-tag">${airflow.toFixed(0)} cfm</span> tracking setpoint <span class="val-tag">${airflowSP.toFixed(0)} cfm</span> within ${Math.abs(pct).toFixed(0)}%`,
+          cause:    'Airflow delivery is within normal tolerance of setpoint',
+          check:    'No action required.',
+        });
+      }
+    }
+  }
+
+  if (clgCap !== null && clgCap > 90 && inCool) {
+    issues.push({
+      group: 'Cooling Capacity', severity: spaceTemp !== null && spaceSP !== null && (spaceTemp - spaceSP) > 2 ? 'fault' : 'warn',
+      symptom:  `CLG-CAP at <span class="val-tag">${clgCap.toFixed(0)}%</span> — system running at maximum cooling effort`,
+      cause:    'Cooling is working as hard as possible — may indicate undersized system, high load, or loss of refrigerant capacity',
+      check:    `Check outdoor ambient temperature${oaTemp !== null ? ` (<span class="val-tag">${oaTemp.toFixed(1)}F</span>)` : ''}. Verify compressor operation. Check refrigerant charge if accessible.`,
+    });
+  }
+
+  if (htgCap !== null && htgCap > 90 && inHeat) {
+    issues.push({
+      group: 'Heating Capacity', severity: spaceTemp !== null && spaceSP !== null && (spaceSP - spaceTemp) > 2 ? 'fault' : 'warn',
+      symptom:  `HTG-CAP at <span class="val-tag">${htgCap.toFixed(0)}%</span> — system at maximum heating effort`,
+      cause:    'Heating is running at full capacity — possible heat loss, undersized reheat, or very cold supply air',
+      check:    `Verify building envelope is intact. Check hot water supply temperature and pressure. For electric reheat confirm all stages are energizing.`,
+    });
+  }
+
+  if (reheat2On && !reheat1On) {
+    issues.push({
+      group: 'Reheat Staging', severity: 'fault',
+      symptom:  `Reheat Stage 2 ENABLED but Stage 1 is OFF`,
+      cause:    'Out-of-sequence staging — Stage 2 should never fire before Stage 1',
+      check:    `Check <span class="point-tag">Reheat1</span> and <span class="point-tag">Reheat2</span> command outputs. Verify PID staging logic in the controller.`,
+    });
+  }
+
+  if (fanStatRaw !== null && fanCmdRaw !== null) {
+    const fanR2 = fanStatStr.includes('run') || fanStatStr === 'on' || fanStatStr === '1' || fanStatStr.includes('true');
+    const fanC2 = fanCmdStr.includes('on') || fanCmdStr === '1' || fanCmdStr.includes('true') || fanCmdStr.includes('en');
+    if (fanC2 && !fanR2) {
+      issues.push({
+        group: 'Fan Status vs Command', severity: 'fault',
+        symptom:  `Fan Commanded ON — Fan Status shows NOT running`,
+        cause:    'Fan is not responding to run command — motor, contactor, or VFD failure',
+        check:    `Check <span class="point-tag">Fan-Cmd</span> output voltage at controller terminal. Inspect fan contactor or VFD for faults. Check motor thermal overload.`,
+      });
+    }
+  }
+
+  if (modeRaw !== null && inAlarm) {
+    issues.push({
+      group: 'HVAC Mode Status', severity: 'fault',
+      symptom:  `HVACModeStatus shows <span class="val-tag">${get('HVACModeStatus','ModeStatus','Mode')}</span>`,
+      cause:    'Controller has flagged an alarm or fault condition in the mode status string',
+      check:    `Navigate to the controller alarm log and review active alarms. Clear only after root cause is identified and corrected.`,
+    });
+  }
+
+  const hasRealIssues = issues.some(i => i.severity === 'fault' || i.severity === 'warn');
+  if (!hasRealIssues && issues.length === 0) {
+    issues.push({
+      group: 'System Health', severity: 'info',
+      symptom:  'No anomalies detected across monitored points',
+      cause:    'All available point values appear within normal operating range',
+      check:    'System is operating normally. Continue routine monitoring.',
+    });
+  }
+
+  return issues;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIAGNOSTICS ENGINE — RTU / AHU
+   FIX: Compressor OFF is NOT a fault unless:
+     - CLG-CAP is elevated (>20%) OR space temp is high (>75°F)
+     - AND the compressor status is still off/fan off
+   This prevents false faults when unit is simply not in cooling mode.
+══════════════════════════════════════════════════════════ */
+function diagnoseRTU(points, liveValues, unitName) {
+  const issues = [];
+  const get = makeGetter(liveValues);
+
+  // FIX: Expanded ID lookups for RTU points
+  const supplyTemp   = numOf(get('DA-T','DAT','SA-Temp','SATemp','Sup-Air-Temp','SupplyAirTemp','Supply-Air-Temp'));
+  const supplySP     = numOf(get('DA-T-SP','DA-TSP','SA-SP','SASP','SupplyAirSP','SA-Setpoint','Sup-Air-SP'));
+  const oaTemp       = numOf(get('OA-Temp','OATemp','OA-T','OutdoorAirTemp','Outdoor-Air-Temp'));
+  const oadPos       = numOf(get('DPR-cmd-OA','OAD-Pos','OADPos','OA-Damper','OADamper','OutdoorAirDamper'));
+  const sfStatRaw    = get('Fan-Stat','FanStat','SF-Stat','SFStat','SupplyFanStat','Supply-Fan-Stat');
+  const sfCmdRaw     = get('Fan-CMD','FanCMD','SF-Cmd','SFCmd','SupplyFanCmd','Supply-Fan-Cmd');
+  const sfSpd        = numOf(get('speed','SF-Spd','SFSpd','FanSpeed','Fan-Speed','VFD-Spd'));
+  const ductSP_act   = numOf(get('Static','Duct-SP','DuctSP','Duct-Static','DuctStatic','Static-Pressure'));
+  const ductSP_set   = numOf(get('StaticSP','Duct-SP-SP','DuctSPSP','Duct-Static-SP','StaticPressureSP'));
+  const clgCap       = numOf(get('CLG-CAP','ClgCap','CoolingCap'));
+  const htgCap       = numOf(get('HTG-CAP','HtgCap','HeatingCap'));
+  const compStat1Raw = get('COMP-STAT1','CompStat1','Comp-Stat1','Compressor1');
+  const compStat2Raw = get('COMP-STAT2','CompStat2','Comp-Stat2','Compressor2');
+  const modeRaw      = get('ModeStatus','HVACModeStatus','Mode','HVACMode');
+  const filterDP     = numOf(get('Filter-DP','FilterDP','Filter-Diff','FilDP','FilterDiffPressure'));
+  // FIX: Space temp for RTU uses Space-TMP as primary ID
+  const spaceTemp    = numOf(get('Space-TMP','SpaceTMP','SPACE-TMP','Space-Temp','SpaceTemp','Zone-Temp'));
+
+  const sfStatStr = strOf(sfStatRaw) || '';
+  const sfCmdStr  = strOf(sfCmdRaw)  || '';
+  const modeStr   = strOf(modeRaw)   || '';
+
+  const sfRunning = sfStatStr.includes('run') || sfStatStr === 'on' || sfStatStr === '1' || sfStatStr.includes('true');
+  const sfCmdOn   = sfCmdStr.includes('on')  || sfCmdStr === '1'  || sfCmdStr.includes('true') || sfCmdStr.includes('en');
+  const inCool    = modeStr.includes('cool') || modeStr.includes('clg');
+  const inAlarm   = modeStr.includes('alarm') || modeStr.includes('fault') || modeStr.includes('fail');
+
+  // FIX: Helper to determine if compressor status string indicates "off/not running"
+  function compIsOff(rawVal) {
+    if (rawVal === null || rawVal === undefined) return false;
+    const s = strOf(rawVal);
+    // "fan off", "off", "false", "0", "fault", "fail" = considered off/not running
+    return s.includes('off') || s === 'false' || s === '0' || s.includes('fail') || s.includes('fault');
+  }
+
+  const comp1Off = compIsOff(compStat1Raw);
+  const comp2Off = compIsOff(compStat2Raw);
+
+  // FIX: Compressor fault logic — only flag if there is evidence of a cooling problem:
+  //   CLG-CAP > 20% (unit is demanding cooling) OR space temp > 75°F
+  //   AND the compressor is still showing off
+  if (compStat1Raw !== null && comp1Off) {
+    const clgDemand = clgCap !== null && clgCap > 20;
+    const spaceWarm = spaceTemp !== null && spaceTemp > 75;
+    if (clgDemand || spaceWarm) {
+      const clgNote  = clgCap !== null ? ` CLG-CAP is at <span class="val-tag">${clgCap.toFixed(0)}%</span>.` : '';
+      const tmpNote  = spaceTemp !== null ? ` Space Temp is <span class="val-tag">${spaceTemp.toFixed(1)}F</span>.` : '';
+      issues.push({
+        group: 'Compressor / Refrigerant', severity: 'fault',
+        symptom:  `COMP-STAT1 shows <span class="val-tag">${compStat1Raw}</span> — compressor 1 NOT running while cooling is needed`,
+        cause:    `Compressor 1 is off but there is active cooling demand — no refrigerant cooling available from ${unitName}`,
+        check:    `${clgNote}${tmpNote} Check compressor contactor, high/low pressure safeties, and thermal overload. This directly explains why downstream zones cannot cool. Inspect for refrigerant leaks.`,
+      });
+    }
+    // else: comp is off and there's no demand — totally normal, don't report
+  }
+
+  // Comp 2 fault: only if comp1 IS running (unit is trying to cool) and comp2 is still off under high demand
+  if (compStat2Raw !== null && comp2Off && !comp1Off) {
+    const clgDemand = clgCap !== null && clgCap > 60; // high demand threshold for stage 2
+    if (clgDemand) {
+      issues.push({
+        group: 'Compressor / Refrigerant', severity: 'warn',
+        symptom:  `COMP-STAT2 shows <span class="val-tag">${compStat2Raw}</span> — compressor 2 not running under high cooling load`,
+        cause:    'Second compressor stage is not staging on despite high cooling capacity demand',
+        check:    `Verify staging logic setpoint. Check compressor 2 contactor and safety switches. CLG-CAP is at <span class="val-tag">${clgCap ? clgCap.toFixed(0) : '?'}%</span> — Comp 2 should be running.`,
+      });
+    }
+  }
+
+  if (sfStatRaw !== null && sfCmdRaw !== null && sfCmdOn && !sfRunning) {
+    issues.push({
+      group: 'Supply Fan', severity: 'fault',
+      symptom:  `Supply Fan Commanded ON — Status shows NOT running`,
+      cause:    'Fan motor, VFD, or contactor is not responding to run command',
+      check:    `Check VFD for fault codes. Inspect supply fan contactor and motor overload relay. A failed supply fan means NO air delivery to any downstream VAV boxes.`,
+    });
+  }
+
+  if (supplyTemp !== null && supplySP !== null) {
+    const delta = supplyTemp - supplySP;
+    // HOW MUCH ABOVE SETPOINT BEFORE THROWING SYMPTOM ERROR ON RTU. 8 DEGREES
+    if (delta > 8 && inCool) {
+      issues.push({
+        group: 'Supply Air Temperature', severity: delta > 10 ? 'fault' : 'warn',
+        symptom:  `Supply Air Temp <span class="val-tag">${supplyTemp.toFixed(1)}F</span> is <strong>${delta.toFixed(1)}F above</strong> setpoint <span class="val-tag">${supplySP.toFixed(1)}F</span>`,
+        cause:    'Cooling coil may not be able to achieve supply air setpoint, OR compressor may have tripped. Check Diagnostics. — POSSIBLE coil capacity issue, refrigerant, or chilled water if continued issue.',
+        check:    ` If continued problem, check compressor status and refrigerant charge (DX units). For chilled water units, verify valve is open and chilled water supply temp is adequate.`,
+      });
+    }
+  }
+
+  if (oadPos !== null && oaTemp !== null && oaTemp > 75 && oadPos > 30) {
+    issues.push({
+      group: 'Outdoor Air / Economizer', severity: 'warn',
+      symptom:  `OA Damper at <span class="val-tag">${oadPos.toFixed(0)}%</span> — Outdoor Air Temp is <span class="val-tag">${oaTemp.toFixed(1)}F</span>`,
+      cause:    'OAD significantly open when outdoor air is warm — unnecessarily increasing cooling load',
+      check:    `Verify economizer lockout setpoint. Check for stuck-open OAD actuator. Minimum ventilation should typically be 10–20% during hot weather.`,
+    });
+  }
+
+  if (filterDP !== null && filterDP > 1.0) {
+    issues.push({
+      group: 'Filter Condition', severity: filterDP > 2.0 ? 'fault' : 'warn',
+      symptom:  `Filter differential pressure at <span class="val-tag">${filterDP.toFixed(2)}"</span> WC`,
+      cause:    filterDP > 2.0 ? 'Filters severely clogged — significant airflow restriction' : 'Filters loading up — airflow beginning to be restricted',
+      check:    `Replace or inspect air filters immediately. High filter DP reduces airflow to all downstream VAV zones and can cause the cooling coil to frost.`,
+    });
+  }
+
+  if (clgCap !== null && htgCap !== null && clgCap > 10 && htgCap > 10) {
+    issues.push({
+      group: 'Simultaneous Heat / Cool', severity: 'warn',
+      symptom:  `CLG-CAP <span class="val-tag">${clgCap.toFixed(0)}%</span> and HTG-CAP <span class="val-tag">${htgCap.toFixed(0)}%</span> both active`,
+      cause:    'Unit is heating and cooling simultaneously — control logic conflict or failed valve',
+      check:    `Check HCV and CCV valve positions. Verify mode status and heating/cooling interlocks. Simultaneous H/C is an energy code violation.`,
+    });
+  }
+
+  if (modeRaw !== null && inAlarm) {
+    issues.push({
+      group: 'Unit Mode Status', severity: 'fault',
+      symptom:  `Mode Status shows <span class="val-tag">${get('ModeStatus','HVACModeStatus','Mode')}</span>`,
+      cause:    'RTU/AHU controller has flagged an active alarm or fault',
+      check:    `Access the unit controller alarm log. Clear alarms only after root cause is resolved. Common RTU faults: freeze-stat trip, high-pressure lockout, supply air high-limit.`,
+    });
+  }
+
+  if (issues.length === 0) {
+    issues.push({
+      group: 'Unit Health', severity: 'info',
+      symptom:  'No anomalies detected from available point data',
+      cause:    'All readable points appear within normal operating range',
+      check:    'No action required. If downstream VAV zones are still complaining, check supply air temperature setpoint and duct static pressure setpoint values.',
+    });
+  }
+
+  return issues;
+}
+
+/* ── Build readings table ─────────────────────────────── */
+function buildReadingsTable(points, liveValues) {
+  const container = document.getElementById('readings-table-container');
+  const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+  const EXCLUDE = new Set(['Note1','Note2','Note3','StringWritable']);
+  const filtered = points.filter(p => p.id && p.id !== 'N/A' && !SP_TAGS.has(p.id) && !EXCLUDE.has(p.name));
+
+  if (!filtered.length) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:13px;margin-top:16px;">No points with IDs found for this device.</p>';
+    return 0;
+  }
+
+  let html = `<table class="ref-table">
+    <thead><tr>
+      <th>Point Name</th><th>What It Means</th><th>Why It Matters</th><th>Live Value</th>
+    </tr></thead><tbody>`;
+
+  filtered.forEach(p => {
+    const info = describePoint(p);
+    const rawVal = liveValues[p.id] ?? liveValues[p.name] ?? null;
+    let valHtml = '<span class="td-live val-na">—</span>';
+    if (rawVal !== null && rawVal !== undefined) {
+      const s = String(rawVal).trim();
+      let cls = 'val-ok';
+      if (s.includes('alarm') || s.toLowerCase().includes('fault')) cls = 'val-fault';
+      else if (s === '—' || s === '' || s.toLowerCase().includes('err')) cls = 'val-na';
+      valHtml = `<span class="td-live ${cls}">${s}</span>`;
+    }
+    const friendlyName = decodeName(p.name || p.id || '');
+    const idLabel = (p.id && p.id !== friendlyName) ? `<span class="td-reading">${p.id}</span>` : '';
+    html += `<tr>
+      <td><div class="td-name-block"><span class="td-point-name">${friendlyName}</span>${idLabel}</div></td>
+      <td class="td-meaning">${info.meaning}</td>
+      <td class="td-why">${info.why}</td>
+      <td>${valHtml}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  const sub = document.getElementById('readings-subtitle');
+  if (sub) sub.textContent = `${filtered.length} sensor points from this device — live values shown where available`;
+  refreshAccordionHeight('item-readings');
+  return filtered.length;
+}
+
+/* ── Build issues table ─────────────────────────────────── */
+function buildIssuesTable(issues) {
+  const container = document.getElementById('issues-table-container');
+  const severityIcon  = { fault: '🔴', warn: '🟡', info: '🔵' };
+  const severityLabel = { fault: 'FAULT', warn: 'WARNING', info: 'NORMAL' };
+
+  const grouped = {};
+  issues.forEach(issue => {
+    const g = issue.group || 'General';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(issue);
+  });
+
+  let html = `<table class="ref-table issues-table">
+    <thead><tr>
+      <th>Symptom / Observation</th><th>Likely Cause</th><th>What to Check</th><th>Status</th>
+    </tr></thead><tbody>`;
+
+  for (const [groupName, groupIssues] of Object.entries(grouped)) {
+    html += `<tr class="issue-group-header"><td colspan="4">${groupName}</td></tr>`;
+    groupIssues.forEach(issue => {
+      html += `<tr class="issue-row-${issue.severity}">
+        <td class="td-symptom">${issue.symptom}</td>
+        <td class="td-cause">${issue.cause}</td>
+        <td class="td-check">${issue.check}</td>
+        <td style="text-align:center;white-space:nowrap;">
+          <span class="status-pill status-${issue.severity === 'fault' ? 'fault' : issue.severity === 'warn' ? 'warn' : 'ok'}">
+            ${severityIcon[issue.severity]} ${severityLabel[issue.severity]}
+          </span>
+        </td>
+      </tr>`;
+    });
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  const faultCount = issues.filter(i => i.severity === 'fault').length;
+  const warnCount  = issues.filter(i => i.severity === 'warn').length;
+  const sub = document.getElementById('issues-subtitle');
+  if (sub) {
+    if (faultCount > 0) sub.textContent = `${faultCount} fault${faultCount>1?'s':''} detected — action required`;
+    else if (warnCount > 0) sub.textContent = `${warnCount} warning${warnCount>1?'s':''} to review`;
+    else sub.textContent = 'No anomalies detected — system operating normally';
+  }
+
+  issues.forEach(i => {
+    if (i.severity === 'fault' || i.severity === 'warn') {
+      const key = i.symptom.replace(/<[^>]+>/g,'').substring(0,60);
+      if (!_eventLog.find(e => e.message.includes(key.substring(0,30)))) {
+        const plainMsg = i.symptom.replace(/<[^>]+>/g,'');
+        logEvent(i.severity, plainMsg, i.group);
+      }
+    }
+  });
+
+  refreshAccordionHeight('item-issues');
+}
+
+/* ── Global state ──────────────────────────────────────── */
+let _globalJson    = null;
+let _rtuSubscriber = null;
+let _rtuLiveValues = {};
+let _rtuPoints     = [];
+let _rtuRebuildTimer = null;
+let _rtuSelectedKey = null;
+let _bajaReady = false;
+let _bajaRef   = null;
+
+/* ── RTU unit selector handler ─────────────────────────── */
+function onRtuSelect(selectedKey) {
+  if (!selectedKey) {
+    document.getElementById('rtu-content-area').innerHTML = '';
+    _rtuSelectedKey = null;
+    return;
+  }
+  _rtuSelectedKey = selectedKey;
+  const area = document.getElementById('rtu-content-area');
+  area.innerHTML = `<div class="rtu-loading">Loading ${decodeName(selectedKey)} point data…</div>`;
+
+  if (!_globalJson) {
+    area.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:16px 0;">Global.json not yet loaded.</p>';
+    return;
+  }
+
+  const vars = _globalJson.globalVariables || {};
+  let config = vars[selectedKey];
+  if (!config) {
+    const foundKey = Object.keys(vars).find(k => k.toLowerCase() === selectedKey.toLowerCase());
+    config = foundKey ? vars[foundKey] : null;
+  }
+
+  if (!config || !config.points) {
+    area.innerHTML = `<p style="color:var(--text-muted);font-size:13px;padding:16px 0;">No point data found for "${decodeName(selectedKey)}" in Global.json.</p>`;
+    return;
+  }
+
+  const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+  const EXCLUDE = new Set(['Note1','Note2','Note3','StringWritable']);
+  const points = config.points || [];
+  const validPoints = points.filter(p => p.id && p.id !== 'N/A' && !SP_TAGS.has(p.id) && !EXCLUDE.has(p.name) && p.fullPath);
+
+  _rtuPoints = points;
+  _rtuLiveValues = {};
+
+  if (_rtuSubscriber) {
+    try { _rtuSubscriber.unsubscribeAll(); } catch(e) {}
+    _rtuSubscriber = null;
+  }
+
+  renderRTUContent(selectedKey, points, {});
+
+  if (!_bajaReady || !_bajaRef || !validPoints.length) return;
+
+  require(['baja!'], function(baja) {
+    _rtuSubscriber = new baja.Subscriber();
+    _rtuSubscriber.attach('changed', function(prop) {
+      if (prop.getName() !== 'out') return;
+      const info = this.userData;
+      if (!info) return;
+      const out  = this.getOut();
+      const disp = out.getValueDisplay();
+      const isOvr = this.getStatus && this.getStatus().isOverridden && this.getStatus().isOverridden();
+      const val = isOvr ? `${disp} (OVR)` : disp;
+      _rtuLiveValues[info.pointId]   = val;
+      _rtuLiveValues[info.pointName] = val;
+      detectChanges(info.pointId, info.pointName, val);
+      scheduleRTURebuild(selectedKey);
+    });
+
+    let connected = 0;
+    const total = validPoints.length;
+
+    validPoints.forEach(p => {
+      baja.Ord.make(p.fullPath).get({ subscriber: _rtuSubscriber })
+        .then(point => {
+          point.userData = { pointId: p.id, pointName: p.name };
+          const out  = point.getOut();
+          const disp = out.getValueDisplay();
+          const isOvr = point.getStatus && point.getStatus().isOverridden && point.getStatus().isOverridden();
+          const val = isOvr ? `${disp} (OVR)` : disp;
+          _rtuLiveValues[p.id]   = val;
+          _rtuLiveValues[p.name] = val;
+          connected++;
+          if (connected === total) scheduleRTURebuild(selectedKey);
+        })
+        .catch(err => {
+          console.warn(`[RTU] Could not connect to ${p.name}:`, err.message);
+          connected++;
+          if (connected === total) scheduleRTURebuild(selectedKey);
+        });
+    });
+  });
+}
+
+function scheduleRTURebuild(selectedKey) {
+  if (_rtuRebuildTimer) return;
+  _rtuRebuildTimer = setTimeout(() => {
+    _rtuRebuildTimer = null;
+    if (_rtuSelectedKey === selectedKey) renderRTUContent(selectedKey, _rtuPoints, _rtuLiveValues);
+  }, 400);
+}
+
+/* ── Render RTU content area ───────────────────────────── */
+function renderRTUContent(selectedKey, points, liveValues) {
+  const area = document.getElementById('rtu-content-area');
+  const unitName = decodeName(selectedKey);
+  const vars = (_globalJson && _globalJson.globalVariables) || {};
+  const config = vars[selectedKey] || {};
+  const unitType = config.Type && config.Type !== 'N/A' ? config.Type : '';
+
+  const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+  const EXCLUDE = new Set(['Note1','Note2','Note3','StringWritable']);
+  const filtered = points.filter(p => p.id && p.id !== 'N/A' && !SP_TAGS.has(p.id) && !EXCLUDE.has(p.name));
+
+  let readingsHTML = '';
+  if (!filtered.length) {
+    readingsHTML = '<p style="color:var(--text-muted);font-size:13px;">No points with IDs found.</p>';
+  } else {
+    readingsHTML = `<table class="rtu-readings-table"><thead><tr>
+      <th>Point Name</th><th>What It Means</th><th>Why It Matters</th><th>Live Value</th>
+    </tr></thead><tbody>`;
+    filtered.forEach(p => {
+      const info = describePoint(p);
+      const rawVal = liveValues[p.id] ?? liveValues[p.name] ?? null;
+      let valHtml = '<span class="td-live val-na">—</span>';
+      if (rawVal !== null && rawVal !== undefined) {
+        const s = String(rawVal).trim();
+        let cls = 'val-ok';
+        if (s.includes('alarm') || s.toLowerCase().includes('fault')) cls = 'val-fault';
+        else if (s === '—' || s === '' || s.toLowerCase().includes('err')) cls = 'val-na';
+        valHtml = `<span class="td-live ${cls}">${s}</span>`;
+      }
+      const friendlyName = decodeName(p.name || p.id || '');
+      const idLabel = (p.id && p.id !== friendlyName) ? `<span class="td-reading-blue">${p.id}</span>` : '';
+      readingsHTML += `<tr>
+        <td><div class="td-name-block"><span class="td-point-name">${friendlyName}</span>${idLabel}</div></td>
+        <td class="td-meaning">${info.meaning}</td>
+        <td class="td-why">${info.why}</td>
+        <td>${valHtml}</td>
+      </tr>`;
+    });
+    readingsHTML += '</tbody></table>';
+  }
+
+  const rtuIssues = diagnoseRTU(points, liveValues, unitName);
+  const severityIcon  = { fault: '🔴', warn: '🟡', info: '🔵' };
+  const severityLabel = { fault: 'FAULT', warn: 'WARNING', info: 'NORMAL' };
+  const grouped = {};
+  rtuIssues.forEach(i => { const g = i.group||'General'; if (!grouped[g]) grouped[g]=[]; grouped[g].push(i); });
+  let issuesHTML = `<table class="rtu-issues-table"><thead><tr>
+      <th>Symptom / Observation</th><th>Likely Cause</th><th>What to Check</th><th>Status</th>
+    </tr></thead><tbody>`;
+  for (const [g, gi] of Object.entries(grouped)) {
+    issuesHTML += `<tr class="rtu-issue-group-header"><td colspan="4">${g}</td></tr>`;
+    gi.forEach(issue => {
+      issuesHTML += `<tr class="issue-row-${issue.severity}">
+        <td class="td-symptom">${issue.symptom}</td>
+        <td class="td-cause">${issue.cause}</td>
+        <td class="td-check">${issue.check}</td>
+        <td style="text-align:center;white-space:nowrap;">
+          <span class="status-pill status-${issue.severity==='fault'?'fault':issue.severity==='warn'?'warn':'ok'}">
+            ${severityIcon[issue.severity]} ${severityLabel[issue.severity]}
+          </span>
+        </td>
+      </tr>`;
+    });
+  }
+  issuesHTML += '</tbody></table>';
+
+  const faultCount = rtuIssues.filter(i => i.severity === 'fault').length;
+  const warnCount  = rtuIssues.filter(i => i.severity === 'warn').length;
+  const issuesSub = faultCount > 0
+    ? `${faultCount} fault${faultCount>1?'s':''} detected on upstream unit`
+    : warnCount > 0 ? `${warnCount} warning${warnCount>1?'s':''} on upstream unit`
+    : 'Upstream unit appears normal';
+
+  area.innerHTML = `
+    <div class="rtu-unit-header">
+      <span class="rtu-unit-name">${unitName}</span>
+      ${unitType ? `<span class="rtu-unit-type">${unitType}</span>` : ''}
+      <span class="status-pill status-${faultCount>0?'fault':warnCount>0?'warn':'ok'}" style="margin-left:auto;">
+        ${faultCount>0?'🔴 '+faultCount+' FAULT'+(faultCount>1?'S':''):warnCount>0?'🟡 '+warnCount+' WARN':'🔵 OK'}
+      </span>
+    </div>
+    <div class="rtu-section-label">Unit Points — Key Readings</div>
+    ${readingsHTML}
+    <div class="rtu-section-label" style="margin-top:24px;">Upstream Unit Diagnostics — ${issuesSub}</div>
+    ${issuesHTML}
+  `;
+
+  refreshAccordionHeight('item-rtu');
+}
+
+/* ── RTU selector population ───────────────────────────── */
+function populateRTUSelector(homeConfig, globalJson) {
+  const select = document.getElementById('rtu-unit-select');
+  if (!select) return;
+  const globalVars = (globalJson && globalJson.globalVariables) || {};
+  const candidates = [];
+
+  const hcUnits = homeConfig.Units || homeConfig.units || homeConfig.Equipment || homeConfig.equipment || {};
+  if (typeof hcUnits === 'object' && !Array.isArray(hcUnits)) {
+    for (const [key, val] of Object.entries(hcUnits)) {
+      const typeStr = (val && (val.Type || val.type || val.UnitType || '')) || '';
+      if (isRTUorAHU(typeStr) || isRTUorAHU(key)) candidates.push({ key, label: decodeName(key), type: typeStr });
+    }
+  }
+
+  if (candidates.length === 0) {
+    for (const [key, val] of Object.entries(globalVars)) {
+      const typeStr = (val && (val.Type || val.type || '')) || '';
+      if (isRTUorAHU(typeStr) || isRTUorAHU(key)) candidates.push({ key, label: decodeName(key), type: typeStr });
+    }
+  }
+
+  if (candidates.length === 0) {
+    for (const [key] of Object.entries(globalVars)) {
+      const decoded = decodeName(key).toUpperCase();
+      if (decoded.includes('RTU') || decoded.includes('AHU') || decoded.includes('MAU') || decoded.includes('AIR HANDLER')) {
+        const typeStr = (globalVars[key] && globalVars[key].Type) || '';
+        candidates.push({ key, label: decodeName(key), type: typeStr });
+      }
+    }
+  }
+
+  if (candidates.length === 0) {
+    document.getElementById('rtu-selector-wrap').innerHTML =
+      '<p class="rtu-no-units">No RTU or AHU units found in HomeConfig.json or Global.json for this building.</p>';
+    return;
+  }
+
+  candidates.sort((a, b) => a.label.localeCompare(b.label));
+  candidates.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.key;
+    opt.textContent = c.label + (c.type ? `  [${c.type}]` : '');
+    select.appendChild(opt);
+  });
+
+  const sub = document.getElementById('rtu-subtitle');
+  if (sub) sub.textContent = `${candidates.length} upstream unit${candidates.length>1?'s':''} available — select to view live data and diagnostics`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN
+══════════════════════════════════════════════════════════ */
+(function init() {
+  let deviceKey = null;
+try {
+  const ref = document.referrer || '';
+  const url = new URL(ref);
+  const unitParam = url.searchParams.get('unit');
+  if (unitParam) {
+    // Optionally decode if URL-encoded:
+    deviceKey = decodeURIComponent(unitParam);
+  }
+} catch(e) {}
+
+  if (!deviceKey) {
+    const params = new URLSearchParams(window.location.search);
+    deviceKey = params.get('device') || null;
+  }
+
+  const displayName = deviceKey ? decodeName(deviceKey) : 'Unknown Device';
+  document.getElementById('device-name').textContent = displayName;
+  document.getElementById('footer-device').textContent = deviceKey || 'DOC-REF';
+  document.getElementById('doc-ref').textContent = deviceKey ? `VAV-REF · ${deviceKey}` : 'VAV-FTU-REF-001';
+
+  buildSequenceCards('', (deviceKey || '').toUpperCase());
+
+  if (!deviceKey) {
+    document.getElementById('readings-subtitle').textContent = 'No device detected — navigate here from a VAV page';
+    document.getElementById('issues-subtitle').textContent = 'Navigate here from a VAV device page to see live diagnostics';
+    buildIssuesTable([{
+      group: 'Configuration', severity: 'info',
+      symptom:  'No source device detected',
+      cause:    'Page was opened directly rather than from a VAV device page',
+      check:    'Navigate back to a VAV device page and use the DOC link there.',
+    }]);
+    return;
+  }
+
+  fetch('Global.json')
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(json => {
+      _globalJson = json;
+      const vars = json.globalVariables || {};
+      let config = vars[deviceKey];
+      if (!config) {
+        const foundKey = Object.keys(vars).find(k => k.toLowerCase() === deviceKey.toLowerCase());
+        config = foundKey ? vars[foundKey] : null;
+      }
+
+      if (!config || !config.points) {
+        document.getElementById('readings-subtitle').textContent = `Device key "${deviceKey}" not found in Global.json`;
+        buildIssuesTable([{
+          group: 'Configuration', severity: 'warn',
+          symptom:  `Device "${deviceKey}" not found in configuration`,
+          cause:    'Key mismatch between referrer filename and Global.json keys',
+          check:    `Expected a key matching "${deviceKey}" in Global.json globalVariables.`,
+        }]);
+        return;
+      }
+
+      let deviceType = config.Type || '';
+      const rawType  = deviceType;
+      if (!deviceType || deviceType.toUpperCase() === 'N/A') deviceType = 'Cooling Only';
+
+      const tl = document.getElementById('device-type-label');
+      if (tl) tl.textContent = `· TYPE: ${deviceType}`;
+
+      setHeaderTitle(deviceKey, rawType);
+      document.getElementById('doc-ref').textContent = `${deviceType.replace(/\s+/g,'-').toUpperCase()}-REF · ${deviceKey}`;
+
+      const showRTUAccordion = isVAVorFTU(rawType) || isVAVorFTU(deviceKey) ||
+        !rawType || rawType.toUpperCase() === 'N/A' || deviceType === 'Cooling Only';
+
+      if (showRTUAccordion) document.getElementById('item-rtu').style.display = '';
+
+      fetch('HomeConfig.json')
+        .then(r => r.json())
+        .then(hc => {
+          const jn = hc.JobBuilding || '';
+          if (jn) document.getElementById('header-job-name').textContent = jn;
+          if (showRTUAccordion) populateRTUSelector(hc, json);
+        }).catch(() => {
+          if (showRTUAccordion) populateRTUSelector({}, json);
+        });
+
+      const points = config.points || [];
+      const liveValues = {};
+
+      require(['baja!'], function(baja) {
+        _bajaReady = true;
+        _bajaRef   = baja;
+
+        const subscriber = new baja.Subscriber();
+        const SP_TAGS = new Set(['SP-Numeric','SP-Boolean','SP-Enum']);
+        const EXCLUDE = new Set(['Note1','Note2','Note3','StringWritable']);
+        const monitorPoints = points.filter(p =>
+          p.id && p.id !== 'N/A' && !SP_TAGS.has(p.id) && !EXCLUDE.has(p.name) && p.fullPath
+        );
+
+        subscriber.attach('changed', function(prop) {
+          if (prop.getName() !== 'out') return;
+          const info = this.userData;
+          if (!info) return;
+          const out  = this.getOut();
+          const disp = out.getValueDisplay();
+          const isOvr = this.getStatus && this.getStatus().isOverridden && this.getStatus().isOverridden();
+          const val = isOvr ? `${disp} (OVR)` : disp;
+          liveValues[info.pointId]   = val;
+          liveValues[info.pointName] = val;
+          detectChanges(info.pointId, info.pointName, val);
+          scheduleRebuild(points, liveValues);
+        });
+
+        let rebuildTimer = null;
+        function scheduleRebuild(pts, vals) {
+          if (rebuildTimer) return;
+          rebuildTimer = setTimeout(() => {
+            rebuildTimer = null;
+            buildReadingsTable(pts, vals);
+            buildIssuesTable(diagnose(pts, vals));
+            updateQuickStatus(vals);
+          }, 400);
+        }
+
+        buildReadingsTable(points, liveValues);
+        buildIssuesTable(diagnose(points, liveValues));
+        updateQuickStatus(liveValues);
+
+        let connected = 0;
+        const total = monitorPoints.length;
+
+        monitorPoints.forEach(p => {
+          baja.Ord.make(p.fullPath).get({ subscriber })
+            .then(point => {
+              point.userData = { pointId: p.id, pointName: p.name };
+              const out  = point.getOut();
+              const disp = out.getValueDisplay();
+              const isOvr = point.getStatus && point.getStatus().isOverridden && point.getStatus().isOverridden();
+              const val = isOvr ? `${disp} (OVR)` : disp;
+              liveValues[p.id]   = val;
+              liveValues[p.name] = val;
+              connected++;
+              if (connected === total) scheduleRebuild(points, liveValues);
+            })
+            .catch(err => {
+              console.warn(`[DOC] Could not connect to ${p.name}:`, err.message);
+              connected++;
+              if (connected === total) scheduleRebuild(points, liveValues);
+            });
+        });
+
+        window.addEventListener('beforeunload', () => {
+          try { subscriber.unsubscribeAll(); } catch(e) {}
+          if (_rtuSubscriber) { try { _rtuSubscriber.unsubscribeAll(); } catch(e) {} }
+        });
+      });
+    })
+    .catch(err => {
+      document.getElementById('readings-subtitle').textContent = 'Failed to load Global.json: ' + err.message;
+      buildIssuesTable([{
+        group: 'Configuration', severity: 'fault',
+        symptom:  'Configuration file load failed',
+        cause:    err.message,
+        check:    'Verify Global.json exists relative to this page and is valid JSON.',
+      }]);
+    });
+})();
+</script>
+
+</body>
+</html>

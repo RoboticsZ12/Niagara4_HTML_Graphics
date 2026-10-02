@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Building Schedule - AHR Expo 2026</title>
+
+  <script type="text/javascript" src="/requirejs/config.js"></script>
+  <script type="text/javascript" src="/module/js/com/tridium/js/ext/require/require.min.js"></script>
+
+  <style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+
+  /* Schedule-specific */
+  --schedule-active: linear-gradient(135deg,#00c8ff,#0ea5e9);
+  --schedule-hover:  rgba(0,200,255,0.15);
+  --grid-line:       rgba(0,200,255,0.08);
+  --success-color:   #00e676;
+  --error-color:     #ff4444;
+}
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode {
+  --bg-deep:      #f0f4fb;
+  --bg-panel:     #e8edf5;
+  --bg-card:      #dde3ef;
+  --bg-card-hover:#d4daea;
+  --accent:       #0055aa;
+  --accent-glow:  rgba(0,85,170,0.18);
+  --text-primary: #1e293b;
+  --text-muted:   #64748b;
+  --border:       rgba(0,60,160,0.2);
+  --grid-line:    rgba(0,60,160,0.08);
+  --schedule-active: linear-gradient(135deg,#3b82f6,#1d4ed8);
+  --schedule-hover:  rgba(59,130,246,0.1);
+  --success-color:   #006633;
+  --error-color:     #cc2200;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  overflow-x: hidden;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader {
+  position: fixed; inset: 0;
+  background: #000;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999; transition: opacity 0.4s ease;
+}
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px,6vw,58px); font-weight: 700;
+  letter-spacing: 6px; color: #D93B2B; text-transform: uppercase;
+  opacity: 0; animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+.loader-divider {
+  width: 160px; height: 1px;
+  background: linear-gradient(90deg,transparent,rgba(217,59,43,0.45),transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn { to{transform:scaleX(1)} }
+.loader-murphy-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  opacity: 0; animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.loader-murphy-row .loader-m { width:30px; height:30px; }
+.loader-murphy-row .loader-m path { stroke-dasharray:500; stroke-dashoffset:500; animation:drawM 1.0s ease-out 1.15s forwards; }
+@keyframes drawM { to{stroke-dashoffset:0} }
+.loader-murphy-label { font-family:var(--font-head); font-size:12px; letter-spacing:3px; color:#888; text-transform:uppercase; }
+.loader-murphy-label strong { color:#00A86B; letter-spacing:2px; font-weight:normal; }
+.loader-content .loader-text { margin-top:18px; opacity:0; animation:loaderMurphyIn 0.5s ease-out 1.4s forwards; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:200; opacity:0; visibility:hidden; transition:var(--transition); }
+.overlay.active { opacity:1; visibility:visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position:fixed; top:0; left:-300px; width:280px; height:100vh; background:var(--bg-panel); border-right:1px solid var(--border); transition:left 0.3s ease; z-index:999999; padding:80px 0 20px; overflow-y:auto; box-shadow:4px 0 40px rgba(0,0,0,0.6),2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left:0; }
+.side-panel-header { padding:16px 18px 14px; border-bottom:1px solid var(--border); margin-bottom:8px; display:flex; flex-direction:column; gap:3px; }
+.side-panel-header h2 { font-family:var(--font-head); font-size:15px; letter-spacing:4px; color:var(--accent); font-weight:normal; text-transform:uppercase; }
+.side-panel-header p { font-size:15px; color:var(--text-muted); font-family:var(--font-head); }
+.nav-image-grid { padding:10px 14px; display:flex; flex-direction:column; gap:7px; }
+.nav-image-btn { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; text-decoration:none; transition:var(--transition); position:relative; overflow:hidden; }
+.nav-image-btn::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); opacity:0; transition:opacity 0.2s; }
+.nav-image-btn:hover { border-color:var(--accent); background:var(--bg-card-hover); transform:translateX(3px); text-decoration:none; }
+.nav-image-btn:hover::before { opacity:1; }
+.nav-btn-icon { width:40px; height:40px; border-radius:8px; background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.15); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.nav-btn-text { display:flex; flex-direction:column; gap:2px; }
+.nav-btn-label { font-family:var(--font-head); font-size:12px; color:var(--text-primary); letter-spacing:0.5px; }
+.nav-btn-sublabel { font-family:var(--font-head); font-size:11px; color:var(--text-muted); letter-spacing:0.5px; }
+.nav-section-label { padding:14px 14px 4px; font-family:var(--font-head); font-size:12px; letter-spacing:3px; color:var(--text-muted); text-transform:uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background:rgba(13,17,23,0.97); border-bottom:1px solid var(--border); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 12px; height:64px; flex-shrink:0; position:relative; z-index:100; backdrop-filter:blur(12px); gap:8px; }
+.top-bar::after { content:''; position:absolute; bottom:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); pointer-events:none; }
+.top-bar-left { display:flex; align-items:center; gap:8px; }
+.top-center { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.site-label { font-family:var(--font-head); font-size:clamp(8px,0.7vw,11px); letter-spacing:clamp(1px,0.3vw,4px); color:var(--accent); text-transform:uppercase; white-space:nowrap; }
+.top-page-title { font-family:var(--font-head); font-size:clamp(12px,1.4vw,18px); font-weight:normal; letter-spacing:1px; color:var(--text-primary); white-space:nowrap; }
+.top-right { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.top-right-controls { display:flex; align-items:center; gap:10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:5px 12px; }
+.top-right-controls span { font-family:var(--font-head); font-size:clamp(8px,0.6vw,10px); letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; }
+.user-badge { background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:6px 12px; font-size:clamp(10px,0.8vw,14px); color:var(--text-muted); display:flex; align-items:center; gap:6px; font-family:var(--font-head); flex-shrink:0; white-space:nowrap; }
+#userDisplay { color:var(--text-primary); font-size:inherit; }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width:36px; height:36px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; transition:var(--transition); flex-shrink:0; position:relative; z-index:1001; }
+.hamburger-menu:hover { border-color:var(--accent); background:var(--bg-card-hover); }
+.hamburger-line { width:18px; height:2px; background:var(--text-primary); border-radius:2px; transition:var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity:0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+
+/* ─── TOGGLE SWITCH ─────────────────────────────────────────────────── */
+.toggle-switch { position:relative; width:52px; height:26px; background:var(--bg-card); border-radius:25px; cursor:pointer; transition:all 0.3s ease; border:1px solid var(--border); flex-shrink:0; }
+.toggle-switch:hover { border-color:var(--accent); }
+.toggle-slider { position:absolute; top:3px; left:3px; width:20px; height:20px; background:var(--text-muted); border-radius:50%; transition:all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform:translateX(26px); background:var(--amber); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex:1; overflow-y:auto; padding:24px 20px;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 85%, rgba(0,180,220,0.07) 0%, transparent 45%),
+    linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed;
+}
+body.light-mode .main-content {
+  background:
+    radial-gradient(ellipse at 20% 40%, rgba(0,40,120,0.06) 0%, transparent 55%),
+    linear-gradient(160deg, #cdd3e0 0%, #d4d9e6 40%, #ccd2df 100%);
+}
+
+/* ─── PAGE CONTAINER ────────────────────────────────────────────────── */
+.schedule-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display:flex; align-items:center; gap:14px; margin-bottom:4px; }
+.section-heading .line { flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+.section-heading h2 { font-family:var(--font-head); font-size:11px; letter-spacing:4px; color:var(--accent); text-transform:uppercase; font-weight:normal; white-space:nowrap; }
+
+/* ─── PANEL CARD ────────────────────────────────────────────────────── */
+.panel-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 0 40px rgba(0,200,255,0.04), 0 8px 32px rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+.panel-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(0,80,140,0.1) 0%, transparent 65%),
+    repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,200,255,0.01) 18px, rgba(0,200,255,0.01) 19px);
+  pointer-events: none; z-index: 0;
+}
+.panel-card > * { position: relative; z-index: 1; }
+
+/* ─── CONTROLS BAR ──────────────────────────────────────────────────── */
+.controls-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg-card-hover); border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.btn.primary {
+  background: rgba(0,200,255,0.12);
+  border-color: rgba(0,200,255,0.4);
+  color: var(--accent);
+}
+.btn.primary:hover { background: rgba(0,200,255,0.25); box-shadow: 0 0 16px var(--accent-glow); }
+.btn.danger { border-color: rgba(255,68,68,0.35); color: var(--red); background: rgba(255,68,68,0.07); }
+.btn.danger:hover { background: rgba(255,68,68,0.18); border-color: var(--red); }
+.btn svg { flex-shrink: 0; }
+
+/* ─── TEMPLATE CHIPS ────────────────────────────────────────────────── */
+.templates-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.templates-label {
+  font-family: var(--font-head); font-size: 9px; letter-spacing: 3px;
+  color: var(--text-muted); text-transform: uppercase; white-space: nowrap;
+  margin-right: 4px;
+}
+.template-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.template-chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.08); }
+.template-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(0,200,255,0.14); }
+
+/* ─── SCHEDULE GRID ─────────────────────────────────────────────────── */
+.grid-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+}
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 64px repeat(7, 1fr);
+  grid-template-rows: 36px repeat(24, 26px);
+  gap: 1px;
+  background: var(--grid-line);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 560px;
+  width: 100%;
+}
+
+.corner-cell { background: var(--bg-card); }
+
+.hour-label {
+  background: var(--bg-panel);
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 10px;
+  font-family: var(--font-head);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border);
+  letter-spacing: 0.5px;
+}
+
+.day-header {
+  background: var(--bg-card);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.day-header:hover { background: rgba(0,200,255,0.1); color: var(--accent); }
+.day-header.all-active { color: var(--accent); background: rgba(0,200,255,0.08); }
+
+.time-cell {
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: background 0.12s ease;
+  border: 1px solid transparent;
+  user-select: none;
+}
+.time-cell:hover { background: var(--schedule-hover); border-color: rgba(0,200,255,0.3); }
+.time-cell.active {
+  background: linear-gradient(135deg, rgba(0,200,255,0.55), rgba(14,165,233,0.4));
+  border-color: rgba(0,200,255,0.5);
+  box-shadow: inset 0 0 4px rgba(0,200,255,0.2);
+}
+.time-cell.selecting {
+  background: rgba(123,94,167,0.4);
+  border-color: rgba(213,22,223,0.5);
+}
+
+/* ─── INFO PANEL ────────────────────────────────────────────────────── */
+.info-panel {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  min-height: 36px;
+}
+.info-panel .info-icon { color: var(--accent); font-size: 14px; flex-shrink: 0; }
+
+/* ─── STATS GRID ────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  transition: var(--transition);
+  position: relative; overflow: hidden;
+}
+.stat-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.stat-card:hover::after { opacity: 1; }
+.stat-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.stat-value {
+  font-family: var(--font-head);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+  line-height: 1;
+}
+.stat-label {
+  font-family: var(--font-head);
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ─── EXTRA STAT ROW (new feature) ──────────────────────────────────── */
+.extra-stats {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.badge-stat {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+  font-family: var(--font-head); font-size: 10px; color: var(--text-muted);
+  letter-spacing: 1px;
+}
+.badge-stat .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.badge-stat .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.badge-stat .dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+/* ─── STATUS TOAST ──────────────────────────────────────────────────── */
+#statusToast {
+  position: fixed; bottom: 80px; right: 20px;
+  font-family: var(--font-head); font-size: 11px; letter-spacing: 1px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 9999;
+  display: none;
+  gap: 8px; align-items: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastSlide 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+@keyframes toastSlide { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+#statusToast.success { background: rgba(0,0,0,0.85); border: 1px solid rgba(0,230,118,0.4); color: var(--green); display:flex; }
+#statusToast.error   { background: rgba(0,0,0,0.85); border: 1px solid rgba(255,68,68,0.4);  color: var(--red);   display:flex; }
+#statusToast svg { flex-shrink: 0; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: rgba(13,17,23,0.97); border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; height: 50px; flex-shrink: 0; z-index: 100; gap: 8px; overflow: hidden;
+}
+.back-button { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); padding:6px 12px; cursor:pointer; font-family:var(--font-head); font-size:clamp(10px,0.8vw,13px); letter-spacing:1px; display:flex; align-items:center; gap:6px; transition:var(--transition); flex-shrink:0; white-space:nowrap; }
+.back-button:hover { border-color:var(--accent); color:var(--accent); }
+.date-time { font-family:var(--font-head); font-size:clamp(8px,0.65vw,13px); color:var(--text-muted); text-align:center; letter-spacing:1px; flex:1; }
+.date-time strong { color:var(--text-primary); display:block; white-space:nowrap; }
+.logout-btn { background:none; border:1px solid var(--border); border-radius:6px; color:var(--text-muted); padding:6px 12px; cursor:pointer; font-family:var(--font-head); font-size:clamp(10px,0.8vw,13px); letter-spacing:1px; display:flex; align-items:center; gap:6px; transition:var(--transition); flex-shrink:0; white-space:nowrap; }
+.logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+/* ─── LIGHT MODE OVERRIDES ──────────────────────────────────────────── */
+body.light-mode .top-bar,
+body.light-mode .bottom-bar { background: rgba(220,225,236,0.98); border-color: rgba(0,30,100,0.25); }
+body.light-mode .user-badge { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); color: #334466; }
+body.light-mode .site-label { color: #001f6b; }
+body.light-mode .top-page-title { color: #001040; }
+body.light-mode #userDisplay { color: #001040; }
+body.light-mode .hamburger-line { background: #001f6b; }
+body.light-mode .hamburger-menu { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .side-panel { background: #dde2ed; border-color: rgba(0,30,100,0.2); }
+body.light-mode .side-panel-header h2 { color: #001f6b; }
+body.light-mode .nav-image-btn { background: #e4e8f3; border-color: rgba(0,100,160,0.25); }
+body.light-mode .nav-image-btn:hover { background: #d0d8f0; border-color: #0070b8; }
+body.light-mode .nav-btn-label { color: #1a2035; }
+body.light-mode .top-right-controls { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .back-button { background: rgba(255,255,255,0.8); color: #334466; border-color: rgba(0,30,100,0.3); }
+body.light-mode .logout-btn { background: rgba(255,255,255,0.8); color: #1a2035; border-color: rgba(0,100,180,0.3); }
+body.light-mode .panel-card { background: #e8edf5; border-color: rgba(0,60,140,0.18); }
+body.light-mode .panel-card::before {
+  background: radial-gradient(ellipse at 30% 50%, rgba(0,80,200,0.04) 0%, transparent 65%),
+  repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(0,80,200,0.015) 18px, rgba(0,80,200,0.015) 19px);
+}
+body.light-mode .stat-card { background: rgba(255,255,255,0.75); border-color: rgba(0,30,100,0.2); }
+body.light-mode .stat-value { color: #001f6b; }
+body.light-mode .btn { background: rgba(255,255,255,0.8); border-color: rgba(0,30,100,0.3); color: #334466; }
+body.light-mode .btn:hover { border-color: #0055aa; color: #0055aa; }
+body.light-mode .btn.primary { background: rgba(0,30,100,0.1); border-color: rgba(0,30,100,0.4); color: #001f6b; }
+body.light-mode .template-chip { color: #64748b; border-color: rgba(0,30,100,0.2); }
+body.light-mode .template-chip:hover { border-color: #0055aa; color: #0055aa; }
+body.light-mode .template-chip.active { border-color: #0055aa; color: #0055aa; background: rgba(0,85,170,0.1); }
+body.light-mode .hour-label { background: #edf1f8; color: #64748b; }
+body.light-mode .day-header { background: #e4e8f3; color: #1e293b; border-bottom-color: rgba(0,30,100,0.2); }
+body.light-mode .day-header:hover { background: rgba(0,85,170,0.1); color: #0055aa; }
+body.light-mode .time-cell { background: #edf1f8; }
+body.light-mode .time-cell:hover { background: rgba(0,85,170,0.08); border-color: rgba(0,85,170,0.3); }
+body.light-mode .time-cell.active { background: linear-gradient(135deg, rgba(0,85,170,0.45), rgba(29,78,216,0.35)); border-color: rgba(0,85,170,0.5); }
+body.light-mode .info-panel { background: rgba(255,255,255,0.7); border-color: rgba(0,30,100,0.2); }
+body.light-mode .badge-stat { background: rgba(255,255,255,0.7); border-color: rgba(0,30,100,0.2); }
+body.light-mode .date-time { color: #334466; }
+body.light-mode .date-time strong { color: #001040; }
+body.light-mode .section-heading h2 { color: #001f6b; }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width:768px) {
+  .main-content { padding:16px 12px; }
+  .top-right-controls { display:none; }
+  .user-badge span:not(#userDisplay) { display:none; }
+}
+
+
+/* ─── DAY SPAN BOXES ────────────────────────────────────────────────── */
+.day-spans-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.day-span-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.day-span-box .dsb-day {
+  font-family: var(--font-head);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.day-span-box .dsb-range {
+  font-family: var(--font-head);
+  font-size: 10px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+body.light-mode .day-span-box { background: rgba(255,255,255,0.75); border-color: rgba(0,30,100,0.2); }
+  
+  
+  .span-input-row { display:flex; gap:4px; align-items:center; margin-top:6px; flex-wrap:wrap; justify-content:center; }
+.span-input-row input[type="time"] {
+  width:92px; background:var(--bg-panel); border:1px solid var(--border);
+  border-radius:4px; color:var(--text-primary); font-family:var(--font-head);
+  font-size:14px; padding:4px 6px;
+}
+.span-add-btn {
+  background:rgba(0,200,255,0.15); border:1px solid var(--border); border-radius:4px;
+  color:var(--accent); font-size:12px; padding:4px 8px; cursor:pointer; font-family:var(--font-head);
+}
+.span-list-item {
+  display:flex; align-items:center; justify-content:space-between; gap:4px;
+  font-size:12px; color:var(--text-primary); background:var(--bg-panel); padding:3px 8px; border-radius:4px;
+}
+.span-list { margin-top:4px; display:flex; flex-direction:column; gap:2px; }
+.span-input-row input[type="time"] {
+  width:92px; background:var(--bg-panel); border:1px solid var(--border);
+  border-radius:4px; color:var(--text-primary); font-family:var(--font-head);
+  font-size:14px; padding:4px 6px;
+}
+.span-add-btn {
+  background:rgba(0,200,255,0.15); border:1px solid var(--border); border-radius:4px;
+  color:var(--accent); font-size:12px; padding:4px 8px; cursor:pointer; font-family:var(--font-head);
+}
+.span-list-item {
+  display:flex; align-items:center; justify-content:space-between; gap:4px;
+  font-size:12px; color:var(--text-primary); background:var(--bg-panel); padding:3px 8px; border-radius:4px;
+}
+.day-span-box .dsb-day {
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.span-list-item button { background:none; border:none; color:var(--red); cursor:pointer; font-size:11px; line-height:1; padding:0 2px; }
+  </style>
+</head>
+
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170" fill="none" stroke="#00A86B" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading schedule data…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>Navigation</h2>
+    <p>Murphy Control Panel</p>
+  </div>
+  <div class="nav-section-label">System Views</div>
+  <div class="nav-image-grid">
+
+    <a href="../Home.html" class="nav-image-btn" id="nav-home-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+
+    <a href="../FloorPlan.html" class="nav-image-btn" id="nav-floorplan-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+
+    <a href="../Alarms.html" class="nav-image-btn" id="nav-alarms-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+
+    <a href="../Users.html" class="nav-image-btn" id="nav-users-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+
+    <a href="../LogsNUMERIC.html" class="nav-image-btn" id="nav-logs-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+
+    <a href="../Shedules.html" class="nav-image-btn" id="nav-schedules-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="top-page-title">RTU Schedule</span>
+  </div>
+  <div class="top-right">
+    <div class="top-right-controls">
+      <span>☀</span>
+      <div class="toggle-switch" id="toggleSwitch">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div class="schedule-container">
+
+    <!-- Controls row -->
+    <div class="panel-card">
+      <div class="section-heading" style="margin-bottom:16px;">
+        <div class="line"></div>
+        <h2>Schedule Controls</h2>
+        <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+        <div class="controls-bar">
+          <button class="btn danger" onclick="clearSchedule()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z"/></svg>
+            Clear All
+          </button>
+          <button class="btn" onclick="loadSchedule()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M2 12H4V17H20V12H22V17C22 18.11 21.11 19 20 19H4C2.9 19 2 18.11 2 17V12M12 15L17.55 9.54L16.13 8.13L13 11.25V2H11V11.25L7.88 8.13L6.46 9.55L12 15Z"/></svg>
+            Load
+          </button>
+          <button class="btn primary" onclick="saveSchedule()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/></svg>
+            Save to Niagara
+          </button>
+        </div>
+        <div class="templates-row">
+          <span class="templates-label">Templates:</span>
+          <button class="template-chip" id="tmpl-office"   onclick="applyTemplate('office')">Office Hours</button>
+          <button class="template-chip" id="tmpl-retail"   onclick="applyTemplate('retail')">Retail</button>
+          <button class="template-chip" id="tmpl-24-7"     onclick="applyTemplate('24-7')">24 / 7</button>
+          <button class="template-chip" id="tmpl-weekend"  onclick="applyTemplate('weekend')">Weekend Only</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Grid -->
+    <div class="panel-card">
+      <div class="section-heading" style="margin-bottom:14px;">
+        <div class="line"></div>
+        <h2>Weekly Program</h2>
+        <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+      </div>
+      <div class="grid-wrapper">
+        <div class="schedule-grid" id="scheduleGrid"></div>
+      </div>
+    <div class="info-panel" id="infoPanel" style="margin-top:12px;">
+        <span class="info-icon">⌨</span>
+        <span>Click and drag to select time blocks · Click day headers to toggle entire days · Ctrl+S to save</span>
+      </div>
+      <div class="day-spans-row" id="daySpansRow"></div>
+    </div>
+
+    <!-- Stats -->
+    <div>
+      <div class="section-heading" style="margin-bottom:12px;">
+        <div class="line"></div>
+        <h2>Schedule Analytics</h2>
+        <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalHours">0</div>
+          <div class="stat-label">Total Hours / Week</div>
+        </div>
+      <div class="stat-card">
+          <div class="stat-value" id="activeDays">0</div>
+          <div class="stat-label">Active Days</div>
+        </div>
+      </div>
+      <!-- Extra badge stats row (new) -->
+      <div class="extra-stats" style="margin-top:12px;">
+        <div class="badge-stat"><span class="dot green"></span><span id="peakDay">—</span></div>
+        <div class="badge-stat"><span class="dot amber"></span><span id="offHoursLabel">—</span></div>
+      </div>
+    </div>
+
+  </div><!-- /schedule-container -->
+</div><!-- /main-content -->
+
+<!-- ─── STATUS TOAST ─────────────────────────────────────────────────── -->
+<div id="statusToast">
+  <svg id="toastIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+  <span id="toastMsg">Schedule saved</span>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">← Back</button>
+  <div class="date-time">
+    <strong>Current Date &amp; Time</strong>
+    <span id="currentDateTime">Loading…</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div style="text-align:right;font-family:var(--font-head);font-size:10px;letter-spacing:1px;color:var(--text-muted);line-height:1.4;">
+      Controls by:<br>
+      <span style="color:var(--accent);font-size:12px;letter-spacing:2px;">MURPHY</span>
+    </div>
+    <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- LOADER JOB NAME -->
+<script>
+(async function() {
+  try {
+    const r = await fetch('HomeConfig.json');
+    const d = await r.json();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = (d.JobBuilding || 'Control Panel').toUpperCase();
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+
+<!-- FADE IN/OUT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== location.hostname) return;
+    e.preventDefault();
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.classList.remove('hidden');
+    setTimeout(() => { window.location.href = link.href; }, 280);
+  });
+});
+</script>
+
+<!-- DATE TIME -->
+<script>
+function updateDateTime() {
+  const now  = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH CHECK -->
+<script>
+window.onload = function() {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  const el = document.getElementById('userDisplay');
+  if (el) el.textContent = username;
+  document.getElementById('page-loader')?.classList.add('hidden');
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', function() {
+  hamburgerMenu.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', function() {
+  hamburgerMenu.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light-mode');
+  toggleSwitch.classList.add('active');
+}
+toggleSwitch.addEventListener('click', function() {
+  document.body.classList.toggle('light-mode');
+  toggleSwitch.classList.toggle('active');
+  localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- URL UNIT PARAM PROPAGATION -->
+<script>
+(function() {
+  const urlUnit = new URLSearchParams(window.location.search).get('unit');
+  if (!urlUnit) return;
+  const unit = encodeURIComponent(urlUnit);
+  const navLinks = {
+    'nav-home-link':      '../Home.html?unit=',
+    'nav-floorplan-link': '../FloorPlan.html?unit=',
+    'nav-alarms-link':    '../Alarms.html?unit=',
+    'nav-users-link':     '../Users.html?unit=',
+    'nav-logs-link':      '../LogsNUMERIC.html?unit=',
+    'nav-schedules-link': '../Shedules.html?unit=',
+  };
+  Object.entries(navLinks).forEach(([id, base]) => {
+    const el = document.getElementById(id);
+    if (el) el.href = base + unit;
+  });
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SCHEDULE LOGIC — UNTOUCHED FROM ORIGINAL
+═══════════════════════════════════════════════════════════════════════ -->
+<script>
+    const SCHEDULE_ORD = 'station:|slot:/Drivers/NiagaraNetwork/WoodsmillCommonsII/points/Home/Schedules/Schedule_RTU';
+
+  const dayNames         = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayNamesInternal = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+  let scheduleData   = Array(7).fill().map(() => Array(24).fill(false));
+  let exactRanges = Array(7).fill().map(() => []); // per day: [{start:minutes, finish:minutes}]
+
+function timeStrToMinutes(str) {
+  const [h, m] = str.split(':').map(Number);
+  return h * 60 + m;
+}
+function formatMinutes(m) {
+  let h = Math.floor(m / 60), mi = m % 60;
+  const ap = h >= 12 ? 'PM' : 'AM';
+  let hh = h % 12; if (hh === 0) hh = 12;
+  return `${hh}:${String(mi).padStart(2,'0')} ${ap}`;
+}
+function syncExactRangesFromGrid(d) {
+  exactRanges[d] = convertDayRowToRanges(scheduleData[d]).map(r => ({ start: r.startHour * 60, finish: r.finishHour * 60 }));
+}
+function syncAllExactRangesFromGrid() {
+  for (let d = 0; d < 7; d++) syncExactRangesFromGrid(d);
+}
+function applyExactRangesToGrid(d) {
+  scheduleData[d] = Array(24).fill(false);
+  exactRanges[d].forEach(r => {
+    const startHour = Math.floor(r.start / 60);
+    const endHour   = Math.ceil(r.finish / 60);
+    for (let h = startHour; h < endHour && h < 24; h++) scheduleData[d][h] = true;
+  });
+}
+function addRangeForDay(d) {
+  const startInput  = document.getElementById(`span-start-${d}`);
+  const finishInput = document.getElementById(`span-finish-${d}`);
+  if (!startInput.value || !finishInput.value) { showStatus('Enter both start and finish times', true); return; }
+  const start  = timeStrToMinutes(startInput.value);
+  const finish = timeStrToMinutes(finishInput.value);
+  if (finish <= start) { showStatus('Finish time must be after start time', true); return; }
+  exactRanges[d].push({ start, finish });
+  exactRanges[d].sort((a,b) => a.start - b.start);
+  applyExactRangesToGrid(d);
+  updateGridDisplay();
+  updateStatistics();
+  startInput.value = ''; finishInput.value = '';
+}
+function removeRange(d, idx) {
+  exactRanges[d].splice(idx, 1);
+  applyExactRangesToGrid(d);
+  updateGridDisplay();
+  updateStatistics();
+}
+  let isSelecting    = false;
+  let startCell      = null;
+  let selectionValue = false;
+  let bajaAPI        = null;
+  let scheduleObject = null;
+  let hasInitialized = false;
+  let loadInProgress = false;
+  let activeTemplate = null;
+
+  function initializeGrid() {
+    const grid = document.getElementById('scheduleGrid');
+    grid.innerHTML = '';
+
+    const corner = document.createElement('div');
+    corner.className = 'corner-cell';
+    grid.appendChild(corner);
+
+    dayNames.forEach((day, dayIndex) => {
+      const dayHeader = document.createElement('div');
+      dayHeader.className = 'day-header';
+      dayHeader.textContent = day;
+      dayHeader.dataset.day = dayIndex;
+      dayHeader.addEventListener('click', () => toggleDay(dayIndex));
+      grid.appendChild(dayHeader);
+    });
+
+    for (let hour = 0; hour < 24; hour++) {
+      const hourLabel = document.createElement('div');
+      hourLabel.className = 'hour-label';
+      hourLabel.textContent = hour === 0 ? '12 AM' : hour < 12 ? hour + ' AM' : hour === 12 ? '12 PM' : (hour - 12) + ' PM';
+      grid.appendChild(hourLabel);
+
+      for (let day = 0; day < 7; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'time-cell';
+        cell.dataset.day  = day;
+        cell.dataset.hour = hour;
+        cell.addEventListener('mousedown',  handleMouseDown);
+        cell.addEventListener('mouseenter', handleMouseEnter);
+        cell.addEventListener('mouseup',    handleMouseUp);
+        cell.addEventListener('touchstart', handleTouchStart, { passive: false });
+        grid.appendChild(cell);
+      }
+    }
+
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+  }
+
+  function handleMouseDown(event) {
+    event.preventDefault();
+    const day  = parseInt(event.target.dataset.day,  10);
+    const hour = parseInt(event.target.dataset.hour, 10);
+    startCell      = { day, hour };
+    selectionValue = !scheduleData[day][hour];
+    isSelecting    = true;
+    scheduleData[day][hour] = selectionValue;
+    updateCellDisplay(event.target);
+    updateSelectionPreview(day, hour, day, hour);
+  }
+
+  function handleMouseEnter(event) {
+    if (!isSelecting) return;
+    const day  = parseInt(event.target.dataset.day,  10);
+    const hour = parseInt(event.target.dataset.hour, 10);
+    updateSelectionPreview(startCell.day, startCell.hour, day, hour);
+  }
+
+  function handleMouseUp(event) {
+    if (!isSelecting) return;
+    const day  = parseInt(event.target.dataset.day,  10);
+    const hour = parseInt(event.target.dataset.hour, 10);
+    applySelection(startCell.day, startCell.hour, day, hour, selectionValue);
+    endSelection();
+  }
+
+function handleGlobalMouseUp() {
+  if (isSelecting) endSelection();
+}
+ function handleTouchStart(event) {
+  event.preventDefault();
+  const day  = parseInt(event.target.dataset.day,  10);
+  const hour = parseInt(event.target.dataset.hour, 10);
+  scheduleData[day][hour] = !scheduleData[day][hour];
+  syncExactRangesFromGrid(day); // ← add this line
+  updateCellDisplay(event.target);
+  updateStatistics();
+}
+
+  function endSelection() {
+    isSelecting = false;
+    startCell   = null;
+    clearSelectionPreview();
+    updateStatistics();
+    updateInfoPanel();
+    updateDayHeaders();
+  }
+
+  function updateSelectionPreview(startDay, startHour, endDay, endHour) {
+    clearSelectionPreview();
+    const minDay  = Math.min(startDay,  endDay);
+    const maxDay  = Math.max(startDay,  endDay);
+    const minHour = Math.min(startHour, endHour);
+    const maxHour = Math.max(startHour, endHour);
+    for (let d = minDay; d <= maxDay; d++) {
+      for (let h = minHour; h <= maxHour; h++) {
+        const cell = document.querySelector(`[data-day="${d}"][data-hour="${h}"]`);
+        if (cell) cell.classList.add('selecting');
+      }
+    }
+    const hours = (maxHour - minHour + 1) * (maxDay - minDay + 1);
+    updateInfoPanel(`Selecting ${hours} hour${hours > 1 ? 's' : ''}`);
+  }
+
+  function clearSelectionPreview() {
+    document.querySelectorAll('.selecting').forEach(c => c.classList.remove('selecting'));
+  }
+
+ function applySelection(startDay, startHour, endDay, endHour, value) {
+  const minDay  = Math.min(startDay,  endDay);
+  const maxDay  = Math.max(startDay,  endDay);
+  const minHour = Math.min(startHour, endHour);
+  const maxHour = Math.max(startHour, endHour);
+  for (let d = minDay; d <= maxDay; d++) {
+    for (let h = minHour; h <= maxHour; h++) {
+      scheduleData[d][h] = value;
+      const cell = document.querySelector(`[data-day="${d}"][data-hour="${h}"]`);
+      if (cell) updateCellDisplay(cell);
+    }
+    syncExactRangesFromGrid(d); // ← add this line
+  }
+}
+
+function updateCellDisplay(cell) {
+    const day  = parseInt(cell.dataset.day,  10);
+    const hour = parseInt(cell.dataset.hour, 10);
+    const isActive = !!scheduleData[day][hour];
+    cell.classList.toggle('active', isActive);
+    cell.title = isActive ? 'RTU ON' : 'RTU OFF';
+  }
+
+  function updateGridDisplay() {
+    document.querySelectorAll('.time-cell').forEach(updateCellDisplay);
+    updateDayHeaders();
+  }
+
+  function updateDayHeaders() {
+    dayNames.forEach((_, dayIndex) => {
+      const header = document.querySelector(`.day-header[data-day="${dayIndex}"]`);
+      if (header) {
+        const allOn = scheduleData[dayIndex].every(Boolean);
+        header.classList.toggle('all-active', allOn);
+      }
+    });
+  }
+
+ function toggleDay(dayIndex) {
+  const newValue = !scheduleData[dayIndex].some(Boolean);
+  for (let hour = 0; hour < 24; hour++) scheduleData[dayIndex][hour] = newValue;
+  syncExactRangesFromGrid(dayIndex); // ← add this line
+  updateGridDisplay();
+  updateStatistics();
+}
+
+ function clearSchedule() {
+  scheduleData   = Array(7).fill().map(() => Array(24).fill(false));
+  exactRanges    = Array(7).fill().map(() => []); // ← add this line
+  activeTemplate = null;
+  clearTemplateChips();
+  updateGridDisplay();
+  updateStatistics();
+  updateInfoPanel();
+}
+
+  function clearTemplateChips() {
+    document.querySelectorAll('.template-chip').forEach(c => c.classList.remove('active'));
+  }
+
+  function applyTemplate(templateName) {
+    clearSchedule();
+    activeTemplate = templateName;
+    clearTemplateChips();
+    const chip = document.getElementById(`tmpl-${templateName}`);
+    if (chip) chip.classList.add('active');
+
+    switch (templateName) {
+      case 'office':
+        for (let day = 1; day <= 5; day++)
+          for (let hour = 8; hour < 18; hour++) scheduleData[day][hour] = true;
+        break;
+      case 'retail':
+        for (let day = 1; day <= 6; day++)
+          for (let hour = 10; hour < 21; hour++) scheduleData[day][hour] = true;
+        break;
+      case '24-7':
+        scheduleData = Array(7).fill().map(() => Array(24).fill(true));
+        break;
+      case 'weekend':
+        for (let hour = 12; hour < 22; hour++) {
+          scheduleData[0][hour] = true;
+          scheduleData[6][hour] = true;
+        }
+        break;
+    }
+    updateGridDisplay();
+    updateStatistics();
+  }
+
+ function formatHour(h) {
+    const hh = ((h % 24) + 24) % 24;
+    return hh === 0 ? '12AM' : hh < 12 ? hh + 'AM' : hh === 12 ? '12PM' : (hh - 12) + 'PM';
+  }
+
+ function updateDaySpans() {
+  const row = document.getElementById('daySpansRow');
+  if (!row) return;
+  row.innerHTML = '';
+  dayNames.forEach((day, d) => {
+    const box = document.createElement('div');
+    box.className = 'day-span-box';
+    const listHtml = exactRanges[d].length
+      ? exactRanges[d].map((r,i) => `<div class="span-list-item"><span>${formatMinutes(r.start)}–${formatMinutes(r.finish)}</span><button onclick="removeRange(${d},${i})">×</button></div>`).join('')
+      : '<div class="span-list-item" style="justify-content:center;color:var(--text-muted);">No ranges</div>';
+    box.innerHTML = `
+      <div class="dsb-day">${day}</div>
+      <div class="span-list">${listHtml}</div>
+      <div class="span-input-row">
+        <input type="time" id="span-start-${d}" step="900">
+        <span>–</span>
+        <input type="time" id="span-finish-${d}" step="900">
+        <button class="span-add-btn" onclick="addRangeForDay(${d})">+ Add</button>
+      </div>`;
+    row.appendChild(box);
+  });
+}
+  function updateStatistics() {
+    const totalHours  = scheduleData.flat().filter(Boolean).length;
+    const activeDays  = scheduleData.filter(day => day.some(Boolean)).length;
+
+    document.getElementById('totalHours').textContent   = totalHours;
+    document.getElementById('activeDays').textContent   = activeDays;
+    updateDaySpans();
+
+    // Peak day badge
+    const dailyTotals = scheduleData.map((day, i) => ({ name: dayNames[i], hrs: day.filter(Boolean).length }));
+    const peak = dailyTotals.reduce((a, b) => a.hrs >= b.hrs ? a : b, { name: '—', hrs: 0 });
+    document.getElementById('peakDay').textContent = peak.hrs > 0
+      ? `Peak day: ${peak.name} (${peak.hrs} hrs)`
+      : 'No active days programmed';
+
+    // Off-hours coverage
+    let offHours = 0;
+    scheduleData.forEach(day => {
+      for (let h = 0; h < 24; h++) {
+        if (day[h] && (h < 6 || h >= 22)) offHours++;
+      }
+    });
+    document.getElementById('offHoursLabel').textContent = offHours > 0
+      ? `Off-hours scheduled: ${offHours} hrs`
+      : 'No off-hours scheduled';
+  }
+
+  function updateInfoPanel(text = '') {
+    const el = document.getElementById('infoPanel');
+    if (text) {
+      el.innerHTML = `<span class="info-icon">⟨ ⟩</span><span>${text}</span>`;
+    } else {
+      el.innerHTML = `<span class="info-icon">⌨</span><span>Click and drag to select time blocks · Click day headers to toggle entire days · Ctrl+S to save</span>`;
+    }
+  }
+
+  function showStatus(message, isError = false) {
+    const toast  = document.getElementById('statusToast');
+    const msg    = document.getElementById('toastMsg');
+    const icon   = document.getElementById('toastIcon');
+    msg.textContent = message;
+    toast.className = isError ? 'error' : 'success';
+    icon.innerHTML  = isError
+      ? '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+      : '<polyline points="20,6 9,17 4,12"/>';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.className = ''; }, 3500);
+  }
+
+  function initializeBaja() {
+    if (typeof require !== 'undefined' && require.config) {
+      try {
+        require(['baja!'], function(baja) {
+          bajaAPI = baja;
+          setTimeout(() => { loadScheduleFromNiagara(); }, 250);
+        }, function() { fallbackToDemo(); });
+      } catch(e) { fallbackToDemo(); }
+    } else {
+      fallbackToDemo();
+    }
+  }
+
+  function fallbackToDemo() {
+    showStatus('Niagara not available (demo mode).', true);
+  }
+
+  function ordToString(ord) { return (typeof ord === 'string') ? ord : String(ord); }
+
+  async function rpcGetSnapshot(ordStr) {
+    const result = await bajaAPI.rpc({
+      typeSpec: 'schedule:ScheduleRpc',
+      method:   'getSnapshot',
+      args:     [ordStr]
+    });
+    const bson = (typeof result === 'string') ? JSON.parse(result) : result;
+    if (bajaAPI.bson && bajaAPI.bson.importUnknownTypes) {
+      await bajaAPI.bson.importUnknownTypes(bson);
+    }
+    return bajaAPI.bson.decodeValue(bson);
+  }
+
+  async function rpcSaveSnapshot(ordStr, snapshot) {
+    const encoded = bajaAPI.bson.encodeValue(snapshot);
+    await bajaAPI.rpc({
+      typeSpec: 'schedule:ScheduleRpc',
+      method:   'save',
+      args:     [ordStr, JSON.stringify(encoded)]
+    });
+  }
+
+  function snapshotGetScheduleRoot(snapshot) {
+    if (snapshot && snapshot.has && snapshot.has('schedule')) return snapshot.get('schedule');
+    return snapshot;
+  }
+
+  function findWeekInSnapshot(snapshot) {
+    const root = snapshotGetScheduleRoot(snapshot);
+    if (root && root.has && root.has('week')) return root.get('week');
+    if (snapshot && snapshot.has && snapshot.has('week')) return snapshot.get('week');
+    if (root && root.has && root.has('schedule')) {
+      const inner = root.get('schedule');
+      if (inner && inner.has && inner.has('week')) return inner.get('week');
+    }
+    return null;
+  }
+
+function snapshotToGrid(snapshot) {
+  const grid = Array(7).fill().map(() => Array(24).fill(false));
+  exactRanges = Array(7).fill().map(() => []);   // ← add this line
+  const week = findWeekInSnapshot(snapshot);
+  if (!week) return grid;
+  
+
+    for (let d = 0; d < 7; d++) {
+      const dayName = dayNamesInternal[d];
+      if (!week.has || !week.has(dayName)) continue;
+      const ds = week.get(dayName);
+      if (!ds || !ds.has || !ds.has('day')) continue;
+      const dayComp = ds.get('day');
+      if (!dayComp || !dayComp.getSlots) continue;
+
+  dayComp.getSlots().is('schedule:TimeSchedule').each(function(slotName) {
+  try {
+    const ts = dayComp.get(slotName);
+    const sh = ts.get('start').getHour();
+    const sm = ts.get('start').getMinute ? ts.get('start').getMinute() : 0;
+    const fh = ts.get('finish').getHour();
+    const fm = ts.get('finish').getMinute ? ts.get('finish').getMinute() : 0;
+    let startMin  = sh * 60 + sm;
+    let finishMin = fh * 60 + fm;
+    if (finishMin <= startMin) finishMin = 24 * 60; // midnight wrap = end of day
+    exactRanges[d].push({ start: startMin, finish: finishMin });
+    const endHourCeil = Math.ceil(finishMin / 60);
+    for (let h = sh; h < endHourCeil && h < 24; h++) grid[d][h] = true;
+  } catch(e) {}
+});
+    }
+    return grid;
+  }
+// CHANGE POLARITY!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  function gridToWeekSchedule() {
+    const ws = bajaAPI.$('schedule:WeekSchedule');
+    for (let d = 0; d < 7; d++) {
+      const ds = bajaAPI.$('schedule:DailySchedule', {
+        days: bajaAPI.$('schedule:WeekdaySchedule', {
+          set: bajaAPI.EnumSet.make([d])
+        })
+      });
+      const dayComp = ds.get('day');
+   exactRanges[d].forEach(r => {
+  addTimeScheduleToDayMinutes(dayComp, r.start, r.finish, false);
+});
+      ws.set({ slot: dayNamesInternal[d], value: ds });
+    }
+    return ws;
+  }
+
+function makeBajaTime(hour, minute = 0) {
+  const t = bajaAPI.Time.make({ hour: hour, min: minute, sec: 0, ms: 0 });
+  return t;
+}
+
+  function makeEffectiveValueBoolean(value) {
+    try {
+      return bajaAPI.$('baja:StatusBoolean', { status: bajaAPI.Status.ok, value: !!value });
+    } catch(e) {
+      return bajaAPI.$('baja:Boolean').make(!!value);
+    }
+  }
+function addTimeScheduleToDayMinutes(dayComp, startMin, finishMin, value = true) {
+  const sh = Math.floor(startMin / 60), sm = startMin % 60;
+  let fh = Math.floor(finishMin / 60), fm = finishMin % 60;
+  if (fh >= 24) { fh = 0; fm = 0; }
+  const ts = bajaAPI.$('schedule:TimeSchedule', {
+    start:  makeBajaTime(sh, sm),
+    finish: makeBajaTime(fh, fm),
+    effectiveValue: makeEffectiveValueBoolean(value)
+  });
+  console.log('TimeSchedule built:', 
+    ts.get('start').getHour(), ts.get('start').getMinute(),
+    '-',
+    ts.get('finish').getHour(), ts.get('finish').getMinute()
+  );  // ← temporary debug line
+  try { ts.setFlags({ slot: 'effectiveValue', flags: bajaAPI.Flags.OPERATOR | bajaAPI.Flags.USER_DEFINED_1 }); } catch(e) {}
+  dayComp.add({ slot: 'time?', value: ts });
+}
+  function addTimeScheduleToDay(dayComp, startHour, finishHour, value = true) {
+    const finish = (finishHour === 24) ? 0 : finishHour;
+    const ts = bajaAPI.$('schedule:TimeSchedule', {
+      start:          makeBajaTime(startHour, 0),
+      finish:         makeBajaTime(finish, 0),
+      effectiveValue: makeEffectiveValueBoolean(value)
+    });
+    try {
+      ts.setFlags({ slot: 'effectiveValue', flags: bajaAPI.Flags.OPERATOR | bajaAPI.Flags.USER_DEFINED_1 });
+    } catch(e) {}
+    dayComp.add({ slot: 'time?', value: ts });
+  }
+
+  async function loadScheduleFromNiagara() {
+    if (loadInProgress) return;
+    loadInProgress = true;
+    try {
+      if (!bajaAPI) throw new Error('Baja API not loaded');
+      scheduleObject = await bajaAPI.Ord.make(SCHEDULE_ORD).get();
+      const snapshot = await rpcGetSnapshot(ordToString(SCHEDULE_ORD));
+      scheduleData   = snapshotToGrid(snapshot);
+      updateGridDisplay();
+      updateStatistics();
+      showStatus('Schedule loaded from Niagara successfully');
+    } catch(e) {
+      showStatus('Failed to load schedule: ' + (e?.message || e), true);
+    } finally {
+      loadInProgress = false;
+    }
+  }
+
+  async function saveSchedule() {
+    if (!bajaAPI) { showStatus('Demo mode — no Niagara connection', true); return; }
+    const ordStr = ordToString(SCHEDULE_ORD);
+    try {
+      const snapshot = await rpcGetSnapshot(ordStr);
+      const ws   = gridToWeekSchedule();
+      const root = snapshotGetScheduleRoot(snapshot);
+      if (root && root.has && root.has('week')) {
+        root.set({ slot: 'week', value: ws });
+      } else if (snapshot && snapshot.has && snapshot.has('week')) {
+        snapshot.set({ slot: 'week', value: ws });
+      } else if (root && root.has && root.has('schedule') && root.get('schedule')?.has('week')) {
+        root.get('schedule').set({ slot: 'week', value: ws });
+      } else {
+        root.set({ slot: 'week', value: ws });
+      }
+      await rpcSaveSnapshot(ordStr, snapshot);
+      showStatus('Schedule saved to Niagara successfully!');
+      setTimeout(() => loadScheduleFromNiagara(), 800);
+    } catch(e) {
+      showStatus('Error saving schedule: ' + (e?.message || e), true);
+    }
+  }
+
+  function convertDayRowToRanges(dayRow) {
+    const ranges  = [];
+    let inRange   = false;
+    let startHour = 0;
+    for (let h = 0; h < 24; h++) {
+      const active = !!dayRow[h];
+      if (active && !inRange) { inRange = true; startHour = h; }
+      if (inRange) {
+        const nextActive = (h < 23) ? !!dayRow[h + 1] : false;
+        if (h === 23 || !nextActive) {
+          ranges.push({ startHour, finishHour: (h === 23) ? 24 : (h + 1) });
+          inRange = false;
+        }
+      }
+    }
+    return ranges;
+  }
+
+  function loadSchedule() {
+    if (bajaAPI) { loadScheduleFromNiagara(); }
+    else { showStatus('No Niagara connection.', true); }
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') endSelection();
+    else if (event.ctrlKey && event.key === 's') { event.preventDefault(); saveSchedule(); }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (hasInitialized) return;
+    hasInitialized = true;
+    initializeGrid();
+    updateStatistics();
+    initializeBaja();
+  });
+</script>
+
+</body>
+</html>

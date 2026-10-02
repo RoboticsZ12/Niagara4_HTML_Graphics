@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - VFD Summary</title>
+
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --teal:         #40e0d0;
+  --purple:       #d516df;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── PAGE LOADER ───────────────────────────────────────────────────── */
+#page-loader {
+  position: fixed; inset: 0; background: #000;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999; transition: opacity 0.4s ease;
+}
+#page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-content { text-align: center; font-family: var(--font-head); color: #ccc; }
+
+.loader-clayco-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(36px, 6vw, 58px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #D93B2B;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: loaderClaycoIn 0.9s ease-out 0.1s forwards;
+}
+@keyframes loaderClaycoIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-divider {
+  width: 160px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(217,59,43,0.45), transparent);
+  margin: 12px auto 14px;
+  transform: scaleX(0);
+  animation: loaderDividerIn 0.6s ease-out 0.55s forwards;
+}
+@keyframes loaderDividerIn { to { transform: scaleX(1); } }
+.loader-murphy-row {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  opacity: 0;
+  animation: loaderMurphyIn 0.6s ease-out 0.9s forwards;
+}
+@keyframes loaderMurphyIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.loader-murphy-row .loader-m { width: 30px; height: 30px; }
+.loader-murphy-row .loader-m path {
+  stroke-dasharray: 500; stroke-dashoffset: 500;
+  animation: drawM 1.0s ease-out 1.15s forwards;
+}
+@keyframes drawM { to { stroke-dashoffset: 0; } }
+.loader-murphy-label {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px; letter-spacing: 3px; color: #888; text-transform: uppercase;
+}
+.loader-murphy-label strong { color: #00A86B; letter-spacing: 2px; font-weight: normal; }
+.loader-content .loader-text {
+  margin-top: 18px; opacity: 0;
+  animation: loaderMurphyIn 0.5s ease-out 1.4s forwards;
+}
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; opacity: 0; visibility: hidden; transition: var(--transition); }
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel { position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); transition: left 0.3s ease; z-index: 999999; padding: 80px 0 20px; overflow-y: auto; box-shadow: 4px 0 40px rgba(0,0,0,0.6), 2px 0 0 rgba(0,200,255,0.06); }
+.side-panel.active { left: 0; }
+.side-panel-header { padding: 16px 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; flex-direction: column; gap: 3px; }
+.side-panel-header h2 { font-family: var(--font-head); font-size: 15px; letter-spacing: 4px; color: var(--accent); font-weight: normal; text-transform: uppercase; }
+.side-panel-header p { font-size: 15px; color: var(--text-muted); font-family: var(--font-head); }
+.nav-image-grid { padding: 10px 14px; display: flex; flex-direction: column; gap: 7px; }
+.nav-image-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; text-decoration: none; transition: var(--transition); position: relative; overflow: hidden; }
+.nav-image-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+.nav-image-btn:hover { border-color: var(--accent); background: var(--bg-card-hover); transform: translateX(3px); text-decoration: none; }
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon { width: 40px; height: 40px; border-radius: 8px; background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label { font-family: var(--font-head); font-size: 12px; color: var(--text-primary); letter-spacing: 0.5px; }
+.nav-btn-sublabel { font-family: var(--font-head); font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; }
+.nav-section-label { padding: 14px 14px 4px; font-family: var(--font-head); font-size: 12px; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar { background: rgba(13,17,23,0.97); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 12px; height: 64px; flex-shrink: 0; position: relative; z-index: 100; backdrop-filter: blur(12px); gap: 8px; }
+.top-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); pointer-events: none; }
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.top-center { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.site-label { font-family: var(--font-head); font-size: clamp(8px, 0.7vw, 11px); letter-spacing: clamp(1px, 0.3vw, 4px); color: var(--accent); text-transform: uppercase; white-space: nowrap; }
+#page-header-top { font-family: var(--font-head); font-size: clamp(12px, 1.4vw, 18px); font-weight: normal; letter-spacing: 1px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; overflow: hidden; }
+.top-right-controls { display: flex; align-items: center; gap: 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; }
+.top-right-controls span { font-family: var(--font-head); font-size: clamp(8px, 0.6vw, 10px); letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.user-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; font-size: clamp(10px, 0.8vw, 14px); color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: var(--font-head); flex-shrink: 0; white-space: nowrap; }
+.user-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
+#userDisplay { color: var(--text-primary); font-size: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+
+/* ─── TOGGLE ────────────────────────────────────────────────────────── */
+.toggle-switch { position: relative; width: 52px; height: 26px; background: var(--bg-card); border-radius: 25px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border); }
+.toggle-switch:hover { border-color: var(--accent); }
+.toggle-slider { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--text-muted); border-radius: 50%; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.toggle-switch.active .toggle-slider { transform: translateX(26px); background: var(--amber); }
+
+/* ─── HAMBURGER ─────────────────────────────────────────────────────── */
+.hamburger-menu { width: 36px; height: 36px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; transition: var(--transition); flex-shrink: 0; position: relative; z-index: 1001; }
+.hamburger-menu:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line { width: 18px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: var(--transition); }
+.hamburger-menu.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger-menu.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger-menu.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  position: relative;
+  overflow-y: auto;
+  padding: 24px 20px;
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0,200,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(123,94,167,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 85%, rgba(64,224,208,0.07) 0%, transparent 45%),
+    linear-gradient(135deg, #080d14 0%, #0d1520 25%, #0a1128 50%, #101828 75%, #0d1117 100%);
+  background-attachment: fixed;
+}
+
+/* ─── SECTION HEADING ───────────────────────────────────────────────── */
+.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.section-heading .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.section-heading h2 { font-family: var(--font-head); font-size: 11px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; font-weight: normal; white-space: nowrap; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar { background: rgba(13,17,23,0.97); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; height: 50px; flex-shrink: 0; z-index: 1000; gap: 8px; overflow: hidden; position: relative; }
+.bottom-bar::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.back-button { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.back-button:hover { border-color: var(--accent); color: var(--accent); }
+.date-time { font-family: var(--font-head); font-size: clamp(8px, 0.65vw, 13px); color: var(--text-muted); text-align: center; letter-spacing: 1px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.date-time strong { color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logout-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); padding: 6px 12px; cursor: pointer; font-family: var(--font-head); font-size: clamp(10px, 0.8vw, 13px); letter-spacing: 1px; display: flex; align-items: center; gap: 6px; transition: var(--transition); flex-shrink: 0; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── LIGHT MODE ────────────────────────────────────────────────────── */
+body.light-mode { background: #d8dde8; }
+body.light-mode .main-content { background: radial-gradient(ellipse at 20% 40%, rgba(0,40,120,0.06) 0%, transparent 55%), linear-gradient(160deg, #cdd3e0 0%, #d4d9e6 40%, #ccd2df 100%); }
+body.light-mode .top-bar,
+body.light-mode .bottom-bar { background: rgba(220,225,236,0.98); border-color: rgba(0,30,100,0.25); }
+body.light-mode .user-badge { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); color: #334466; }
+body.light-mode .site-label { color: #001f6b; }
+body.light-mode #page-header-top { color: #001040; }
+body.light-mode #userDisplay { color: #001040; }
+body.light-mode .hamburger-line { background: #001f6b; }
+body.light-mode .hamburger-menu { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .side-panel { background: #dde2ed; border-color: rgba(0,30,100,0.2); }
+body.light-mode .side-panel-header h2 { color: #001f6b; }
+body.light-mode .nav-image-btn { background: #e4e8f3; border-color: rgba(0,100,160,0.25); color: #1a2035; }
+body.light-mode .nav-image-btn:hover { background: #d0d8f0; border-color: #0070b8; }
+body.light-mode .nav-image-btn .nav-btn-label { color: #1a2035; }
+body.light-mode .top-right-controls { background: rgba(255,255,255,0.85); border-color: rgba(0,30,100,0.3); }
+body.light-mode .back-button,
+body.light-mode .logout-btn { background: rgba(255,255,255,0.8); color: #334466; border-color: rgba(0,30,100,0.3); }
+body.light-mode .section-heading h2 { color: #001f6b; }
+body.light-mode .date-time { color: #334466; }
+body.light-mode .summary-table th { background: linear-gradient(135deg, #1e3a8a, #312e81); }
+body.light-mode .summary-table td { background: rgba(220,230,245,0.5); color: #1a2035; border-color: rgba(0,30,100,0.15); }
+body.light-mode .summary-table tr:nth-child(even) td { background: rgba(200,215,240,0.4); }
+body.light-mode .vfd-name-cell { color: #001f6b !important; }
+body.light-mode .vfd-name-cell a { color: #0056b3 !important; }
+body.light-mode .chart-panel { background: rgba(220,228,245,0.5); border-color: rgba(0,30,100,0.15); }
+body.light-mode .chart-panel-title { color: #001f6b; }
+body.light-mode .legend-item { background: rgba(200,215,240,0.4); border-color: rgba(0,30,100,0.1); }
+body.light-mode .legend-text { color: #334466; }
+body.light-mode .export-controls-wrap { background: rgba(0,100,200,0.06); border-color: rgba(0,100,200,0.15); }
+body.light-mode .stats-bar { background: rgba(200,215,240,0.5); border-color: rgba(0,30,100,0.15); }
+body.light-mode .stat-val { color: #001f6b; }
+body.light-mode .stat-label { color: #334466; }
+
+/* ─── SCROLLBARS ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 700px) { .top-right-controls { display: none; } #userDisplay { max-width: 50px; } }
+
+/* ══════════════════════════════════════════════════════════
+   STATS BAR
+══════════════════════════════════════════════════════════ */
+.stats-bar {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding: 16px 20px; margin-bottom: 24px;
+  background: rgba(30, 37, 53, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(8px);
+}
+.stat-item { display: flex; flex-direction: column; align-items: center; min-width: 90px; }
+.stat-val { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); letter-spacing: 1px; }
+.stat-label { font-family: var(--font-head); font-size: 10px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+.stat-divider { width: 1px; background: var(--border); flex-shrink: 0; align-self: stretch; margin: 0 4px; }
+
+/* ══════════════════════════════════════════════════════════
+   EXPORT CONTROLS
+══════════════════════════════════════════════════════════ */
+.export-controls-wrap {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 16px 20px; margin-bottom: 24px;
+  background: rgba(0, 200, 255, 0.04);
+  border: 1px solid rgba(0,200,255,0.12);
+  border-radius: var(--radius);
+}
+.datetime-input {
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--accent);
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  outline: none;
+  transition: var(--transition);
+}
+.datetime-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.export-btn {
+  padding: 9px 20px;
+  background: rgba(0,200,255,0.08);
+  border: 1px solid rgba(0,200,255,0.3);
+  border-radius: 8px;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+.export-btn:hover {
+  background: rgba(0,200,255,0.18);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,200,255,0.2);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SUMMARY TABLE
+══════════════════════════════════════════════════════════ */
+.table-panel {
+  background: rgba(14, 20, 35, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 28px;
+  backdrop-filter: blur(8px);
+}
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.summary-table th {
+  background: linear-gradient(135deg, #1e3a8a, #312e81, #1e40af);
+  color: #e0f7fa;
+  padding: 13px 12px;
+  text-align: center;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(64,224,208,0.2);
+  text-shadow: 0 0 8px rgba(64,224,208,0.4);
+}
+.summary-table td {
+  padding: 11px 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0,200,255,0.1);
+  border-right: 1px solid rgba(0,200,255,0.1);
+  background: rgba(13, 20, 33, 0.6);
+  color: var(--text-muted);
+  transition: background 0.2s;
+}
+.summary-table tr:nth-child(even) td { background: rgba(26, 31, 58, 0.4); }
+.summary-table tr:hover td { background: rgba(0,200,255,0.05); }
+
+.vfd-name-cell {
+  font-family: var(--font-head);
+  font-weight: bold;
+  color: var(--accent) !important;
+  text-shadow: 0 0 10px var(--accent-glow);
+  text-align: left !important;
+}
+/* ALL VFD name links go to ../VFDs/VFD.html */
+.vfd-name-cell a { color: var(--accent); text-decoration: none; transition: color 0.2s; }
+.vfd-name-cell a:hover { color: var(--teal); text-decoration: underline; }
+.vfd-name-cell a:visited { color: rgba(0,200,255,0.6); }
+
+/* value states */
+.value-loading {
+  color: var(--accent2);
+  font-style: italic;
+  font-family: var(--font-head);
+  font-size: 11px;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+.value-error { color: var(--red); font-style: italic; font-size: 11px; }
+.value-normal { color: #67e8f9; font-family: var(--font-head); text-shadow: 0 0 6px rgba(103,232,249,0.3); }
+.value-missing { color: var(--text-muted); font-size: 11px; font-style: italic; }
+
+/* ══════════════════════════════════════════════════════════
+   CHARTS ROW
+══════════════════════════════════════════════════════════ */
+.charts-section {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.chart-panel {
+  flex: 1 1 360px;
+  min-width: 300px;
+  max-width: 620px;
+  background: rgba(14, 20, 35, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.chart-panel-title {
+  text-align: center;
+  font-family: var(--font-head);
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--teal);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-shadow: 0 0 8px rgba(64,224,208,0.4);
+}
+
+.chart-body {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chart-body canvas {
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(0,200,255,0.08);
+}
+
+/* Legend */
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  min-width: 180px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px;
+  background: rgba(26,31,58,0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(0,200,255,0.07);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.legend-item:hover { transform: translateX(4px); background: rgba(30,58,138,0.22); }
+.legend-color { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.legend-text { color: var(--text-muted); font-family: var(--font-head); font-size: 11px; white-space: nowrap; flex: 1; }
+.legend-value { color: var(--teal); font-family: var(--font-head); font-weight: bold; font-size: 11px; margin-left: auto; white-space: nowrap; }
+
+/* loading / error states */
+.page-message {
+  text-align: center; padding: 60px 20px;
+  font-family: var(--font-head);
+  color: var(--accent);
+  font-size: 14px; letter-spacing: 2px;
+}
+.page-error {
+  text-align: center; padding: 40px 20px;
+  font-family: var(--font-head);
+  color: var(--red);
+  font-size: 13px; letter-spacing: 1px;
+  background: rgba(255,68,68,0.06);
+  border: 1px solid rgba(255,68,68,0.25);
+  border-radius: var(--radius);
+  margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── PAGE LOADER ─────────────────────────────────────────────────── -->
+<div id="page-loader">
+  <div class="loader-content">
+    <div class="loader-clayco-wordmark" id="loader-job-name">&#8203;</div>
+    <div class="loader-divider"></div>
+    <div class="loader-murphy-row">
+      <svg class="loader-m" viewBox="0 0 200 200">
+        <path d="M20 170 V30 L100 110 L180 30 V170"
+          fill="none" stroke="#00A86B" stroke-width="18"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="loader-murphy-label">Controls by <strong>Murphy</strong></span>
+    </div>
+    <div class="loader-text">Loading VFD summary…</div>
+  </div>
+</div>
+
+<!-- ─── OVERLAY ─────────────────────────────────────────────────────── -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDE PANEL ──────────────────────────────────────────────────── -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>Navigation</h2>
+    <p>Murphy Control Panel</p>
+  </div>
+
+  <div class="nav-section-label">System Views</div>
+  <div class="nav-image-grid">
+    <a href="../BIO_Home.html" data-nav class="nav-image-btn">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Building Choice</span>
+        <span class="nav-btn-sublabel">Building Change</span>
+      </div>
+    </a>
+    <a href="../Home.html" class="nav-image-btn" id="nav-home-link">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Home</span><span class="nav-btn-sublabel">Main dashboard</span></div>
+    </a>
+    <a href="../FloorPlan.html" class="nav-image-btn" id="nav-floorplan-link">
+      <div class="nav-btn-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/></svg></div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Floor Plan</span><span class="nav-btn-sublabel">Building layout</span></div>
+    </a>
+    <a href="../Alarms.html" class="nav-image-btn" id="nav-alarms-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+          <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Alarming</span><span class="nav-btn-sublabel">System alerts</span></div>
+    </a>
+    <a href="../Users.html" class="nav-image-btn" id="nav-users-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Users</span><span class="nav-btn-sublabel">Manage access</span></div>
+    </a>
+    <a href="../LogsNUMERIC.html" class="nav-image-btn" id="nav-logs-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Histories</span><span class="nav-btn-sublabel">Data logs</span></div>
+    </a>
+    <a href="../Shedules.html" class="nav-image-btn" id="nav-schedules-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label">Schedules</span><span class="nav-btn-sublabel">Time programs</span></div>
+    </a>
+  </div>
+
+  <div class="nav-section-label">Equipment Summaries</div>
+  <div class="nav-image-grid">
+    <a href="../Summary/vfdSummarysheet.html" data-nav class="nav-image-btn" style="border-color: rgba(0,200,255,0.35);">
+      <div class="nav-btn-icon" style="background: rgba(0,200,255,0.14);">
+        <svg viewBox="0 0 40 40" width="26" height="26" fill="none">
+          <circle cx="20" cy="20" r="14" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M20 20 L20 8" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <path d="M20 20 L28 26" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="20" cy="20" r="2.5" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text"><span class="nav-btn-label" style="color:var(--accent);">VFD Summary</span><span class="nav-btn-sublabel">All VFD units</span></div>
+    </a>
+    <div id="equipment-summary-btn"></div>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger-menu" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span id="page-header-top">VFD Summary Sheet</span>
+  </div>
+  <div class="top-right">
+    <div class="top-right-controls">
+      <span>☀</span>
+      <div class="toggle-switch" id="toggleSwitch" style="width:40px;height:22px;">
+        <div class="toggle-slider" style="width:16px;height:16px;top:2px;left:2px;"></div>
+      </div>
+    </div>
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ─────────────────────────────────────────────────── -->
+<div class="main-content">
+  <div style="max-width:1600px; margin:0 auto;">
+
+    <div class="section-heading">
+      <div class="line"></div>
+      <h2>VFD Summary</h2>
+      <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item"><span class="stat-val" id="stat-total">—</span><span class="stat-label">Total VFDs</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-val" id="stat-running" style="color:var(--green)">—</span><span class="stat-label">Running</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-val" id="stat-power" style="color:var(--teal)">—</span><span class="stat-label">Total kW</span></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><span class="stat-val" id="stat-avgfreq" style="color:var(--amber)">—</span><span class="stat-label">Avg Hz</span></div>
+    </div>
+
+    <!-- Export controls -->
+    <div class="export-controls-wrap" id="export-controls-wrap">
+      <input type="datetime-local" id="vfd-start-datetime" class="datetime-input" />
+      <input type="datetime-local" id="vfd-end-datetime" class="datetime-input" />
+      <button class="export-btn" id="csv-btn">📊 Export CSV</button>
+      <button class="export-btn" id="pdf-btn">📄 PDF Report</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-panel">
+      <div id="main-content-table"><div class="page-message">Loading VFD data…</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-section">
+      <div class="chart-panel">
+        <div class="chart-panel-title">Power Consumption by VFD (kW)</div>
+        <div class="chart-body">
+          <canvas id="powerChart" width="300" height="300"></canvas>
+          <div class="chart-legend" id="chartLegend"></div>
+        </div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">Output Frequency by VFD (Hz)</div>
+        <div class="chart-body">
+          <canvas id="frequencyChart" width="300" height="300"></canvas>
+          <div class="chart-legend" id="chartLegendFreq"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-button" onclick="history.back()">← Back</button>
+  <div class="date-time">
+    <strong>Current Date &amp; Time</strong>
+    <span id="currentDateTime">Loading…</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div style="text-align:right; font-family:var(--font-head); font-size:10px; letter-spacing:1px; color:var(--text-muted); line-height:1.4;">
+      Controls by:<br>
+      <span style="color:var(--accent); font-size:12px; letter-spacing:2px;">MURPHY</span>
+    </div>
+    <button class="logout-btn" onclick="handleLogoff()">🔒 Logoff</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     URL UNIT PARAM PASSTHROUGH
+══════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  const urlUnit = new URLSearchParams(window.location.search).get('unit');
+  if (!urlUnit) return;
+  const unit = encodeURIComponent(urlUnit);
+  const navLinks = {
+    'nav-home-link':      '../Home.html?unit=',
+    'nav-floorplan-link': '../FloorPlan.html?unit=',
+    'nav-alarms-link':    '../Alarms.html?unit=',
+    'nav-users-link':     '../Users.html?unit=',
+    'nav-logs-link':      '../LogsNUMERIC.html?unit=',
+    'nav-schedules-link': '../Shedules.html?unit=',
+  };
+  Object.entries(navLinks).forEach(([id, base]) => {
+    const el = document.getElementById(id);
+    if (el) el.href = base + unit;
+  });
+  document.querySelectorAll('a[data-nav]').forEach(a => {
+    const sep = a.href.includes('?') ? '&' : '?';
+    a.href = a.href + sep + 'unit=' + unit;
+  });
+})();
+</script>
+
+<!-- LOADER JOB NAME -->
+<script>
+(async function() {
+  try {
+    const r = await fetch('../HomeConfig.json');
+    const d = await r.json();
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = (d.JobBuilding || 'Control Panel').toUpperCase();
+  } catch(e) {
+    const el = document.getElementById('loader-job-name');
+    if (el) el.textContent = 'CONTROL PANEL';
+  }
+})();
+</script>
+
+<!-- FADE -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.classList.add("fade-in");
+  document.body.addEventListener("click", function(e) {
+    const link = e.target.closest("a");
+    if (!link) return;
+    if (link.hostname !== location.hostname) return;
+    e.preventDefault();
+    document.body.classList.remove("fade-in");
+    document.body.classList.add("fade-out");
+    const loader = document.getElementById("page-loader");
+    if (loader) loader.classList.remove("hidden");
+    setTimeout(() => { window.location.href = link.href; }, 0);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime(); setInterval(updateDateTime, 1000);
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel     = document.getElementById('sidePanel');
+const overlay       = document.getElementById('overlay');
+hamburgerMenu.addEventListener('click', () => {
+  hamburgerMenu.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburgerMenu.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); toggleSwitch.classList.add('active'); }
+toggleSwitch.addEventListener('click', () => {
+  document.body.classList.toggle('light-mode');
+  toggleSwitch.classList.toggle('active');
+  localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+});
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function() {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = '../LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     ID NORMALISATION  (mirrors VFD monitoring page)
+     SP → speed, FREQ/FREQUENCY → frequency, KW/POWER → power,
+     CURRENT → current, TORQUE → torque, VOLTAGE → voltage
+══════════════════════════════════════════════════════════ -->
+<script>
+// Map from upper-case point id keywords → canonical key
+const GAUGE_ID_MAP = {
+  'FREQ':      'frequency',
+  'FREQUENCY': 'frequency',
+  'CURRENT':   'current',
+  'KW':        'power',
+  'POWER':     'power',
+  'SPEED':     'speed',
+  'SP':        'speed',
+  'TORQUE':    'torque',
+  'VOLTAGE':   'voltage',
+};
+
+// Resolve a point's .id string to a canonical key (or null)
+function resolvePointKey(pointId) {
+  if (!pointId || pointId === 'N/A') return null;
+  const up = pointId.toUpperCase().trim();
+  if (GAUGE_ID_MAP[up]) return GAUGE_ID_MAP[up];
+  for (const [kw, key] of Object.entries(GAUGE_ID_MAP)) {
+    if (up.includes(kw)) return key;
+  }
+  return null;
+}
+
+// Human-readable label + unit for each canonical key
+const COL_META = {
+  speed:     { label: 'Speed',     unit: 'RPM' },
+  frequency: { label: 'Frequency', unit: 'Hz'  },
+  torque:    { label: 'Torque',    unit: '%'    },
+  power:     { label: 'Power',     unit: 'kW'   },
+  current:   { label: 'Current',   unit: 'A'    },
+  voltage:   { label: 'Voltage',   unit: 'V'    },
+};
+
+// Keys that go into charts only (not table columns)
+const CHART_KEYS = new Set(['power', 'frequency']);
+
+// Format a raw numeric/string value for display
+function fmtValue(value, key) {
+  if (value === null || value === undefined) return null;
+  const s = String(value).trim();
+  if (!s || s === 'N/A' || s === 'Connection Error') return null;
+  const n = parseFloat(s.replace(/[^\d.\-]/g, ''));
+  if (isNaN(n)) return null;
+  switch (key) {
+    case 'speed':     return Math.round(n) + ' RPM';
+    case 'frequency': return n.toFixed(1) + ' Hz';
+    case 'torque':    return Math.round(n) + ' %';
+    case 'power':     return n.toFixed(1) + ' kW';
+    case 'current':   return n.toFixed(1) + ' A';
+    case 'voltage':   return Math.round(n) + ' V';
+    default:          return n.toFixed(2);
+  }
+}
+
+function rawNum(value) {
+  if (value === null || value === undefined) return null;
+  const n = parseFloat(String(value).replace(/[^\d.\-]/g, ''));
+  return isNaN(n) ? null : n;
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     CHARTS
+══════════════════════════════════════════════════════════ -->
+<script>
+const colorPalette = [
+  '#00c8ff','#00e676','#ffab00','#ff4081','#7c4dff',
+  '#40e0d0','#ff6d00','#e040fb','#1de9b6','#f50057',
+  '#00b0ff','#69f0ae','#ffd740','#ea80fc','#64ffda',
+  '#ff6e40','#b388ff','#ccff90','#80d8ff','#ff80ab',
+];
+
+// chartValues[key][vfdName] = numeric value
+const chartValues = { power: {}, frequency: {} };
+
+function drawPie(canvasId, data, centerLabel, centerColor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, r = Math.min(cx,cy) - 16;
+  ctx.clearRect(0, 0, W, H);
+  const total = data.reduce((s,it) => s + it.value, 0);
+  if (total === 0 || data.length === 0) {
+    ctx.fillStyle = 'rgba(0,200,255,0.5)';
+    ctx.font = '13px Courier New';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('No data', cx, cy);
+    return;
+  }
+  let angle = -Math.PI / 2;
+  data.forEach(item => {
+    const slice = (item.value / total) * 2 * Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle, angle + slice);
+    ctx.closePath();
+    ctx.fillStyle = item.color; ctx.fill();
+    ctx.strokeStyle = '#0d1117'; ctx.lineWidth = 2; ctx.stroke();
+    if (slice > 0.25) {
+      const mid = angle + slice / 2;
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Courier New';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 5;
+      ctx.fillText(((item.value / total) * 100).toFixed(1) + '%',
+        cx + r * 0.68 * Math.cos(mid), cy + r * 0.68 * Math.sin(mid));
+      ctx.shadowBlur = 0;
+    }
+    angle += slice;
+  });
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.36, 0, 2 * Math.PI);
+  ctx.fillStyle = '#0d1117'; ctx.fill();
+  ctx.fillStyle = centerColor || 'rgba(0,200,255,0.8)';
+  ctx.font = 'bold 13px Courier New';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(centerLabel, cx, cy);
+}
+
+function buildLegend(divId, data, unit) {
+  const div = document.getElementById(divId);
+  if (!div) return;
+  div.innerHTML = '';
+  const total = data.reduce((s,i) => s + i.value, 0);
+  data.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `<div class="legend-color" style="background:${item.color}"></div>
+                    <div class="legend-text">${item.label}</div>
+                    <div class="legend-value">${item.value.toFixed(1)} ${unit}</div>`;
+    div.appendChild(el);
+  });
+}
+
+function refreshCharts() {
+  // Power chart
+  const pwData = Object.entries(chartValues.power)
+    .filter(([,v]) => v !== null && v > 0)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([name, val], i) => ({ label: name, value: val, color: colorPalette[i % colorPalette.length] }));
+  const totalKW = pwData.reduce((s,i) => s + i.value, 0);
+  drawPie('powerChart', pwData, totalKW.toFixed(1) + ' kW', 'rgba(0,200,255,0.8)');
+  buildLegend('chartLegend', pwData, 'kW');
+
+  // Frequency chart
+  const freqData = Object.entries(chartValues.frequency)
+    .filter(([,v]) => v !== null && v > 0)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([name, val], i) => ({ label: name, value: val, color: colorPalette[i % colorPalette.length] }));
+  const avgHz = freqData.length
+    ? (freqData.reduce((s,i) => s + i.value, 0) / freqData.length).toFixed(1) + ' Hz avg'
+    : '0 Hz';
+  drawPie('frequencyChart', freqData, avgHz, 'rgba(64,224,208,0.9)');
+  buildLegend('chartLegendFreq', freqData, 'Hz');
+}
+</script>
+
+<!-- ══════════════════════════════════════════════════════════
+     MAIN VFD SUMMARY LOGIC — uses Baja subscriber
+══════════════════════════════════════════════════════════ -->
+<script>
+// Live values keyed by [vfdName][canonicalKey] = numeric value
+const liveValues = {};   // { vfdName: { speed: n, torque: n, current: n, voltage: n, power: n, frequency: n } }
+
+// Per-VFD: which canonical table columns exist (not power/frequency)
+// tableCols[vfdName] = Set of canonical keys that are table columns
+const tableCols = {};
+
+// Which table columns appear across ALL VFDs (determines column set)
+let globalTableCols = [];   // ordered list
+
+let allVFDPoints = {};      // raw from Global.json
+let vfdExportHistoryCache = new Map();
+let bajaSubscriber = null;
+
+// ── Stats bar ─────────────────────────────────────────────
+function updateStatsBar() {
+  const names = Object.keys(liveValues);
+  document.getElementById('stat-total').textContent = names.length || '—';
+  let running = 0, totalPower = 0, freqSum = 0, freqCount = 0;
+  names.forEach(n => {
+    const v = liveValues[n] || {};
+    if (typeof v.frequency === 'number' && v.frequency > 0) { running++; freqSum += v.frequency; freqCount++; }
+    if (typeof v.power === 'number') totalPower += v.power;
+  });
+  document.getElementById('stat-running').textContent = names.length ? running : '—';
+  document.getElementById('stat-power').textContent   = names.length ? totalPower.toFixed(1) + ' kW' : '—';
+  document.getElementById('stat-avgfreq').textContent = freqCount ? (freqSum / freqCount).toFixed(1) + ' Hz' : '—';
+}
+
+// ── Called whenever any point value arrives ───────────────
+function onPointValue(vfdName, canonicalKey, rawValue, displayValue) {
+  if (!liveValues[vfdName]) liveValues[vfdName] = {};
+
+  // Parse numeric value from display string (Baja often returns e.g. "32.5 Hz")
+  let numVal = null;
+  if (displayValue !== null && displayValue !== undefined) {
+    const stripped = String(displayValue).replace(/[^\d.\-]/g, '');
+    const n = parseFloat(stripped);
+    if (!isNaN(n)) numVal = n;
+  }
+  if (numVal === null && rawValue !== null && rawValue !== undefined) {
+    const n = parseFloat(String(rawValue));
+    if (!isNaN(n)) numVal = n;
+  }
+
+  liveValues[vfdName][canonicalKey] = numVal;
+
+  if (canonicalKey === 'power') {
+    chartValues.power[vfdName] = numVal;
+    refreshCharts();
+  } else if (canonicalKey === 'frequency') {
+    chartValues.frequency[vfdName] = numVal;
+    refreshCharts();
+  } else {
+    // Update table cell
+    const cellId = `cell-${vfdName}-${canonicalKey}`;
+    const el = document.getElementById(cellId);
+    if (el) {
+      if (numVal === null) {
+        el.textContent = '—';
+        el.className = 'value-missing';
+      } else {
+        el.textContent = fmtValue(numVal, canonicalKey) || numVal.toFixed(2);
+        el.className = 'value-normal';
+      }
+    }
+  }
+
+  updateStatsBar();
+}
+
+// ── Subscribe via Baja ────────────────────────────────────
+function subscribePoint(vfdName, canonicalKey, fullPath) {
+  try {
+    require(['baja!'], function(baja) {
+      baja.Ord.make(fullPath).get({ subscriber: bajaSubscriber })
+        .then(point => {
+          point.userData = { vfdName, canonicalKey };
+          const out = point.getOut();
+          onPointValue(vfdName, canonicalKey, out.getValue(), out.getValueDisplay ? out.getValueDisplay() : out.getValue());
+        })
+        .catch(() => {
+          onPointValue(vfdName, canonicalKey, null, null);
+        });
+    });
+  } catch(e) {
+    onPointValue(vfdName, canonicalKey, null, null);
+  }
+}
+
+// ── Build table ───────────────────────────────────────────
+function buildTable(vfdData) {
+  const wrap = document.getElementById('main-content-table');
+  const vfdNames = Object.keys(vfdData).sort();
+
+  if (!vfdNames.length) {
+    wrap.innerHTML = '<div class="page-error">No VFD configurations found.</div>';
+    return;
+  }
+
+  // Determine which table columns exist across all VFDs
+  // (power and frequency go to charts only)
+  const colSet = new Set();
+  vfdNames.forEach(name => {
+    const pts = vfdData[name];
+    pts.forEach(pt => {
+      const key = resolvePointKey(pt.id);
+      if (key && !CHART_KEYS.has(key)) colSet.add(key);
+      if (!tableCols[name]) tableCols[name] = new Set();
+      if (key && !CHART_KEYS.has(key)) tableCols[name].add(key);
+    });
+  });
+
+  // Ordered columns: prefer speed first, then torque, current, voltage
+  const preferredOrder = ['speed','torque','current','voltage'];
+  globalTableCols = preferredOrder.filter(k => colSet.has(k));
+  // Add any remaining keys not in preferred order
+  colSet.forEach(k => { if (!globalTableCols.includes(k)) globalTableCols.push(k); });
+
+  let html = `<table class="summary-table"><thead><tr>
+    <th style="text-align:left;padding-left:16px;">VFD Unit</th>
+    ${globalTableCols.map(k => {
+      const m = COL_META[k] || { label: k, unit: '' };
+      return `<th>${m.label}<span style="display:block;font-size:9px;color:rgba(0,200,255,0.5);letter-spacing:1px;font-weight:normal;">${m.unit}</span></th>`;
+    }).join('')}
+  </tr></thead><tbody>`;
+
+  vfdNames.forEach(name => {
+    // Each VFD row: link always goes to ../VFDs/VFD.html
+    html += `<tr>
+      <td class="vfd-name-cell" style="padding-left:16px;">
+        <a href="../VFDs/VFD.html">${name}</a>
+      </td>
+      ${globalTableCols.map(k =>
+        tableCols[name] && tableCols[name].has(k)
+          ? `<td id="cell-${name}-${k}" class="value-loading">…</td>`
+          : `<td class="value-missing">—</td>`
+      ).join('')}
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// ── Load + wire everything ─────────────────────────────────
+async function loadAndDisplayVFDPoints() {
+  try {
+    // Init Baja subscriber
+    require(['baja!'], function(baja) {
+      bajaSubscriber = new baja.Subscriber();
+      bajaSubscriber.attach('changed', function(prop) {
+        if (prop.getName() !== 'out') return;
+        const info = this.userData;
+        if (!info) return;
+        const out = this.getOut();
+        onPointValue(
+          info.vfdName,
+          info.canonicalKey,
+          out.getValue(),
+          out.getValueDisplay ? out.getValueDisplay() : out.getValue()
+        );
+      });
+    });
+  } catch(e) { console.warn('[VFD Summary] Baja subscriber init failed:', e); }
+
+  try {
+    const r = await fetch('../Global.json');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const json = await r.json();
+
+    // Collect VFDs (same logic as original)
+    const vfdConfigs = {};
+    Object.keys(json.globalVariables).forEach(key => {
+      const entry = json.globalVariables[key];
+      const kl = key.toLowerCase();
+      const typeUp = (entry.Type || entry.type || '').toUpperCase();
+      const isVfd = typeUp === 'VFD' ||
+                    kl.includes('vfd_') || kl.includes('_sf') || kl.includes('_rf') ||
+                    kl.includes('_ef')  || kl.startsWith('rf_') || kl.startsWith('ef_');
+      if (!isVfd) return;
+      const connected = (entry.points || []).filter(p => p.status === 'connected');
+      if (connected.length > 0) vfdConfigs[key] = connected;
+    });
+
+    allVFDPoints = vfdConfigs;
+
+    // Initialise chart value maps
+    Object.keys(vfdConfigs).forEach(name => {
+      chartValues.power[name]     = null;
+      chartValues.frequency[name] = null;
+    });
+
+    // Build the table structure
+    buildTable(vfdConfigs);
+    document.getElementById('stat-total').textContent = Object.keys(vfdConfigs).length;
+
+    // Subscribe to all connected points
+    Object.keys(vfdConfigs).sort().forEach(vfdName => {
+      const points = vfdConfigs[vfdName];
+      points.forEach(pt => {
+        const key = resolvePointKey(pt.id);
+        if (!key) return; // skip points with unrecognised IDs
+        subscribePoint(vfdName, key, pt.fullPath);
+      });
+    });
+
+    // Initial (empty) chart draw
+    refreshCharts();
+
+    // Hide loader
+    setTimeout(() => document.getElementById('page-loader')?.classList.add('hidden'), 800);
+
+  } catch(err) {
+    document.getElementById('main-content-table').innerHTML =
+      `<div class="page-error">Error loading VFD data: ${err.message}</div>`;
+    document.getElementById('page-loader')?.classList.add('hidden');
+  }
+}
+
+// ── Export helpers ─────────────────────────────────────────
+function getAllExportPointPaths() {
+  const paths = [];
+  Object.keys(allVFDPoints).forEach(vfdName => {
+    allVFDPoints[vfdName].forEach(pt => {
+      const key = resolvePointKey(pt.id);
+      if (key) paths.push({ name: `${vfdName}_${key}`, vfdName, pointKey: key, path: pt.fullPath });
+    });
+  });
+  return paths;
+}
+
+async function discoverVFDHistoryOrd(pointOrd) {
+  return new Promise((resolve, reject) => {
+    try {
+      require(['baja!'], function(baja) {
+        baja.Ord.make(pointOrd).get()
+          .then(e => e.tags())
+          .then(tagMap => {
+            const tag = tagMap.get('n:history');
+            if (tag && tag.toString().trim()) {
+              let hp = tag.toString();
+              if (!hp.startsWith('history:')) hp = 'history:' + hp;
+              resolve(hp);
+            } else { reject(new Error('No n:history tag')); }
+          }).catch(reject);
+      });
+    } catch(e) { reject(e); }
+  });
+}
+
+async function loadVFDHistoryData(pointPath, startTime, endTime, maxPoints = 1000) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      let histOrd = vfdExportHistoryCache.get(pointPath);
+      if (!histOrd) {
+        try { histOrd = await discoverVFDHistoryOrd(pointPath); vfdExportHistoryCache.set(pointPath, histOrd); }
+        catch(e) { resolve([]); return; }
+      }
+      require(['baja!'], function(baja) {
+        const cond = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+        const bql  = histOrd + '|bql:select timestamp, value where ' + cond + ' order by timestamp';
+        const rows = [];
+        baja.Ord.make(bql).get({
+          cursor: {
+            limit: maxPoints,
+            each: function() {
+              const row = this.get();
+              const ts = new Date(row.get('timestamp').getMillis());
+              rows.push({ timestamp: ts, timestampString: ts.toLocaleString(), value: row.get('value') });
+            }
+          }
+        }).then(() => resolve(rows)).catch(reject);
+      });
+    } catch(e) { reject(e); }
+  });
+}
+
+async function exportVFDHistoryToCSV() {
+  const btn = document.getElementById('csv-btn');
+  btn.textContent = '⏳ Loading…'; btn.disabled = true;
+  try {
+    const startDate = new Date(document.getElementById('vfd-start-datetime').value);
+    const endDate   = new Date(document.getElementById('vfd-end-datetime').value);
+    const allPoints = getAllExportPointPaths();
+    if (!allPoints.length) { alert('No data points to export'); return; }
+
+    const results = await Promise.all(allPoints.map(p =>
+      loadVFDHistoryData(p.path, startDate, endDate, 1000).then(data => ({ ...p, data }))
+    ));
+
+    const tsMap = new Map();
+    results.forEach(pr => {
+      pr.data.forEach(r => {
+        if (!tsMap.has(r.timestampString)) tsMap.set(r.timestampString, { timestamp: r.timestampString });
+        tsMap.get(r.timestampString)[pr.name] = r.value;
+      });
+    });
+
+    const rows = Array.from(tsMap.values()).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+    if (!rows.length) { alert('No historical data in selected range'); return; }
+
+    const headers = ['Timestamp', ...allPoints.map(p => p.name)];
+    let csv = headers.join(',') + '\n';
+    rows.forEach(row => {
+      const ts = `"${row.timestamp.replace(/"/g,'""')}"`;
+      csv += [ts, ...allPoints.map(p => {
+        const v = row[p.name];
+        if (v === undefined || v === null) return '';
+        const s = String(v);
+        return (s.includes(',') || s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s;
+      })].join(',') + '\n';
+    });
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
+    a.download = `VFD_History_${startDate.toISOString().slice(0,10)}_to_${endDate.toISOString().slice(0,10)}.csv`;
+    a.style.display = 'none';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  } catch(e) { alert('Export failed: ' + e.message); }
+  finally { btn.textContent = '📊 Export CSV'; btn.disabled = false; }
+}
+
+async function generateVFDHistoryPDFReport() {
+  const btn = document.getElementById('pdf-btn');
+  btn.textContent = '⏳ Building…'; btn.disabled = true;
+  try {
+    const startDate = new Date(document.getElementById('vfd-start-datetime').value);
+    const endDate   = new Date(document.getElementById('vfd-end-datetime').value);
+    const allPoints = getAllExportPointPaths();
+    if (!allPoints.length) { alert('No data points'); return; }
+
+    const results = await Promise.all(allPoints.map(p =>
+      loadVFDHistoryData(p.path, startDate, endDate, 1000).then(data => ({ ...p, data }))
+    ));
+
+    const stats = results.map(pr => {
+      const nums = pr.data.map(d => parseFloat(d.value)).filter(v => !isNaN(v));
+      const m = COL_META[pr.pointKey] || { unit: '' };
+      return {
+        label:  `${pr.vfdName} — ${pr.pointKey.charAt(0).toUpperCase() + pr.pointKey.slice(1)}`,
+        unit:   m.unit,
+        count:  pr.data.length,
+        min:    nums.length ? Math.min(...nums) : null,
+        max:    nums.length ? Math.max(...nums) : null,
+        avg:    nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : null,
+        latest: pr.data.length ? parseFloat(pr.data[pr.data.length-1].value) : null,
+        data:   pr.data,
+      };
+    });
+
+    const statsRows = stats.map((s,i) => {
+      const bg = i%2===0?'#f5f5f5':'#fff';
+      if (s.min === null) return `<tr style="background:${bg}"><td style="padding:8px;border:1px solid #ddd">${s.label}</td><td colspan="5" style="text-align:center;color:#999;border:1px solid #ddd">No data</td></tr>`;
+      return `<tr style="background:${bg}">
+        <td style="padding:8px;border:1px solid #ddd">${s.label}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right"><b>${s.latest!==null?s.latest.toFixed(2):'—'} ${s.unit}</b></td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.min.toFixed(2)} ${s.unit}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.avg.toFixed(2)} ${s.unit}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right">${s.max.toFixed(2)} ${s.unit}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center">${s.count}</td>
+      </tr>`;
+    }).join('');
+
+    const detailHTML = stats.filter(s=>s.data.length>0).map(s => {
+      const rows = s.data.slice(-100).reverse().map((r,i) => {
+        const v = parseFloat(r.value);
+        return `<tr style="background:${i%2===0?'#f9f9f9':'#fff'}">
+          <td style="padding:5px 8px;border:1px solid #ddd">${r.timestampString}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-family:monospace">${isNaN(v)?r.value:v.toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="page-break-inside:avoid;margin-top:24px">
+        <h4 style="color:#37474f;font-size:11pt;margin-bottom:6px">${s.label}</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:8pt">
+          <thead style="background:#1e3a8a;color:white"><tr>
+            <th style="padding:6px;text-align:left;border:1px solid #ddd">Timestamp</th>
+            <th style="padding:6px;text-align:right;border:1px solid #ddd">Value${s.unit?' ('+s.unit+')':''}</th>
+          </tr></thead><tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+
+    const pdfHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>VFD Report</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;padding:15mm;font-size:10pt}
+.hdr{text-align:center;margin-bottom:20px;border-bottom:3px solid #1e3c72;padding-bottom:12px}
+.hdr h1{color:#1e3c72;font-size:22pt;margin-bottom:5px}.hdr p{color:#546e7a}
+.info{background:#f0f4ff;padding:14px;margin-bottom:18px;border-radius:5px;border:1px solid #c0ccee}
+.info p{margin:4px 0}.ftr{margin-top:24px;text-align:center;color:#90a4ae;font-size:9pt;border-top:1px solid #e0e0e0;padding-top:10px}
+@media print{.noprint{display:none}}</style>
+</head><body>
+<div class="hdr"><h1>⚡ VFD Performance Report</h1><p>Murphy Control Panel — VFD Summary</p></div>
+<div class="info">
+  <p><b>Generated:</b> ${new Date().toLocaleString()}</p>
+  <p><b>Range:</b> ${startDate.toLocaleString()} → ${endDate.toLocaleString()}</p>
+  <p><b>VFDs:</b> ${Object.keys(allVFDPoints).length} | <b>Points:</b> ${allPoints.length}</p>
+</div>
+<h2 style="color:#1e3c72;font-size:15pt;margin:18px 0 8px;border-bottom:2px solid #26c6da;padding-bottom:6px">Statistics Summary</h2>
+<table style="width:100%;border-collapse:collapse">
+  <thead style="background:#1e3c72;color:white"><tr>
+    <th style="padding:10px;border:1px solid #ddd">Point</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Latest</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Min</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Avg</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:right">Max</th>
+    <th style="padding:10px;border:1px solid #ddd;text-align:center">Count</th>
+  </tr></thead><tbody>${statsRows}</tbody>
+</table>
+<div style="page-break-before:always;margin-top:20px">
+  <h2 style="color:#1e3c72;font-size:15pt;border-bottom:2px solid #26c6da;padding-bottom:6px;margin-bottom:8px">Historical Detail</h2>
+  ${detailHTML}
+</div>
+<div class="ftr"><p>Murphy Control Panel — VFD Monitoring | ${new Date().toLocaleString()}</p></div>
+<div class="noprint" style="position:fixed;top:10px;right:10px;background:#fff;padding:10px;border:2px solid #1e3c72;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,0.15)">
+  <button onclick="window.print()" style="padding:10px 22px;background:#1e3c72;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:8px">🖨 Save as PDF</button>
+  <button onclick="window.close()" style="padding:10px 22px;background:#546e7a;color:#fff;border:none;border-radius:5px;cursor:pointer">Close</button>
+</div></body></html>`;
+
+    const w = window.open('','_blank');
+    if (w) { w.document.write(pdfHTML); w.document.close(); }
+    else alert('Pop-ups blocked. Please allow pop-ups for this site.');
+  } catch(e) { alert('PDF failed: ' + e.message); }
+  finally { btn.textContent = '📄 PDF Report'; btn.disabled = false; }
+}
+
+// ── Wire up export buttons & date defaults ─────────────────
+(function() {
+  const now = new Date(), yesterday = new Date(now - 86400000);
+  document.getElementById('vfd-start-datetime').value = yesterday.toISOString().slice(0,16);
+  document.getElementById('vfd-end-datetime').value   = now.toISOString().slice(0,16);
+  document.getElementById('csv-btn').addEventListener('click', exportVFDHistoryToCSV);
+  document.getElementById('pdf-btn').addEventListener('click', generateVFDHistoryPDFReport);
+})();
+
+// ── Cleanup ────────────────────────────────────────────────
+window.addEventListener('beforeunload', () => {
+  if (bajaSubscriber) bajaSubscriber.unsubscribeAll();
+});
+
+// ── Boot ───────────────────────────────────────────────────
+loadAndDisplayVFDPoints();
+</script>
+
+</body>
+</html>
