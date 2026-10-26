@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Site Map</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+/* ─── RESET & ROOT ─────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep:      #0d1117;
+  --bg-panel:     #161b27;
+  --bg-card:      #1e2535;
+  --bg-card-hover:#252d42;
+  --accent:       #00c8ff;
+  --accent-glow:  rgba(0, 200, 255, 0.25);
+  --accent2:      #7b5ea7;
+  --green:        #00e676;
+  --red:          #ff4444;
+  --amber:        #ffab00;
+  --text-primary: #e8ecf4;
+  --text-muted:   #7a8499;
+  --border:       rgba(0,200,255,0.15);
+  --border-hover: rgba(0,200,255,0.45);
+  --radius:       10px;
+  --font-head:    'Courier New', Courier, monospace;
+  --font-body:    Georgia, 'Times New Roman', serif;
+  --transition:   0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+body.fade-in  { opacity: 1; }
+body.fade-out { opacity: 0; transition: opacity 0.3s ease; }
+
+/* ─── TOP BAR ───────────────────────────────────────────────────────── */
+.top-bar {
+  background: rgba(13,17,23,0.97);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 14px;
+  height: 64px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  gap: 8px;
+}
+.top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  pointer-events: none;
+}
+
+/* hamburger */
+.hamburger {
+  width: 36px; height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.hamburger:hover { border-color: var(--accent); background: var(--bg-card-hover); }
+.hamburger-line {
+  width: 18px; height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: var(--transition);
+}
+.hamburger.active .hamburger-line:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+.top-bar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.top-center {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 0; overflow: hidden;
+}
+.site-label {
+  font-family: var(--font-head);
+  font-size: clamp(11px, 1.6vw, 22px);
+  letter-spacing: clamp(1px, 0.4vw, 4px);
+  color: var(--accent);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.page-title {
+  font-family: var(--font-head);
+  font-size: clamp(10px, 1.2vw, 18px);
+  font-weight: normal;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.top-right { display: flex; align-items: center; gap: 8px; justify-content: flex-end; min-width: 0; }
+.user-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: clamp(10px, 0.85vw, 14px);
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.user-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+}
+#userDisplay { color: var(--text-primary); font-size: inherit; }
+
+/* ─── OVERLAY ───────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0; visibility: hidden;
+  transition: var(--transition);
+}
+.overlay.active { opacity: 1; visibility: visible; }
+
+/* ─── SIDE PANEL ────────────────────────────────────────────────────── */
+.side-panel {
+  position: fixed;
+  top: 0; left: -300px;
+  width: 280px; height: 100vh;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  z-index: 300;
+  transition: left 0.3s ease;
+  padding: 80px 0 20px;
+  overflow-y: auto;
+}
+.side-panel.active { left: 0; }
+
+.side-panel-header { padding: 20px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+.side-panel-header h2 {
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: var(--accent);
+  font-weight: normal;
+}
+.side-panel-header p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.side-nav-section-label {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 14px 20px 10px;
+  letter-spacing: 0.5px;
+}
+
+.side-panel-nav { display: flex; flex-direction: column; }
+
+.nav-image-btn {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  margin: 6px 14px;
+}
+.nav-image-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-image-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateX(3px);
+  text-decoration: none;
+}
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon {
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  background: rgba(0,200,255,0.08);
+  border: 1px solid rgba(0,200,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.nav-image-btn:hover .nav-btn-icon {
+  background: rgba(0,200,255,0.15);
+  border-color: rgba(0,200,255,0.35);
+}
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.nav-btn-sublabel {
+  font-family: var(--font-head);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ─── MAIN CONTENT ──────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  padding: 28px 28px 0;
+  overflow-y: auto;
+}
+.main-content::-webkit-scrollbar { width: 6px; }
+.main-content::-webkit-scrollbar-track { background: transparent; }
+.main-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── PAGE HEADER ───────────────────────────────────────────────────── */
+.page-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+.page-header .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.page-header h2 {
+  font-family: var(--font-head);
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* ─── SEARCH CARD ───────────────────────────────────────────────────── */
+.search-card {
+  background: rgba(22,27,39,0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+  margin-bottom: 24px;
+}
+.search-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.address-input {
+  flex: 1;
+  min-width: 220px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  font-family: var(--font-head);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+}
+.address-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.address-input::placeholder { color: var(--text-muted); }
+
+.go-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: var(--accent);
+  padding: 12px 26px;
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.go-btn:hover {
+  background: rgba(0,200,255,0.1);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-1px);
+}
+.go-btn:active { transform: translateY(0); }
+
+.search-hint {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* ─── MAP CARD ──────────────────────────────────────────────────────── */
+.map-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: rgba(22,27,39,0.85);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 0 40px rgba(0,200,255,0.05);
+  margin-bottom: 28px;
+  position: relative;
+}
+.map-card-bar {
+  background: rgba(0,200,255,0.06);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap;
+}
+.map-card-bar-title {
+  font-family: var(--font-head); font-size: 12px;
+  letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+}
+.map-card-bar-addr {
+  font-family: var(--font-head); font-size: 11px; color: var(--text-muted);
+  letter-spacing: 0.5px; word-break: break-all;
+}
+.map-frame-wrap { position: relative; height: 560px; }
+.map-frame-wrap iframe { width: 100%; height: 100%; border: none; display: block; background: #1a1a1a; }
+
+.map-empty-state {
+  height: 560px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 20px;
+}
+.map-empty-state .icon { font-size: 34px; opacity: 0.6; }
+
+/* ─── BOTTOM BAR ────────────────────────────────────────────────────── */
+.bottom-bar {
+  background: rgba(13,17,23,0.97);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  height: 50px;
+  flex-shrink: 0;
+  position: relative;
+}
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.back-btn, .logoff-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: var(--font-head);
+  letter-spacing: 1px;
+  display: flex; align-items: center; gap: 8px;
+  transition: var(--transition);
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+.logoff-btn:hover { border-color: var(--red); color: var(--red); }
+
+.datetime-display {
+  font-family: var(--font-head);
+  font-size: 14px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+/* ─── RESPONSIVE ────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .main-content { padding: 14px 10px 0; }
+  .page-header h2 { font-size: 13px; letter-spacing: 2px; }
+  .map-frame-wrap, .map-empty-state { height: 400px; }
+}
+@media (max-width: 500px) {
+  .top-bar { height: auto; min-height: 54px; padding: 6px 10px; }
+  .site-label { letter-spacing: 1px; }
+  .user-badge { padding: 4px 8px; }
+  .go-btn { padding: 10px 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- overlays -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+    <a href="Home.html" data-ahu="Home" data-nav class="nav-image-btn" id="nav-home-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+          <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Home</span>
+        <span class="nav-btn-sublabel">Main dashboard</span>
+      </div>
+    </a>
+
+    <a href="FloorPlan.html" data-ahu="FloorPlan" data-nav class="nav-image-btn" id="nav-floorplan-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+          <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+          <path d="M22,20 Q28,20 28,26" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+          <line x1="22" y1="20" x2="28" y2="20" stroke="var(--accent)" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Floor Plan</span>
+        <span class="nav-btn-sublabel">Building layout</span>
+      </div>
+    </a>
+
+    <a href="SiteMap.html" data-nav class="nav-image-btn" id="nav-sitemap-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <path d="M20,4 C13,4 8,9 8,16 C8,25 20,36 20,36 C20,36 32,25 32,16 C32,9 27,4 20,4 Z" fill="rgba(0,200,255,0.1)" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="20" cy="16" r="5" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Site Map</span>
+        <span class="nav-btn-sublabel">Address lookup</span>
+      </div>
+    </a>
+
+    <a href="Users.html" data-nav class="nav-image-btn" id="nav-users-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+          <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Users</span>
+        <span class="nav-btn-sublabel">Manage access</span>
+      </div>
+    </a>
+
+    <a href="LogsNUMERIC.html" data-ahu="LoggingNum" data-nav class="nav-image-btn" id="nav-logs-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+          <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+          <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+          <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+          <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Histories</span>
+        <span class="nav-btn-sublabel">Data logs</span>
+      </div>
+    </a>
+
+    <a href="Shedules.html" data-ahu="Schedules" data-nav class="nav-image-btn" id="nav-schedules-link">
+      <div class="nav-btn-icon">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="22" height="22">
+          <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+          <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+          <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+          <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+        </svg>
+      </div>
+      <div class="nav-btn-text">
+        <span class="nav-btn-label">Schedules</span>
+        <span class="nav-btn-sublabel">Time-based control</span>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- ─── TOP BAR ─────────────────────────────────────────────────────── -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="hamburger" id="hamburgerMenu">
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+      <div class="hamburger-line"></div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Site Map</span>
+  </div>
+
+  <div class="top-right">
+    <div class="user-badge">
+      <div class="user-dot"></div>
+      <span id="userDisplay">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAIN CONTENT ──────────────────────────────────────────────────── -->
+<div class="main-content">
+
+  <div class="page-header">
+    <div class="line"></div>
+    <h2>📍 Site Map</h2>
+    <div class="line" style="background:linear-gradient(90deg,transparent,var(--border));"></div>
+  </div>
+
+  <div class="search-card">
+    <div class="search-row">
+      <input type="text" id="addressInput" class="address-input"
+             placeholder="Enter site address (e.g. 123 Main St, Springfield, IL)" />
+      <button class="go-btn" id="goBtn">🔎 Locate</button>
+    </div>
+    <div class="search-hint">Enter an address and press Locate to center the map on that site.</div>
+  </div>
+
+  <div class="map-card">
+    <div class="map-card-bar">
+      <span class="map-card-bar-title">🗺️ Google Maps</span>
+      <span class="map-card-bar-addr" id="mapAddrLabel">No address entered</span>
+    </div>
+
+    <div id="mapFrameWrap" class="map-frame-wrap" style="display:none;">
+      <iframe id="siteMapFrame" src="about:blank" title="Site Location Map" loading="lazy"></iframe>
+    </div>
+
+    <div id="mapEmptyState" class="map-empty-state">
+      <div class="icon">📍</div>
+      <div>ENTER AN ADDRESS ABOVE TO VIEW THE SITE ON THE MAP</div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ─── BOTTOM BAR ───────────────────────────────────────────────────── -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS                                                             -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+
+<!-- FADE IN / OUT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- DATETIME -->
+<script>
+function updateDateTime() {
+  const now = new Date();
+  const opts = { day:'2-digit', month:'short', year:'numeric',
+                 hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+  document.getElementById('currentDateTime').textContent =
+    now.toLocaleString('en-US', opts).replace(',','');
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = username;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     GOOGLE MAPS — ADDRESS LOOKUP (Maps Embed API)
+     Runs entirely in the browser; no Niagara/BOG calls required.
+     Replace GOOGLE_MAPS_API_KEY below with a key that has the
+     "Maps Embed API" enabled and is restricted to this station's
+     hostname (HTTP referrer restriction).
+══════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBDAPRUcTNxXAna2AyIvmlv16SJNbxKKII';
+
+  const addressInput  = document.getElementById('addressInput');
+  const goBtn         = document.getElementById('goBtn');
+  const frameWrap      = document.getElementById('mapFrameWrap');
+  const emptyState     = document.getElementById('mapEmptyState');
+  const frame           = document.getElementById('siteMapFrame');
+  const addrLabel       = document.getElementById('mapAddrLabel');
+
+function loadSiteMap() {
+  const address = addressInput.value.trim();
+  if (!address) {
+    addressInput.focus();
+    return;
+  }
+
+  const url = 'https://www.google.com/maps/embed/v1/place'
+    + '?key=' + encodeURIComponent(GOOGLE_MAPS_API_KEY)
+    + '&q=' + encodeURIComponent(address);
+
+  frame.src = url;
+  addrLabel.textContent = address;
+  frameWrap.style.display = 'block';
+  emptyState.style.display = 'none';
+}
+
+  goBtn.addEventListener('click', loadSiteMap);
+  addressInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') loadSiteMap();
+  });
+})();
+</script>
+
+</body>
+</html>

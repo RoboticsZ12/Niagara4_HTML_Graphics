@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murphy Control Panel - AHU Monitoring</title>
+    
+    <!-- Add RequireJS and BajaScript Support -->
+    <script type='text/javascript' src='/requirejs/config.js'></script>
+    <script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+    
+    <style>
+/* ===============================
+   SHARED THEME (MATCHES AHU)
+================================ */
+
+:root {
+    --bg-gradient-start: #0d1421;
+    --bg-gradient-mid: #1a1f3a;
+    --bg-gradient-end: #0f2027;
+
+    --container-bg-start: rgba(13, 20, 33, 0.95);
+    --container-bg-end: rgba(26, 31, 58, 0.9);
+    --border-color: rgba(64, 224, 208, 0.2);
+
+    --header-gradient-start: #1e3a8a;
+    --header-gradient-mid: #312e81;
+    --header-gradient-end: #1e40af;
+
+    --th-bg-start: #1e3a8a;
+    --th-bg-mid: #312e81;
+    --th-bg-end: #1e40af;
+    --th-text: #e0f7fa;
+    --th-border: rgba(64, 224, 208, 0.3);
+
+    --td-border: rgba(64, 224, 208, 0.15);
+    --td-bg: rgba(13, 20, 33, 0.6);
+    --td-text: #b0bec5;
+
+    --row-even: rgba(26, 31, 58, 0.4);
+    --row-odd: rgba(15, 32, 39, 0.5);
+
+    --hover-bg-start: rgba(30, 58, 138, 0.3);
+    --hover-bg-end: rgba(49, 46, 129, 0.3);
+
+    --device-name: #40e0d0;
+    --value-normal: #67e8f9;
+    --shimmer-color: rgba(64, 224, 208, 0.1);
+}
+
+/* LIGHT MODE */
+body.light-mode {
+    --bg-gradient-start: #ffffff;
+    --bg-gradient-mid: #f5f5f5;
+    --bg-gradient-end: #e0e0e0;
+
+    --container-bg-start: rgba(255, 255, 255, 0.95);
+    --container-bg-end: rgba(245, 245, 245, 0.9);
+    --border-color: #000;
+
+    --header-gradient-start: #dc143c;
+    --header-gradient-mid: #b91c1c;
+    --header-gradient-end: #991b1b;
+
+    --th-bg-start: #dc143c;
+    --th-bg-mid: #b91c1c;
+    --th-bg-end: #991b1b;
+    --th-text: #ffffff;
+
+    --td-border: #000;
+    --td-bg: #ffffff;
+    --td-text: #333;
+
+    --row-even: #f9f9f9;
+    --row-odd: #ffffff;
+
+    --hover-bg-start: rgba(220, 20, 60, 0.1);
+    --hover-bg-end: rgba(220, 20, 60, 0.1);
+
+    --device-name: #dc143c;
+    --value-normal: #333;
+}
+
+  .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(30, 58, 138, 0.8);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        body.light-mode .theme-toggle {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .theme-toggle label {
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        body.light-mode .theme-toggle label {
+            color: #1e3a8a;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+
+/* ===============================
+   PAGE
+================================ */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background: linear-gradient(
+        135deg,
+        var(--bg-gradient-start),
+        var(--bg-gradient-mid),
+        var(--bg-gradient-end)
+    );
+    opacity: 0;
+    transition: opacity 2s ease, background 0.3s ease;
+}
+
+/* Fade helpers */
+.fade-in { opacity: 1; }
+.fade-out { opacity: 0; transition: opacity 0.6s ease; }
+
+/* ===============================
+   CONTAINER / HEADER
+================================ */
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    background: linear-gradient(145deg, var(--container-bg-start), var(--container-bg-end));
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow:
+        0 8px 32px rgba(0,0,0,.4),
+        0 0 20px rgba(64,224,208,.1),
+        inset 0 1px 0 rgba(255,255,255,.05);
+    overflow: hidden;
+}
+
+.header {
+    background: linear-gradient(
+        135deg,
+        var(--header-gradient-start),
+        var(--header-gradient-mid),
+        var(--header-gradient-end)
+    );
+    color: white;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, var(--shimmer-color), transparent);
+    animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%,100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 0 15px rgba(64,224,208,.3);
+}
+
+body.light-mode .header h1 {
+    text-shadow: none;
+}
+
+/* ===============================
+   VAV TABLE (MATCHES AHU)
+================================ */
+
+.vav-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: transparent;
+}
+
+.vav-table th {
+    background: linear-gradient(
+        135deg,
+        var(--th-bg-start),
+        var(--th-bg-mid),
+        var(--th-bg-end)
+    );
+    color: var(--th-text);
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: bold;
+    border-right: 2px solid var(--th-border);
+    position: relative;
+}
+
+.vav-table th::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, rgba(64,224,208,0.05), transparent);
+}
+
+.vav-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 2px solid var(--td-border);
+    border-right: 2px solid var(--td-border);
+    background: var(--td-bg);
+    color: var(--td-text);
+    transition: all 0.3s ease;
+}
+
+.vav-table tr:nth-child(even) td {
+    background: var(--row-even);
+}
+
+.vav-table tr:nth-child(odd) td {
+    background: var(--row-odd);
+}
+
+.vav-table tr:hover td {
+    background: linear-gradient(90deg, var(--hover-bg-start), var(--hover-bg-end));
+    transform: scale(1.01);
+    box-shadow: 0 4px 15px rgba(64,224,208,.2);
+}
+
+/* ===============================
+   NAMES / VALUES
+================================ */
+
+.vav-name {
+    font-weight: bold;
+    color: var(--device-name);
+    text-shadow: 0 0 10px rgba(64,224,208,.5);
+}
+
+body.light-mode .vav-name {
+    text-shadow: none;
+}
+
+.value-loading {
+    color: #7c3aed;
+    font-style: italic;
+}
+
+.value-error {
+    color: #f87171;
+}
+
+.value-normal {
+    color: var(--value-normal);
+}
+
+.value-active {
+    color: #34d399;
+    font-weight: bold;
+}
+
+.value-inactive {
+    color: #64748b;
+}
+
+/* ===============================
+   LINKS
+================================ */
+
+.vav-name a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.vav-name a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.vav-name a:visited {
+    color: #bdbdbd;
+}
+
+body.light-mode .vav-name a {
+    color: #dc143c;
+}
+
+body.light-mode .vav-name a:hover {
+    color: #991b1b;
+}
+body.light-mode .vav-name a:visited {
+    color: #6b7280;
+}
+
+
+
+
+
+        /*hamburger*/
+        .hamburger-menu {
+position: absolute;
+left: 10px;
+top: 5%;
+transform: translateY(-50%);
+width: 40px;
+height: 40px;
+background-color: #333;
+border: 2px solid #888;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 4px;
+z-index: 1001;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover {
+background-color: #444;
+}
+
+.hamburger-line {
+width: 20px;
+height: 2px;
+background-color: white;
+transition: all 0.3s ease;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(1) {
+transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(2) {
+opacity: 0;
+}
+
+.hamburger-menu.active .hamburger-line:nth-child(3) {
+transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Side Panel Styles */
+.side-panel {
+position: fixed;
+top: 0;
+left: -300px;
+width: 300px;
+height: 100vh;
+background-color: #1a1a1a;
+border-right: 2px solid #444;
+transition: left 0.3s ease;
+z-index: 1000;
+padding: 80px 0 20px 0;
+box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.side-panel.active {
+left: 0;
+}
+
+.side-panel-header {
+padding: 20px;
+border-bottom: 1px solid #444;
+margin-bottom: 20px;
+}
+
+.side-panel-header h2 {
+color: #fff;
+font-size: 18px;
+margin-bottom: 5px;
+}
+
+.side-panel-header p {
+color: #ccc;
+font-size: 14px;
+}
+
+.ahu-dropdown {
+padding: 0 20px;
+}
+
+.ahu-dropdown-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 15px;
+background-color: #333;
+border: 1px solid #555;
+cursor: pointer;
+transition: background-color 0.3s ease;
+margin-bottom: 10px;
+}
+
+.ahu-dropdown-header:hover {
+background-color: #404040;
+}
+
+.ahu-dropdown-header h3 {
+color: #fff;
+font-size: 16px;
+}
+
+.dropdown-arrow {
+color: #ccc;
+font-size: 14px;
+transition: transform 0.3s ease;
+}
+
+.ahu-dropdown.active .dropdown-arrow {
+transform: rotate(180deg);
+}
+
+.ahu-dropdown-content {
+max-height: 0;
+overflow: auto;
+transition: max-height 0.3s ease;
+background-color: #2a2a2a;
+border: 1px solid #555;
+border-top: none;
+}
+
+.ahu-dropdown.active .ahu-dropdown-content {
+max-height: 200px;
+}
+
+.ahu-option {
+padding: 12px 20px;
+color: #ccc;
+cursor: pointer;
+transition: all 0.3s ease;
+border-bottom: 1px solid #444;
+}
+
+.ahu-option:last-child {
+border-bottom: none;
+}
+
+.ahu-option:hover {
+background-color: #4CAF50;
+color: white;
+}
+
+.ahu-option.active {
+background-color: #4CAF50;
+color: white;
+font-weight: bold;
+}
+
+/* Overlay for mobile */
+.overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0, 0, 0, 0.5);
+z-index: 999;
+opacity: 0;
+visibility: hidden;
+transition: all 0.3s ease;
+}
+
+.overlay.active {
+opacity: 1;
+visibility: visible;
+}
+
+.left-section {
+display: flex;
+gap: 15px;
+margin-left: 60px; /* Make room for hamburger menu */
+}
+
+    </style>
+</head>
+<body>
+  
+  
+  
+    <!-- Overlay for mobile -->
+<div class="overlay" id="overlay"></div>
+
+
+<!-- Side Panel -->
+<div class="side-panel" id="sidePanel">
+<div class="side-panel-header">
+<h2>NAV Sheet</h2>
+<p>System Selection</p>
+</div>
+
+<div class="ahu-dropdown" id="ahuDropdown">
+<h3>Select System View</h3>
+
+<a href="../../Home.html" class="ahu-option" data-ahu="Home" style="display: block;"> <img src="data:image/png;base64,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" 
+alt="Home" style="width: 40px; height: 40px; cursor: pointer; " />
+</a>
+<a href="../../FloorPlan.html" class="ahu-option" data-ahu="FloorPlan" style="display: block;">  <img src="data:image/png;base64,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" 
+alt="Floor Plan" style="width: 40px; height: 40px; cursor: pointer;" />
+</a>
+<a href="../../Alarms.html" class="ahu-option" data-ahu="Alarms" style="display: block;">  <img  src = "data:image/png;base64,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"
+alt="Alarms" style="width: 40px; height: 40px; cursor: pointer;" />
+</a>
+<a href="../../Users.html" class="ahu-option" data-ahu="Users" style="display: block;">  <img src="data:image/png;base64,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" 
+alt="Users" style="width: 40px; height: 40px; cursor: pointer;" />
+</a>
+<a href="../../LogsBOOLEAN.html" class="ahu-option" data-ahu="Logging" style="display: block;">  <img src="data:image/png;base64,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" 
+alt="Histories" style="width: 40px; height: 40px; cursor: pointer;" />
+  <span>Boolean Logs</span>
+</a>
+<a href="../../LogsNUMERIC.html" class="ahu-option" data-ahu="LoggingNum" style="display: block;">  <img src="data:image/png;base64,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" 
+alt="Histories" style="width: 40px; height: 40px; cursor: pointer;" />
+  <span>Numeric Logs</span>
+</a>
+<a href="../../Shedules.html" class="ahu-option" data-ahu="Schedules" style="display: block;">  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIQAAABwCAYAAADfR9ioAAAAAXNSR0IB2cksfwAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEABcADAAMKy9FogAAAAlwSFlzAAASdAAAEnQB3mYfeAAAAAd0SU1FB+kGHg8eG5dhhOgAAAz1SURBVHja7Z3LbxvHHce/v9ldLinqQTmI81AktZIfsQMkjpU2L6AoWqcFkhZBD3LvPdjX9iT/CfKpvdqnHlq0sNEGQeIYSdzESZE4D8l23PgZW44edhwjliiSS3IfM78eSDm2tKR2Y1EmpfkA0oEczs7juzO/+e1vdgCNRqPRaDQajUaj0Wg0mtWBmr2AuVxuDxENREkrpTyYyWQm1lKdlFLHurq6jq17pTqOM+b7PiulOApKKQ6CgEulEjezEDzPYyklR0VKyeVymefn53etWzG4rhtZCGH4vt90oigUCofiCGExQRBwLpfbs+7EkMvl9vAKUCgUDjVTvTzPu6f6KKXY87yGC91sNkFYlnUg7HNmhlIKzN+3CRGBiCCEWFox0xxuljrl8/nRsDKG1WmhXkIIENFdnxmG0fCyimYTxOKGY2YEQYBisXjYNE2yLOv2n2ma5DjOXt/3lzRqWAfcN8s9xICUUqJUKo0vrpNlWVQoFAZd111SJwDIZrMDWE+4rrvEHsjn86NRjLVmtSMcxxlbbD9EmdLK5fJdBqiUkte1IJRSkVcNjuOM3WmINrMglFKRypbNZgd8319VQYhmF4iU8nCUdEEQ7FNKNb3gmRm+70dKm8lkJla7TqIFGnBiJdM1iyialTUjiMWGWzM1eiuJtekEcedS617zaRYDTAixYl5GwzAa6pxaFT9EVA+bZVkHVmqtLYSAbdtXcrnc3vstBtM0u1dC6EQEy7JG8vk8lFLHojwP6ezsPNhUgnAcZyyVSg2t5uiwIIhkMgnbtg+spVEvkUggkUiMABiJ+LPmEgQRDaxkR9+vzlhrU2rLGpVRHxO3kuGmjcpVEETUdE1iZGpB3INVHekhlWmao60wPRARTDPaTJ3NZgdWWzyi2RsvkUhguWcZ2Wx2IJFIDDXznbe4Xo7jjC2Xrq2t7cpqPOFsqRFCCIFUKjVSKpVC/fiO44yl0+lVb7h7JZlMDpXL5dCgl3w+P+p5HpumuepGccOvViwWZ1OpVPe95sPMkFLiTt/+QozAQlxEq1GrTkKIFYt9oJgNY7ZK48WZe3Wd1vCUodGC0GhBaLQgNFoQGi0IjRaERgtCs2a4b16RhZjHZg44bRVW0lN73wQhpYTv+3NKKb3V/R6xbXt4wYXfsoIIggBtbW0bdHfeO8VicVYIsSJxm+I+jhCHdVeuWFseXKmpVxuVGi0ITRPaED+EY+de5wTZyFgP7n9y09C+5dJfO/U6m4VJEBiIOKQyB5Adgwja+/f2bdl5O4T92pl32ShOQ/gFIGJ+TAROdMPvGETv9hdvT/BTF8cOWfMXh4U3C2K1cOHlcgOTQNC5GT1PvUzrXhAnv/qET82/D1cV0ZPcNPLF5bGBpzY9s7tW+unzJzg59RpS37xTaWwiLNfkBAXBLoqPvIKS0XYAd+xpsLJfIHnjOMziTKVz6sQWEQBUO9rv3ALuffWu743SjeHU9bdgzV8AcQBAgOuUjgAQJCAsOD2vYvr8Ce7d9nxDRNEyU4ZiBVeWMOVdwHjuGE7PfzB8+vLnteMSlYIIihDePERQuL1er7buoj+qiEGVkTBdGHABDu5uKOnCCHIQfh5geft3i/OqWPoMwT5M5UAEeUB5mLx0+vvwPw4gggKEnwMFpZp5LeRHkDDgImGWIVT5ttjW/ZQBIhABOXkLF5zPMeffHHrv3Bv8i+2/pfAhG1BWGn7nVhQG/wA2U6CQoZnJgFG+gdS378FyPgAEhQzYVYu+ox+Fvt8jaP8xQOYd3yzkJSD8HBJzZ5C88S7AvPSaDLBSUFYnvA074fTvBkiEjjksTJiFr9E291+kCyfQaDdeSwliocEkByjILHzloqwKeO3MX7k/tQ07Nz+7tE3JAJtp9Ox4pe4QO3P2Q5ZWJ1AncpvAYGFDph5Gz5O/qpnf1MXxUaN0fQSGjdo9yAAZUFYnHnvypfplO/MuS6erIlTSgghtS8USZVXATOkrKFIocwEfX/gPv/D4L6m2lOpmGePyy820NMG3x/3lBj2KfifoVcZyK4JK93zjTyBwXJDSq2jthyCApIDJNhIiuYa7ivQIUVcEVLEaU6IdW9qHsLntafx8+w9fn1cM/Qj3By1cvG6aCSIRyfXBkTp69eYMszXFQLAoiUxiIzaln0J/ajteDLMduOoPkGXMnD3OykiPAzwQYngepOJ1UFCs6yBiBiB9CHcOU+c+Zghzbmle4pjh3hoW/jxI+WBh1elkBSGLmLrwCQNiLjyZcVAUrkLIatlYC+JOXx2gCGnKYGOqD/2pbfhR23bs3Pwchd97DKFcJErX0DbzBhRZ4S8uITFi+HkkCpdAKggVBbECARDeLaRuHoeV/R9AojvESBwmWYZZvg5TzcMXG0L6sFI2Q5aQKHyF9NRrYFB3zbJ5c7DKVwAFVP9pQRAIJllIUzc2JB7G5vQOvPTE76je0M6GDRIWTH8OqWtH695cBMAQgLJtKJEAFk0fLCyw2QbyZ5H87gTqvWmSUFm9CsuCZ7QBwkL/lh3fv79CGGCzDSADVvEaqDBT39AjQBgEmWoDhL38lLUeBGEKc7w7sXHoQfsxPGoP4tmtP6vbKmwk9/vp/pFS986qZ08tLzkGwB4Cuxdstt/1rUw9CrfrCfiJB6t58fJLIBKQ6T6w/cDdX1kd8Du3gkWy6hHlCLeDAgsLQaoHLJJ7G3fjNZham30dxznc3t6+O05epy9/Nrtj009jBdVMnzsRb+JlBlvpwb477+gFh9P5z2aJZXec/FhY432P/+SZxZ9PXhgfJeWNUCyjgNC7fekzjHw+P5pKpUbCNghTs+2CLhaLs61wfEErk8/nR4MgCD1WYf35ITRr24aYunRqF6lgNMYYP8Bk7uvbujPW6/cmT53e1f/0Dh3g28yCuPble2zd/AjkzUYKQKHqEk5ZXQeunX7zQM+O3yw7X06OjR0SU9PD4tNPV9fjowURH6M4g+TND2EUroKUXNaar3gDGUG6DyCBqYsn99QbKabfPMLma69DXL0K9dBDsctXKpU47gs+fN+fC4suz+fzo7Ztj8S1+SzLonUjCJJlCG8WhjeHoK0Xyu6uePoWjxZEFUeR78BwJiG8LChwQKx2ocabW2f+9nc2jxyFee484PtQmUx8wRpG7Ff9KKW6a+S1xzAMCCEib1ZiZmSz2YFGHkXZXDYEM8AKTAa8zBPwu7aBrY6lEUIkQNKDKF5HqhoNBZahY8nUhx+ycfYszKNvw7h4CSKbBXd1xi5aNpsdiLtDiplrpiei2/sooua5GrvcmtAxRRUHTPsgvA1D6N32XM3Wun7y32zPjoH8QvgUceQtNt4/DuvY+6CbNyE8r3LXkjYdWkgQCwtiEyys/fXHcBsgI9STO/OPf7J5+F8wx8YhHKficKpON5oW9EPcy+A4/eYRto6+DfPUaVCxCGaG3lLc4oKIJIkac6p65OH9wfPPQj6+BUjaupfXxJQRRzSLdNE/NLRv8uTJCU6lDnBXBubJU6C5OUBK3eOtJwgGsYLhz8Mofzsyfe6jkdBlp3IhCl8DsoywuKP+nTsPAjg49fY7jGQSxukvQDdvgqqGpaZVBMEApIvEd+MQxW8qj4iXTB8EsA/hZWGUbgBmOyqPiJfS9+tKuPy1P/+FraNvQ0xOYTUdlK32QpQme6+uATZsMBkwC5dhOFernRciiOpIQrIEmchUAliIajpsev70R5o+dJit94/DuHR5SQDMcmQymQnXdRH1HE0iqhiztewcpcaZeSiqaFbrKXZTCSJIPQp34wsQHZurex15GY9FZUhR9gMIOgbQt7X+BuDe3cM0feQtlhNXgVI5dvlKpdJg3FPxOjo6QsuUTqefyeVye+Ic/MLME430UjadIHqeeplmvnyPSZYjrTMW7hkWNjiR2R/lGr2vvEyT4+Oj4tbsSNzyVTtj30rVN+6JeWsCHSDTeHSAjKZxZpxuAo0WhKZ1/BCFQuGQZVnDcX4jpZyr9YpD13VjzaPVg9+olj1kGEas46J83w+NLs/n86PVE3ojl0sphWQy2dpP5+Iala7rclx83+daxhb/AMIORstmswO+78fKRynFnudxjSUsK6Vi5Sel5Pn5+V3aqPyBMPPEWnt1cqNPMNY2hEYLQqMFodGC0GhBaLQgNFoQmgbSdJ7KekElYSwEotTLLw61AlEymcyE53mx86uVnpnnmLlbC2IZXNd9SSl1KEYHdgdBEBoL0dnZebBYLI7GFER3rTgF13X3B0EQK0AmCILQ+AnP855h5kNRA2SIqJuZ5xodINNwdDxE49Gua402KjVrXBBxgks1a6gta9kQ5XKZs9msFsUKUC6XWUq5IjbEfVtl2LaNRCJxJeo+B038pXLLLTtJb83XNoRGC0KjBaFpVRpuQ1TjGod0U2s0Go1Go9FoNBqNRqPRaDQajSYa/wdqgCmGdAU+ggAAAABJRU5ErkJggg=="
+alt="Schedules" style="width: 40px; height: 40px; cursor: pointer;" />
+</a>
+</div>
+</div>
+
+  
+  <!--TOP BAR NAV BAR-->
+<div class="top-bar">
+<!-- Hamburger Menu -->
+<div class="hamburger-menu" id="hamburgerMenu">
+<div class="hamburger-line"></div>
+<div class="hamburger-line"></div>
+<div class="hamburger-line"></div>
+</div>
+
+<div class="nav-images">
+<!--<div class="weather-cam">Weather Cam</div>-->
+<div class="admin-greeting">
+<div class="admin-icon"></div>
+<span id="userDisplay"></span>
+</div>
+</div>
+
+</div>
+
+
+<!--toggle switch-->
+    <div class="theme-toggle">
+        <label for="themeSwitch">Light Mode</label>
+        <label class="switch">
+            <input type="checkbox" id="themeSwitch" onchange="toggleTheme()">
+            <span class="slider"></span>
+        </label>
+    </div>
+  
+  
+    <div class="container">
+        <div class="header">
+            <h1>VAV Summary Sheet</h1>
+        </div>
+        <div id="main-content">
+            <div class="loading">Loading VAV data...</div>
+        </div>
+    </div>
+
+
+
+ <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const checkbox = document.getElementById('themeSwitch');
+            
+            if (checkbox.checked) {
+                body.classList.add('light-mode');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme preference
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme');
+            const checkbox = document.getElementById('themeSwitch');
+            
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                checkbox.checked = true;
+            }
+        });
+    </script>
+
+
+<!--FADE IN AND OUT-->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Fade in when page loads
+    document.body.classList.add("fade-in");
+
+    // Catch all link clicks
+    document.querySelectorAll("a").forEach(link => {
+        // Only run fade-out on internal links (not external)
+        if (link.hostname === window.location.hostname) {
+            link.addEventListener("click", function(e) {
+                e.preventDefault();
+
+                const target = this.href;
+
+                // Fade out
+                document.body.classList.remove("fade-in");
+                document.body.classList.add("fade-out");
+
+                // Change page after fade
+                setTimeout(() => {
+                    window.location.href = target;
+                }, 1000); // same time as CSS transition
+            });
+        }
+    });
+});
+</script>
+
+
+
+<script>
+    // Global variables
+    let pointSubscriptions = [];
+    let pointValues = {};
+    let allVAVPoints = {};
+    let subscriber;
+
+function extractTrailingNumber(name) {
+    const decoded = decodeVAVName(name);
+    const match = decoded.match(/(\d+)\s*$/); // number at END of string
+    return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+
+
+    // User authorization check
+    function isAuthorizedUser() {
+        const username = 'murphy'; // Simulated user
+        console.log('Current user:', username);
+        
+        if (!username) {
+            console.log('No user found');
+            return false;
+        }
+        
+        const authorizedUsers = ['murphy', 'admin'];
+        const isAuthorized = authorizedUsers.includes(username.toLowerCase());
+        
+        console.log('User authorized for point display:', isAuthorized);
+        return isAuthorized;
+    }
+
+    // Check authorization before proceeding
+    if (!isAuthorizedUser()) {
+        console.log('Point display script terminated - user not authorized');
+        document.getElementById('main-content').innerHTML = 
+            '<div class="error">Access Denied: You do not have permission to view point data.</div>';
+        throw new Error('Unauthorized access');
+    }
+
+    // Function to extract VAV folder from current path
+    function getCurrentVAVFolder() {
+        const path = window.location.pathname;
+        console.log('Current path:', path);
+        
+        // Match pattern like /VAVs/VAV_00/ or /VAVs/VAV_02/
+        const match = path.match(/\/VAVs\/VAV_(\d+)\//);
+        
+        if (match) {
+            const vavFolder = match[1]; // Extract the number (00, 02, etc.)
+            console.log('Detected VAV folder:', vavFolder);
+            return vavFolder;
+        }
+        
+        console.log('No VAV folder detected in path');
+        return null;
+    }
+
+    // Function to extract the first number from a VAV name, handling various formats
+    function extractVAVNumber(vavName) {
+        // Decode ASCII codes like $20 (space) and $2d (dash)
+        let decoded = vavName.replace(/\$([0-9a-fA-F]{2})/g, (match, hex) => {
+            return String.fromCharCode(parseInt(hex, 16));
+        });
+        
+        console.log(`Decoded VAV name: "${vavName}" -> "${decoded}"`);
+        
+        // Now extract the first number from the decoded name
+        // This handles: VAV 1, VAV-1, VAV_1, VAV_01, etc.
+        const numberMatch = decoded.match(/(\d+)/);
+        
+        if (numberMatch) {
+            // Convert to number and back to string to normalize (removes leading zeros)
+            const number = parseInt(numberMatch[1], 10).toString();
+            console.log(`Extracted number from "${decoded}": ${number}`);
+            return number;
+        }
+        
+        console.log(`No number found in "${decoded}"`);
+        return null;
+    }
+
+    // Function to format point values
+    function formatPointValue(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return value === 'Connection Error' ? 'Connection Error' : 'N/A';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return value;
+        }
+        
+        if (pointId === 'Reheat1') {
+            // Heat Command - show active/inactive
+            return value ? 'Heat ON' : 'Heat OFF';
+        } else if (pointId === 'Air-Flow') {
+            // Airflow in CFM
+            return Math.round(value) + ' cfm';
+        } else if (pointId === 'DPR-Pos') {
+            // Damper position as percent
+            return Math.round(value) + '%';
+        } else if (typeof value === 'number') {
+            // Numeric values default to °F
+            return value.toFixed(1) + '°F';
+        }
+        
+        return value.toString();
+    }
+
+    // Function to get CSS class for value styling
+    function getValueClass(value, pointId) {
+        if (value === null || value === undefined || value === 'N/A' || value === 'Connection Error') {
+            return 'value-error';
+        }
+        
+        // Handle "NO_" prefix for missing points
+        if (typeof value === 'string' && value.startsWith('NO_')) {
+            return 'value-missing';
+        }
+        
+        if (pointId === 'Reheat1') {
+            return value ? 'value-active' : 'value-inactive';
+        }
+        
+        return 'value-normal';
+    }
+
+    // Function to update point value in the display
+    function updatePointValue(vavName, pointId, value) {
+        const elementId = `point-${vavName}-${pointId}`;
+        const valueElement = document.getElementById(elementId);
+        if (valueElement) {
+            const formattedValue = formatPointValue(value, pointId);
+            const valueClass = getValueClass(value, pointId);
+            
+            valueElement.textContent = formattedValue;
+            valueElement.className = valueClass;
+            
+            if (!pointValues[vavName]) pointValues[vavName] = {};
+            pointValues[vavName][pointId] = value;
+        }
+    }
+
+    // Initialize subscriber
+    try {
+        require(['baja!'], function(baja) {
+            subscriber = new baja.Subscriber();
+            
+            subscriber.attach('changed', function(prop) {
+                if (prop.getName() === 'out') {
+                    const pointInfo = this.userData;
+                    if (pointInfo) {
+                        const out = this.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(pointInfo.vavName, pointInfo.pointId, displayValue);
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Failed to initialize subscriber:', error);
+    }
+
+    // Function to subscribe to a point using Niagara Baja
+    function subscribeToPoint(vavName, pointId, pointPath) {
+        console.log(`Subscribing to: ${pointPath}`);
+        
+        try {
+            require(['baja!'], function(baja) {
+                baja.Ord.make(pointPath).get({ subscriber: subscriber })
+                    .then(point => {
+                        console.log(`✅ Successfully connected to ${pointId}: ${pointPath}`);
+                        
+                        point.userData = { 
+                            vavName: vavName,
+                            pointId: pointId, 
+                            pointPath: pointPath
+                        };
+                        
+                        const out = point.getOut();
+                        const displayValue = out.getValue();
+                        
+                        updatePointValue(vavName, pointId, displayValue);
+                    })
+                    .catch(error => {
+                        console.error(`❌ Failed to connect to ${pointId} (${pointPath}):`, error);
+                        updatePointValue(vavName, pointId, 'Connection Error');
+                    });
+            });
+        } catch (error) {
+            console.error(`Failed to subscribe to ${pointPath}:`, error);
+            updatePointValue(vavName, pointId, 'Connection Error');
+        }
+    }
+
+    // Function to decode ASCII codes in VAV names for display
+    function decodeVAVName(vavName) {
+        return vavName.replace(/\$([0-9a-fA-F]{2})/g, (match, hex) => {
+            return String.fromCharCode(parseInt(hex, 16));
+        });
+    }
+
+    // Function to create the VAV table display
+    function createVAVDisplay(vavData) {
+        const mainContent = document.getElementById('main-content');
+        
+        if (Object.keys(vavData).length === 0) {
+            mainContent.innerHTML = '<div class="error">No VAV configurations found in JSON file.</div>';
+            return;
+        }
+        
+        let html = `
+            <table class="vav-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Space Temp</th>
+                        <th>Space Setpoint</th>
+                        <th>Air Flow</th>
+                        <th>Heat Command</th>
+                        <th>DA Temp</th>
+                        <th>Damper Pos</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+const sortedVAVNames = Object.keys(vavData).sort((a, b) => {
+    return extractTrailingNumber(a) - extractTrailingNumber(b);
+});
+
+        sortedVAVNames.forEach(vavName => {
+            const points = vavData[vavName];
+            
+            // Decode the VAV name for display
+            const displayName = decodeVAVName(vavName);
+            
+            // Build the hyperlink path: VAV_xx_yy.html (same folder)
+            const vavLink = `${vavName}.html`;
+            
+            html += `
+                <tr>
+                    <td class="vav-name"><a href="${vavLink}">${displayName}</a></td>
+                    <td id="point-${vavName}-Space-Temp" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Space-Setpoint" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Air-Flow" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-Reheat1" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-DA-T" class="value-loading">Loading...</td>
+                    <td id="point-${vavName}-DPR-Pos" class="value-loading">Loading...</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        mainContent.innerHTML = html;
+
+        // Subscribe to all points
+        sortedVAVNames.forEach(vavName => {
+            const points = vavData[vavName];
+            
+            // Map the point IDs to the points we need
+            const pointMapping = {
+                'Space-Temp': points.find(p => p.id === 'Space-Temp'),
+                'Space-Setpoint': points.find(p => p.id === 'Space-Setpoint'),
+                'Air-Flow': points.find(p => p.id === 'Air-Flow'),
+                'Reheat1': points.find(p => p.id === 'Reheat1'),
+                'DA-T': points.find(p => p.id === 'DA-T'),
+                'DPR-Pos': points.find(p => p.id === 'DPR-Pos')
+            };
+            
+            Object.keys(pointMapping).forEach(pointId => {
+                const point = pointMapping[pointId];
+                if (point && point.status === 'connected') {
+                    subscribeToPoint(vavName, pointId, point.fullPath);
+                } else {
+                    // Use "NO_" prefix for missing points with proper naming
+                    let missingName = 'N/A';
+                    if (pointId === 'Space-Temp') missingName = 'NO_Space Temp';
+                    else if (pointId === 'Space-Setpoint') missingName = 'NO_Space Setpoint';
+                    else if (pointId === 'Air-Flow') missingName = 'NO_Air Flow';
+                    else if (pointId === 'Reheat1') missingName = 'NO_Heat Command';
+                    else if (pointId === 'DA-T') missingName = 'NO_DA Temp';
+                    else if (pointId === 'DPR-Pos') missingName = 'NO_Damper Pos';
+                    
+                    console.warn(`Point ${pointId} not found or not connected for VAV ${vavName}`);
+                    updatePointValue(vavName, pointId, missingName);
+                }
+            });
+        });
+    }
+
+    // Function to load and parse JSON configuration
+    async function loadAndDisplayVAVPoints() {
+        try {
+            console.log('=== LOADING VAV POINTS FROM JSON ===');
+            
+            // Get the current VAV folder from the path
+            const currentVAVFolder = getCurrentVAVFolder();
+            
+            if (!currentVAVFolder) {
+                throw new Error('Could not determine VAV folder from path');
+            }
+            
+            // Normalize the current folder number (remove leading zeros)
+            const normalizedCurrentFolder = parseInt(currentVAVFolder, 10).toString();
+            console.log(`Current VAV folder (normalized): ${normalizedCurrentFolder}`);
+            
+            const response = await fetch('../../Global.json');
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load JSON: ${response.status} ${response.statusText}`);
+            }
+            
+            const jsonData = await response.json();
+            console.log('JSON data loaded:', jsonData);
+            
+            // Filter for VAV configurations that match the current folder
+            const vavConfigs = {};
+            
+            Object.keys(jsonData.globalVariables).forEach(key => {
+                // Check if key starts with vav (case insensitive)
+                if (key.toLowerCase().startsWith('vav')) {
+                    // Extract the first number from the VAV name
+                    const vavNumber = extractVAVNumber(key);
+                    
+                    if (vavNumber !== null) {
+                        console.log(`Comparing VAV "${key}" number ${vavNumber} with folder ${normalizedCurrentFolder}`);
+                        
+                        // Only include VAVs that match the current folder number
+                        if (vavNumber === normalizedCurrentFolder) {
+                            console.log(`✅ Found matching VAV configuration: ${key}`);
+                            // Get all connected points for this VAV
+                            const connectedPoints = jsonData.globalVariables[key].points.filter(point => 
+                                point.status === "connected"
+                            );
+                            if (connectedPoints.length > 0) {
+                                vavConfigs[key] = connectedPoints;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            allVAVPoints = vavConfigs;
+            
+            console.log(`Filtered VAV configurations for VAV folder ${normalizedCurrentFolder}:`, vavConfigs);
+            console.log('=== VAV POINT LOADING COMPLETE ===');
+            
+            createVAVDisplay(vavConfigs);
+            
+        } catch (error) {
+            console.error('Error loading VAV points from JSON:', error);
+            document.getElementById('main-content').innerHTML = 
+                `<div class="error">Error loading VAV data: ${error.message}</div>`;
+        }
+    }
+
+    // Cleanup function for subscriptions
+    function cleanup() {
+        if (subscriber) {
+            subscriber.unsubscribeAll();
+            console.log('🧹 Cleaned up all subscriptions');
+        }
+    }
+
+    // Handle page unload
+    window.addEventListener('beforeunload', cleanup);
+
+    // Initialize the system
+    loadAndDisplayVAVPoints();
+
+
+
+
+    
+    
+    
+        // ============================================
+// ADD THIS CODE INSIDE YOUR EXISTING VAV SCRIPT
+// Place it after loadAndDisplayVAVPoints() and BEFORE the cleanup section
+// ============================================
+
+// History cache for discovered history ORDs
+let vavExportHistoryCache = new Map();
+
+// BQL History Discovery
+async function discoverVAVHistoryOrd(pointOrd) {
+    return new Promise((resolve, reject) => {
+        try {
+            require(['baja!'], function (baja) {
+                console.log('Auto-discovering history from point:', pointOrd);
+                
+                baja.Ord.make(pointOrd).get()
+                    .then(function(entity) {
+                        return entity.tags();
+                    })
+                    .then(function(tagMap) {
+                        var historyTag = tagMap.get('n:history');
+                        console.log('Found history tag:', historyTag);
+                        
+                        if (historyTag && historyTag.toString().trim() !== '') {
+                            var historyPath = historyTag.toString();
+                            
+                            if (!historyPath.startsWith('history:')) {
+                                historyPath = 'history:' + historyPath;
+                            }
+                            
+                            console.log('Discovered history ORD:', historyPath);
+                            resolve(historyPath);
+                        } else {
+                            reject(new Error('No n:history tag found on point: ' + pointOrd));
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('Could not load tags:', err);
+                        reject(new Error('Failed to load point tags: ' + err.message));
+                    });
+            });
+        } catch (error) {
+            console.error('Baja require error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Load historical data using BQL
+async function loadVAVHistoryData(pointPath, startTime, endTime, maxPoints = 1000) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const cacheKey = pointPath;
+            let historyOrd = vavExportHistoryCache.get(cacheKey);
+            
+            if (!historyOrd) {
+                try {
+                    historyOrd = await discoverVAVHistoryOrd(pointPath);
+                    vavExportHistoryCache.set(cacheKey, historyOrd);
+                } catch (error) {
+                    console.warn(`No history found for point ${pointPath}:`, error.message);
+                    resolve([]);
+                    return;
+                }
+            }
+            
+            require(['baja!'], function (baja) {
+                const timeCondition = `timestamp >= '${startTime.toISOString()}' and timestamp <= '${endTime.toISOString()}'`;
+                const bqlQuery = historyOrd + '|bql:select timestamp, value where ' + timeCondition + ' order by timestamp';
+                
+                console.log('Executing BQL Query:', bqlQuery);
+                
+                const dataPoints = [];
+                
+                baja.Ord.make(bqlQuery).get({
+                    cursor: {
+                        limit: maxPoints,
+                        each: function () {
+                            const row = this.get();
+                            const rawTimestamp = row.get("timestamp");
+                            const value = row.get("value");
+                            
+                            const date = new Date(rawTimestamp.getMillis());
+                            
+                            dataPoints.push({
+                                timestamp: date,
+                                timestampString: date.toLocaleString(),
+                                value: value
+                            });
+                        }
+                    }
+                })
+                .then(function () {
+                    console.log(`Loaded ${dataPoints.length} history points for ${pointPath}`);
+                    resolve(dataPoints);
+                })
+                .catch(function (err) {
+                    console.error('BQL Query failed:', err);
+                    reject(new Error('Failed to load history data: ' + err.message));
+                });
+            });
+            
+        } catch (error) {
+            console.error('History loading error:', error);
+            reject(error);
+        }
+    });
+}
+
+// Collect all VAV point paths
+function getAllVAVPointPaths() {
+    const paths = [];
+    
+    Object.keys(allVAVPoints).forEach(vavName => {
+        const points = allVAVPoints[vavName];
+        
+        const pointMapping = {
+            'Space-Temp': points.find(p => p.id === 'Space-Temp'),
+            'Space-Setpoint': points.find(p => p.name === 'Space-Setpoint'),
+            'Air-Flow': points.find(p => p.id === 'Air-Flow'),
+            'Reheat1': points.find(p => p.id === 'Reheat1'),
+            'DA-T': points.find(p => p.id === 'DA-T'),
+            'DPR-Pos': points.find(p => p.id === 'DPR-Pos')
+        };
+        
+        Object.keys(pointMapping).forEach(pointId => {
+            const point = pointMapping[pointId];
+            if (point && point.status === 'connected') {
+                paths.push({
+                    name: `${vavName}_${pointId}`,
+                    vavName: vavName,
+                    pointId: pointId,
+                    path: point.fullPath
+                });
+            }
+        });
+    });
+    
+    return paths;
+}
+
+// CSV EXPORT with Historical Data
+async function exportVAVHistoryToCSV() {
+    console.log('📄 Generating VAV CSV export with historical data...');
+    
+    // Show loading message
+    const mainContent = document.getElementById('main-content');
+    const originalContent = mainContent.innerHTML;
+    mainContent.innerHTML = '<div style="text-align: center; padding: 50px; color: #26c6da; font-size: 1.5em;">Loading historical data for CSV export...</div>';
+    
+    try {
+        // Get date range (last 24 hours by default)
+const startDate = new Date(document.getElementById('vav-start-datetime').value);
+const endDate = new Date(document.getElementById('vav-end-datetime').value);
+
+        
+        const allPoints = getAllVAVPointPaths();
+        
+        if (allPoints.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No data points available to export');
+            return;
+        }
+        
+        // Load history for all points
+        const historyPromises = allPoints.map(point => 
+            loadVAVHistoryData(point.path, startDate, endDate, 1000)
+                .then(data => ({ pointName: point.name, data: data }))
+        );
+        
+        const allHistoryData = await Promise.all(historyPromises);
+        
+        // Create timestamp-based CSV structure
+        const timestampMap = new Map();
+        
+        allHistoryData.forEach(pointHistory => {
+            pointHistory.data.forEach(reading => {
+                const timestamp = reading.timestampString;
+                if (!timestampMap.has(timestamp)) {
+                    timestampMap.set(timestamp, { timestamp: timestamp });
+                }
+                timestampMap.get(timestamp)[pointHistory.pointName] = reading.value;
+            });
+        });
+        
+        // Convert to array and sort by timestamp
+        const sortedData = Array.from(timestampMap.values()).sort((a, b) => 
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+        
+        if (sortedData.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No historical data found for the selected time range');
+            return;
+        }
+        
+        // Build CSV headers
+        const headers = ['Timestamp', ...allPoints.map(p => p.name)];
+        let csvContent = headers.join(',') + '\n';
+        
+        // Build CSV rows
+sortedData.forEach(row => {
+    // Fix: wrap timestamp in quotes so Excel keeps it in one column
+const safeTimestamp = `"${row.timestamp.replace(/"/g, '""')}"`;
+
+    const csvRow = [
+        safeTimestamp,
+        ...allPoints.map(point => {
+            const value = row[point.name];
+            if (value === undefined || value === null) return '';
+            const strValue = String(value);
+            if (strValue.includes(',') || strValue.includes('"')) {
+                return `"${strValue.replace(/"/g, '""')}"`;
+            }
+            return strValue;
+        })
+    ];
+
+    csvContent += csvRow.join(',') + '\n';
+});
+
+        
+        // Download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const filename = `VAV_History_${startDate.toISOString().slice(0, 10)}_to_${endDate.toISOString().slice(0, 10)}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log(`✅ CSV exported: ${filename} (${sortedData.length} rows)`);
+        mainContent.innerHTML = originalContent;
+        alert(`CSV exported successfully: ${sortedData.length} readings`);
+        
+    } catch (error) {
+        console.error('Error exporting CSV:', error);
+        mainContent.innerHTML = originalContent;
+        alert('Failed to export CSV: ' + error.message);
+    }
+}
+
+// Generate PDF Report with Historical Data
+async function generateVAVHistoryPDFReport() {
+    console.log('📄 Generating VAV PDF report with historical data...');
+    
+    // Show loading message
+    const mainContent = document.getElementById('main-content');
+    const originalContent = mainContent.innerHTML;
+    mainContent.innerHTML = '<div style="text-align: center; padding: 50px; color: #26c6da; font-size: 1.5em;">Loading historical data for PDF report...</div>';
+    
+    try {
+        // Get date range (last 24 hours by default)
+const startDate = new Date(document.getElementById('vav-start-datetime').value);
+const endDate = new Date(document.getElementById('vav-end-datetime').value);
+
+        const allPoints = getAllVAVPointPaths();
+        
+        if (allPoints.length === 0) {
+            mainContent.innerHTML = originalContent;
+            alert('No data points available to export');
+            return;
+        }
+        
+        // Load history for all points
+        const historyPromises = allPoints.map(point => 
+            loadVAVHistoryData(point.path, startDate, endDate, 1000)
+                .then(data => ({ 
+                    pointName: point.name, 
+                    vavName: point.vavName, 
+                    pointId: point.pointId, 
+                    data: data 
+                }))
+        );
+        
+        const allHistoryData = await Promise.all(historyPromises);
+        
+        // Function to determine unit based on point ID
+        function getVAVPointUnit(pointId) {
+            if (pointId === 'Space-Temp' || pointId === 'Space-Setpoint' || pointId === 'DA-T') return '°F';
+            if (pointId === 'Air-Flow') return 'CFM';
+            if (pointId === 'DPR-Pos') return '%';
+            if (pointId === 'Reheat1') return '';
+            return '';
+        }
+        
+        // Group by VAV
+        const vavGroups = {};
+        allHistoryData.forEach(pointHistory => {
+            if (!vavGroups[pointHistory.vavName]) {
+                vavGroups[pointHistory.vavName] = [];
+            }
+            vavGroups[pointHistory.vavName].push(pointHistory);
+        });
+        
+        // Calculate statistics for each point
+        const pointStats = allHistoryData.map(pointHistory => {
+            const values = pointHistory.data.map(d => parseFloat(d.value)).filter(v => !isNaN(v));
+            const unit = getVAVPointUnit(pointHistory.pointId);
+            
+            let stats;
+            if (values.length > 0) {
+                stats = {
+                    count: values.length,
+                    min: Math.min(...values),
+                    max: Math.max(...values),
+                    avg: values.reduce((a, b) => a + b, 0) / values.length
+                };
+            } else {
+                stats = {
+                    count: pointHistory.data.length,
+                    hasData: false
+                };
+            }
+            
+            return {
+                pointName: pointHistory.pointName,
+                vavName: pointHistory.vavName,
+                pointId: pointHistory.pointId,
+                stats: stats,
+                unit: unit,
+                latestValue: pointHistory.data.length > 0 ? 
+                    parseFloat(pointHistory.data[pointHistory.data.length - 1].value) : null,
+                historyData: pointHistory.data
+            };
+        });
+        
+        const reportDate = new Date().toLocaleString();
+        
+        // Build summary table by VAV
+        let summaryHTML = '<div style="page-break-inside: avoid;"><h2 style="color: #1e3c72; font-size: 18pt; margin-top: 25px; border-bottom: 2px solid #26c6da; padding-bottom: 8px;">VAV Summary Statistics</h2>';
+        
+        const sortedVAVNames = Object.keys(vavGroups).sort();
+        
+        sortedVAVNames.forEach(vavName => {
+            const vavPoints = pointStats.filter(p => p.vavName === vavName);
+            
+            summaryHTML += `<h3 style="color: #37474f; font-size: 14pt; margin-top: 20px; margin-bottom: 10px;">${vavName}</h3>`;
+            summaryHTML += '<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt;">';
+            summaryHTML += '<thead style="background: #263238; color: white;"><tr>';
+            summaryHTML += '<th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Point</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Latest</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Min</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Avg</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Max</th>';
+            summaryHTML += '<th style="padding: 8px; text-align: center; border: 1px solid #ddd;">Count</th>';
+            summaryHTML += '</tr></thead><tbody>';
+            
+            vavPoints.forEach((point, index) => {
+                const bgColor = index % 2 === 0 ? '#f5f5f5' : '#ffffff';
+                
+                // Format point name for display
+                let displayName = point.pointId;
+                if (point.pointId === 'Space-Temp') displayName = 'Space Temp';
+                else if (point.pointId === 'Space-Setpoint') displayName = 'Space Setpoint';
+                else if (point.pointId === 'Air-Flow') displayName = 'Air Flow';
+                else if (point.pointId === 'Reheat1') displayName = 'Heat Command';
+                else if (point.pointId === 'DA-T') displayName = 'DA Temp';
+                else if (point.pointId === 'DPR-Pos') displayName = 'Damper Pos';
+                
+                if (point.stats.hasData === false) {
+                    summaryHTML += `
+                        <tr style="background: ${bgColor};">
+                            <td style="padding: 6px; border: 1px solid #ddd;">${displayName}</td>
+                            <td colspan="5" style="padding: 6px; border: 1px solid #ddd; text-align: center; color: #999;">No Numeric Data</td>
+                        </tr>
+                    `;
+                } else {
+                    const latestDisplay = point.latestValue !== null ? point.latestValue.toFixed(2) : 'N/A';
+                    summaryHTML += `
+                        <tr style="background: ${bgColor};">
+                            <td style="padding: 6px; border: 1px solid #ddd; font-weight: 500;">${displayName}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;"><strong>${latestDisplay} ${point.unit}</strong></td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.min.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.avg.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: right;">${point.stats.max.toFixed(2)} ${point.unit}</td>
+                            <td style="padding: 6px; border: 1px solid #ddd; text-align: center;">${point.stats.count}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            summaryHTML += '</tbody></table>';
+        });
+        
+        summaryHTML += '</div>';
+        
+        // Build detailed history tables (limited to prevent huge PDFs)
+        let detailTablesHTML = '<div style="page-break-before: always;"><h2 style="color: #1e3c72; font-size: 18pt; margin-top: 25px; border-bottom: 2px solid #26c6da; padding-bottom: 8px;">Detailed Historical Data (Sample)</h2>';
+        detailTablesHTML += '<p style="color: #666; font-size: 9pt; margin-bottom: 15px;">Showing last 100 readings for each point</p></div>';
+        
+        // Limit detail tables to first 50 VAVs to keep PDF reasonable
+        const detailVAVs = sortedVAVNames.slice(0, 50);
+        
+        detailVAVs.forEach(vavName => {
+            const vavPoints = pointStats.filter(p => p.vavName === vavName);
+            
+            detailTablesHTML += `<div style="page-break-inside: avoid; margin-top: 25px;"><h3 style="color: #37474f; font-size: 12pt; margin-bottom: 10px;">${vavName}</h3>`;
+            
+            vavPoints.forEach(point => {
+                if (point.historyData && point.historyData.length > 0) {
+                    const displayData = point.historyData.slice(-100).reverse();
+                    
+                    let displayName = point.pointId;
+                    if (point.pointId === 'Space-Temp') displayName = 'Space Temp';
+                    else if (point.pointId === 'Space-Setpoint') displayName = 'Space Setpoint';
+                    else if (point.pointId === 'Air-Flow') displayName = 'Air Flow';
+                    else if (point.pointId === 'Reheat1') displayName = 'Heat Command';
+                    else if (point.pointId === 'DA-T') displayName = 'DA Temp';
+                    else if (point.pointId === 'DPR-Pos') displayName = 'Damper Pos';
+                    
+                    detailTablesHTML += `
+                        <h4 style="color: #546e7a; font-size: 10pt; margin: 15px 0 8px 0;">${displayName}</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 8pt;">
+                            <thead style="background: #37474f; color: white;">
+                                <tr>
+                                    <th style="padding: 6px; text-align: left; border: 1px solid #ddd;">Timestamp</th>
+                                    <th style="padding: 6px; text-align: right; border: 1px solid #ddd;">Value ${point.unit ? '(' + point.unit + ')' : ''}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    displayData.forEach((reading, idx) => {
+                        const bgColor = idx % 2 === 0 ? '#f9f9f9' : '#ffffff';
+                        const value = parseFloat(reading.value);
+                        const displayValue = !isNaN(value) ? value.toFixed(2) : reading.value;
+                        
+                        detailTablesHTML += `
+                            <tr style="background: ${bgColor};">
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; font-size: 9pt;">${reading.timestampString}</td>
+                                <td style="padding: 4px 6px; border: 1px solid #ddd; text-align: right;  font-size: 9pt; font-family: monospace;">${displayValue}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    detailTablesHTML += '</tbody></table>';
+                }
+            });
+            
+            detailTablesHTML += '</div>';
+        });
+        
+        if (sortedVAVNames.length > 50) {
+            detailTablesHTML += `<p style="text-align: center; color: #90a4ae; font-size: 9pt; margin-top: 20px;">Detailed history shown for first 10 VAVs only. Full data available in CSV export.</p>`;
+        }
+        
+        // Build complete PDF HTML
+        const pdfHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>VAV Performance Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 15mm; font-size: 10pt; color: #000; }
+        .header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #1e3c72; padding-bottom: 15px; }
+        .header h1 { color: #1e3c72; font-size: 24pt; margin-bottom: 8px; }
+        .header p { color: #546e7a; font-size: 10pt; }
+        .info-section { background: #f5f5f5; padding: 15px; margin-bottom: 20px; border-radius: 5px; border: 1px solid #ddd; }
+        .info-row { display: flex; margin-bottom: 6px; }
+        .info-label { font-weight: bold; width: 140px; color: #37474f; }
+        .info-value { color: #546e7a; }
+        table { width: 100%; border-collapse: collapse; }
+        .footer { margin-top: 30px; text-align: center; color: #90a4ae; font-size: 9pt; border-top: 1px solid #e0e0e0; padding-top: 10px; page-break-inside: avoid; }
+        @media print {
+            body { padding: 10mm; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>VAV Performance Report</h1>
+        <p>Murphy Control Panel - VAV Monitoring System</p>
+    </div>
+    
+    <div class="info-section">
+        <div class="info-row">
+            <div class="info-label">Report Generated:</div>
+            <div class="info-value">${reportDate}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Data Time Range:</div>
+            <div class="info-value">${startDate.toLocaleString()} to ${endDate.toLocaleString()}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Total VAVs:</div>
+            <div class="info-value">${sortedVAVNames.length} units monitored</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Total Data Points:</div>
+            <div class="info-value">${allPoints.length} points</div>
+        </div>
+    </div>
+    
+    ${summaryHTML}
+    ${detailTablesHTML}
+    
+    <div class="footer">
+        <p>Generated by Murphy Control Panel - VAV Monitoring System</p>
+        <p>${reportDate}</p>
+    </div>
+    
+    <div class="no-print" style="position: fixed; top: 10px; right: 10px; background: white; padding: 10px; border: 2px solid #ddd; border-radius: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <button onclick="window.print()" style="padding: 12px 24px; background: #0066cc; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; margin-right: 10px;">
+            🖨️ Save as PDF
+        </button>
+        <button onclick="window.close()" style="padding: 12px 24px; background: #546e7a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            Close
+        </button>
+    </div>
+</body>
+</html>
+        `;
+        
+        mainContent.innerHTML = originalContent;
+        
+        const pdfWindow = window.open('', '_blank');
+        if (pdfWindow) {
+            pdfWindow.document.write(pdfHTML);
+            pdfWindow.document.close();
+            console.log('✅ PDF report generated successfully');
+        } else {
+            alert('Pop-up blocked. Please allow pop-ups for this site.');
+        }
+        
+    } catch (error) {
+        console.error('Error generating PDF report:', error);
+        mainContent.innerHTML = originalContent;
+        alert('Failed to generate report: ' + error.message);
+    }
+}
+
+// CREATE UI CONTROLS
+function createVAVExportControls() {
+    // Find a suitable place to add buttons - after the header or before the table
+    const mainContent = document.getElementById('main-content');
+    if (!mainContent) return;
+    
+
+    
+    
+    // Create controls container
+    const controlsDiv = document.createElement('div');
+    controlsDiv.id = 'vav-export-controls';
+    controlsDiv.style.cssText = 'margin: 20px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; padding: 20px; background: rgba(38, 198, 218, 0.1); border-radius: 10px;';
+    
+    const buttonStyle = `
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #26c6da 0%, #1e88e5 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font-size: 1em;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(38, 198, 218, 0.3);
+    `;
+    
+    
+        // --- Date/Time Inputs ---
+const startInput = document.createElement('input');
+startInput.type = 'datetime-local';
+startInput.id = 'vav-start-datetime';
+startInput.style.cssText = 'padding: 10px; border-radius: 8px; border: 1px solid #ccc;';
+
+const endInput = document.createElement('input');
+endInput.type = 'datetime-local';
+endInput.id = 'vav-end-datetime';
+endInput.style.cssText = 'padding: 10px; border-radius: 8px; border: 1px solid #ccc;';
+
+// Set defaults to last 24 hours
+const now = new Date();
+const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+startInput.value = yesterday.toISOString().slice(0,16);
+endInput.value = now.toISOString().slice(0,16);
+
+// Add inputs to controls
+controlsDiv.appendChild(startInput);
+controlsDiv.appendChild(endInput);
+    // CSV Export Button
+    const csvBtn = document.createElement('button');
+    csvBtn.textContent = '📊 Export CSV History';
+    csvBtn.style.cssText = buttonStyle;
+    csvBtn.onclick = exportVAVHistoryToCSV;
+    csvBtn.onmouseover = () => {
+        csvBtn.style.transform = 'translateY(-2px)';
+        csvBtn.style.boxShadow = '0 6px 20px rgba(38, 198, 218, 0.4)';
+    };
+    csvBtn.onmouseout = () => {
+        csvBtn.style.transform = '';
+        csvBtn.style.boxShadow = '0 4px 12px rgba(38, 198, 218, 0.3)';
+    };
+    
+    // PDF Report Button
+    const pdfBtn = document.createElement('button');
+    pdfBtn.textContent = '📄 Generate PDF Report';
+    pdfBtn.style.cssText = buttonStyle;
+    pdfBtn.onclick = generateVAVHistoryPDFReport;
+    pdfBtn.onmouseover = () => {
+        pdfBtn.style.transform = 'translateY(-2px)';
+        pdfBtn.style.boxShadow = '0 6px 20px rgba(38, 198, 218, 0.4)';
+    };
+    pdfBtn.onmouseout = () => {
+        pdfBtn.style.transform = '';
+        pdfBtn.style.boxShadow = '0 4px 12px rgba(38, 198, 218, 0.3)';
+    };
+    
+    controlsDiv.appendChild(csvBtn);
+    controlsDiv.appendChild(pdfBtn);
+    
+    // Insert before the main content
+    mainContent.parentNode.insertBefore(controlsDiv, mainContent);
+    
+    console.log('✅ VAV export controls added to UI');
+}
+
+// Initialize after VAV display loads
+setTimeout(createVAVExportControls, 500);
+
+console.log('✅ VAV history-based export functionality loaded');
+
+// ============================================
+// END OF VAV EXPORT CODE
+// ============================================
+    
+</script>
+
+
+
+    <!-- Hamburger Menu Script -->
+<script>
+const hamburgerMenu = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay = document.getElementById('overlay');
+const ahuDropdown = document.getElementById('ahuDropdown');
+const ahuOptions = document.querySelectorAll('.ahu-option');
+
+// Toggle side panel
+hamburgerMenu.addEventListener('click', function() {
+hamburgerMenu.classList.toggle('active');
+sidePanel.classList.toggle('active');
+overlay.classList.toggle('active');
+});
+
+// Close side panel when clicking overlay
+overlay.addEventListener('click', function() {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+});
+
+// Toggle dropdown
+ahuDropdown.querySelector('.ahu-dropdown-header').addEventListener('click', function() {
+ahuDropdown.classList.toggle('active');
+});
+
+// Handle AHU selection
+ahuOptions.forEach(option => {
+option.addEventListener('click', function() {
+// Remove active class from all options
+ahuOptions.forEach(opt => opt.classList.remove('active'));
+
+// Add active class to clicked option
+this.classList.add('active');
+
+// Update the dropdown header text
+const selectedAhu = this.textContent;
+ahuDropdown.querySelector('h3').textContent = selectedAhu;
+
+// Close dropdown
+ahuDropdown.classList.remove('active');
+
+// Here you can add logic to switch between AHU data
+console.log('Selected AHU:', this.getAttribute('data-ahu'));
+
+// Optional: Close side panel after selection
+setTimeout(() => {
+hamburgerMenu.classList.remove('active');
+sidePanel.classList.remove('active');
+overlay.classList.remove('active');
+}, 300);
+});
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+if (!ahuDropdown.contains(e.target)) {
+ahuDropdown.classList.remove('active');
+}
+});
+</script>
+
+
+</body>
+</html>

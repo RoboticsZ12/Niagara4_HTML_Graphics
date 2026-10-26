@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VAV Box – Operator Quick Reference</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --maroon:        #7b1c24;
+  --maroon-mid:    #9b2530;
+  --maroon-light:  #c03040;
+  --maroon-pale:   #f5e8e9;
+  --maroon-tint:   #fdf2f2;
+  --green-accent:  #2e7d32;
+  --green-light:   #e8f5e9;
+  --amber:         #b45309;
+  --amber-light:   #fef3c7;
+  --bg:            #f7f4f1;
+  --bg-white:      #ffffff;
+  --bg-off:        #f0ece8;
+  --border:        #d8ccc8;
+  --border-strong: #b5a09a;
+  --text-dark:     #1a1210;
+  --text-mid:      #4a3530;
+  --text-muted:    #7a6560;
+  --rule:          #c8b8b4;
+  --font-head:     'Oswald', sans-serif;
+  --font-body:     'Source Sans 3', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+  --shadow-sm:     0 1px 3px rgba(100,30,30,0.08);
+  --shadow-md:     0 4px 16px rgba(100,30,30,0.10);
+  --shadow-lg:     0 8px 32px rgba(100,30,30,0.13);
+  --radius:        6px;
+  --transition:    0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text-dark);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ── HEADER ── */
+.page-header {
+  background: var(--maroon);
+  color: white;
+  padding: 0;
+  margin: 0 -20px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.header-stripe {
+  height: 4px;
+  background: linear-gradient(90deg, #2e7d32 0%, #43a047 40%, #2e7d32 100%);
+}
+.header-inner { padding: 28px 36px 24px; position: relative; }
+.header-logos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.logo-murphy img { display: block; width: auto; height: auto; }
+.logo-fsi {
+  font-family: var(--font-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.65);
+  text-align: right;
+  line-height: 1.4;
+}
+.logo-fsi strong { color: rgba(255,255,255,0.9); font-size: 15px; display: block; }
+.header-title {
+  font-family: var(--font-head);
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: white;
+  line-height: 1.0;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.header-title .amp { color: rgba(255,255,255,0.45); font-weight: 300; }
+.header-sub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.header-rule { height: 1px; background: rgba(255,255,255,0.15); margin: 18px 0 0; }
+.header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 36px;
+  background: rgba(0,0,0,0.15);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 1.5px;
+}
+
+/* Device banner */
+#device-banner {
+  background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 8px 16px;
+  margin: 12px 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#device-banner .db-label { color: rgba(255,255,255,0.35); }
+#device-name  { color: rgba(255,255,255,0.9); letter-spacing: 1px; }
+#network-name { color: rgba(255,255,255,0.6); }
+#path-debug   {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.5px;
+  word-break: break-all;
+  margin-top: 2px;
+  width: 100%;
+}
+
+/* ── STATUS PILL ── */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.status-ok    { background: rgba(46,125,50,0.15);  border:1px solid rgba(46,125,50,0.5);  color:#2e7d32; }
+.status-warn  { background: rgba(180,83,9,0.15);   border:1px solid rgba(180,83,9,0.5);   color:#b45309; }
+.status-fault { background: rgba(192,48,64,0.15);  border:1px solid rgba(192,48,64,0.5);  color:#c03040; }
+.status-info  { background: rgba(74,53,48,0.08);   border:1px solid rgba(74,53,48,0.25);  color:#4a3530; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 32px 0 14px;
+}
+.section-label h2 {
+  font-family: var(--font-head);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--maroon);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.section-label .line { flex: 1; height: 1px; background: var(--rule); }
+
+/* ── QUICK STATUS BAR ── */
+.quick-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+.qs-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.qs-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.qs-item { display: flex; flex-direction: column; gap: 1px; }
+.qs-item-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+.qs-item-val   { font-family: var(--font-mono); font-size: 13px; font-weight: bold; color: var(--text-dark); }
+.qs-item-val.qs-ok   { color: var(--green-accent); }
+.qs-item-val.qs-warn { color: var(--amber); }
+.qs-item-val.qs-bad  { color: var(--maroon-light); }
+.qs-spacer { flex: 1; }
+.qs-timestamp { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+
+/* Connection status indicator */
+.conn-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-white);
+}
+.conn-bar.connecting { border-color: #fcd34d; background: #fffbeb; color: var(--amber); }
+.conn-bar.connected  { border-color: #a5d6a7; background: var(--green-light); color: var(--green-accent); }
+.conn-bar.error      { border-color: #f4a7b0; background: var(--maroon-tint); color: var(--maroon); }
+.conn-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: currentColor;
+  animation: pulse 1.5s infinite;
+}
+.conn-bar.connected .conn-dot  { animation: none; }
+.conn-bar.error .conn-dot      { animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.conn-count { margin-left: auto; opacity: 0.7; }
+
+/* ── ACCORDION ── */
+.accordion { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+.acc-item {
+  background: var(--bg-white); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+.acc-item:hover { box-shadow: var(--shadow-md); }
+.acc-item.open  { box-shadow: var(--shadow-md); }
+.acc-trigger {
+  width: 100%; display: flex; align-items: center; gap: 16px;
+  padding: 18px 24px; background: none; border: none; cursor: pointer;
+  text-align: left; transition: background var(--transition);
+}
+.acc-trigger:hover { background: var(--bg-off); }
+.acc-item.open .acc-trigger         { background: var(--maroon-tint); }
+.acc-item.cool-item.open .acc-trigger    { background: #e8f4fd; }
+.acc-item.reheat-item.open .acc-trigger  { background: #fef8ec; }
+.acc-item.issues-item.open .acc-trigger  { background: #f0f9f0; }
+.acc-item.log-item.open .acc-trigger     { background: #f5f0ff; }
+
+.acc-icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.acc-icon.readings-icon { background: var(--maroon-pale); border: 1.5px solid #f4a7b0; }
+.acc-icon.cool-icon     { background: #e3f2fd; border: 1.5px solid #90caf9; }
+.acc-icon.reheat-icon   { background: var(--amber-light); border: 1.5px solid #fcd34d; }
+.acc-icon.issues-icon   { background: var(--green-light); border: 1.5px solid #a5d6a7; }
+.acc-icon.log-icon      { background: #ede7f6; border: 1.5px solid #ce93d8; }
+
+.acc-title-wrap { flex: 1; }
+.acc-title { font-family: var(--font-head); font-size: 19px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dark); }
+.acc-subtitle { font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; margin-top: 1px; }
+
+.acc-item.readings-item.open .acc-title { color: var(--maroon); }
+.acc-item.cool-item.open .acc-title     { color: #1565c0; }
+.acc-item.reheat-item.open .acc-title   { color: var(--amber); }
+.acc-item.issues-item.open .acc-title   { color: var(--green-accent); }
+.acc-item.log-item.open .acc-title      { color: #6a1b9a; }
+
+.acc-chevron {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-off); display: flex; align-items: center; justify-content: center;
+  transition: transform var(--transition), background var(--transition); flex-shrink: 0;
+}
+.acc-chevron svg { width: 12px; height: 12px; transition: transform var(--transition); }
+.acc-item.open .acc-chevron               { background: var(--maroon); }
+.acc-item.cool-item.open .acc-chevron    { background: #1565c0; }
+.acc-item.reheat-item.open .acc-chevron  { background: var(--amber); }
+.acc-item.issues-item.open .acc-chevron  { background: var(--green-accent); }
+.acc-item.log-item.open .acc-chevron     { background: #6a1b9a; }
+.acc-item.open .acc-chevron svg { transform: rotate(180deg); }
+.acc-item.open .acc-chevron svg path { stroke: white; }
+
+.acc-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+.acc-body-inner { padding: 0 24px 24px; border-top: 1px solid var(--border); }
+
+.acc-item.readings-item { border-left: 3px solid var(--maroon); }
+.acc-item.cool-item     { border-left: 3px solid #1e88e5; }
+.acc-item.reheat-item   { border-left: 3px solid var(--amber); }
+.acc-item.issues-item   { border-left: 3px solid var(--green-accent); }
+.acc-item.log-item      { border-left: 3px solid #6a1b9a; }
+
+/* ── TABLES ── */
+.ref-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+.ref-table thead tr { background: var(--bg-off); border-bottom: 2px solid var(--border-strong); }
+.ref-table thead th {
+  padding: 10px 16px; font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 3px; text-transform: uppercase; color: var(--maroon);
+  font-weight: normal; text-align: left;
+}
+.ref-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+.ref-table tbody tr:last-child { border-bottom: none; }
+.ref-table tbody tr:hover { background: var(--maroon-tint); }
+.ref-table td { padding: 12px 16px; vertical-align: top; }
+
+.td-name-block { display: flex; flex-direction: column; gap: 3px; }
+.td-point-name { font-size: 13px; font-weight: 600; color: var(--text-dark); line-height: 1.3; }
+.td-point-id   { font-family: var(--font-mono); font-size: 10px; color: var(--maroon); opacity: 0.65; }
+.td-meaning    { color: var(--text-dark); font-weight: 500; }
+.td-why        { color: var(--text-muted); font-size: 13px; }
+.td-live       { font-family: var(--font-mono); font-size: 13px; font-weight: bold; white-space: nowrap; }
+.td-live.val-ok    { color: var(--green-accent); }
+.td-live.val-warn  { color: var(--amber); }
+.td-live.val-fault { color: var(--maroon-light); }
+.td-live.val-ovr   { color: #7e57c2; }
+.td-live.val-na    { color: var(--text-muted); font-weight: normal; }
+
+/* Issues table */
+.issues-table thead th { color: var(--green-accent); }
+.issues-table thead tr { border-bottom-color: #81c784; }
+.issues-table tbody tr:hover { background: #f0f9f0; }
+.td-symptom  { font-family: var(--font-mono); font-size: 12px; color: var(--maroon-light); font-weight: bold; }
+.td-cause    { color: var(--text-muted); font-size: 13px; }
+.td-check    { color: var(--text-dark); font-size: 13px; line-height: 1.7; }
+.check-tag   { display:inline;font-family:var(--font-mono);font-size:11px;color:var(--maroon);background:var(--maroon-pale);padding:1px 6px;border-radius:3px;border:1px solid #e4b0b5;white-space:nowrap; }
+.val-tag     { display:inline;font-family:var(--font-mono);font-size:11px;color:#2e7d32;background:#e8f5e9;padding:1px 6px;border-radius:3px;border:1px solid #a5d6a7;white-space:nowrap;font-weight:bold; }
+.issue-group-header td { background:var(--bg-off);border-top:2px solid var(--border-strong);border-bottom:1px solid var(--border);padding:6px 16px;font-family:var(--font-mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted); }
+tr.issue-row-fault { background: rgba(192,48,64,0.04); }
+tr.issue-row-warn  { background: rgba(180,83,9,0.03); }
+
+/* ── MODE CARDS ── */
+.mode-hero {
+  padding: 20px 22px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+  border: 1px solid;
+}
+.mode-hero.cool-hero   { background: #e3f2fd; border-color: #90caf9; }
+.mode-hero.reheat-hero { background: var(--amber-light); border-color: #fcd34d; }
+.mode-trigger-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cool-hero .mode-trigger-label   { color: #1565c0; }
+.reheat-hero .mode-trigger-label { color: var(--amber); }
+.mode-formula-display {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.cool-hero .mode-formula-display   { color: #0d47a1; }
+.reheat-hero .mode-formula-display { color: #92400e; }
+.mode-desc { font-size: 14px; color: var(--text-mid); line-height: 1.7; }
+
+.mode-bullets {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 14px 0;
+}
+.mode-bullets li {
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-mid);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.mode-bullets li .bullet-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+/* Live example box */
+.live-example-box {
+  background: var(--bg-off);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 2;
+  margin-top: 14px;
+}
+.live-example-box .ex-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--maroon);
+  margin-bottom: 8px;
+  display: block;
+  font-family: var(--font-head);
+  font-weight: 600;
+}
+.live-example-box .ex-pending {
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.live-example-box .ex-result {
+  display: inline-block;
+  background: var(--maroon);
+  color: white;
+  padding: 2px 12px;
+  border-radius: 3px;
+  font-size: 15px;
+  margin-top: 4px;
+}
+.cool-hero-result .ex-result  { background: #1565c0; }
+.reheat-hero-result .ex-result { background: #92400e; }
+
+/* ── EVENT LOG ── */
+.event-log-toolbar { display:flex;align-items:center;gap:10px;margin:16px 0 12px;flex-wrap:wrap; }
+.event-filter-btn  { padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-white);font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--text-muted); }
+.event-filter-btn.active { background:#6a1b9a;border-color:#6a1b9a;color:white; }
+.event-log-spacer { flex:1; }
+.event-clear-btn { padding:5px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg-white);font-size:12px;cursor:pointer;color:var(--text-muted); }
+.event-clear-btn:hover { background:var(--maroon-pale);color:var(--maroon);border-color:#e4b0b5; }
+
+.event-list {
+  display:flex;flex-direction:column;gap:4px;
+  max-height: 240px; overflow-y: auto; overflow-x: hidden;
+  scrollbar-width:thin;scrollbar-color:var(--border-strong) var(--bg-off);
+}
+.event-list::-webkit-scrollbar { width:6px; }
+.event-list::-webkit-scrollbar-track { background:var(--bg-off); }
+.event-list::-webkit-scrollbar-thumb { background:var(--border-strong);border-radius:3px; }
+
+.event-row { display:flex;align-items:flex-start;gap:12px;padding:10px 14px;background:var(--bg-white);border:1px solid var(--border);border-radius:4px;font-size:13px;flex-shrink:0; }
+.event-row.evt-fault { border-left:3px solid var(--maroon-light); }
+.event-row.evt-warn  { border-left:3px solid var(--amber); }
+.event-row.evt-info  { border-left:3px solid var(--text-muted); }
+.event-row.evt-ok    { border-left:3px solid var(--green-accent); }
+.event-time  { font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;min-width:80px;margin-top:1px; }
+.event-dot   { width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px; }
+.evt-fault .event-dot { background:var(--maroon-light); }
+.evt-warn  .event-dot { background:var(--amber); }
+.evt-info  .event-dot { background:var(--text-muted); }
+.evt-ok    .event-dot { background:var(--green-accent); }
+.event-msg  { flex:1;color:var(--text-dark); }
+.event-tag  { font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:3px;background:var(--bg-off);border:1px solid var(--border);color:var(--text-muted);white-space:nowrap; }
+.event-empty { padding:24px;text-align:center;font-size:13px;color:var(--text-muted);font-style:italic; }
+
+/* ── SKELETON ── */
+.skeleton-cell { height:14px;border-radius:4px;background:linear-gradient(90deg,#eee 25%,#f8f8f8 50%,#eee 75%);background-size:200% 100%;animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── FOOTER ── */
+.page-footer {
+  margin-top: 48px; padding: 16px 24px; background: var(--maroon);
+  border-radius: var(--radius); display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+.footer-text  { font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:0.8px; }
+.footer-badge { font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:rgba(255,255,255,0.4);padding:4px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:20px; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="header-stripe"></div>
+    <div class="header-inner">
+      <div class="header-logos">
+        <div class="logo-murphy">
+          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQEAAAA+CAYAAAArt64xAAAAAXNSR0IB2cksfwAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAASdAAAEnQB3mYfeAAAAAd0SU1FB+oEFQ4iDqPY1QQAABDZSURBVHja7V3ZV1tJev/VvdqRkATGsk/bPW27Jz2NbRYJmx0DlsDYfZKZJM45mZkz3Ukn7pxk3jt/Qs9bzsnafslMXjppT9LJtG0swOBmM4vwgj1t9+Tgtid4ERiBQPtWeRCb1nslEBJM/Z7gqqpubd+vvu+rr+oCDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMv0Mg6X7k/qqBUmk0ieJVEN4rEySbl6j+8BT1vCkHCdH1N8pfB+H7LLvytgpdSzVdPqkE5aKvpzwBF4ig9Lbr2Pzd6SeZlld6qvJzR5364tr/xY+8cPbdIWx6MewGcOl+jCg4UJ6A8gQRWfZz2vNfk0RuD4JKyHp5PoMM8j+tpTvdYH1zNV0yFiEi3WgbAOht7qlsCCBKIri4VhblCSI8k3+GPUICJEST/p0N/J+NE+VsIPaZQQr5j3aOCPTNVXTRVBTbxjCAvxsmCxP3a7JWpyhdjPk/QtnMYtgbJLDd8P5ygqj+zx9LBGVSyH9cl3Op0bVU00WTOo4AKPYNLx9j04CBkcAOwvOfk0T1W18sEeyTQPaT3BGB7kzUBIjXcujfj5BsTQABA4HNLAZGAul9BLYEjSBQkhsi0LVW06XqWALgghHQfxhhhjsDQ75IYEMjyC0RaNuq6FJVPAFQRP5xlBEAA0O+SSCqESSaBoESCWTvb91ZqG2vos5KdRICYBoAA0PBkMC6afAsjgj0Usjez14j0LZXU2cFIwAGhl1BAgDg+cJGip7GE4EkKyLQnq2mzoo4EyDACICBoaBJAADc/51MI5BA+kE9zYgATsYTQASRf2IEwMCQCpJCqoznCxtR/aCGer6jWH8W1PGQvV9HA78YI9kRwO5yAra0d1Ce45AyopsAHq8P48MDJHUZnZTnSNoyVlxu2G4Prifo7HqPAhQ0BeUSAjhdXowN9ccU2tRmoUVyKWiKdxESfaG1+yoBgDZLFxW3g0oRjlBEIhH4/P6YuqZDtHwKgYh4ANFqhMJhhELhhHYlLdvcRaPbvyRpnwZDIQwP9Cb8WFHT8EmpXvtx6nZTeLx+KJXy1ZLTVCXJ2K3BWNvs0Bar9en7l4IQgv7eblKQJLBuGnz/FHW/JY81DT6op4Gf3yaFSABE4H+xMNW10MH+HsF0+/fvt6T6reGMmQ72W4XfZYoNkLR2XxXM09l1IeGZQsLBeuN6+pVGEp1m7ZYu2t/bnXU/NzY20SKNDj03ribtYnPnedpnvZ5V2WVlZZcOH37zk7IDB/XW64nl19SfoQN93ZlOBQDAwTL9x9bua2kzdpw7DxqJoLfnhmBdS0pKppI9f/70NzV37PYZofxNzS2FaQ7EmgaTpOjbONNAx0P6Z4mmgda8NzQAAChWq0Slm5ub661rakvK9xqVXFQZU1O2mP4pKirKgu4AjucFc4VCIQIAlG5p04eOjAyj50aUrM52nKeJa1z2mJ+f//TOnSm99fpVlJSU2Dq63ospbmt1F56KhBD09twgarVaMK3D4TCZOy/EVOhs53lqF0EAGo0Gw0OxWgRXqALh/h8bUc/EEkFQy0P64QYRaDuM1HkijgD8dFcSAADIpOIVM11xcqF99fL5z8TkVyqVtMJUf2nzJMxmLpNtFgaxhHCz5zo6u2IFYbsCNR0Oh6mn+yrMlk662awR1UdZIhwKAQDqGs+ISt9nvRZTmbmXsxYx+ZKVzxWyULi+TEIEGh7yH9XS4nNG6iyPXTl5bwSRf969TsBgwC867fLSYsKzk8Y6868fPvxYTH6v1wudVvPpbnZoWbuvwXLuQs5itPt6rau+kp1Dn/UaMRpNi2KIsPGMmQJAQ8tZ+mB6ulcoQ3W1cao3iSnFFfpAu760EfWTuLMGZVIsfy+OAHwRhD/d3ZGAzqVF0Wm/+ebxlQTbc/++3tDqiiJKG5DLsNsxOTaSY6KJmh9iHZPbouZIlKLOs3A0CACQi1QgObnalPT5bhho168SiSCBAP5l94cCx9vp6bCwsHCxpb0jZpXyeV2ZqaDh4K4ngaWlJXScy+1qvaYNbNGnIRp3J4ZrOs+dF0x37+4dnG5spb999lQwbUdnF6bGkhMZt1sG2/WrRNNgLxFA9ekmm0QiyWiWKWWxS8DjR19bMsm/suwsuH5QKpU4XVsLk6kGSqVSVJ6A3wOxQqrT6VBbV49Tp07jjUOHRJW/6JjHieo6s0Kh2DlT58Z1IuREWVlZwey3v8GzZ8/SlmUwGI71WLtTlpUBCeT/eKzrSxtR/683xgewFwgAALSaIlMmqjwAzM/Z1+2HljYLnZub680k//jYWMH1ncFgwPO5ZbxyuPHd8iq8+265sJAuOn4GrMUkpMexY29j1r6EF69XIFHqkm57JvbzHPQ6Ta9KpcqqTZEsNYiWtg7BjC9evIDQvCmvMKbdNZDsNmFxXZsiRT+oob79sgLyAWydIOWyzIfi0aOv9Wt/K7LIr1AoqM/nKygiiEQiAB8NyFlwLKH8naN49OjrtHnu37v3t1FNQEz54fW/Q6EwHj5+gjcOHcLz2dnUvhqnE0elUkil0rRlFxcX04rKKhBC1rUSiUSC2WffZtUXgwM9pLnlDB0a/Crr/qytq8dAbzfZUyQAAO4vbHsuDDgUDGScx+v1otXcSW/1WcmqupcRG/l8PtQ2ttLxkVs71J/C1dvYhoum5UTU7MTJk0cfPnjwRFzzE7vJ5/UKEpMYU2N5eRnDQ4Pb2mNDg18RtVpNXS5Xxnk5joM7QAVNRA4MBYGVleXsNIjV2AJCSFbqiEatKqh+CIXDkMtlUBep8O7vHcW9OzbBPMWa4pkNARdLMsBBQxmOHjZgYWEhbZ6lpSUSjoQRDofz0icNza1Z5bN0duHhnbG+vJOA5oKJ5vLqsO2Crr2KSv6yIW/1nBgfJ2nUzJS2sWvFiaYzZppspZLL5YLOL351BuyU51sIr16+hHvRjtcvn6HPeh12u114jml1EOsTePz4ERRcEAouiHu22xCjahuNJofT6briFdAYcoWe7qvkZEWFJcNsxNp9TZSGl3MS4D1hBEokUPzwdMESQUlzJV2qUIPmSS+qMNZd4nk+Zf8olcpjb37nraQRay+eP4c0RdYDBw6gvPxEepPC41m3XQsB4XAYdrtdcHVeQ2lp6RWxkx0APB4PZmZmMDMzA7GO2DLDAf092+ifuN3uvPWLXKXNyOkbv32cX3NgtSq+/bKCJAJ9cyV1mDRRwvLlR93T64s/TadqBoPBz4NhirKysoTV4OnTpxjov5k036FDhxGKQEDVXfwIABQKhfCty7Swhq+srOyjt7938mKu35MJyeQKtrEhIiZ2AADOtLZisL+HFA4JbHbA7JdB/sNaWkgEsLhKAADWv0i001AIRO7xPH+5v7ebvPHGoU8S5TJ1d6qLdRjou5G2Uc9nZ811TW3UbreLiFLb8uGBLYPjOBw5cgRmSyfm5+cv59qpubaFWFPXTHN5dkAUGd24TuRy4QNivgxjwHZcAfbvl0L+4/xrBPozVTEEkFcVOJh+1Obn5y8DwH7DAVNmK9hVwVm7sLBwUaUUGQRDE9WKUHBnow41Gg0OHj6Cvl5rziXyrNmyoQWQwtiQEtqmjFY1s7rmxRD075NB9pM6Gvi3/ASr6Nqq6GKlGoUCsTsDbm9G24jrfSuXy+H3+9NMLB7V1Ubb3bt3BFei+Gc3+3pFb01uhxw5nU6MDvbnet6QjnMXaM+NTWaACFPIYDAcqzLWJATmuF3LGB4a2hbf0cw3D0RoS7uABICNW4UDvxjfUSLQtVfRpYrCIQAAGB+7nVaQTtfW0onxcTL8VR8xGAxHxZwb7+jsomuhon6/P72gUoqS0lIxWgaNCsh5CkohNjZhNeCFiFmhysuPQy6XQ4CQxFwdlBQHDhzAyYrKVZmm6yYVx/HgeB4rbh9GB28ihgBEwm63P0nmP7B0ni/o3bG8uoQDeilkH9TRwM93RiPQmqvp0omighsEnudpOsegSrVR5/LjJ2bEbJu5vOKPJUfCIUikok8U0p6Nm4RETW5VkXpVNREeZpVKBZlKlJlGO7suZOy0O3z4TfT2WHd04eG4wo5t21GfAKGAatYX/QjoGhHoJJB+kPs4Aq0l8QISxasAZEuhvA5AS5uFCgWhyDY5gziJKGElm1Vmo9HkSOsXeP0aS8vuHAkAl5Gg2myTZHSwnzQ0NIrweVxDTV1zRnMnFApOgSF/JEAJ4PmljewbdX60+XlQJ4H0z3NHBFpLNXUej42MU77ww/fvE4QE86upKRTCQk3IxjDd7OkmGk36ldLS0Ulj36HQp0v/8OEDzL54hbNmy7a3rz3LMsNEKo40xobIRj8Jcw2l9AkT+zySAACUNFTS+akHl0tssc6wYLEEkg/rt10iizuqqfN4nAZgD8L7+SQBgLAiv5HTVEQoavyXzisqKtOm9wVjvfhyRfojuYFAAAcNZbjZ1ytIMJkqf31Zqt7jI7dI/GWoKc2Cc+d39Lw/I4EtvzE6UI7haRJPBCEND8lfbB8RaLqMdLk8kQB8n204I/NtrbldK4Jp/IHYbTh1sS6t4A3FXXstlQlrG6V6bdTnUGFKeZttpgSw+Q7DbCAvKhaVbu224xWXh0l0IZJA4nXcG08cw9OkZCpWCEJqHpJLWycCzQUTXXlHFUcAgRgCEKrrTmB0VPhOxPjtPWv3VSJLIdhmS2K4qBg1ORwKrq/Ah468c7mxqSnrNrW2tQEApqduX95KB48O9pNTp0+LSltbV0eLVMKXkEQo7cu2XbnVNMSVLeYQU6ZxAly2wrxdcAzdJ6WTcRqBamtEoLlgpCvfVSYhgAmyMwMoruoVxtpLYhK7Pd6EkN7jx48nXa0DIZrV5H316sX6O6anbl8eGR4mLW0WtLa1ix1+ctZsQUNLO24NJP8wCidichYXF8dUViIXt5szPjaG6buTgumm79+/nNViluNgIVHCzZGjPp9v2+uaNjX5aSOlkmgS5Us/vP8xmXFP6Fur6GLVxr58qW0ZC8PTCeWUNlbQhVOx6h/viSB8ObOLQzTvmejK28q0JkCMqvxhPQ1qonfny5whBP418+3KfbUnHK/rdevON+2vXXD23hNVTrvlXNrP/oRCYQwm+aqN8XSjQ6fV6DcLOKUUt24mjxkXfk8IgwN9Kevc2NJOlQo5JDy3+u0eAkIIgsEQPD4/bg8NiG5vKlIiKdrb0mahEgm/icxIsiaA53iEwmFQ0KTbkYQQ+AMBjHx1MyuJbjOfo+kELxgKYSjJWFXW1H9Sqtd9nK7dyym+KpSgZZ3tFAxfFgoVL1gSAIDSpgq6UBNHBBncIaj+fRN1Hc1MA8g3CTAw7HmfQCZYSOIsDCs4cH8tfM5f/QeZEwADA0MB3iyUbNcgIuPA/U1jSiIo+n4NdR1hBMDAsCdIYI0ISifiiEBKkhKB6o9qqPstBSMABoa9RAIAsDA6nbBrEJESkJ9uEIHqj2uo5zAjAAaGraCgbxteGJkmpYjdNaASAv5SA5U5Q/AclMURgB++zyYZATAw7AVNYDMRJDgLVRy8CQQQYATAwLAXSWDNRxBPBMwEYGD4HSKBNSIonUj8dp7iFSMABoackcBaoBAARCTZyRnlYh36dAvhlwujD2KchQp79DjwVjogsg1tBCH62DYzTmLYIyTA+yIgYQoSpuAD2YXycyGAhCm44EZZW/UR6KZd2+YD4L3hjTZ6ItlxQBhX1sogYQouzI60MjAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMBQq/h8XHQhPVf1qiQAAAABJRU5ErkJggg=="
+ 
+          alt="Murphy" />
+        </div>
+        <div class="logo-fsi">
+          <strong>FlightSafety International</strong>
+          Columbus Learning Center
+        </div>
+      </div>
+      <div class="header-title">VAV <span class="amp">&amp;</span> FTU</div>
+      <div class="header-sub">Operator Quick Reference &nbsp;·&nbsp; Temperature &amp; Airflow Control</div>
+      <div id="device-banner">
+        <span class="db-label">UNIT:</span>
+        <span id="device-name">Detecting…</span>
+        <span class="db-label" style="margin-left:12px;">NETWORK:</span>
+        <span id="network-name">—</span>
+        <div id="path-debug"></div>
+      </div>
+      <div class="header-rule"></div>
+    </div>
+    <div class="header-meta">
+      <span>MURPHY CO. &nbsp;·&nbsp; INTERNAL FACILITIES USE ONLY</span>
+      <span id="doc-ref">VAV-FTU-REF-001</span>
+    </div>
+  </div>
+
+  <div class="conn-bar connecting" id="conn-bar">
+    <span class="conn-dot"></span>
+    <span id="conn-msg">Initializing — reading URL to locate device…</span>
+    <span class="conn-count" id="conn-count"></span>
+  </div>
+
+  <!-- QUICK STATUS BAR -->
+  <div class="quick-status-bar" id="quick-status-bar">
+    <span class="qs-label">Live Status</span>
+    <div class="qs-divider"></div>
+    <div class="qs-item">
+      <span class="qs-item-label">Room Temp</span>
+      <span class="qs-item-val val-na" id="qs-room-temp">—</span>
+    </div>
+    <div class="qs-divider"></div>
+    <div class="qs-item">
+      <span class="qs-item-label">Box Flow</span>
+      <span class="qs-item-val" id="qs-flow">—</span>
+    </div>
+    <div class="qs-divider"></div>
+    <div class="qs-item">
+      <span class="qs-item-label">Eff Flow SP</span>
+      <span class="qs-item-val" id="qs-flow-sp">—</span>
+    </div>
+    <div class="qs-divider"></div>
+    <div class="qs-item">
+      <span class="qs-item-label">Damper</span>
+      <span class="qs-item-val" id="qs-damper">—</span>
+    </div>
+    <div class="qs-spacer"></div>
+    <span class="qs-timestamp" id="qs-timestamp">Not yet updated</span>
+  </div>
+
+  <!-- SECTION LABEL -->
+  <div class="section-label">
+    <h2>Reference Sections</h2>
+    <div class="line"></div>
+  </div>
+
+  <!-- ACCORDION -->
+  <div class="accordion">
+
+    <!-- KEY READINGS -->
+    <div class="acc-item readings-item" id="item-readings">
+      <button class="acc-trigger" onclick="toggle('item-readings')">
+        <div class="acc-icon readings-icon">📋</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Key Readings at a Glance</div>
+          <div class="acc-subtitle" id="readings-subtitle">Connecting to Niagara point data…</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div id="readings-container">
+            <table class="ref-table"><thead><tr><th>Point</th><th>What It Means</th><th>Why It Matters</th><th>Live Value</th></tr></thead>
+            <tbody>
+              <tr><td colspan="4"><div style="display:flex;gap:12px;padding:10px 0"><div class="skeleton-cell" style="width:15%"></div><div class="skeleton-cell" style="width:35%"></div><div class="skeleton-cell" style="width:35%"></div><div class="skeleton-cell" style="width:10%"></div></div></td></tr>
+              <tr><td colspan="4"><div style="display:flex;gap:12px;padding:10px 0"><div class="skeleton-cell" style="width:18%"></div><div class="skeleton-cell" style="width:32%"></div><div class="skeleton-cell" style="width:36%"></div><div class="skeleton-cell" style="width:10%"></div></div></td></tr>
+              <tr><td colspan="4"><div style="display:flex;gap:12px;padding:10px 0"><div class="skeleton-cell" style="width:20%"></div><div class="skeleton-cell" style="width:28%"></div><div class="skeleton-cell" style="width:38%"></div><div class="skeleton-cell" style="width:10%"></div></div></td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COOL MODE -->
+    <div class="acc-item cool-item" id="item-cool">
+      <button class="acc-trigger" onclick="toggle('item-cool')">
+        <div class="acc-icon cool-icon">❄️</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Cool Mode</div>
+          <div class="acc-subtitle" id="cool-subtitle">Triggered when room temperature rises above the deadband</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div class="mode-hero cool-hero">
+            <div class="mode-trigger-label">Effective Setpoint Formula — Cool Mode</div>
+            <div class="mode-formula-display">Eff Cool Spt = Base Temp Spt + User Adjust</div>
+            <div class="mode-desc">
+              When room temperature climbs above the comfort deadband, the box enters Cool Mode. The effective setpoint shifts upward by 2°F from the base, signaling the system to maximize cold airflow into the space. The reheat coil stays off.
+            </div>
+          </div>
+          <ul class="mode-bullets">
+            <li><span class="bullet-icon">🔵</span><div>Damper opens to deliver maximum cold supply air from RTU</div></li>
+            <li><span class="bullet-icon">🔵</span><div>Reheat coil remains <strong>OFF</strong> — no heating energy used</div></li>
+            <li><span class="bullet-icon">🔵</span><div>Airflow (cfm) rises as damper opens further</div></li>
+            <li><span class="bullet-icon">🔵</span><div>DAT will be close to RTU supply temp — no reheat boost</div></li>
+          </ul>
+          <div class="live-example-box cool-hero-result" id="cool-example">
+            <span class="ex-label">Live Example — <span id="cool-unit-name">This Unit</span></span>
+            <span class="ex-pending">Waiting for live data from BaseTempSpt and WallModRoomSpt…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REHEAT MODE -->
+    <div class="acc-item reheat-item" id="item-reheat">
+      <button class="acc-trigger" onclick="toggle('item-reheat')">
+        <div class="acc-icon reheat-icon">🔥</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Reheat Mode</div>
+          <div class="acc-subtitle" id="reheat-subtitle">Triggered when room temperature drops below the deadband</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div class="mode-hero reheat-hero">
+            <div class="mode-trigger-label">Effective Setpoint Formula — Reheat Mode</div>
+            <div class="mode-formula-display">Eff Heat Spt = Base Temp Spt - User Adjust</div>
+            <div class="mode-desc">
+              When room temperature drops below the comfort deadband, the box enters Reheat Mode. The effective setpoint shifts downward by 2°F from the base. The reheat coil fires to warm the cold supply air before delivering it to the space.
+            </div>
+          </div>
+          <ul class="mode-bullets">
+            <li><span class="bullet-icon">🟠</span><div>Damper may reduce to minimum position to limit cold air volume</div></li>
+            <li><span class="bullet-icon">🟠</span><div>Reheat coil turns <strong>ON</strong> — <span class="check-tag">Heat Stg 1 = Enabled</span></div></li>
+            <li><span class="bullet-icon">🟠</span><div>DAT will rise above RTU supply temp as coil fires</div></li>
+            <li><span class="bullet-icon">🟠</span><div>If DAT is NOT rising, suspect a reheat coil or valve issue</div></li>
+          </ul>
+          <div class="live-example-box reheat-hero-result" id="reheat-example">
+            <span class="ex-label">Live Example — <span id="reheat-unit-name">This Unit</span></span>
+            <span class="ex-pending">Waiting for live data from BaseTempSpt and WallModRoomSpt…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMON ISSUES -->
+    <div class="acc-item issues-item" id="item-issues">
+      <button class="acc-trigger" onclick="toggle('item-issues')">
+        <div class="acc-icon issues-icon">🔍</div>
+        <div class="acc-title-wrap">
+          <div class="acc-title">Common Issues &amp; What to Check</div>
+          <div class="acc-subtitle" id="issues-subtitle">Awaiting live data for diagnostics…</div>
+        </div>
+        <div class="acc-chevron">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#4a3530" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </button>
+      <div class="acc-body">
+        <div class="acc-body-inner">
+          <div id="issues-container">
+            <table class="ref-table issues-table"><thead><tr><th>Symptom</th><th>Likely Cause</th><th>What to Check</th><th>Status</th></tr></thead>
+            <tbody><tr><td colspan="4"><div style="display:flex;gap:12px;padding:10px 0"><div class="skeleton-cell" style="width:20%"></div><div class="skeleton-cell" style="width:30%"></div><div class="skeleton-cell" style="width:38%"></div><div class="skeleton-cell" style="width:8%"></div></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /accordion -->
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <span class="footer-text">Murphy Company &nbsp;·&nbsp; FlightSafety International – Columbus Learning Center &nbsp;·&nbsp; Internal facilities use only</span>
+    <span class="footer-badge" id="footer-ref">VAV-FTU-REF-001</span>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   URL PARSING
+══════════════════════════════════════════════════════════ */
+function parseDeviceFromURL() {
+  var urlStr = document.referrer || '';
+  if (!urlStr) urlStr = window.location.href;
+  urlStr = decodeURIComponent(urlStr);
+
+  var debugEl = document.getElementById('path-debug');
+
+  var match = urlStr.match(/NiagaraNetwork\/([^\/]+)\/points\/([^|\/]+)\/([^|\/]+)/);
+  if (match) {
+    if (debugEl) debugEl.textContent = 'Parsed from: ' + urlStr;
+    return { station: match[1], network: match[2], unit: match[3] };
+  }
+
+  var unitMatch = urlStr.match(/\b((?:VAV|FTU|AHU|RTU|MAU)_[A-Za-z0-9_]+)\b/i);
+  var netMatch  = urlStr.match(/\b(Network_\d+)\b/i);
+  if (unitMatch && netMatch) {
+    return { network: netMatch[1], unit: unitMatch[1] };
+  }
+
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   POINT DEFINITIONS
+   NOTE: DamperPos, TempCtrlEffCoolSp, TempCtrlEffHeatSp,
+         WallModSptLoLim, WallModSptHiLim added so they are
+         subscribed and available to the diagnostics engine.
+══════════════════════════════════════════════════════════ */
+var VAV_POINTS = [
+  {
+    id: 'RoomTemp',
+    label: 'Rm TMP',
+    meaning: 'Actual air temperature currently measured in the room',
+    why: 'Primary feedback — compare to effective setpoint to see if the box is satisfying the zone',
+  },
+  {
+    id: 'TempCtrlEffSp',
+    label: 'Temp Eff Spt',
+    meaning: 'The effective temperature setpoint the controller is actively chasing',
+    why: 'Combines occupancy mode, wall adjustments, and hi/lo limits into the single real target',
+  },
+  {
+    id: 'TempCtrlEffCoolSp',
+    label: 'Eff Cool Spt',
+    meaning: 'Effective cooling setpoint — room temp above this triggers cool mode',
+    why: 'Used by diagnostics to determine if space is exceeding cooling demand',
+  },
+  {
+    id: 'TempCtrlEffHeatSp',
+    label: 'Eff Heat Spt',
+    meaning: 'Effective heating setpoint — room temp below this triggers reheat mode',
+    why: 'Used by diagnostics to determine if space has unmet heating demand',
+  },
+  {
+    id: 'WallModRoomSpt',
+    label: 'User Spt Adjust',
+    meaning: 'Offset applied by the occupant from the wall module',
+    why: 'Shows how far the occupant has shifted the setpoint from the programmed base value',
+  },
+  {
+    id: 'WallModSptLoLim',
+    label: 'Wall SP Lo Limit',
+    meaning: 'Low-limit clamp for the wall-module setpoint',
+    why: 'Prevents occupants from setting the zone below the allowed minimum',
+  },
+  {
+    id: 'WallModSptHiLim',
+    label: 'Wall SP Hi Limit',
+    meaning: 'High-limit clamp for the wall-module setpoint',
+    why: 'Prevents occupants from setting the zone above the allowed maximum',
+  },
+  {
+    id: 'EffFlowSpt',
+    label: 'Eff Flow Spt',
+    meaning: 'Target airflow (cfm) the box is commanded to deliver right now',
+    why: 'Driven by box mode and occupancy — compare to Airflow reading to verify delivery',
+  },
+  {
+    id: 'BoxFlow',
+    label: 'Airflow',
+    meaning: 'Measured cubic feet per minute of air currently delivered to this zone',
+    why: 'Compare to Eff Flow Spt — significant deviation indicates a damper, override, or flow sensor issue',
+  },
+  {
+    id: 'TempCtrlMode',
+    label: 'Box Mode',
+    meaning: 'Current operating mode of the VAV box (e.g. Cooling, Reheat, Standby)',
+    why: 'Confirms what the controller is trying to do — mismatch with room conditions signals a logic or sensor problem',
+  },
+  {
+    id: 'OccStateEff',
+    label: 'Occupancy',
+    meaning: 'Current occupancy state of the zone (Occupied / Unoccupied / Standby)',
+    why: 'Drives setpoint selection and minimum airflow — wrong occupancy state causes comfort complaints',
+  },
+  {
+    id: 'DamperCmd',
+    label: 'Damper Cmd',
+    meaning: 'Commanded position sent to the damper actuator (0–100%)',
+    why: 'If overridden (OVR), the control loop is bypassed and the damper is locked at the override value — airflow cannot respond to demand',
+  },
+  {
+    id: 'DamperPos',
+    label: 'Damper Pos',
+    meaning: 'Actual measured position of the damper blade (0–100%)',
+    why: 'Should track DamperCmd within ~5%. A large gap indicates actuator slippage, binding, or wiring fault',
+  },
+  {
+    id: 'DischargeAirTemp',
+    label: 'DAT',
+    meaning: 'Discharge Air Temperature — temperature of air leaving the VAV box into the downstream duct',
+    why: 'Should rise above supply air temp when reheat is active; near supply temp during cooling mode',
+  },
+  {
+    id: 'ReheatEffOutput',
+    label: 'Heat Stg 1',
+    meaning: 'First stage reheat output command',
+    why: 'Verifies the controller is energizing the reheat coil — check against DAT to confirm heat is being produced',
+  },
+  {
+    id: 'CfgMinFlowSetpt',
+    label: 'Min Flow',
+    meaning: 'Configured minimum airflow (cfm) for this zone during occupied hours',
+    why: 'Ensures minimum ventilation air is always delivered regardless of thermal demand',
+  },
+  {
+    id: 'CfgMaxFlowSetpt',
+    label: 'Max Flow',
+    meaning: 'Configured maximum airflow limit (cfm) for this box',
+    why: 'Box will not command above this value — sized to match duct and zone design cfm',
+  },
+  {
+    id: 'CfgReheatMaxFlowSetpt',
+    label: 'Reheat Max Flow',
+    meaning: 'Maximum airflow permitted while the reheat coil is actively firing',
+    why: 'Prevents overshooting discharge temperature and protects the coil during active reheat',
+  },
+  {
+    id: 'BaseTempSpt',
+    label: 'Base Temp Spt',
+    meaning: 'The base room temperature setpoint — sets the occupancy heat/cool setpoints to this value ±2°F',
+    why: 'Starting reference for all setpoint calculations — Cool Eff Spt = Base + 2°F + User Adjust; Heat Eff Spt = Base – 2°F + User Adjust',
+  },
+];
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+var liveValues   = {};
+var prevValues   = {};
+var eventLog     = [];
+var logFilter    = 'all';
+var rebuildTimer = null;
+var connectedCnt = 0;
+var resolvedCnt  = 0;
+var totalPoints  = VAV_POINTS.length;
+var currentUnitName = 'This Unit';
+
+/* ══════════════════════════════════════════════════════════
+   ACCORDION
+══════════════════════════════════════════════════════════ */
+function toggle(id) {
+  var item = document.getElementById(id);
+  var body = item.querySelector('.acc-body');
+  var open = item.classList.contains('open');
+  document.querySelectorAll('.acc-item').forEach(function(el) {
+    el.classList.remove('open');
+    el.querySelector('.acc-body').style.maxHeight = '0';
+  });
+  if (!open) {
+    item.classList.add('open');
+    body.style.maxHeight = (body.scrollHeight + 80) + 'px';
+  }
+}
+
+function refreshHeight(id) {
+  var item = document.getElementById(id);
+  if (!item || !item.classList.contains('open')) return;
+  var body = item.querySelector('.acc-body');
+  body.style.maxHeight = 'none';
+  setTimeout(function() { body.style.maxHeight = (body.scrollHeight + 80) + 'px'; }, 50);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CONNECTION STATUS BAR
+══════════════════════════════════════════════════════════ */
+function setConn(state, msg, count) {
+  var bar   = document.getElementById('conn-bar');
+  var msgEl = document.getElementById('conn-msg');
+  var cntEl = document.getElementById('conn-count');
+  bar.className = 'conn-bar ' + state;
+  msgEl.textContent = msg;
+  if (count !== undefined) cntEl.textContent = count;
+}
+
+/* ══════════════════════════════════════════════════════════
+   QUICK STATUS BAR
+══════════════════════════════════════════════════════════ */
+function updateQuickStatus() {
+  function setVal(id, val, cssClass) {
+    var el = document.getElementById('qs-' + id);
+    if (!el) return;
+    el.textContent = val || '—';
+    el.className = 'qs-item-val' + (cssClass ? ' ' + cssClass : '');
+  }
+
+  var RoomTemp = parseFloat(liveValues['RoomTemp']);
+  var flow      = parseFloat(liveValues['BoxFlow']);
+  var flowSP    = parseFloat(liveValues['EffFlowSpt']);
+  var coolSP    = parseFloat(liveValues['TempCtrlEffCoolSp']);
+  var heatSP    = parseFloat(liveValues['TempCtrlEffHeatSp']);
+  var damper    = parseFloat(liveValues['DamperCmd']);
+  var damperOvr = isOverridden('DamperCmd');
+
+  if (!isNaN(RoomTemp)) {
+    var cls = '';
+    if (!isNaN(coolSP) && RoomTemp > coolSP + 2) cls = 'qs-bad';
+    else if (!isNaN(heatSP) && RoomTemp < heatSP - 2) cls = 'qs-bad';
+    else cls = 'qs-ok';
+    setVal('room-temp', RoomTemp.toFixed(1) + '°F', cls);
+  }
+
+  if (!isNaN(flow) && !isNaN(flowSP) && flowSP > 0) {
+    var fpct = ((flow - flowSP) / flowSP) * 100;
+    var flowCls = Math.abs(fpct) > 20 ? 'qs-bad' : '';
+    setVal('flow', flow.toFixed(0) + ' cfm', flowCls);
+    setVal('flow-sp', flowSP.toFixed(0) + ' cfm');
+  } else {
+    if (!isNaN(flow))   setVal('flow',    flow.toFixed(0) + ' cfm');
+    if (!isNaN(flowSP)) setVal('flow-sp', flowSP.toFixed(0) + ' cfm');
+  }
+
+  if (!isNaN(damper)) {
+    var dCls = damperOvr ? 'qs-warn' : (damper < 5 ? 'qs-warn' : damper > 95 ? 'qs-warn' : 'qs-ok');
+    setVal('damper', damper.toFixed(1) + '%' + (damperOvr ? ' OVR' : ''), dCls);
+  }
+
+  var ts = document.getElementById('qs-timestamp');
+  if (ts) ts.textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+/* ══════════════════════════════════════════════════════════
+   VALUE PARSER
+══════════════════════════════════════════════════════════ */
+function parseDisplayValue(raw) {
+  if (!raw) return raw;
+  return String(raw)
+    .replace(/\s*\{[^}]*\}/g, '')
+    .replace(/\s*@\s*\w+\s*$/, '')
+    .trim();
+}
+
+/* ══════════════════════════════════════════════════════════
+   OVERRIDE DETECTION
+══════════════════════════════════════════════════════════ */
+function isOverridden(id) {
+  var v = liveValues[id];
+  return v !== undefined && v !== null && String(v).indexOf('(OVR)') !== -1;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LIVE EXAMPLE BOXES — Cool & Reheat Mode
+══════════════════════════════════════════════════════════ */
+function updateModeExamples() {
+  var coolUnit   = document.getElementById('cool-unit-name');
+  var reheatUnit = document.getElementById('reheat-unit-name');
+  if (coolUnit)   coolUnit.textContent   = currentUnitName;
+  if (reheatUnit) reheatUnit.textContent = currentUnitName;
+
+  var baseSptRaw  = liveValues['BaseTempSpt'];
+  var baseSpt     = parseFloat(baseSptRaw);
+  var tempEffSpt  = parseFloat(liveValues['TempCtrlEffSp']);
+  var wallAdjust  = parseFloat(liveValues['WallModRoomSpt']);
+
+  var userAdj = (!isNaN(baseSpt) && !isNaN(tempEffSpt))
+    ? Math.abs(tempEffSpt - baseSpt)
+    : wallAdjust;
+
+  var coolBox   = document.getElementById('cool-example');
+  var reheatBox = document.getElementById('reheat-example');
+
+  if (isNaN(baseSpt)) {
+    coolBox.innerHTML   = '<span class="ex-label">Live Example — ' + currentUnitName + '</span><span class="ex-pending">Waiting for live BaseTempSpt value…</span>';
+    reheatBox.innerHTML = '<span class="ex-label">Live Example — ' + currentUnitName + '</span><span class="ex-pending">Waiting for live BaseTempSpt value…</span>';
+    return;
+  }
+
+  var userAdjDisplay = isNaN(userAdj) ? 0 : userAdj;
+  var userAdjLabel   = isNaN(userAdj)
+    ? '(User Adjust not connected — using 0°F)'
+    : 'User Adjust: <strong>' + (userAdjDisplay >= 0 ? '+' : '') + userAdjDisplay.toFixed(1) + '°F</strong>';
+
+  var coolResult   = baseSpt + userAdjDisplay;
+  var reheatResult = baseSpt - userAdjDisplay;
+  var userSign     = userAdjDisplay >= 0 ? '+' : '';
+
+  coolBox.innerHTML =
+    '<span class="ex-label">Live Example — ' + currentUnitName + '</span>' +
+    'Base Temp Spt: <strong>' + baseSpt.toFixed(1) + '°F</strong> &nbsp;|&nbsp; ' + userAdjLabel + '<br>' +
+    'Eff Cool Spt = ' + baseSpt.toFixed(1) + ' + (' + userSign + userAdjDisplay.toFixed(1) + ') = ' +
+    '<span class="ex-result">' + coolResult.toFixed(1) + '°F</span>';
+
+  reheatBox.innerHTML =
+    '<span class="ex-label">Live Example — ' + currentUnitName + '</span>' +
+    'Base Temp Spt: <strong>' + baseSpt.toFixed(1) + '°F</strong> &nbsp;|&nbsp; ' + userAdjLabel + '<br>' +
+    'Eff Heat Spt = ' + baseSpt.toFixed(1) + ' - (' + userSign + userAdjDisplay.toFixed(1) + ') = ' +
+    '<span class="ex-result">' + reheatResult.toFixed(1) + '°F</span>';
+
+  var coolSub = document.getElementById('cool-subtitle');
+  if (coolSub) coolSub.textContent = 'Triggers above ' + baseSpt.toFixed(1) + '°F (Base) · Eff Cool Spt = ' + coolResult.toFixed(1) + '°F';
+  var reheatSub = document.getElementById('reheat-subtitle');
+  if (reheatSub) reheatSub.textContent = 'Triggers below ' + baseSpt.toFixed(1) + '°F (Base) · Eff Heat Spt = ' + reheatResult.toFixed(1) + '°F';
+
+  refreshHeight('item-cool');
+  refreshHeight('item-reheat');
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHANGE DETECTION & EVENT LOG
+══════════════════════════════════════════════════════════ */
+function detectChange(pointId, pointLabel, newVal) {
+  var prev = prevValues[pointId];
+  prevValues[pointId] = newVal;
+  if (prev === undefined) return;
+  if (prev === newVal) return;
+
+  var lc  = String(newVal).toLowerCase();
+  var plc = String(prev).toLowerCase();
+  var type = 'info';
+
+  if (lc.includes('alarm') || lc.includes('fault') || lc.includes('fail')) type = 'fault';
+  else if (plc.includes('alarm') || plc.includes('fault') || plc.includes('fail')) type = 'ok';
+  else {
+    var pn = parseFloat(prev), nn = parseFloat(newVal);
+    if (!isNaN(pn) && !isNaN(nn) && Math.abs(nn - pn) > 5) type = 'warn';
+  }
+
+  addEvent(type, '<strong>' + pointLabel + '</strong>: ' + prev + ' → <strong>' + newVal + '</strong>', pointId);
+}
+
+function addEvent(type, message, tag) {
+  var ts = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  eventLog.unshift({ type: type, message: message, tag: tag, ts: ts });
+  if (eventLog.length > 120) eventLog.pop();
+  renderLog();
+  var sub = document.getElementById('log-subtitle');
+  if (sub) sub.textContent = eventLog.length + ' event' + (eventLog.length !== 1 ? 's' : '') + ' recorded this session';
+  refreshHeight('item-log');
+}
+
+function renderLog() {
+  var list = document.getElementById('event-list');
+  if (!list) return;
+  var filtered = logFilter === 'all' ? eventLog : eventLog.filter(function(e) { return e.type === logFilter; });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="event-empty">No events match current filter</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(function(e) {
+    return '<div class="event-row evt-' + e.type + '">' +
+      '<div class="event-time">' + e.ts + '</div>' +
+      '<div class="event-dot"></div>' +
+      '<div class="event-msg">' + e.message + '</div>' +
+      (e.tag ? '<span class="event-tag">' + e.tag + '</span>' : '') +
+    '</div>';
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════
+   READINGS TABLE
+══════════════════════════════════════════════════════════ */
+function buildReadingsTable() {
+  var container = document.getElementById('readings-container');
+
+  var html = '<table class="ref-table"><thead><tr>' +
+    '<th>Point</th><th>What It Means</th><th>Why It Matters</th><th>Live Value</th>' +
+    '</tr></thead><tbody>';
+
+  VAV_POINTS.forEach(function(p) {
+    var raw = liveValues[p.id];
+    var valHtml = '<span class="td-live val-na">—</span>';
+    if (raw !== null && raw !== undefined) {
+      var s = String(raw).trim();
+      var cls = 'val-ok';
+      if (s.toLowerCase().includes('alarm') || s.toLowerCase().includes('fault')) cls = 'val-fault';
+      else if (s.includes('(OVR)') || s.includes('OVR')) cls = 'val-ovr';
+      else if (s === '—' || s === '') cls = 'val-na';
+      valHtml = '<span class="td-live ' + cls + '">' + s + '</span>';
+    }
+    html += '<tr>' +
+      '<td><div class="td-name-block">' +
+        '<span class="td-point-name">' + p.label + '</span>' +
+        '<span class="td-point-id">' + p.id + '</span>' +
+      '</div></td>' +
+      '<td class="td-meaning">' + p.meaning + '</td>' +
+      '<td class="td-why">' + p.why + '</td>' +
+      '<td>' + valHtml + '</td>' +
+    '</tr>';
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  var sub = document.getElementById('readings-subtitle');
+  if (sub) {
+    var live = VAV_POINTS.filter(function(p) { return liveValues[p.id] !== undefined; }).length;
+    sub.textContent = VAV_POINTS.length + ' points defined — ' + live + ' receiving live data';
+  }
+  refreshHeight('item-readings');
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIAGNOSTICS ENGINE
+   ─────────────────────────────────────────────────────────
+   Key fixes vs prior version:
+   1. Flow shortfall is flagged unconditionally based on
+      (flow vs flowSP) percentage — no longer gated on
+      damperPos > 60, which masked overridden dampers.
+   2. isOverridden() check on DamperCmd surfaces a dedicated
+      "damper locked by override" root cause with clear
+      corrective action (release the override).
+   3. Separate standalone "Damper Override" notice in the
+      Damper Control group so it appears even if root-cause
+      is already called out in Airflow.
+   4. Min-flow breach escalates severity to fault and appends
+      a ventilation-quality warning.
+   5. Space-temp checks note when a damper override may be
+      contributing to the thermal complaint.
+══════════════════════════════════════════════════════════ */
+function diagnose() {
+  var issues = [];
+
+  function num(id) {
+    var v = liveValues[id];
+    return (v !== undefined && v !== null) ? parseFloat(v) : null;
+  }
+
+  var RoomTemp  = num('RoomTemp');
+  var coolSP     = num('TempCtrlEffCoolSp');
+  var heatSP     = num('TempCtrlEffHeatSp');
+  var dat        = num('DischargeAirTemp');
+  var flow       = num('BoxFlow');
+  var flowSP     = num('EffFlowSpt');
+  var damperPos  = num('DamperPos');
+  var damperCmd  = num('DamperCmd');
+  var reheatOut  = num('ReheatEffOutput');
+  var maxFlow    = num('CfgMaxFlowSetpt');
+  var minFlow    = num('CfgMinFlowSetpt');
+  var wallSpt    = num('WallModRoomSpt');
+  var wallLo     = num('WallModSptLoLim');
+  var wallHi     = num('WallModSptHiLim');
+
+  var damperCmdOvr = isOverridden('DamperCmd');
+  var damperPosOvr = isOverridden('DamperPos');
+
+  /* ── AIRFLOW vs SETPOINT ──────────────────────────────────────────────
+     Evaluate unconditionally — the shortfall is real regardless of
+     whether the damper is tracking its command. A capped-low command
+     (especially if overridden) is itself the problem.
+  ──────────────────────────────────────────────────────────────────── */
+  if (flow !== null && flowSP !== null && flowSP > 0) {
+    var fdelta = flow - flowSP;
+    var fpct   = (fdelta / flowSP) * 100;  // negative = under-delivering
+
+    if (fpct < -15) {
+      var severity = fpct < -40 ? 'fault' : 'warn';
+      var shortfall = Math.abs(fdelta).toFixed(0);
+      var pctStr    = Math.abs(fpct).toFixed(0);
+
+      var rootCause, checkSteps;
+
+      if (damperCmdOvr) {
+        /* ── Case 1: DamperCmd is manually overridden — this IS the constraint */
+        rootCause =
+          'Damper command is <strong>manually overridden (OVR)</strong> at ' +
+          (damperCmd !== null ? '<span class="val-tag">' + damperCmd.toFixed(1) + '%</span>' : 'an unknown position') +
+          '. The control loop is suspended — the damper cannot open further to meet airflow demand, regardless of what the setpoint requires.';
+        checkSteps =
+          'Release the override on <span class="check-tag">DamperCmd</span> to restore normal programming if problem. ' +
+          'Once released, the controller will ramp the damper toward the position needed to satisfy ' +
+          '<span class="check-tag">EffFlowSpt</span> = <span class="val-tag">' + flowSP.toFixed(0) + ' cfm</span>. ' +
+          'Verify that <span class="check-tag">BoxFlow</span> climbs toward setpoint and <span class="check-tag">DamperPos</span> tracks <span class="check-tag">DamperCmd</span> after release.';
+        if (maxFlow !== null && flowSP > maxFlow) {
+          checkSteps += ' Note: <span class="check-tag">EffFlowSpt</span> (' + flowSP.toFixed(0) + ' cfm) exceeds <span class="check-tag">CfgMaxFlowSetpt</span> (' + maxFlow.toFixed(0) + ' cfm) — verify setpoint is not over-programmed.';
+        }
+
+      } else if (damperCmd !== null && damperCmd < 40 &&
+                 damperPos !== null && Math.abs(damperCmd - damperPos) < 10) {
+        /* ── Case 2: Damper commanded low by control logic (not an override) */
+        rootCause =
+          'Damper is commanded to a low position (' + damperCmd.toFixed(1) + '%) by the control program — ' +
+          'not by a manual override. The controller may be in Reheat mode (intentionally restricting cold air volume) or a setpoint/logic issue is preventing it from opening further.';
+        checkSteps =
+          'Check <span class="check-tag">TempCtrlModeEff</span> — if in Reheat mode, a low damper command is expected ' +
+          '(box minimises cold air while the coil heats it). Verify the room is actually warming. ' +
+          'If in Cool or Standby mode with a low command, suspect a logic or sensor issue preventing the box from opening. ' +
+          'Confirm <span class="check-tag">EffFlowSpt</span> is correct for the current occupancy mode.';
+
+      } else if (damperPos !== null && damperPos > 70 && flow < flowSP * 0.6) {
+        /* ── Case 3: Damper is open but flow is still low — upstream or mechanical */
+        rootCause =
+          'Damper is open (' + damperPos.toFixed(1) + '%) but airflow is well below setpoint — ' +
+          'the restriction is upstream of this box or the flow sensor is unreliable.';
+        checkSteps =
+          'Verify the upstream RTU is running and supply duct static pressure is adequate. ' +
+          'Inspect damper blade physically for obstruction. ' +
+          'Check the velocity pressure sensor (pitot tube) for blockage or ice — a stuck-at-zero reading with the damper open is a strong indicator of a clogged sensor.';
+
+      } else {
+        /* ── Case 4: Generic — not enough data to pinpoint root cause */
+        rootCause = 'Box is under-delivering air relative to the flow setpoint.';
+        checkSteps =
+          'Check <span class="check-tag">DamperCmd</span> — if it is low, determine whether the controller is holding it there intentionally (mode/setpoint issue) or if there is a manual override. ' +
+          'If the damper is open but flow is still low, inspect the upstream supply system and flow sensor. ' +
+          (damperCmd !== null ? 'Current Damper Cmd: <span class="val-tag">' + damperCmd.toFixed(1) + '%</span>. ' : '') +
+          (damperPos !== null ? 'Damper Pos: <span class="val-tag">' + damperPos.toFixed(1) + '%</span>.' : '');
+      }
+
+      /* Append minimum-flow ventilation note if applicable */
+      if (minFlow !== null && flow < minFlow) {
+        checkSteps +=
+          ' ⚠️ Flow is also <strong>below minimum ventilation setpoint</strong> ' +
+          '(<span class="check-tag">CfgMinFlowSetpt</span> = <span class="val-tag">' + minFlow.toFixed(0) + ' cfm</span>) ' 
+;
+        severity = 'fault';
+      }
+
+      issues.push({
+        group: 'Airflow',
+        severity: severity,
+        symptom:
+          'Box Flow <span class="val-tag">' + flow.toFixed(0) + ' cfm</span> is <strong>' +
+          shortfall + ' cfm (' + pctStr + '%) below</strong> Eff Flow Setpoint <span class="val-tag">' +
+          flowSP.toFixed(0) + ' cfm</span>' +
+          (damperCmdOvr ? ' &nbsp;<span class="status-pill status-warn" style="vertical-align:middle">⚠ DAMPER OVR</span>' : ''),
+        cause: rootCause,
+        check: checkSteps,
+      });
+
+    } else if (fpct > 30) {
+      issues.push({
+        group: 'Airflow',
+        severity: 'warn',
+        symptom: 'Box Flow <span class="val-tag">' + flow.toFixed(0) + ' cfm</span> is <strong>' + fdelta.toFixed(0) + ' cfm above</strong> setpoint <span class="val-tag">' + flowSP.toFixed(0) + ' cfm</span>',
+        cause:   'Over-delivering air — damper may be over-traveling or setpoint is too low',
+        check:   'Check <span class="check-tag">DamperCmd</span> vs <span class="check-tag">DamperPos</span> for over-rotation. Verify <span class="check-tag">EffFlowSpt</span> is programmed correctly.',
+      });
+    } else {
+      issues.push({
+        group: 'Airflow',
+        severity: 'info',
+        symptom: 'Box Flow <span class="val-tag">' + flow.toFixed(0) + ' cfm</span> within ' + Math.abs(fpct).toFixed(0) + '% of setpoint <span class="val-tag">' + flowSP.toFixed(0) + ' cfm</span>',
+        cause:   'Airflow delivery within normal tolerance',
+        check:   'No action required.',
+      });
+    }
+  }
+
+  /* ── DAMPER CONTROL ───────────────────────────────────────────────────
+     Surfaces a dedicated override notice in the Damper Control group
+     so it appears even when the Airflow group already explains the
+     root cause. Keeps operator attention on the OVR badge.
+  ──────────────────────────────────────────────────────────────────── */
+  if (damperCmdOvr) {
+    issues.push({
+      group: 'Damper Control',
+      severity: 'warn',
+      symptom:
+        'Damper Command is <strong>overridden (OVR)</strong> at <span class="val-tag">' +
+        (damperCmd !== null ? damperCmd.toFixed(1) + '%' : '?') + '</span> — automatic control is suspended',
+      cause:
+        'A manual override on DamperCmd bypasses the control loop. The damper is locked at the ' +
+        'override value and cannot respond to airflow demand, occupancy changes, or setpoint adjustments.',
+      check:
+        'Release the override on <span class="check-tag">DamperCmd</span> in Niagara to restore automatic control. ' +
+        'Confirm the override was intentional before releasing. ' +
+        'After release, watch <span class="check-tag">BoxFlow</span> to confirm it climbs toward <span class="check-tag">EffFlowSpt</span>.',
+    });
+  } else if (damperCmd !== null && damperPos !== null) {
+    var diff = Math.abs(damperCmd - damperPos);
+    if (diff > 15) {
+      issues.push({
+        group: 'Damper Control',
+        severity: 'warn',
+        symptom:
+          'Damper Command <span class="val-tag">' + damperCmd.toFixed(1) + '%</span> vs ' +
+          'Position <span class="val-tag">' + damperPos.toFixed(1) + '%</span> — gap of <strong>' + diff.toFixed(1) + '%</strong>',
+        cause:   'Actuator is not tracking the commanded position',
+        check:   'Inspect damper actuator for binding or slippage. Re-zero and re-span actuator if needed. Check for mechanical obstruction on blade.',
+      });
+    }
+  }
+
+  /* ── SPACE TEMP vs SETPOINTS ──────────────────────────────────────── */
+  if (RoomTemp !== null) {
+    if (coolSP !== null && RoomTemp > coolSP + 2) {
+      var delta    = RoomTemp - coolSP;
+      var flowNote = flow !== null ? ' Box flow: <span class="val-tag">' + flow.toFixed(0) + ' cfm</span>.' : '';
+      var dprNote  = damperPos !== null ? ' Damper Pos: <span class="val-tag">' + damperPos.toFixed(1) + '%</span>.' : '';
+      var ovrNote  = damperCmdOvr
+        ? ' ⚠️ <strong>Damper override is active</strong> at ' + (damperCmd !== null ? damperCmd.toFixed(1) + '%' : '?') +
+          ' — releasing the override should allow more cold air delivery.'
+        : '';
+      issues.push({
+        group: 'Space Temperature',
+        severity: delta > 5 ? 'fault' : 'warn',
+        symptom:
+          'Room Temp <span class="val-tag">' + RoomTemp.toFixed(1) + '°F</span> is <strong>' +
+          delta.toFixed(1) + '°F above</strong> Cool Setpoint <span class="val-tag">' + coolSP.toFixed(1) + '°F</span>',
+        cause: 'Cooling demand is not being met — box is not delivering enough cold air',
+        check:
+          'Verify RTU is running and supplying cold primary air. Check <span class="check-tag">DamperPos</span> vs <span class="check-tag">DamperCmd</span>.' +
+          ovrNote + flowNote + dprNote,
+      });
+    } else if (heatSP !== null && RoomTemp < heatSP - 2) {
+      var hdelta     = heatSP - RoomTemp;
+      var reheatNote = reheatOut !== null
+        ? (reheatOut > 10
+          ? ' Reheat output: <span class="val-tag">' + reheatOut.toFixed(0) + '%</span>.'
+          : ' Reheat output: <span class="val-tag">' + reheatOut.toFixed(0) + '%</span> — coil NOT firing despite heating need.')
+        : '';
+      var datNote = dat !== null ? ' Discharge Air Temp: <span class="val-tag">' + dat.toFixed(1) + '°F</span>.' : '';
+      issues.push({
+        group: 'Space Temperature',
+        severity: hdelta > 5 ? 'fault' : 'warn',
+        symptom:
+          'Room Temp <span class="val-tag">' + RoomTemp.toFixed(1) + '°F</span> is <strong>' +
+          hdelta.toFixed(1) + '°F below</strong> Heat Setpoint <span class="val-tag">' + heatSP.toFixed(1) + '°F</span>',
+        cause: 'Heating demand is not being met — reheat may not be firing',
+        check:
+          'Check <span class="check-tag">ReheatEffOutput</span> — should be &gt;0. ' +
+          'Verify <span class="check-tag">DischargeAirTemp</span> is rising above supply air temp.' + reheatNote + datNote,
+      });
+    } else if (coolSP !== null && heatSP !== null) {
+      issues.push({
+        group: 'Space Temperature',
+        severity: 'info',
+        symptom:
+          'Room Temp <span class="val-tag">' + RoomTemp.toFixed(1) + '°F</span> within deadband — ' +
+          'Cool SP <span class="val-tag">' + coolSP.toFixed(1) + '°F</span>, Heat SP <span class="val-tag">' + heatSP.toFixed(1) + '°F</span>',
+        cause: 'Space temperature is within the comfort deadband',
+        check: 'No action required. Monitor for occupant complaints.',
+      });
+    }
+  } else {
+    issues.push({
+      group: 'Space Temperature',
+      severity: 'warn',
+      symptom: 'RoomTemp point not yet connected',
+      cause:   'Live value not available',
+      check:   'Verify Niagara path is correct and point is subscribed.',
+    });
+  }
+
+  /* ── DISCHARGE AIR TEMP ──────────────────────────────────────────── */
+  if (dat !== null) {
+    if (dat > 90) {
+      issues.push({
+        group: 'Discharge Air Temp',
+        severity: 'fault',
+        symptom: 'Discharge Air Temp critically high: <span class="val-tag">' + dat.toFixed(1) + '°F</span>',
+        cause:   'Runaway reheat, stuck heating valve, or faulty DAT sensor',
+        check:
+          'Verify <span class="check-tag">ReheatEffOutput</span> is not stuck at 100%. ' +
+          'Check for welded electric contactor or wide-open HW reheat valve. DAT above 90°F can damage ductwork.',
+      });
+    } else if (reheatOut !== null && reheatOut > 50 && dat < 70) {
+      issues.push({
+        group: 'Discharge Air Temp',
+        severity: 'fault',
+        symptom:
+          'Reheat output <span class="val-tag">' + reheatOut.toFixed(0) + '%</span> but DAT only <span class="val-tag">' + dat.toFixed(1) + '°F</span>',
+        cause:   'Reheat coil is commanded ON but not producing heat',
+        check:
+          'For electric reheat: check breaker and SCR board. ' +
+          'For HW reheat: verify hot water valve is opening and boiler is producing hot water.',
+      });
+    }
+  }
+
+  /* ── WALL SETPOINT vs LIMITS ─────────────────────────────────────── */
+  if (wallSpt !== null && wallLo !== null && wallHi !== null) {
+    if (wallSpt < wallLo) {
+      issues.push({
+        group: 'Setpoint Configuration',
+        severity: 'warn',
+        symptom:
+          'Wall setpoint <span class="val-tag">' + wallSpt.toFixed(1) + '°F</span> is BELOW low limit <span class="val-tag">' + wallLo.toFixed(1) + '°F</span>',
+        cause: 'Wall module setpoint has been set outside the configured limits',
+        check: 'Reset <span class="check-tag">WallModRoomSpt</span> to a value between the lo/hi limits.',
+      });
+    } else if (wallSpt > wallHi) {
+      issues.push({
+        group: 'Setpoint Configuration',
+        severity: 'warn',
+        symptom:
+          'Wall setpoint <span class="val-tag">' + wallSpt.toFixed(1) + '°F</span> is ABOVE high limit <span class="val-tag">' + wallHi.toFixed(1) + '°F</span>',
+        cause: 'Wall module setpoint exceeds configured limits',
+        check: 'Reset <span class="check-tag">WallModRoomSpt</span> within range. Confirm limits are appropriately programmed.',
+      });
+    }
+  }
+
+  /* ── MAX FLOW SANITY ─────────────────────────────────────────────── */
+  if (flow !== null && maxFlow !== null && flow > maxFlow * 1.15) {
+    issues.push({
+      group: 'Airflow Limits',
+      severity: 'warn',
+      symptom:
+        'Box Flow <span class="val-tag">' + flow.toFixed(0) + ' cfm</span> exceeds configured max <span class="val-tag">' + maxFlow.toFixed(0) + ' cfm</span>',
+      cause: 'Flow reading is above the configured maximum — sensor offset or calibration drift',
+      check: 'Recalibrate the flow sensor. If actual duct velocity is that high, check for duct design issues.',
+    });
+  }
+
+  return issues;
+}
+
+/* ══════════════════════════════════════════════════════════
+   BUILD ISSUES TABLE
+══════════════════════════════════════════════════════════ */
+function buildIssuesTable() {
+  var container = document.getElementById('issues-container');
+  var issues    = diagnose();
+
+  var sevIcon  = { fault:'🔴', warn:'🟡', info:'🔵' };
+  var sevLabel = { fault:'FAULT', warn:'WARNING', info:'NORMAL' };
+  var sevPill  = { fault:'status-fault', warn:'status-warn', info:'status-ok' };
+
+  var grouped = {};
+  issues.forEach(function(i) {
+    var g = i.group || 'General';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(i);
+  });
+
+  var html = '<table class="ref-table issues-table">' +
+    '<thead><tr><th>Symptom</th><th>Likely Cause</th><th>What to Check</th><th>Status</th></tr></thead>' +
+    '<tbody>';
+
+  for (var g in grouped) {
+    html += '<tr class="issue-group-header"><td colspan="4">' + g + '</td></tr>';
+    grouped[g].forEach(function(i) {
+      html += '<tr class="issue-row-' + i.severity + '">' +
+        '<td class="td-symptom">' + i.symptom + '</td>' +
+        '<td class="td-cause">' + i.cause + '</td>' +
+        '<td class="td-check">' + i.check + '</td>' +
+        '<td style="text-align:center;white-space:nowrap;">' +
+          '<span class="status-pill ' + sevPill[i.severity] + '">' + sevIcon[i.severity] + ' ' + sevLabel[i.severity] + '</span>' +
+        '</td>' +
+      '</tr>';
+    });
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  var faults = issues.filter(function(i) { return i.severity === 'fault'; }).length;
+  var warns  = issues.filter(function(i) { return i.severity === 'warn'; }).length;
+  var sub    = document.getElementById('issues-subtitle');
+  if (sub) {
+    if (faults > 0)     sub.textContent = faults + ' fault' + (faults > 1 ? 's' : '') + ' detected — action required';
+    else if (warns > 0) sub.textContent = warns + ' warning' + (warns > 1 ? 's' : '') + ' to review';
+    else                sub.textContent = 'No anomalies detected — system operating normally';
+  }
+
+  issues.forEach(function(i) {
+    if (i.severity !== 'fault' && i.severity !== 'warn') return;
+    var plain = i.symptom.replace(/<[^>]+>/g, '');
+    var key   = plain.substring(0, 40);
+    if (!eventLog.find(function(e) { return e.message.replace(/<[^>]+>/g,'').includes(key.substring(0,20)); })) {
+      addEvent(i.severity, i.symptom, i.group);
+    }
+  });
+
+  refreshHeight('item-issues');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCHEDULED REBUILD (debounced)
+══════════════════════════════════════════════════════════ */
+function scheduleRebuild() {
+  if (rebuildTimer) return;
+  rebuildTimer = setTimeout(function() {
+    rebuildTimer = null;
+    buildReadingsTable();
+    buildIssuesTable();
+    updateQuickStatus();
+    updateModeExamples();
+  }, 350);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN — URL detection + Baja subscription
+══════════════════════════════════════════════════════════ */
+(function init() {
+  var device = parseDeviceFromURL();
+
+  if (!device) {
+    setConn('error', 'Could not determine device from URL — open this page from a VAV device link');
+    document.getElementById('device-name').textContent = 'Unknown — check URL';
+    buildReadingsTable();
+    buildIssuesTable();
+    updateModeExamples();
+    return;
+  }
+
+  var network = device.network;
+  var unit    = device.unit;
+  var station = device.station;
+
+  currentUnitName = unit.replace(/_/g, ' ');
+
+  document.getElementById('device-name').textContent  = currentUnitName;
+  document.getElementById('network-name').textContent = network;
+  document.getElementById('doc-ref').textContent      = 'VAV-REF · ' + unit;
+  document.getElementById('footer-ref').textContent   = unit + ' · ' + network;
+
+  var BASE_PATH = 'station:|slot:/Drivers/NiagaraNetwork/' + station + '/points/' + network + '/' + unit + '/points';
+
+  var debugEl = document.getElementById('path-debug');
+  if (debugEl) debugEl.textContent = 'Base ORD: ' + BASE_PATH;
+
+  setConn('connecting', 'Connecting to ' + unit + ' on ' + network + ' — subscribing to ' + totalPoints + ' points…');
+
+  buildReadingsTable();
+  buildIssuesTable();
+  updateModeExamples();
+
+  /* ── Baja subscription ── */
+  require(['baja!'], function(baja) {
+
+    var subscriber = new baja.Subscriber();
+
+    subscriber.attach('changed', function(prop) {
+      if (prop.getName() !== 'out') return;
+
+      var info = this.userData;
+      if (!info) return;
+
+      var raw = '';
+      try {
+        var outSlot = this.get('out');
+        raw = outSlot.getDisplay ? outSlot.getDisplay() : String(outSlot);
+      } catch(e) {
+        try {
+          var out2 = this.getOut();
+          raw = out2.getValueDisplay ? out2.getValueDisplay() : String(out2);
+        } catch(e2) {
+          raw = '';
+        }
+      }
+
+      var isOvr = false;
+      try { isOvr = this.getStatus().isOverridden(); } catch(e) {}
+
+      var val = parseDisplayValue(isOvr ? raw + ' (OVR)' : raw);
+
+      detectChange(info.id, info.label, val);
+      liveValues[info.id] = val;
+      scheduleRebuild();
+    });
+
+    VAV_POINTS.forEach(function(p) {
+      var fullPath = BASE_PATH + '/' + p.id;
+
+      baja.Ord.make(fullPath).get({ subscriber: subscriber })
+        .then(function(point) {
+
+          point.userData = { id: p.id, label: p.label };
+
+          var raw = '';
+          try {
+            var outSlot = point.get('out');
+            raw = outSlot.getDisplay ? outSlot.getDisplay() : String(outSlot);
+          } catch(e) {
+            try {
+              var out2 = point.getOut();
+              raw = out2.getValueDisplay ? out2.getValueDisplay() : String(out2);
+            } catch(e2) {
+              raw = '';
+            }
+          }
+
+          var isOvr = false;
+          try { isOvr = point.getStatus().isOverridden(); } catch(e) {}
+
+          var val = parseDisplayValue(isOvr ? raw + ' (OVR)' : raw);
+
+          liveValues[p.id] = val;
+          connectedCnt++;
+          resolvedCnt++;
+
+          setConn('connecting',
+            'Subscribing to ' + unit + ' — ' + connectedCnt + ' of ' + totalPoints + ' points connected',
+            connectedCnt + '/' + totalPoints
+          );
+
+          if (resolvedCnt === totalPoints) {
+            setConn('connected',
+              'Live — ' + connectedCnt + ' points subscribed from ' + unit + ' on ' + network,
+              connectedCnt + '/' + totalPoints + ' OK'
+            );
+            scheduleRebuild();
+          }
+        })
+        .catch(function(err) {
+          resolvedCnt++;
+          console.warn('[VAV-REF] Could not subscribe to ' + p.id + ' at ' + fullPath + ':', err && err.message);
+
+          if (resolvedCnt === totalPoints) {
+            var bad   = totalPoints - connectedCnt;
+            var state = connectedCnt === 0 ? 'error' : connectedCnt < totalPoints * 0.5 ? 'error' : 'connected';
+            setConn(state,
+              connectedCnt === 0
+                ? 'Failed to connect — verify base path: ' + BASE_PATH
+                : 'Connected: ' + connectedCnt + ' points OK, ' + bad + ' not found on ' + unit,
+              connectedCnt + '/' + totalPoints
+            );
+            scheduleRebuild();
+          }
+        });
+    });
+
+    window.addEventListener('beforeunload', function() {
+      try { subscriber.unsubscribeAll(); } catch(e) {}
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

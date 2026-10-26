@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nav version='1.0'>
+<node name='HollyWood Graphics' ord='file:^Murphy_MasterGraphics/CoverPage.html' icon='module://icons/x16/home.png'>
+  <node name='GRAPHICS' ord='https://10.190.70.19/Murphy_MasterGraphics/Home.html' icon='module://icons/x16/folder.png'/>
+</node>
+</nav>
