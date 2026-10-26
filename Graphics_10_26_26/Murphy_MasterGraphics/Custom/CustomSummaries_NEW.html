@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control — Summary Sheets</title>
+<!-- Niagara/Baja loader (needed for live values; if absent the page runs in DEMO mode with fake data) -->
+<script src="/requirejs/config.js"></script>
+<script src="/module/js/com/tridium/js/ext/require/require.min.js?"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#080d14; --surface:#0d1520; --surface-2:#111c2b; --border:rgba(0,180,255,.14); --border-hover:rgba(0,180,255,.5);
+  --accent:#04d9ff; --accent-dim:rgba(0,180,255,.16); --amber:#ffae00; --red:#ff4444; --green:#00e676;
+  --text:#c8d8ea; --text-dim:#5a7080; --font-ui:'Rajdhani','Segoe UI',sans-serif; --font-mono:'Share Tech Mono',Consolas,monospace;
+  --top-h:54px; --bot-h:40px;
+}
+body.light-mode {
+  --bg:#eef2f7; --surface:#fff; --surface-2:#f4f7fc; --border:rgba(0,100,180,.2); --border-hover:rgba(0,100,180,.5);
+  --text:#1a2535; --text-dim:#4a6070; --accent:#0060c0; --accent-dim:rgba(0,112,204,.12); --amber:#d97700;
+}
+html, body { height:100%; }
+body { font-family:var(--font-ui); background:var(--bg); color:var(--text); overflow:hidden; }
+button, select, input, textarea { font-family:inherit; }
+
+/* bars */
+.top-bar, .bot-bar { position:fixed; left:0; right:0; z-index:50; background:var(--surface); border:0 solid var(--border); display:flex; align-items:center; gap:12px; padding:0 16px; }
+.top-bar { top:0; height:var(--top-h); border-bottom-width:1px; }
+.bot-bar { bottom:0; height:var(--bot-h); border-top-width:1px; justify-content:space-between; }
+.brand { font-size:.95rem; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); white-space:nowrap; }
+#tabs { flex:1; display:flex; gap:6px; overflow-x:auto; padding:4px 2px; }
+.tools { display:flex; gap:8px; align-items:center; }
+.btn { background:none; border:1px solid var(--border); color:var(--text-dim); font-size:.78rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; padding:5px 14px; border-radius:5px; cursor:pointer; white-space:nowrap; transition:border-color .2s,color .2s,background .2s; }
+.btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.btn.on { border-color:var(--amber); color:var(--amber); background:rgba(255,171,0,.1); }
+.tab { background:none; border:1px solid var(--border); color:var(--text-dim); font-size:.82rem; font-weight:600; letter-spacing:.08em; padding:5px 16px; border-radius:5px; cursor:pointer; white-space:nowrap; }
+.tab:hover { border-color:var(--accent); color:var(--accent); }
+.tab.sel { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.tab.al { animation:alPulse 1.1s ease-in-out infinite; }
+.clock { font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); }
+#alChip { border-color:var(--border); }
+#alChip.alarming { border-color:var(--red); color:var(--red); background:rgba(255,68,68,.12); animation:alPulse 1.1s ease-in-out infinite; }
+@keyframes alPulse { 0%,100% { box-shadow:0 0 0 rgba(255,68,68,0); } 50% { box-shadow:0 0 14px rgba(255,68,68,.9); } }
+#alPanel { position:fixed; top:calc(var(--top-h) + 6px); right:16px; z-index:60; display:none; width:320px; max-height:60vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border-hover); border-radius:8px; padding:6px; font-family:var(--font-mono); font-size:.7rem; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+#alPanel.open { display:block; }
+.arow { display:flex; justify-content:space-between; gap:10px; padding:6px 8px; margin:3px 0; border:1px solid var(--border); border-left-width:3px; border-radius:5px; cursor:pointer; }
+.arow:hover { background:var(--accent-dim); }
+
+/* main sheet */
+#main { position:fixed; top:var(--top-h); bottom:var(--bot-h); left:0; right:0; overflow-y:auto; padding:18px 20px 90px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,180,255,.07) 0%, transparent 60%), var(--bg); }
+#sheetTitle { font-size:1.15rem; letter-spacing:.2em; text-transform:uppercase; color:var(--text); margin-bottom:14px; }
+#sheetTitle small { font-family:var(--font-mono); font-size:.62rem; letter-spacing:.12em; color:var(--text-dim); margin-left:12px; }
+#grid { display:grid; gap:12px; align-items:stretch; grid-auto-flow:dense; }
+#empty { color:var(--text-dim); font-family:var(--font-mono); font-size:.8rem; padding:30px; text-align:center; }
+
+/* tiles */
+.an-slot { position:relative; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; min-height:84px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; transition:border-color .2s, box-shadow .2s; }
+.an-slot[data-clk="1"] { cursor:pointer; }
+.an-slot[data-clk="1"]:hover { border-color:var(--border-hover); box-shadow:0 0 14px var(--accent-dim); }
+.an-slot.alm { animation:alPulse 1.1s ease-in-out infinite; }
+.an-slot[data-t="header"] { background:linear-gradient(90deg,var(--accent-dim),transparent); border:0; border-left:4px solid var(--accent); border-radius:4px; min-height:0; padding:7px 14px; align-items:flex-start; text-align:left; }
+.an-hd { font-size:.9rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); }
+.an-slot[data-t="divider"] { background:none; border:0; border-top:1px solid var(--border-hover); border-radius:0; min-height:0; padding:0; margin:4px 0; }
+.an-slot[data-t="status"] { flex-direction:row; gap:10px; justify-content:flex-start; min-height:48px; }
+.an-slot[data-t="status"] b { margin-left:auto; font-family:var(--font-mono); font-size:.85rem; }
+.an-slot[data-t="bar"] { align-items:stretch; text-align:left; }
+.an-slot[data-t="graph"] { min-height:130px; align-items:stretch; }
+.an-slot.blank { border-style:dashed; color:var(--text-dim); }
+.an-n { font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); }
+.an-slot[data-t="bar"] .an-n { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; color:var(--text); }
+.an-v { font-family:var(--font-mono); font-size:1.7rem; color:var(--text); margin-top:4px; }
+.an-s { font-size:.7rem; letter-spacing:.14em; font-weight:700; margin-top:2px; }
+.an-slot svg { width:100%; max-width:140px; }
+.an-track { fill:none; stroke:var(--border); stroke-width:9; stroke-linecap:round; }
+.an-arc { fill:none; stroke-width:9; stroke-linecap:round; }
+.an-dv { font-family:var(--font-mono); font-size:19px; font-weight:700; }
+.an-dot { width:14px; height:14px; border-radius:50%; flex:none; }
+.an-barwrap { height:12px; border-radius:6px; background:var(--border); }
+.an-barfill { height:100%; border-radius:6px; transition:width .4s; }
+.an-slot svg.an-g { max-width:none; height:70px; }
+.an-gl { display:flex; justify-content:space-between; font-size:.78rem; margin-top:4px; }
+.an-gl b { font-family:var(--font-mono); }
+
+/* edit mode on tiles */
+body.cx-edit .an-slot { cursor:grab; outline:1px dashed rgba(255,174,0,.5); }
+body.cx-edit .an-slot.dragover { outline:2px solid var(--amber); }
+.cx-x, .cx-dup { display:none; position:absolute; top:3px; font-style:normal; font-size:.7rem; padding:1px 6px; border-radius:4px; background:var(--surface-2); border:1px solid var(--border); cursor:pointer; z-index:2; }
+.cx-x { right:3px; color:var(--red); } .cx-dup { right:30px; color:var(--accent); }
+body.cx-edit .cx-x, body.cx-edit .cx-dup { display:block; }
+.an-plus { border:1.5px dashed var(--amber); color:var(--amber); border-radius:10px; min-height:60px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.8rem; letter-spacing:.14em; }
+.an-plus:hover { background:rgba(255,171,0,.08); }
+.cx-vw { position:absolute; bottom:-9px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:2px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:0 3px; z-index:3; opacity:0; transition:opacity .15s; font-family:var(--font-mono); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); white-space:nowrap; }
+.an-slot:hover .cx-vw, .cx-vw.chg { opacity:1; }
+.cx-vw.chg { border-color:var(--amber); color:var(--amber); }
+@media (hover:none) { .cx-vw { opacity:.75; } }
+.cx-vw button { background:none; border:0; color:inherit; cursor:pointer; font-size:.95rem; line-height:1; padding:0 5px; }
+.cx-vw button:hover { color:var(--accent); }
+
+#editBanner { display:none; position:fixed; top:calc(var(--top-h) + 8px); left:50%; transform:translateX(-50%); z-index:55; background:rgba(255,171,0,.15); border:1px solid var(--amber); color:var(--amber); font-family:var(--font-mono); font-size:.68rem; letter-spacing:.08em; padding:5px 16px; border-radius:6px; pointer-events:none; }
+#editBanner.active { display:block; }
+#editTools { display:none; position:fixed; bottom:calc(var(--bot-h) + 10px); left:50%; transform:translateX(-50%); z-index:55; gap:8px; flex-wrap:wrap; justify-content:center; padding:8px 12px; background:var(--surface); border:1px solid var(--amber); border-radius:8px; max-width:96vw; }
+body.cx-edit #editTools { display:flex; }
+#draftNote { display:none; font-family:var(--font-mono); font-size:.62rem; color:var(--amber); }
+#toast { display:none; position:fixed; bottom:calc(var(--bot-h) + 70px); left:50%; transform:translateX(-50%); z-index:5000; background:var(--surface); border:1px solid var(--accent); color:var(--accent); font-family:var(--font-mono); font-size:.75rem; padding:8px 18px; border-radius:6px; }
+@keyframes fadeToast { 0%,80% { opacity:1; } 100% { opacity:0; } }
+
+/* form modal */
+#cx-modal, #pop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:3000; align-items:center; justify-content:center; }
+#cx-modal.open, #pop.open { display:flex; }
+#cx-modal { z-index:3100; }
+.cx-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; width:min(520px,92%); max-height:90vh; overflow-y:auto; }
+.cx-box h3 { font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+.cx-box label { display:block; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin:10px 0 4px; }
+.cx-box input[type=text], .cx-box input[type=number], .cx-box select, .cx-box textarea { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:7px; font-family:var(--font-mono); font-size:.75rem; }
+.cx-box input[type=range] { width:100%; accent-color:var(--accent); }
+.cx-box input[type=color] { width:52px; height:32px; background:none; border:1px solid var(--border); border-radius:6px; }
+.cx-box select option { background:var(--surface); color:var(--text); }
+.cx-r { display:flex; gap:10px; margin-top:14px; }
+.cx-r button { flex:1; background:none; border:1px solid var(--border); color:var(--text-dim); border-radius:6px; padding:7px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; cursor:pointer; }
+.cx-r button:hover { border-color:var(--accent); color:var(--accent); }
+#cx-del { border-color:var(--red)!important; color:var(--red)!important; }
+
+/* detail popup */
+#pop-box { background:var(--surface); border:1px solid var(--accent); border-radius:10px; padding:16px 18px; width:min(720px,94%); max-height:92vh; overflow-y:auto; font-family:var(--font-mono); font-size:.72rem; }
+.pp-h { display:flex; justify-content:space-between; align-items:center; font-family:var(--font-ui); font-size:1.1rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+.pp-h button { background:none; border:1px solid var(--border); color:var(--text-dim); border-radius:5px; padding:3px 10px; cursor:pointer; }
+.pp-v { display:flex; align-items:baseline; gap:14px; margin:6px 0 10px; }
+.pp-v #pp-val { font-size:2rem; color:var(--text); }
+.pp-sec { font-family:var(--font-ui); font-size:.8rem; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); margin:14px 0 6px; padding-bottom:3px; border-bottom:1px solid var(--border); }
+.ir { display:flex; justify-content:space-between; gap:16px; padding:4px 0; border-bottom:1px solid var(--border); }
+.ir b { color:var(--text); text-align:right; word-break:break-all; }
+.pp-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0; }
+.pp-row input, .pp-row select { background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:6px; font-family:inherit; font-size:.75rem; min-width:0; }
+.pp-row input { flex:1; }
+.pp-msg { margin-top:6px; min-height:1.2em; }
+.pp-rng { display:flex; gap:6px; margin-bottom:6px; }
+.pp-none { color:var(--text-dim); padding:14px 0; }
+#pp-chart svg { width:100%; height:auto; display:block; }
+#pp-read { margin-top:4px; color:var(--text-dim); min-height:1.2em; }
+#sheetSel { background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:6px 10px; font-size:.85rem; font-weight:600; min-width:230px; max-width:320px; cursor:pointer; }
+#sheetSel:focus { outline:none; border-color:var(--accent); }
+#sheetSel option { background:var(--surface); color:var(--text); }
+.navb { padding:5px 10px; }
+#tabs { display:none; }
+@media (max-width:760px){ .brand,.clock{display:none} .btn{padding:5px 9px;font-size:.7rem} }
+
+/* hamburger + side nav */
+.hamburger { width:36px; height:36px; flex:none; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; cursor:pointer; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:5px; transition:border-color .2s, background .2s; }
+.hamburger:hover { border-color:var(--accent); background:var(--accent-dim); }
+.hamburger-line { width:18px; height:2px; background:var(--text); border-radius:2px; transition:transform .2s, opacity .2s; }
+.hamburger.active .hamburger-line:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.hamburger.active .hamburger-line:nth-child(2) { opacity:0; }
+.hamburger.active .hamburger-line:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+#navOverlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000; opacity:0; visibility:hidden; transition:opacity .22s, visibility .22s; }
+#navOverlay.active { opacity:1; visibility:visible; }
+#sidePanel { position:fixed; top:0; left:-300px; width:280px; height:100vh; z-index:2001; background:var(--surface); border-right:1px solid var(--border); transition:left .3s ease; padding:20px 0; overflow-y:auto; }
+#sidePanel.active { left:0; }
+.sp-head { padding:10px 20px 16px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+.sp-head h2 { font-size:1.2rem; letter-spacing:.3em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+.sp-head p { font-size:.75rem; color:var(--text-dim); margin-top:4px; letter-spacing:.1em; }
+.sp-label { padding:10px 20px 6px; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.2em; text-transform:uppercase; color:var(--text-dim); }
+.nav-link { display:flex; align-items:center; gap:14px; margin:6px 14px; padding:10px 14px; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; text-decoration:none; color:var(--text); transition:border-color .2s, background .2s, transform .2s; }
+.nav-link:hover { border-color:var(--accent); background:var(--accent-dim); transform:translateX(3px); }
+.nav-ico { width:48px; height:48px; flex:none; border-radius:8px; background:var(--accent-dim); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.nav-txt { display:flex; flex-direction:column; gap:2px; }
+.nav-txt b { font-size:.95rem; font-weight:600; letter-spacing:.08em; }
+.nav-txt span { font-size:.72rem; color:var(--text-dim); letter-spacing:.06em; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="hamburger" id="hamburgerMenu" title="Menu">
+  <div class="hamburger-line"></div>
+  <div class="hamburger-line"></div>
+  <div class="hamburger-line"></div>
+</div>
+<div class="brand">Summary Sheets</div>
+  <button class="btn navb" id="prevSh" title="Previous sheet">◀</button>
+<select id="sheetSel"></select>
+<button class="btn navb" id="nextSh" title="Next sheet">▶</button>
+<div id="tabs"></div>
+<div style="flex:1"></div>
+  <div class="tools">
+    <!--<span id="draftNote">DRAFT <a href="#" id="draftDiscard" style="color:inherit">[discard]</a></span>-->
+    <button class="btn" id="alChip">✓ No Alarms</button>
+    <button class="btn" id="editBtn" style="display:none" title="Add / change sheets and items">✥ Edit Layout</button>
+    <button class="btn" id="themeBtn">Light</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sheetTitle"></div>
+  <div id="grid"></div>
+</div>
+
+<div id="editBanner">EDIT MODE — click a tile to edit · drag tiles to reorder · "Copy JSON" when done</div>
+<div id="editTools">
+  <button class="btn" data-k="item">+ Item</button>
+  <button class="btn" data-k="bulk">+ Bulk items</button>
+  <button class="btn" data-k="sheet">+ New sheet</button>
+  <button class="btn" data-k="cfg">Sheet settings</button>
+  <button class="btn" data-k="left">◀ Move sheet</button>
+  <button class="btn" data-k="right">Move sheet ▶</button>
+  <button class="btn" data-k="restore" title="Bring back auto points you deleted from this sheet">↺ Restore points</button>
+  <button class="btn" data-k="restoresheets" title="Bring back auto sheets you deleted">↺ Restore auto sheets</button>
+  <button class="btn" data-k="delsheet" style="border-color:var(--red);color:var(--red)">Delete sheet</button>
+</div>
+<div id="alPanel"></div>
+
+<div id="navOverlay"></div>
+<div id="sidePanel">
+  <div class="sp-head">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="sp-label">Select System View</div>
+
+  <a href="../Home.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/><rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx=".5"/></svg></div>
+    <div class="nav-txt"><b>Home</b><span>Main dashboard</span></div>
+  </a>
+
+  <a href="../FloorPlan.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/><line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/><line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/><line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/><path d="M22,20 Q28,20 28,26" fill="none" stroke="var(--accent)" stroke-width="1.5"/><line x1="22" y1="20" x2="28" y2="20" stroke="var(--accent)" stroke-width="1.5"/></svg></div>
+    <div class="nav-txt"><b>Floor Plan</b><span>Building layout</span></div>
+  </a>
+
+  <a href="../Alarms.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/><line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/><circle cx="20" cy="30" r="1.8" fill="var(--amber)"/></svg></div>
+    <div class="nav-txt"><b>Alarming</b><span>System alerts</span></div>
+  </a>
+
+  <a href="../Users.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/><path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/><line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>
+    <div class="nav-txt"><b>Users</b><span>Manage access</span></div>
+  </a>
+
+  <a href="../LogsNUMERIC.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/><rect x="8" y="20" width="5" height="14" fill="#e05252" rx="1"/><rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/><rect x="24" y="8" width="5" height="26" fill="var(--accent)" rx="1"/><rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/></svg></div>
+    <div class="nav-txt"><b>Histories</b><span>Data logs</span></div>
+  </a>
+
+  <a href="../Shedules.html" class="nav-link">
+    <div class="nav-ico"><svg viewBox="0 0 40 40" width="26" height="26"><rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/><rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/><line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="23" r="1.5" fill="var(--accent)"/><circle cx="20" cy="23" r="1.5" fill="var(--accent)"/><circle cx="28" cy="23" r="1.5" fill="var(--accent)"/><circle cx="12" cy="30" r="1.5" fill="var(--accent)"/><circle cx="20" cy="30" r="1.5" fill="var(--accent)"/><circle cx="28" cy="30" r="1.5" fill="var(--accent)"/></svg></div>
+    <div class="nav-txt"><b>Schedules</b><span>Time programs</span></div>
+  </a>
+</div>
+<div id="toast"></div>
+
+<div class="bot-bar">
+  <button class="btn" onclick="history.back()">← Back</button>
+  <div class="clock" id="clock">—</div>
+  <div class="clock" id="modeNote"></div>
+</div>
+
+<div id="pop"><div id="pop-box"></div></div>
+
+<script>
+(function () {
+  'use strict';
+  var LAYOUT_FILE = '../SummarySheets.json';   // loaded on start; paste the copied JSON into this file
+  var GLOBAL_FILES = ['../Global.json', 'Global.json'];   // tried in order; devices with Type "OTHER" become auto sheets
+  var AUTO_TYPE = 'OTHER';
+  // var DRAFT_KEY = 'murphySumDraft', CUR_KEY = 'murphySumCur';
+  var DEMO = typeof require === 'undefined';   // no Baja → fake data so you can lay things out
+
+  var S = { sheets: [], hiddenAuto: [] }, curId = null, edit = false, globalData = null;
+  var live = {}, unsubs = {}, shared = {}, paintFns = {}, hist = {}, realHist = {}, histCache = {}, viewOvr = {};
+  var popState = null;
+  
+  
+
+  function $(id) { return document.getElementById(id); }
+  function uid(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+  function decode(v) { return typeof v === 'string' ? v.replace(/\$([0-9a-fA-F]{2})/g, function (_, h) { return String.fromCharCode(parseInt(h, 16)); }) : v; }
+  function hexA(hex, a) { var n = parseInt(String(hex).replace('#', ''), 16); return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  function hash(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+  function toast(t) {
+    var el = $('toast'); el.textContent = t; el.style.display = 'block';
+    el.style.animation = 'none'; void el.offsetHeight; el.style.animation = 'fadeToast 4s forwards';
+    setTimeout(function () { el.style.display = 'none'; }, 4100);
+  }
+  /* overrides are only offered to admins (same role check as the edit button) */
+  function isAdmin() {
+    if (DEMO) return true;
+    try { return sessionStorage.getItem('role') === 'admin'; } catch (e) { return false; }
+  }
+  function canOvr(it) { return it.ovr === 'yes' && isAdmin(); }
+
+  /* ── clock / theme ── */
+  (function tick() {
+    $('clock').textContent = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(',', '');
+    setTimeout(tick, 1000);
+  })();
+  function applyTheme(light) {
+    document.body.classList.toggle('light-mode', light);
+    $('themeBtn').textContent = light ? 'Dark' : 'Light';
+    try { localStorage.setItem('theme', light ? 'light' : 'dark'); } catch (e) {}
+  }
+  $('themeBtn').onclick = function () { applyTheme(!document.body.classList.contains('light-mode')); };
+  try { applyTheme(localStorage.getItem('theme') === 'light'); } catch (e) {}
+  if (DEMO) $('modeNote').textContent = 'DEMO MODE — no Baja, values are simulated';
+
+  /* ── status colours ── */
+  var ST = {
+    alarm:      { c: '#ff4444', l: 'ALARM' },
+    fault:      { c: '#ffe600', l: 'FAULT' },
+    down:       { c: '#ffe600', l: 'DOWN' },
+    stale:      { c: '#ff9a1f', l: 'STALE' },
+    overridden: { c: '#b34dff', l: 'OVERRIDDEN' }
+  };
+  var ORDER = ['alarm', 'fault', 'down', 'stale', 'overridden'];
+  var GREEN = '#00e676', GRAY = '#6b7385';
+  var COLS = { red: '#ff4444', purple: '#b34dff', gray: '#9aa3b2', green: '#00e676', white: '#ffffff', yellow: '#ffe600', orange: '#ff9a1f', blue: '#04d9ff' };
+  function stKey(st) {
+    var f = (st || '').split(/[^a-z]+/).filter(Boolean);
+    for (var i = 0; i < ORDER.length; i++) if (f.indexOf(ORDER[i]) >= 0) return ORDER[i];
+    return null;
+  }
+  /* per-value colour map, lines like "Normal = green" */
+  function mapColor(s, v) {
+    if (!s || !s.colors || v == null) return null;
+    var want = String(v).trim().toLowerCase(), lines = String(s.colors).split(/[\r\n]+/);
+    for (var i = 0; i < lines.length; i++) {
+      var m = lines[i].match(/^\s*(.+?)\s*[=:]\s*([a-zA-Z]+)\s*$/);
+      if (m && m[1].trim().toLowerCase() === want) return COLS[m[2].toLowerCase()] || null;
+    }
+    return null;
+  }
+
+  /* ══════════ BAJA: facets, subscriptions, probes ══════════ */
+
+  /* unit / min / max / enum-or-boolean range / point type — read from the point's facets */
+  function readFacets(p) {
+    var o = {};
+    try { o.ptype = String(p.getType()); } catch (x) {}
+    try {
+  var val = p.getOut().getValue();
+  if (typeof val === 'boolean') o.vkind = 'bool';
+  else if (typeof val === 'number') o.vkind = 'num';
+  else if (typeof val === 'string') o.vkind = 'str';
+  else if (val && val.getType && /enum/i.test(String(val.getType()))) o.vkind = 'enum';
+} catch (x) {}
+    try {
+      var f = p.get('facets');
+      if (f && f.get) {
+        var u = f.get('units');
+        if (u) {
+          var sy = u.getSymbol ? u.getSymbol() : String(u);
+          if (sy && sy !== 'null') o.unit = String(sy);
+        }
+        try {
+          var vs = [], os = [], rg = f.get('range');
+          if (rg && rg.getOrdinals) {
+            rg.getOrdinals().forEach(function (od) {
+              var t; try { t = rg.getDisplayTag ? rg.getDisplayTag(od) : rg.getTag(od); } catch (e) { t = rg.getTag(od); }
+              if (t != null) { vs.push(decode(String(t))); os.push(od); }
+            });
+          }
+          if (!vs.length) {
+            var ft = f.get('falseText'), tt = f.get('trueText');
+            if (ft != null || tt != null) { vs.push(decode(String(ft != null ? ft : 'false'))); vs.push(decode(String(tt != null ? tt : 'true'))); os = [0, 1]; }
+          }
+          if (vs.length) { o.vals = vs; o.ords = os; }
+        } catch (x) {}
+        ['min', 'max'].forEach(function (k) {
+          var x = f.get(k); if (x == null) return;
+          var a = parseFloat(String(x.valueOf ? x.valueOf() : x));
+          if (!isNaN(a) && isFinite(a) && Math.abs(a) < 1e9) o[k] = a;
+        });
+      }
+    } catch (x) {}
+    return o;
+  }
+  function nameFromOrd(ord) {
+    var s = String(ord || '').split('|view')[0].split('?')[0].replace(/\/+$/, '');
+    return decode(s.split('/').pop() || s).replace(/_/g, ' ');
+  }
+
+  /* subscribe to one point; cb(err, valueDisplay, statusString, facets). Returns an unsubscribe function. */
+  function watch(ord, cb) {
+    if (DEMO) return demoWatch(ord, cb);
+    var sub = null, timer = null, dead = false;
+    if (!ord || ord.indexOf('{') >= 0 || typeof require === 'undefined') { cb(new Error('bad')); return function () {}; }
+    function push(p) {
+      try {
+        var out = p.getOut(), st = '';
+        try { var s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+        cb(null, decode(out.getValueDisplay()), st, readFacets(p));
+      } catch (x) { cb(x); }
+    }
+    require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], function (baja) {
+      if (dead) return;
+      function poll() { baja.Ord.make(ord).get().then(function (p) { if (!dead) push(p); }).catch(function (e) { if (!dead) cb(e); }); }
+      try {
+        sub = new baja.Subscriber();
+        sub.attach('changed', function () { if (!dead) push(this); });
+        baja.Ord.make(ord).get({ subscriber: sub }).then(function (p) {
+          if (dead) { try { sub.unsubscribeAll(); } catch (x) {} return; }
+          push(p);
+        }).catch(function () { try { sub.unsubscribeAll(); } catch (x) {} sub = null; poll(); timer = setInterval(poll, 20000); });
+      } catch (x) { poll(); timer = setInterval(poll, 20000); }
+    });
+    return function () { dead = true; if (timer) clearInterval(timer); if (sub) { try { sub.unsubscribeAll(); } catch (x) {} } };
+  }
+  function demoWatch(ord, cb) {
+    var h = hash(ord || 'x'), base = 45 + (h % 40), t = h % 20;
+    function tick() {
+      t++;
+      var v = (base + Math.sin(t / 4) * 6).toFixed(1);
+      var st = (h % 7 === 0 && t % 8 < 3) ? '{alarm,unackedAlarm}' : (h % 11 === 0 ? '{overridden}' : '{ok}');
+      cb(null, v + ' °F', st, { unit: '°F', min: 0, max: 100, ptype: 'control:NumericWritable' });
+    }
+    tick(); var id = setInterval(tick, 3000);
+    return function () { clearInterval(id); };
+  }
+
+  /* shared subscriptions: one watcher per unique ORD, many listeners. Watcher lingers 5s after the last listener leaves so re-renders don't resubscribe. */
+  function sub(key, ord, fn) {
+    if (unsubs[key]) { unsubs[key](); delete unsubs[key]; }
+    if (!ord) { delete live[key]; return; }
+    fn(live[key] || { v: null, st: null }, false);
+    var sh = shared[ord];
+    if (sh && sh.timer) { clearTimeout(sh.timer); sh.timer = null; }
+    if (!sh) {
+      sh = shared[ord] = { listeners: {}, last: null, stop: null, timer: null };
+      sh.stop = watch(ord, function (e, v, st, fac) {
+        sh.last = { e: e, v: v, st: st, fac: fac };
+        Object.keys(sh.listeners).forEach(function (k) { sh.listeners[k](sh.last); });
+      });
+    }
+    sh.listeners[key] = function (r) {
+      var l = live[key] = {
+        v: r.e ? null : r.v,
+        st: r.e ? null : stKey(r.st),
+        raw: r.e ? '' : (r.st || ''),
+        ok: !r.e && /\bok\b/.test(r.st || ''),
+        fac: r.e ? null : (r.fac || null)
+      };
+      fn(l, true);
+    };
+    if (sh.last) sh.listeners[key](sh.last);
+    unsubs[key] = function () {
+      delete sh.listeners[key];
+      if (!Object.keys(sh.listeners).length) {
+        sh.timer = setTimeout(function () {
+          if (Object.keys(sh.listeners).length) return;
+          try { sh.stop(); } catch (x) {}
+          if (shared[ord] === sh) delete shared[ord];
+        }, 5000);
+      }
+    };
+  }
+
+  /* resolve an ORD once for the "test ORD" button */
+  function probe(ord, cb) {
+    if (DEMO) { cb({ value: '72.4 °F', fac: { unit: '°F', min: 0, max: 100, vals: ['Off', 'On'] }, name: nameFromOrd(ord) }); return; }
+    require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], function (baja) {
+      baja.Ord.make(ord).get().then(function (p) {
+        var out = p.getOut();
+        cb({ value: decode(out.getValueDisplay()), fac: readFacets(p), name: nameFromOrd(ord) });
+      }).catch(function () { cb(null); });
+    });
+  }
+  function autoFill(get, set, b) {
+    var ord = get('ord');
+    if (!ord) { b.textContent = '✗ Enter an ORD first'; return; }
+    b.textContent = '… reading';
+    probe(ord, function (r) {
+      if (!r) { b.textContent = '✗ Could not resolve ORD'; return; }
+      if (r.fac.unit) set('unit', r.fac.unit);
+      if (r.fac.min != null) set('min', r.fac.min);
+      if (r.fac.max != null) set('max', r.fac.max);
+      if (!get('name')) set('name', r.name);
+      b.textContent = '✓ Live value: ' + r.value + (r.fac.unit ? '  (facets filled)' : '  (no facets found)');
+    });
+  }
+
+  /* ══════════ OVERRIDES ══════════
+     Numeric:  override(NumericOverride{duration,value})     Boolean: active / inactive (Override{duration})
+     Enum:     override(EnumOverride{duration,value})        String:  override(StringOverride{duration,value})
+     Release:  auto                                                                                      */
+  function needType(baja, spec, go) {
+    var done = false; function f() { if (!done) { done = true; go(); } }
+    try { baja.importTypes({ typeSpecs: [spec], ok: f, fail: f }); } catch (e) { f(); }
+  }
+function invokeOv(ord, o, done) {
+  if (DEMO) { setTimeout(function () { done(null); }, 300); return; }
+  if (!isAdmin()) { done(new Error('Only administrators can override points')); return; }
+  var mods = ['baja!'];
+  if (o.mode !== 'auto') {
+    mods.push(o.kind === 'num' ? 'baja!control:NumericOverride'
+            : o.kind === 'enum' ? 'baja!control:EnumOverride'
+            : o.kind === 'str' ? 'baja!control:StringOverride'
+            : 'baja!control:Override');
+  }
+  require(mods, function (baja) {
+    baja.Ord.make(ord).get().then(function (p) {
+      if (o.mode === 'auto') return p.invoke({ slot: 'auto' });
+      var secs = (o.mins || 0) * 60;
+      function dur(op) { if (secs > 0) op.setDuration(baja.RelTime.make({ seconds: secs })); return op; }
+      if (o.kind === 'num') {
+        var n = parseFloat(o.val); if (isNaN(n)) throw new Error('Enter a number');
+        var no = baja.$('control:NumericOverride'); no.setValue(n);
+        return p.invoke({ slot: 'override', value: dur(no) });
+      }
+      if (o.kind === 'bool') {
+        return p.invoke({ slot: o.idx === 1 ? 'active' : 'inactive', value: dur(baja.$('control:Override')) });
+      }
+      if (o.kind === 'enum') {
+        var eo = baja.$('control:EnumOverride'); eo.setValue(baja.DynamicEnum.make(o.ordinal));
+        return p.invoke({ slot: 'override', value: dur(eo) });
+      }
+      if (o.kind === 'str') {
+        var so = baja.$('control:StringOverride'); so.setValue(String(o.val));
+        return p.invoke({ slot: 'override', value: dur(so) });
+      }
+      throw new Error('Unknown point kind. Set it in Global.json (SP-Boolean/Numeric/Enum)');
+    }).then(function () { done(null); }).catch(function (e) { done(e); });
+  });
+}
+
+  /* ══════════ HISTORY ══════════ */
+  var RANGE_MS = { '1h': 3600000, '12h': 43200000, '24h': 86400000, '1w': 604800000 };
+  /* returns [[ms, value], ...] from the point's n:history tag (same method as the Building Data popup) */
+  function fetchHist(ord, range, cb) {
+    var ck = ord + '|' + range, c = histCache[ck];
+    if (c && Date.now() - c.ts < 300000) { cb(c.pts); return; }
+    if (DEMO) {
+      var n = 120, now = Date.now(), span = RANGE_MS[range] || RANGE_MS['24h'], h = hash(ord), d = [];
+      for (var i = 0; i < n; i++) d.push([now - span + i * span / n, 60 + Math.sin(i / 9 + h) * 8 + (h % 5)]);
+      histCache[ck] = { ts: Date.now(), pts: d }; cb(d); return;
+    }
+    if (!ord || typeof require === 'undefined') { cb(null); return; }
+    require(['baja!'], function (baja) {
+      var end = new Date(), start = new Date(end.getTime() - (RANGE_MS[range] || RANGE_MS['24h'])), pts = [];
+      baja.Ord.make(ord).get().then(function (point) { return point.tags(); }).then(function (tagMap) {
+        var h = (tagMap.get('n:history') || '').toString().trim();
+        if (!h) throw new Error('no history tag');
+        if (h.indexOf('history:') !== 0) h = 'history:' + h;
+        var q = h + "|bql:select timestamp, value where timestamp >= '" + start.toISOString() + "' and timestamp <= '" + end.toISOString() + "' order by timestamp";
+        return baja.Ord.make(q).get({ cursor: { limit: 4000, each: function () {
+          var row = this.get(), raw = row.get('value'), ms = null;
+          try { var ts = row.get('timestamp'); ms = ts.getJsDate ? ts.getJsDate().getTime() : Number(ts.valueOf()); } catch (e) {}
+          var v = typeof raw === 'boolean' ? (raw ? 1 : 0) : parseFloat(raw);
+          if (!isNaN(v)) pts.push([ms, v]);
+        } } });
+      }).then(function () {
+        if (pts.length < 2) throw new Error('not enough data');
+        var out = pts;
+        if (pts.length > 240) {
+          var step = pts.length / 240; out = [];
+          for (var i = 0; i < 240; i++) {
+            var a = Math.floor(i * step), b = Math.max(a + 1, Math.floor((i + 1) * step)), sum = 0, k = 0;
+            for (var j = a; j < b && j < pts.length; j++) { sum += pts[j][1]; k++; }
+            out.push([pts[Math.min(b, pts.length) - 1][0], sum / k]);
+          }
+        }
+        histCache[ck] = { ts: Date.now(), pts: out };
+        cb(out);
+      }).catch(function () { cb(null); });
+    });
+  }
+  /* local "live only" history for graph tiles (kept in this browser) */
+function getHist(k) { if (!hist[k]) hist[k] = []; return hist[k]; }
+function pushHist(k, n) { var h = getHist(k); h.push(n); if (h.length > 120) h.shift(); }
+  function loadGraphHist(it, key, vt) {
+    if ((vt || it.type) !== 'graph' || !it.ord || it.range === 'local') return;
+    fetchHist(it.ord, it.range || '24h', function (pts) {
+      if (pts) realHist[key] = pts.map(function (p) { return p[1]; }); else delete realHist[key];
+      if (paintFns[key]) paintFns[key](live[key] || { v: null, st: null });
+    });
+  }
+
+  /* ══════════ DATA MODEL / PERSISTENCE ══════════ */
+  function mkItem(type) { return { id: uid('i'), type: type || 'data', name: '', ord: '', spOrd: '', min: '', max: '', unit: '', colors: '', range: '', link: '', span: '', hist: 'yes', ovr: 'no' }; }
+  function mkSheet(title) { return { id: uid('s'), title: title || 'New Sheet', minw: 200, items: [] }; }
+  function curSheet() { for (var i = 0; i < S.sheets.length; i++) if (S.sheets[i].id === curId) return S.sheets[i]; return S.sheets[0]; }
+function changed() { renderAll(); }
+
+  /* remove a tile; auto points are remembered so they are not regenerated on the next load */
+  function dropItem(sh, it) {
+    var i = sh.items.indexOf(it); if (i >= 0) sh.items.splice(i, 1);
+    if (it.pt) {
+      sh.removed = sh.removed || [];
+      if (sh.removed.indexOf(it.pt) < 0) sh.removed.push(it.pt);
+    }
+  }
+
+  /* ══════════ AUTO SHEETS (Global.json devices with Type "OTHER") ══════════
+     One sheet per device, id "auto_<deviceKey>". Every point becomes an ordinary, fully editable tile
+     (tagged with `pt` = point name). Re-running this on each load only ADDS new points and drops tiles
+     whose point no longer exists in Global.json; anything you edited or reordered is left alone.         */
+  function autoType(p) {
+    if (/^SP-Boolean$/i.test(p.id || '') || /^SP-Boolean$/i.test(p.id2 || '')) return 'status';
+    if (/^yes/i.test(String(p.logBoolean || '')) && !/^yes/i.test(String(p.logNumeric || ''))) return 'status';
+    return 'data';
+  }
+  
+  function kindOf(p) {
+  var t = (p.id || '') + ' ' + (p.id2 || '');
+  if (/SP-Boolean/i.test(t)) return 'bool';
+  if (/SP-Enum/i.test(t)) return 'enum';
+  if (/SP-Numeric/i.test(t)) return 'num';
+  return '';
+}
+
+  function mergeAuto(g) {
+    var gv = g && g.globalVariables; if (!gv) return;
+    S.hiddenAuto = S.hiddenAuto || [];
+    Object.keys(gv).forEach(function (key) {
+      var dev = gv[key];
+      if (!dev || String(dev.Type || '').toUpperCase() !== AUTO_TYPE) return;
+      if (S.hiddenAuto.indexOf(key) >= 0) return;
+      var sh = null;
+      S.sheets.forEach(function (s) { if (s.auto === key) sh = s; });
+      if (!sh) {
+        sh = mkSheet(decode(key).replace(/_/g, ' '));
+        sh.id = 'auto_' + key; sh.auto = key; sh.removed = [];
+        S.sheets.push(sh);
+      }
+      sh.removed = sh.removed || [];
+      var pts = (dev.points || []).filter(function (p) { return p && p.name && p.fullPath && p.status === 'connected'; });
+      if (pts.length) {
+        var names = {}; pts.forEach(function (p) { names[p.name] = 1; });
+        sh.items = sh.items.filter(function (it) { return !it.pt || names[it.pt]; });
+      }
+      var have = {}; sh.items.forEach(function (it) { if (it.pt) have[it.pt] = 1; });
+      pts.forEach(function (p) {
+if (have[p.name]) {
+  sh.items.forEach(function (x) { if (x.pt === p.name && !x.kind) x.kind = kindOf(p); });   // backfill existing tiles
+  return;
+}
+if (sh.removed.indexOf(p.name) >= 0) return;
+var it = mkItem(autoType(p));
+        it.id = 'p_' + p.name; it.pt = p.name;
+        it.name = decode(p.name).replace(/_/g, ' ');
+        it.ord = p.fullPath;
+        it.ovr = (/^SP-/.test(p.id || '') || /^SP-/.test(p.id2 || '')) ? 'yes' : 'no';
+        it.kind = kindOf(p);
+        sh.items.push(it); have[p.name] = 1;
+      });
+    });
+  }
+
+  function copyText(text, done) {
+    function fallback() {
+      var ok = false;
+      try {
+        var ta = document.createElement('textarea'); ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        ok = document.execCommand('copy'); document.body.removeChild(ta);
+      } catch (e) {}
+      done(ok);
+    }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    else fallback();
+  }
+  function exportJson() {
+    var payload = JSON.stringify(S, null, 2);
+    copyText(payload, function (ok) {
+      toast(ok ? '✓ JSON COPIED — PASTE INTO ' + LAYOUT_FILE : '✗ COPY FAILED — JSON IS IN THE CONSOLE (F12)');
+      if (!ok) console.log(LAYOUT_FILE + ' content:\n', payload);
+    });
+  }
+
+
+  /* ══════════ FORM MODAL ══════════ */
+  var modal = document.createElement('div'); modal.id = 'cx-modal';
+  modal.innerHTML = '<div class="cx-box"><h3 id="cx-t"></h3><div id="cx-f"></div><div class="cx-r"><button id="cx-ok">Save</button><button id="cx-del">Delete</button><button id="cx-no">Cancel</button></div></div>';
+  document.body.appendChild(modal);
+  var BTN_CSS = 'width:100%;margin-top:8px;background:none;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:7px;cursor:pointer;letter-spacing:1px;';
+
+  function openForm(title, fields, vals, onSave, onDel) {
+    var f = $('cx-f'); f.innerHTML = '';
+    fields.forEach(function (fd) {
+      if (fd.t === 'pairs') {
+        var hp = document.createElement('input'); hp.type = 'hidden'; hp.id = 'cxf_' + fd.k; hp.value = '[]';
+        var lp = document.createElement('label'); lp.textContent = fd.label;
+        var wrap = document.createElement('div');
+        var addB = document.createElement('button'); addB.type = 'button'; addB.textContent = '+ Add another point'; addB.style.cssText = BTN_CSS;
+        var syncP = function () {
+          var out = [];
+          [].forEach.call(wrap.children, function (r) {
+            var a1 = r.querySelector('.pn').value.trim(), b1 = r.querySelector('.po').value.trim();
+            if (a1 || b1) out.push({ name: a1, ord: b1 });
+          });
+          hp.value = JSON.stringify(out);
+        };
+        var addRow = function () {
+          var r = document.createElement('div'); r.style.cssText = 'display:flex;gap:6px;margin-top:6px;align-items:center;';
+          var a2 = document.createElement('input'); a2.type = 'text'; a2.className = 'pn'; a2.placeholder = 'Name (e.g. Supply Air Temp)'; a2.style.cssText = 'flex:1 1 0;width:auto;min-width:0;';
+          var b2 = document.createElement('input'); b2.type = 'text'; b2.className = 'po'; b2.placeholder = 'ORD  (station:|slot:/Drivers/...)'; b2.style.cssText = 'flex:2 1 0;width:auto;min-width:0;';
+          var rm = document.createElement('button'); rm.type = 'button'; rm.textContent = '✕'; rm.title = 'Remove row';
+          rm.style.cssText = 'background:none;border:1px solid var(--border);color:var(--red);border-radius:5px;padding:5px 8px;cursor:pointer;';
+          a2.oninput = syncP; b2.oninput = syncP;
+          rm.onclick = function () { wrap.removeChild(r); if (!wrap.children.length) addRow(); syncP(); };
+          r.appendChild(a2); r.appendChild(b2); r.appendChild(rm); wrap.appendChild(r);
+        };
+        addB.onclick = function () { addRow(); };
+        f.appendChild(lp); f.appendChild(wrap); f.appendChild(addB); f.appendChild(hp);
+        addRow(); addRow(); addRow();
+        return;
+      }
+      if (fd.t === 'colmap') {
+        var hid2 = document.createElement('input'); hid2.type = 'hidden'; hid2.id = 'cxf_' + fd.k; hid2.value = vals[fd.k] || '';
+        var lab2 = document.createElement('label'); lab2.textContent = fd.label;
+        var box = document.createElement('div');
+        var ld = document.createElement('button'); ld.type = 'button'; ld.textContent = '⚡ Load values from ORD'; ld.style.cssText = BTN_CSS;
+        var CHOICES = [['', 'Default (auto)'], ['green', 'Green'], ['red', 'Red'], ['yellow', 'Yellow'], ['orange', 'Orange'], ['purple', 'Purple'], ['blue', 'Blue'], ['gray', 'Gray'], ['white', 'White']];
+        var saved = function () {
+          var m = {};
+          String(hid2.value || '').split(/[\r\n]+/).forEach(function (ln) {
+            var q = ln.match(/^\s*(.+?)\s*[=:]\s*([a-zA-Z]+)\s*$/); if (q) m[q[1].trim()] = q[2].toLowerCase();
+          });
+          return m;
+        };
+        var draw = function (list) {
+          var cur = saved(), seen = {}, all = [];
+          list.concat(Object.keys(cur)).forEach(function (v) { if (!seen[v]) { seen[v] = 1; all.push(v); } });
+          box.innerHTML = '';
+          if (!all.length) { box.innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin:6px 0">No values found yet. Enter an ORD, then press Load.</div>'; return; }
+          all.forEach(function (v) {
+            var row = document.createElement('div'); row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:6px;';
+            var nm = document.createElement('span'); nm.textContent = v; nm.style.cssText = 'flex:1;font-size:12px;';
+            var sel = document.createElement('select'); sel.style.cssText = 'width:140px;';
+            CHOICES.forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op); });
+            sel.value = cur[v] || '';
+            sel.onchange = function () {
+              var m = saved(); if (sel.value) m[v] = sel.value; else delete m[v];
+              hid2.value = Object.keys(m).map(function (k) { return k + ' = ' + m[k]; }).join('\n');
+            };
+            row.appendChild(nm); row.appendChild(sel); box.appendChild(row);
+          });
+        };
+        var load = function () {
+          var oe = $('cxf_ord'), ord = oe ? oe.value.trim() : '';
+          if (!ord) { draw([]); return; }
+          ld.textContent = '… reading';
+          probe(ord, function (r) {
+            ld.textContent = '⚡ Load values from ORD';
+            if (!r) { draw([]); return; }
+            draw(r.fac.vals || (r.value ? [String(r.value)] : []));
+          });
+        };
+        ld.onclick = load;
+        f.appendChild(lab2); f.appendChild(box); f.appendChild(ld); f.appendChild(hid2);
+        draw([]); load();
+        return;
+      }
+      if (fd.t === 'btn') {
+        var bb = document.createElement('button'); bb.type = 'button'; bb.textContent = fd.label; bb.style.cssText = BTN_CSS;
+        bb.onclick = function () {
+          fd.fn(function (k) { var e = $('cxf_' + k); return e ? e.value.trim() : ''; },
+                function (k, v) { var e = $('cxf_' + k); if (e) e.value = v; }, bb);
+        };
+        var hid = document.createElement('input'); hid.type = 'hidden'; hid.id = 'cxf_' + fd.k;
+        f.appendChild(bb); f.appendChild(hid); return;
+      }
+      var l = document.createElement('label'); l.textContent = fd.label; var i, rg = null;
+      if (fd.t === 'select') {
+        i = document.createElement('select');
+        fd.o.forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; i.appendChild(op); });
+      } else if (fd.t === 'textarea') {
+        i = document.createElement('textarea'); i.rows = fd.rows || 8; i.style.resize = 'vertical';
+      } else {
+        i = document.createElement('input'); i.type = fd.t === 'size' ? 'number' : (fd.t || 'text');
+      }
+      if (fd.ph) i.placeholder = fd.ph;
+      if (fd.t === 'size') {
+        i.step = '0.05'; i.min = '0.2'; i.max = '10';
+        rg = document.createElement('input'); rg.type = 'range'; rg.min = '0.2'; rg.max = '4'; rg.step = '0.05';
+      }
+      i.id = 'cxf_' + fd.k; i.value = vals[fd.k] == null ? '' : vals[fd.k];
+      f.appendChild(l);
+      if (rg) { rg.value = i.value; rg.oninput = function () { i.value = rg.value; }; i.oninput = function () { rg.value = i.value; }; f.appendChild(rg); }
+      f.appendChild(i);
+    });
+    $('cx-t').textContent = title;
+    $('cx-del').style.display = onDel ? '' : 'none';
+    modal.classList.add('open');
+    $('cx-ok').onclick  = function () { var o = {}; fields.forEach(function (fd) { var e = $('cxf_' + fd.k); o[fd.k] = e ? e.value.trim() : ''; }); modal.classList.remove('open'); onSave(o); };
+    $('cx-del').onclick = function () { modal.classList.remove('open'); if (onDel) onDel(); };
+    $('cx-no').onclick  = function () { modal.classList.remove('open'); };
+  }
+
+  /* ══════════ ITEM FORM ══════════ */
+  var YN = [['yes', 'Yes'], ['no', 'No']];
+  var ITEM_F = [
+    { k: 'type', label: 'Feature', t: 'select', o: [['data', 'Data (value only)'], ['dial', 'Dial'], ['bar', 'Bar'], ['graph', 'Graph / trend'], ['status', 'Status bubble'], ['header', 'Separator bar (text only, no ORD)'], ['divider', 'Thin divider line']] },
+    { k: 'name', label: 'Name / separator text' },
+    { k: 'ord', label: 'ORD (point to subscribe)', ph: 'station:|slot:/Drivers/...' },
+    { k: '_fill', t: 'btn', label: '⚡ Test ORD + auto-fill unit / min / max from facets', fn: autoFill },
+    { k: 'spOrd', label: 'Setpoint ORD (dial / bar, optional)', ph: 'station:|slot:/.../Setpoint' },
+    { k: 'min', label: 'Min (dial / bar) — blank = from facets', t: 'number' },
+    { k: 'max', label: 'Max (dial / bar) — blank = from facets', t: 'number' },
+    { k: 'unit', label: 'Unit — blank = from facets', ph: '°F, %, cfm' },
+    { k: 'colors', label: 'Value colours (optional)', t: 'colmap' },
+    { k: 'range', label: 'Graph tile range', t: 'select', o: [['', '24 hours (default)'], ['1h', '1 hour'], ['12h', '12 hours'], ['1w', '1 week'], ['local', 'Live only (this browser)']] },
+    { k: 'hist', label: 'Click shows history trend', t: 'select', o: YN },
+    { k: 'ovr', label: 'Click allows override (writable points, admins only)', t: 'select', o: YN },
+    { k: 'link', label: 'Click-through page link (optional)', ph: 'AHUs/AHU.html?unit=AHU_1' },
+    { k: 'span', label: 'Column span', t: 'select', o: [['', '1 (normal)'], ['2', '2 wide'], ['3', '3 wide'], ['4', '4 wide'], ['full', 'Full width']] },
+    { k: 'pos', label: 'Position in sheet (1 = first)', t: 'number' }
+  ];
+  var KEYS = ['type', 'name', 'ord', 'spOrd', 'min', 'max', 'unit', 'colors', 'range', 'hist', 'ovr', 'link', 'span'];
+  function editItem(sh, it, isNew) {
+    var vals = {}; Object.keys(it).forEach(function (k) { vals[k] = it[k]; });
+    vals.pos = isNew ? sh.items.length + 1 : sh.items.indexOf(it) + 1;
+    openForm(isNew ? 'New item' : 'Edit item', ITEM_F, vals, function (o) {
+      KEYS.forEach(function (k) { it[k] = o[k]; });
+      delete viewOvr[sh.id + '_' + it.id];
+      if (it.type !== 'header' && it.type !== 'divider' && !it.name && it.ord) it.name = nameFromOrd(it.ord);
+      if (!isNew) sh.items.splice(sh.items.indexOf(it), 1);
+      var p = parseInt(o.pos, 10), idx = (p >= 1 && p <= sh.items.length) ? p - 1 : sh.items.length;
+      sh.items.splice(idx, 0, it);
+      changed();
+    }, isNew ? null : function () { dropItem(sh, it); changed(); });
+  }
+  function bulkAdd(sh) {
+    openForm('Bulk add items', [
+      { k: 'type', label: 'Feature for all', t: 'select', o: [['data', 'Data'], ['dial', 'Dial'], ['bar', 'Bar'], ['status', 'Status bubble'], ['graph', 'Graph']] },
+      { k: 'list', label: 'Points (Name is optional, ORD is required)', t: 'pairs' },
+      { k: 'hist', label: 'Click shows history', t: 'select', o: YN },
+      { k: 'ovr', label: 'Click allows override', t: 'select', o: YN }
+    ], { type: 'data', hist: 'yes', ovr: 'no' }, function (o) {
+            var rows = []; try { rows = JSON.parse(o.list || '[]'); } catch (e) {}
+      rows.slice(0, 200).forEach(function (r) {
+        if (!r.ord) return;
+        var it = mkItem(o.type); it.name = r.name || nameFromOrd(r.ord); it.ord = r.ord; it.hist = o.hist; it.ovr = o.ovr;
+        sh.items.push(it);
+      });
+      changed();
+    }, null);
+  }
+  var SHEET_F = [
+    { k: 'title', label: 'Sheet name' },
+    { k: 'minw', label: 'Minimum tile width in px (smaller = more columns)', t: 'number' }
+  ];
+
+  /* ══════════ TILE PAINTING ══════════ */
+  function paintSlot(el, s, l, key) {
+    var t = viewOvr[key] || s.type || 'data', st = l && l.st, v = l && l.v, stCol = st ? ST[st].c : null, mapC = mapColor(s, v);
+    var col = mapC || stCol || (l && l.ok ? GREEN : null), n = num(v);
+    el.dataset.t = t;
+    el.classList.toggle('alm', st === 'alarm');
+    el.style.borderColor = (t === 'header' || t === 'divider') ? '' : (stCol || (s.ord && l && l.ok ? hexA(GREEN, .45) : ''));
+
+    if (t === 'header') { el.innerHTML = '<div class="an-hd">' + esc(s.name || (edit ? 'Separator' : '')) + '</div>'; return; }
+    if (t === 'divider') { el.innerHTML = ''; return; }
+    if (!s.ord) {
+      el.classList.add('blank');
+      el.innerHTML = edit ? '<span>' + esc(s.name || t) + ' — set ORD</span>' : '';
+      return;
+    }
+    el.classList.remove('blank');
+
+    var name = '<div class="an-n">' + esc(s.name) + '</div>';
+    var vt = v == null ? '—' : esc(v);
+    var fac = (l && l.fac) || {}, unit = s.unit || fac.unit || '';
+    if (unit && n !== null && /^-?[\d.]+$/.test(String(v).trim())) vt += ' ' + esc(unit);
+    var mn = !isNaN(parseFloat(s.min)) ? parseFloat(s.min) : (fac.min != null ? fac.min : 0);
+    var mx = !isNaN(parseFloat(s.max)) ? parseFloat(s.max) : (fac.max != null ? fac.max : 100);
+    var spl = s.spOrd ? live[key + '_sp'] : null, spn = spl ? num(spl.v) : null;
+    var fs = spn == null ? null : Math.max(0, Math.min(1, (spn - mn) / ((mx - mn) || 1)));
+    var spMark = '', spTxt = '', spBar = '';
+    if (fs !== null) {
+      var ang = (135 + fs * 270) * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+      spMark = '<line x1="' + (50 + 31 * ca).toFixed(1) + '" y1="' + (50 + 31 * sa).toFixed(1) + '" x2="' + (50 + 49 * ca).toFixed(1) + '" y2="' + (50 + 49 * sa).toFixed(1) + '" stroke="#ffab00" stroke-width="3.5" stroke-linecap="round"/>';
+      spTxt = '<div class="an-s" style="color:#ffab00">SP ' + esc(Math.round(spn * 10) / 10) + '</div>';
+      spBar = '<div style="position:absolute;top:-3px;bottom:-3px;left:calc(' + (fs * 100) + '% - 1px);width:3px;border-radius:2px;background:#ffab00"></div>';
+    }
+    var f = n == null ? 0 : Math.max(0, Math.min(1, (n - mn) / ((mx - mn) || 1)));
+    var stl = st ? '<div class="an-s" style="color:' + col + '">' + ST[st].l + '</div>' : '';
+
+    if (t === 'data') {
+      el.innerHTML = name + '<div class="an-v" style="color:' + (col || '') + '">' + vt + '</div>' + stl;
+    } else if (t === 'dial') {
+      var C = 2 * Math.PI * 40;
+      el.innerHTML = '<svg viewBox="0 0 100 100"><circle class="an-track" cx="50" cy="50" r="40" stroke-dasharray="' + (0.75 * C) + ' ' + C + '" transform="rotate(135 50 50)"/>' +
+        '<circle class="an-arc" cx="50" cy="50" r="40" style="stroke:' + (col || 'var(--accent)') + '" stroke-dasharray="' + (f * 0.75 * C) + ' ' + C + '" transform="rotate(135 50 50)"/>' +
+        '<text class="an-dv" x="50" y="56" text-anchor="middle" style="fill:' + (col || 'currentColor') + '">' + esc(n == null ? '—' : Math.round(n * 10) / 10) + '</text>' + spMark + '</svg>' + name + spTxt + stl;
+    } else if (t === 'graph') {
+      var rh = realHist[key], real = !!(rh && rh.length > 1), h = real ? rh : getHist(key), pts = '';
+      if (h.length > 1) {
+        var lo = Math.min.apply(null, h), hi = Math.max.apply(null, h), rg = (hi - lo) || 1;
+        pts = h.map(function (y, i) { return (i / (h.length - 1) * 200).toFixed(1) + ',' + (56 - (y - lo) / rg * 52).toFixed(1); }).join(' ');
+      }
+      el.innerHTML = '<svg class="an-g" viewBox="0 0 200 60" preserveAspectRatio="none"><polyline fill="none" vector-effect="non-scaling-stroke" stroke-width="2" style="stroke:' + (col || 'var(--accent)') + '" points="' + pts + '"/></svg>' +
+        '<div class="an-gl"><span>' + esc(s.name) + (real ? ' · ' + esc(s.range || '24h') : '') + '</span><b style="color:' + (col || '') + '">' + vt + '</b></div>';
+    } else if (t === 'status') {
+      var c = mapC || stCol || (l && l.ok ? GREEN : GRAY);
+      el.innerHTML = '<span class="an-dot" style="background:' + c + ';box-shadow:0 0 8px ' + c + '"></span><span class="an-n" style="color:var(--text)">' + esc(s.name) + '</span><b style="color:' + (col || '') + '">' + (st ? ST[st].l : vt) + '</b>';
+    } else if (t === 'bar') {
+      el.innerHTML = '<div class="an-n"><span>' + esc(s.name) + '</span><span>' + vt + (fs !== null ? ' <span style="color:#ffab00">SP ' + esc(Math.round(spn * 10) / 10) + '</span>' : '') + '</span></div>' +
+        '<div class="an-barwrap" style="position:relative;overflow:visible"><div class="an-barfill" style="width:' + (f * 100) + '%;background:' + (col || 'var(--accent)') + '"></div>' + spBar + '</div>' + stl;
+    }
+  }
+
+  /* ══════════ RENDER ══════════ */
+  var dragId = null;
+  var VIEWS = ['data', 'dial', 'bar', 'graph', 'status'];
+  var VNAME = { data: 'Data', dial: 'Dial', bar: 'Bar', graph: 'Graph', status: 'Status' };
+ function renderTabs() {
+  var sel = $('sheetSel'); sel.innerHTML = '';
+  S.sheets.forEach(function (sh) {
+    var w = worst(sh);
+    var o = document.createElement('option');
+    o.value = sh.id;
+    o.textContent = (w ? (w === 'alarm' ? '🔴 ' : '🟡 ') : '') + sh.title;
+    if (sh.id === curId) o.selected = true;
+    sel.appendChild(o);
+  });
+  var cur = curSheet(), w2 = cur && worst(cur);
+  sel.style.borderColor = w2 ? ST[w2].c : '';
+  sel.style.color = w2 ? ST[w2].c : '';
+}
+function gotoSheet(id) {
+  curId = id;
+  renderTabs(); renderSheet();
+}
+$('sheetSel').onchange = function () { gotoSheet(this.value); };
+$('prevSh').onclick = function () { var i = S.sheets.indexOf(curSheet()); if (i > 0) gotoSheet(S.sheets[i - 1].id); };
+$('nextSh').onclick = function () { var i = S.sheets.indexOf(curSheet()); if (i < S.sheets.length - 1) gotoSheet(S.sheets[i + 1].id); };
+  function worst(sh) {
+    var w = null;
+    sh.items.forEach(function (it) {
+      var l = live[sh.id + '_' + it.id];
+      if (l && l.st && (w === null || ORDER.indexOf(l.st) < ORDER.indexOf(w))) w = l.st;
+    });
+    return w;
+  }
+  function isClickable(it) { return !!(it.ord && (it.hist === 'yes' || canOvr(it))) || !!it.link; }
+
+  function renderSheet() {
+    paintFns = {};
+    var sh = curSheet(), grid = $('grid');
+    grid.innerHTML = '';
+    if (!sh) { $('sheetTitle').textContent = ''; grid.innerHTML = '<div id="empty">No sheets yet. Use Edit Layout → + New sheet.</div>'; return; }
+    $('sheetTitle').innerHTML = esc(sh.title) + (sh.auto && edit ? '<small>AUTO · ' + esc(decode(sh.auto)) + '</small>' : '');
+    grid.style.gridTemplateColumns = 'repeat(auto-fill,minmax(' + (parseInt(sh.minw, 10) || 200) + 'px,1fr))';
+    if (!sh.items.length && !edit) grid.innerHTML = '<div id="empty" style="grid-column:1/-1">This sheet is empty. Click Edit Layout to add items.</div>';
+
+    sh.items.forEach(function (it) {
+      var se = document.createElement('div'); se.className = 'an-slot'; grid.appendChild(se);
+      if (it.type === 'header' || it.type === 'divider' || it.span === 'full') se.style.gridColumn = '1 / -1';
+      else if (parseInt(it.span, 10) > 1) se.style.gridColumn = 'span ' + parseInt(it.span, 10);
+      var key = sh.id + '_' + it.id;
+      se.dataset.clk = (!edit && isClickable(it)) ? '1' : '0';
+      paintFns[key] = function (l) { paintSlot(se, it, l, key); };
+      paintSlot(se, it, live[key] || { v: null, st: null }, key);
+      loadGraphHist(it, key, viewOvr[key] || it.type);
+
+      var x = document.createElement('i'); x.className = 'cx-x'; x.textContent = '✕'; se.appendChild(x);
+      var d = document.createElement('i'); d.className = 'cx-dup'; d.textContent = '⧉'; se.appendChild(d);
+      /* paintSlot rewrites innerHTML, so (re)attach edit buttons after each paint */
+           /* view-cycle arrows (not in edit mode, not on separators / blank tiles) */
+      var vw = document.createElement('div'); vw.className = 'cx-vw';
+      var vL = document.createElement('button'); vL.type = 'button'; vL.textContent = '‹'; vL.title = 'Previous view';
+      var vT = document.createElement('span');
+      var vR = document.createElement('button'); vR.type = 'button'; vR.textContent = '›'; vR.title = 'Next view';
+      vw.appendChild(vL); vw.appendChild(vT); vw.appendChild(vR);
+      function cycle(dir) {
+        var cur = viewOvr[key] || it.type || 'data', i = VIEWS.indexOf(cur);
+        var nv = VIEWS[(i + dir + VIEWS.length) % VIEWS.length];
+        if (nv === (it.type || 'data')) delete viewOvr[key]; else viewOvr[key] = nv;
+        loadGraphHist(it, key, nv);
+        if (paintFns[key]) paintFns[key](live[key] || { v: null, st: null });
+      }
+      vL.onclick = function (e) { e.stopPropagation(); cycle(-1); };
+      vR.onclick = function (e) { e.stopPropagation(); cycle(1); };
+      function syncVw() {
+        var show = !edit && it.ord && it.type !== 'header' && it.type !== 'divider';
+        if (!show) { if (vw.parentNode) vw.parentNode.removeChild(vw); return; }
+        var cur = viewOvr[key] || it.type || 'data';
+        vT.textContent = VNAME[cur] || cur;
+        vw.classList.toggle('chg', !!viewOvr[key]);
+        se.appendChild(vw);
+      }
+      var orig = paintFns[key];
+      paintFns[key] = function (l) { orig(l); se.appendChild(x); se.appendChild(d); syncVw(); };
+      syncVw();
+      x.onclick = function (e) { e.stopPropagation(); if (confirm('Delete this item?')) { dropItem(sh, it); changed(); } };
+      d.onclick = function (e) {
+        e.stopPropagation();
+        var c = JSON.parse(JSON.stringify(it)); c.id = uid('i'); delete c.pt;   /* a copy is a custom tile, not an auto one */
+        sh.items.splice(sh.items.indexOf(it) + 1, 0, c); changed();
+      };
+
+      /* drag to reorder (edit mode) */
+      se.draggable = edit;
+      se.addEventListener('dragstart', function (e) { if (!edit) return; dragId = it.id; try { e.dataTransfer.setData('text/plain', it.id); } catch (x2) {} });
+      se.addEventListener('dragover', function (e) { if (edit && dragId) { e.preventDefault(); se.classList.add('dragover'); } });
+      se.addEventListener('dragleave', function () { se.classList.remove('dragover'); });
+      se.addEventListener('drop', function (e) {
+        se.classList.remove('dragover');
+        if (!edit || !dragId || dragId === it.id) return;
+        e.preventDefault();
+        var from = -1; sh.items.forEach(function (q, i) { if (q.id === dragId) from = i; });
+        if (from < 0) return;
+        var moved = sh.items.splice(from, 1)[0];
+        sh.items.splice(sh.items.indexOf(it), 0, moved);
+        dragId = null; changed();
+      });
+      se.addEventListener('dragend', function () { dragId = null; });
+
+      se.addEventListener('click', function () {
+        if (edit) { editItem(sh, it, false); return; }
+        if (it.ord && (it.hist === 'yes' || canOvr(it))) openDetail(sh, it);
+        else if (it.link) window.location.href = it.link;
+      });
+    });
+    if (edit) {
+      var p = document.createElement('div'); p.className = 'an-plus'; p.style.gridColumn = 'span 1'; p.textContent = '+ ADD ITEM';
+      p.onclick = function () { editItem(sh, mkItem('data'), true); };
+      grid.appendChild(p);
+    }
+  }
+
+  var alTimer = null;
+  function scheduleAlerts() { if (alTimer) return; alTimer = setTimeout(function () { alTimer = null; renderTabs(); renderAlerts(); }, 250); }
+  function renderAlerts() {
+    var items = [];
+    S.sheets.forEach(function (sh) {
+      sh.items.forEach(function (it) {
+        var l = live[sh.id + '_' + it.id];
+        if (l && l.st) items.push({ sh: sh, name: it.name || nameFromOrd(it.ord), st: l.st, v: l.v == null ? '—' : l.v });
+      });
+    });
+    items.sort(function (a, b) { return ORDER.indexOf(a.st) - ORDER.indexOf(b.st); });
+    var n = items.filter(function (i) { return i.st === 'alarm'; }).length, chip = $('alChip');
+    chip.textContent = n ? '⚠ ' + n + ' Alarm' + (n > 1 ? 's' : '') : items.length ? items.length + ' Status' : '✓ No Alarms';
+    chip.classList.toggle('alarming', n > 0);
+    var p = $('alPanel'); p.innerHTML = '';
+    if (!items.length) { p.innerHTML = '<div style="color:var(--green);text-align:center;padding:8px">✓ Nothing to report</div>'; return; }
+    items.forEach(function (i) {
+      var r = document.createElement('div'); r.className = 'arow'; r.style.borderLeftColor = ST[i.st].c;
+      r.innerHTML = '<span></span><b></b>';
+      r.children[0].textContent = i.sh.title + ' › ' + i.name;
+      r.children[1].textContent = ST[i.st].l + ' · ' + i.v; r.children[1].style.color = ST[i.st].c;
+      r.onclick = function () { curId = i.sh.id; p.classList.remove('open'); renderTabs(); renderSheet(); };
+      p.appendChild(r);
+    });
+  }
+  $('alChip').onclick = function () { $('alPanel').classList.toggle('open'); };
+
+/* hamburger side nav */
+function toggleNav(open) {
+  var on = open === undefined ? !$('sidePanel').classList.contains('active') : open;
+  $('hamburgerMenu').classList.toggle('active', on);
+  $('sidePanel').classList.toggle('active', on);
+  $('navOverlay').classList.toggle('active', on);
+}
+$('hamburgerMenu').onclick = function () { toggleNav(); };
+$('navOverlay').onclick = function () { toggleNav(false); };
+window.addEventListener('keydown', function (e) { if (e.key === 'Escape') toggleNav(false); });
+
+  function renderAll() {
+    if (!S.sheets.length) S.sheets.push(mkSheet('Summary 1'));
+    if (!S.sheets.some(function (s) { return s.id === curId; })) curId = S.sheets[0].id;
+    var keep = {};
+    S.sheets.forEach(function (sh) {
+      sh.items.forEach(function (it) {
+        var key = sh.id + '_' + it.id;
+        keep[key] = 1; keep[key + '_sp'] = 1;
+        if (it.type === 'header' || it.type === 'divider') return;
+        if (it.spOrd) sub(key + '_sp', it.spOrd, function () { if (paintFns[key]) paintFns[key](live[key] || { v: null, st: null }); });
+        else sub(key + '_sp', '', function () {});
+        sub(key, it.ord, function (l, fresh) {
+                  var vt2 = viewOvr[key] || it.type;
+          if (fresh && vt2 === 'graph' && (it.range === 'local')) { var n = num(l.v); if (n !== null) pushHist(key, n); }
+          else if (fresh && vt2 === 'graph' && !realHist[key]) { var n2 = num(l.v); if (n2 !== null) pushHist(key, n2); }
+          if (paintFns[key]) paintFns[key](l);
+          scheduleAlerts();
+        });
+      });
+    });
+    /* drop subscriptions for deleted items */
+    Object.keys(unsubs).forEach(function (k) { if (!keep[k] && k !== '__pop') { unsubs[k](); delete unsubs[k]; delete live[k]; } });
+    renderTabs(); renderSheet(); renderAlerts();
+  }
+
+  /* ══════════ DETAIL POPUP: live value, facets, override, history ══════════ */
+  function fmtT(ms, range) {
+    if (ms == null) return '';
+    var d = new Date(ms), p = function (x) { return (x < 10 ? '0' : '') + x; };
+    var hm = p(d.getHours()) + ':' + p(d.getMinutes());
+    return range === '1w' ? (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm : hm;
+  }
+  function drawChart(host, pts, range, unit) {
+    var read = $('pp-read');
+    if (!pts || pts.length < 2) { host.innerHTML = '<div class="pp-none">No history found. The point needs a history extension / n:history tag.</div>'; if (read) read.textContent = ''; return; }
+    var W = 640, H = 220, pl = 48, pr = 10, pt = 10, pb = 24;
+    var vs = pts.map(function (p) { return p[1]; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+    if (hi === lo) { hi += 1; lo -= 1; }
+    var t0 = pts[0][0], t1 = pts[pts.length - 1][0], hasT = pts.every(function (p) { return p[0] != null; }) && t1 > t0;
+    function X(i, p) { return pl + (hasT ? (p[0] - t0) / (t1 - t0) : i / (pts.length - 1)) * (W - pl - pr); }
+    function Y(v) { return pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb); }
+    var line = pts.map(function (p, i) { return X(i, p).toFixed(1) + ',' + Y(p[1]).toFixed(1); }).join(' ');
+    var mid = (lo + hi) / 2, r1 = function (x) { return Math.round(x * 100) / 100; };
+    var grid = [lo, mid, hi].map(function (v) {
+      return '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="currentColor" opacity=".15"/>' +
+             '<text x="' + (pl - 5) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">' + r1(v) + '</text>';
+    }).join('');
+    var xl = hasT ? '<text x="' + pl + '" y="' + (H - 6) + '" font-size="11" fill="currentColor" opacity=".7">' + fmtT(t0, range) + '</text>' +
+                    '<text x="' + (W - pr) + '" y="' + (H - 6) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">' + fmtT(t1, range) + '</text>' : '';
+    host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="color:var(--text)">' + grid + xl +
+      '<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="' + line + '"/>' +
+      '<line id="pp-cur" y1="' + pt + '" y2="' + (H - pb) + '" stroke="var(--amber)" opacity="0"/>' +
+      '<rect x="' + pl + '" y="' + pt + '" width="' + (W - pl - pr) + '" height="' + (H - pt - pb) + '" fill="transparent" id="pp-hit"/></svg>';
+    var svg = host.querySelector('svg'), hit = $('pp-hit'), cur = $('pp-cur');
+    hit.addEventListener('mousemove', function (e) {
+      var r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, best = 0, bd = 1e9;
+      pts.forEach(function (p, i) { var d = Math.abs(X(i, p) - x); if (d < bd) { bd = d; best = i; } });
+      var p = pts[best], xx = X(best, p);
+      cur.setAttribute('x1', xx); cur.setAttribute('x2', xx); cur.setAttribute('opacity', '.9');
+      read.textContent = (hasT ? new Date(p[0]).toLocaleString() + '   ' : '') + r1(p[1]) + (unit ? ' ' + unit : '');
+    });
+    hit.addEventListener('mouseleave', function () { cur.setAttribute('opacity', '0'); read.textContent = ''; });
+  }
+
+  function closePop() {
+    if (unsubs.__pop) { unsubs.__pop(); delete unsubs.__pop; }
+    delete live.__pop; popState = null; $('pop').classList.remove('open');
+  }
+  $('pop').addEventListener('click', function (e) { if (e.target === $('pop')) closePop(); });
+window.addEventListener('keydown', function (e) {
+  if (/INPUT|TEXTAREA|SELECT/.test((e.target.tagName || ''))) return;
+  if (e.key === 'ArrowLeft') $('prevSh').click();
+  if (e.key === 'ArrowRight') $('nextSh').click();
+});
+  function openDetail(sh, it) {
+    closePop();
+    var box = $('pop-box'), ov = canOvr(it);
+    box.innerHTML =
+      '<div class="pp-h"><span id="pp-t"></span><button id="pp-x">✕ Close</button></div>' +
+      '<div class="pp-v"><span id="pp-val">—</span><span id="pp-st" style="font-weight:700;letter-spacing:.14em"></span></div>' +
+      '<div class="pp-sec">Point info (facets)</div><div id="pp-fac"></div>' +
+      (ov ? '<div class="pp-sec">Override</div><div id="pp-ov"><div class="pp-none">Reading point…</div></div>' : '') +
+      (it.hist === 'yes' ? '<div class="pp-sec">History</div><div class="pp-rng" id="pp-rng"></div><div id="pp-chart"><div class="pp-none">Loading…</div></div><div id="pp-read"></div>' : '') +
+      (it.link ? '<button class="btn" id="pp-link" style="width:100%;margin-top:14px">Open page →</button>' : '');
+    $('pp-t').textContent = it.name || nameFromOrd(it.ord);
+    $('pp-x').onclick = closePop;
+    if (it.link) $('pp-link').onclick = function () { window.location.href = it.link; };
+    $('pop').classList.add('open');
+    popState = { it: it, ovBuilt: false, unit: '', range: '24h' };
+
+    if (it.hist === 'yes') {
+      var rg = $('pp-rng');
+      [['1h', '1 hour'], ['12h', '12 hours'], ['24h', '24 hours'], ['1w', '1 week']].forEach(function (r) {
+        var b = document.createElement('button'); b.className = 'btn' + (r[0] === popState.range ? ' on' : ''); b.textContent = r[1];
+        b.onclick = function () {
+          popState.range = r[0];
+          [].forEach.call(rg.children, function (c) { c.classList.remove('on'); }); b.classList.add('on');
+          loadPopHist();
+        };
+        rg.appendChild(b);
+      });
+      loadPopHist();
+    }
+    function loadPopHist() {
+      var host = $('pp-chart'); if (!host) return;
+      host.innerHTML = '<div class="pp-none">Loading…</div>';
+      var rngNow = popState.range;
+      fetchHist(it.ord, rngNow, function (pts) { if (popState && popState.range === rngNow) drawChart($('pp-chart'), pts, rngNow, popState.unit); });
+    }
+
+    sub('__pop', it.ord, function (l) {
+      if (!popState) return;
+      var fac = l.fac || {}, unit = it.unit || fac.unit || '';
+      popState.unit = unit;
+      $('pp-val').textContent = l.v == null ? '—' : l.v;
+      var stc = l.st ? ST[l.st].c : (l.ok ? GREEN : 'var(--text-dim)');
+      $('pp-val').style.color = mapColor(it, l.v) || (l.st ? ST[l.st].c : '');
+      $('pp-st').textContent = l.st ? ST[l.st].l : (l.ok ? 'OK' : '');
+      $('pp-st').style.color = stc;
+       var rows = [['Status flags', l.raw || '—'], ['Unit', fac.unit || '—'], ['ORD', it.ord]];
+      $('pp-fac').innerHTML = rows.map(function (r) { return '<div class="ir"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
+      if (ov && !popState.ovBuilt && fac.ptype) { popState.ovBuilt = true; buildOv(it, fac); }
+    });
+  }
+
+function kindFromGlobal(ord) {
+  var gv = globalData && globalData.globalVariables, found = '';
+  if (!gv || !ord) return '';
+  Object.keys(gv).forEach(function (k) {
+    ((gv[k] && gv[k].points) || []).forEach(function (p) {
+      if (p && p.fullPath === ord) found = kindOf(p);
+    });
+  });
+  return found;
+}
+function buildOv(it, fac) {
+  var host = $('pp-ov'); if (!host) return;
+  var kind = kindFromGlobal(it.ord) || it.kind || fac.vkind || '', input;
+  /* safety net: a point with no true/false or enum text and a numeric value is numeric */
+  if ((kind === 'bool' || kind === 'enum') && !fac.vals && fac.vkind === 'num') kind = 'num';
+  host.innerHTML = '';
+  var row = document.createElement('div'); row.className = 'pp-row'; host.appendChild(row);
+  if (kind === 'num') {
+    input = document.createElement('input'); input.type = 'number'; input.step = 'any';
+    input.placeholder = 'Value' + (fac.unit ? ' (' + fac.unit + ')' : '') + (fac.min != null && fac.max != null ? '  ' + fac.min + '–' + fac.max : '');
+    if (fac.min != null) input.min = fac.min; if (fac.max != null) input.max = fac.max;
+  } else if (kind === 'bool' || kind === 'enum') {
+    input = document.createElement('select');
+    (fac.vals || ['false', 'true']).forEach(function (t, i) {
+      var o = document.createElement('option'); o.value = i; o.textContent = t; input.appendChild(o);
+    });
+  } else if (kind === 'str') {
+    input = document.createElement('input'); input.type = 'text'; input.placeholder = 'Text value';
+  } else {
+    host.innerHTML = '<div class="pp-none">Could not tell the point kind. Add an SP-Boolean / SP-Numeric / SP-Enum tag in Global.json.</div>'; return;
+  }
+  var dur = document.createElement('select');
+  [['0', 'Permanent'], ['1', '1 minute'], ['5', '5 minutes'], ['30', '30 minutes'], ['60', '1 hour'], ['240', '4 hours'], ['720', '12 hours']].forEach(function (d) {
+    var o = document.createElement('option'); o.value = d[0]; o.textContent = d[1]; dur.appendChild(o);
+  });
+  var go = document.createElement('button'); go.className = 'btn'; go.textContent = 'Override';
+  var auto = document.createElement('button'); auto.className = 'btn'; auto.textContent = 'Release (Auto)';
+  row.appendChild(input); row.appendChild(dur); row.appendChild(go); row.appendChild(auto);
+  var msg = document.createElement('div'); msg.className = 'pp-msg'; host.appendChild(msg);
+  function res(e, what) { msg.style.color = e ? 'var(--red)' : 'var(--green)'; msg.textContent = e ? '✗ ' + (e.message || e) : '✓ ' + what; }
+  go.onclick = function () {
+    if (input.value === '') { msg.style.color = 'var(--red)'; msg.textContent = '✗ Enter a value'; return; }
+    var label = input.tagName === 'SELECT' ? input.options[input.selectedIndex].textContent : input.value;
+    if (!confirm('Override "' + (it.name || it.ord) + '" to ' + label + ' for ' + dur.options[dur.selectedIndex].textContent + '?')) return;
+    msg.style.color = 'var(--text-dim)'; msg.textContent = 'Sending…';
+    var idx = parseInt(input.value, 10);
+    invokeOv(it.ord, { mode: 'set', kind: kind, val: input.value, idx: idx, ordinal: (fac.ords && fac.ords[idx] != null) ? fac.ords[idx] : idx, mins: parseInt(dur.value, 10) },
+      function (e) { res(e, 'Override sent'); });
+  };
+  auto.onclick = function () {
+    if (!confirm('Release override on "' + (it.name || it.ord) + '" (set to Auto)?')) return;
+    msg.style.color = 'var(--text-dim)'; msg.textContent = 'Sending…';
+    invokeOv(it.ord, { mode: 'auto' }, function (e) { res(e, 'Released to Auto'); });
+  };
+}
+
+  /* ══════════ EDIT MODE ══════════ */
+  var editBtn = $('editBtn');
+  function setEdit(on) {
+    edit = on; document.body.classList.toggle('cx-edit', on);
+    editBtn.classList.toggle('on', on); editBtn.textContent = on ? '📋 Copy JSON' : '✥ Edit Layout';
+    $('editBanner').classList.toggle('active', on);
+    if (on) closePop(); else exportJson();
+    renderSheet();
+  }
+  editBtn.onclick = function () { setEdit(!edit); };
+  $('editTools').addEventListener('click', function (e) {
+    var k = e.target.getAttribute('data-k'); if (!k) return;
+    var sh = curSheet(), i = S.sheets.indexOf(sh);
+    if (k === 'item') editItem(sh, mkItem('data'), true);
+    else if (k === 'bulk') bulkAdd(sh);
+    else if (k === 'sheet') openForm('New sheet', SHEET_F, { title: 'Summary ' + (S.sheets.length + 1), minw: 200 }, function (o) {
+      var n = mkSheet(o.title || 'New Sheet'); n.minw = parseInt(o.minw, 10) || 200; S.sheets.push(n); curId = n.id; changed();
+    });
+    else if (k === 'cfg') openForm('Sheet settings', SHEET_F, sh, function (o) {
+      if (o.title) sh.title = o.title; sh.minw = parseInt(o.minw, 10) || 200; changed();
+    });
+    else if (k === 'left' && i > 0) { S.sheets.splice(i, 1); S.sheets.splice(i - 1, 0, sh); changed(); }
+    else if (k === 'right' && i < S.sheets.length - 1) { S.sheets.splice(i, 1); S.sheets.splice(i + 1, 0, sh); changed(); }
+    else if (k === 'restore') {
+      if (!sh.auto) { toast('Only auto sheets have removed points'); return; }
+      var n = (sh.removed || []).length;
+      if (!n) { toast('Nothing to restore on this sheet'); return; }
+      sh.removed = []; mergeAuto(globalData); toast('Restored ' + n + ' point' + (n > 1 ? 's' : '')); changed();
+    }
+    else if (k === 'restoresheets') {
+      var h = (S.hiddenAuto || []).length;
+      if (!h) { toast('No deleted auto sheets'); return; }
+      S.hiddenAuto = []; mergeAuto(globalData); toast('Restored ' + h + ' sheet' + (h > 1 ? 's' : '')); changed();
+    }
+    else if (k === 'delsheet') {
+      if (S.sheets.length < 2) { toast('Keep at least one sheet'); return; }
+      if (!confirm('Delete sheet "' + sh.title + '" and all its items?' + (sh.auto ? '\n(Auto sheet — use "Restore auto sheets" to bring it back.)' : ''))) return;
+      if (sh.auto) { S.hiddenAuto = S.hiddenAuto || []; if (S.hiddenAuto.indexOf(sh.auto) < 0) S.hiddenAuto.push(sh.auto); }
+      S.sheets.splice(i, 1); curId = S.sheets[0].id; changed();
+    }
+  });
+
+  /* show Edit button to admins (same role check as the home page), or with ?edit=1, or in demo mode */
+  (async function () {
+    if (DEMO || /[?&]edit=1/.test(location.search)) { editBtn.style.display = ''; return; }
+    var start = Date.now();
+    while (Date.now() - start < 5000) {
+      var role = sessionStorage.getItem('role');
+      if (role) { if (role === 'admin') editBtn.style.display = ''; return; }
+      await new Promise(function (r) { setTimeout(r, 100); });
+    }
+  })();
+  window.addEventListener('beforeunload', function () { /* drafts are autosaved in localStorage; nothing to block */ });
+
+  /* ══════════ LOAD ══════════ */
+  function fetchFirst(urls) {
+    return urls.reduce(function (p, u) {
+      return p.then(function (r) {
+        if (r) return r;
+        return fetch(u, { cache: 'no-store' }).then(function (x) { return x.ok ? x.json() : null; }).catch(function () { return null; });
+      });
+    }, Promise.resolve(null));
+  }
+  function demoGlobal() {
+    function P(n, bool) { return { name: n, id: bool ? 'SP-Boolean' : 'N/A', fullPath: 'demo:' + n, status: 'connected', logBoolean: bool ? 'yes_Boolean' : 'no_Boolean', logNumeric: bool ? 'no_Numeric' : 'yes_Numeric' }; }
+    return { globalVariables: {
+      DEMO_Pump_Room: { Type: 'OTHER', points: [P('DISH_S', true), P('CHW_SUPPLY_T'), P('CHW_RETURN_T'), P('PUMP_1_CMD', true), P('PUMP_1_SPEED')] },
+      DEMO_Boiler_Plant: { Type: 'OTHER', points: [P('HWS_T'), P('HWR_T'), P('BLR_1_STAT', true), P('BLR_2_STAT', true)] },
+      DEMO_AHU_1: { Type: 'AHU', points: [P('SAT')] }
+    } };
+  }
+
+  Promise.all([fetchFirst([LAYOUT_FILE]), fetchFirst(GLOBAL_FILES)]).then(function (res) {
+    var j = res[0], g = DEMO && !res[1] ? demoGlobal() : res[1];
+if (j && j.sheets) S = j;
+    S.sheets = S.sheets || []; S.hiddenAuto = S.hiddenAuto || [];
+    S.sheets.forEach(function (sh) {
+      if (!sh.id) sh.id = uid('s'); if (!sh.minw) sh.minw = 200; sh.items = sh.items || [];
+      sh.items.forEach(function (it) {
+        if (!it.id) it.id = uid('i');
+        if (it.hist == null) it.hist = 'yes'; if (it.ovr == null) it.ovr = 'no';
+      });
+    });
+    if (DEMO && !S.sheets.length) {   // sample layout so the demo isn't blank
+      var d = mkSheet('Demo Sheet'), mk = function (t, n, o) { var i = mkItem(t); i.name = n; i.ord = o || ''; return i; };
+      d.items = [mk('header', 'Air Handler 1'), mk('dial', 'Supply Air Temp', 'demo:sat'), mk('dial', 'Return Air Temp', 'demo:rat'), mk('bar', 'Damper Position', 'demo:dpr'),
+                 mk('data', 'Mixed Air Temp', 'demo:mat'), mk('header', 'Status'), mk('status', 'Supply Fan', 'demo:sf'), mk('status', 'Heating Valve', 'demo:hv'), mk('graph', 'Discharge Trend', 'demo:dt')];
+      d.items[1].ovr = 'yes'; S.sheets.push(d);
+    }
+    globalData = g;
+    if (g) mergeAuto(g); else console.warn('Global.json not found (' + GLOBAL_FILES.join(', ') + ') — auto sheets skipped');
+    renderAll();
+  });
+})();
+</script>
+</body>
+</html>
