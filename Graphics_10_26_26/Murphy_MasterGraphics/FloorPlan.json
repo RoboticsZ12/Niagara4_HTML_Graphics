@@ -1,0 +1,618 @@
+{
+  "0": {
+    "bubbles": {
+      "fanStatusBubble1": {
+        "leftPercent": 77.44,
+        "topPercent": 75.45
+      },
+      "fanStatusBubble2": {
+        "leftPercent": 38.01,
+        "topPercent": 83.78
+      },
+      "fanStatusBubble3": {
+        "leftPercent": 33.82,
+        "topPercent": -0.67
+      },
+      "fanStatusBubble4": {
+        "leftPercent": 86.99,
+        "topPercent": 1.94
+      },
+      "fanStatusBubble5": {
+        "leftPercent": 13.39,
+        "topPercent": 35.71
+      }
+    },
+    "arrows": {
+      "fanStatusBubble1": {
+        "xPercent": 41.2,
+        "yPercent": 54.62
+      },
+      "fanStatusBubble2": {
+        "xPercent": 37.47,
+        "yPercent": 67.7
+      },
+      "fanStatusBubble3": {
+        "xPercent": 36.05,
+        "yPercent": 19.63
+      },
+      "fanStatusBubble4": {
+        "xPercent": 68.89,
+        "yPercent": 9.2
+      },
+      "fanStatusBubble5": {
+        "xPercent": 30.34,
+        "yPercent": 32.62
+      }
+    }
+  },
+  "1": {
+    "bubbles": {
+      "fanStatusBubble1": {
+        "leftPercent": 56.55,
+        "topPercent": 3.02
+      },
+      "fanStatusBubble2": {
+        "leftPercent": 75.19,
+        "topPercent": 7.25
+      },
+      "fanStatusBubble3": {
+        "leftPercent": 63.61,
+        "topPercent": 76.89
+      },
+      "fanStatusBubble4": {
+        "leftPercent": 37.6,
+        "topPercent": 76.38
+      },
+      "fanStatusBubble5": {
+        "leftPercent": 24.03,
+        "topPercent": 76.21
+      },
+      "fanStatusBubble6": {
+        "leftPercent": 43.44,
+        "topPercent": 2.52
+      },
+      "fanStatusBubble7": {
+        "leftPercent": 34.16,
+        "topPercent": 3.77
+      },
+      "fanStatusBubble8": {
+        "leftPercent": 24.89,
+        "topPercent": 4.27
+      },
+      "fanStatusBubble9": {
+        "leftPercent": 50.88,
+        "topPercent": 77.06
+      },
+      "fanStatusBubble10": {
+        "leftPercent": 77.54,
+        "topPercent": 76.72
+      },
+      "fanStatusBubble11": {
+        "leftPercent": 86.76,
+        "topPercent": 52.73
+      },
+      "fanStatusBubble12": {
+        "leftPercent": 87.14,
+        "topPercent": 65.15
+      },
+      "fanStatusBubble13": {
+        "leftPercent": 96.77,
+        "topPercent": 47.44
+      },
+      "fanStatusBubble14": {
+        "leftPercent": 96.32,
+        "topPercent": 58.15
+      },
+      "fanStatusBubble15": {
+        "leftPercent": 90.26,
+        "topPercent": 71.86
+      },
+      "fanStatusBubble16": {
+        "leftPercent": 69.66,
+        "topPercent": 83.82
+      },
+      "fanStatusBubble17": {
+        "leftPercent": 29.97,
+        "topPercent": 83.82
+      },
+      "fanStatusBubble18": {
+        "leftPercent": 43.44,
+        "topPercent": 83.44
+      },
+      "fanStatusBubble19": {
+        "leftPercent": 84.73,
+        "topPercent": 13.68
+      },
+      "fanStatusBubble20": {
+        "leftPercent": 10.98,
+        "topPercent": 79.95
+      },
+      "fanStatusBubble21": {
+        "leftPercent": 11.78,
+        "topPercent": 22.52
+      },
+      "fanStatusBubble22": {
+        "leftPercent": 87.23,
+        "topPercent": 22.9
+      },
+      "fanStatusBubble23": {
+        "leftPercent": 10.89,
+        "topPercent": 71.48
+      },
+      "fanStatusBubble24": {
+        "leftPercent": 88.56,
+        "topPercent": 30.99
+      },
+      "fanStatusBubble25": {
+        "leftPercent": 89.99,
+        "topPercent": 40.09
+      },
+      "fanStatusBubble26": {
+        "leftPercent": 10.8,
+        "topPercent": 28.63
+      },
+      "fanStatusBubble27": {
+        "leftPercent": 10.53,
+        "topPercent": 36.97
+      },
+      "fanStatusBubble28": {
+        "leftPercent": 10.53,
+        "topPercent": 44.32
+      },
+      "fanStatusBubble29": {
+        "leftPercent": 9.73,
+        "topPercent": 51.92
+      },
+      "fanStatusBubble30": {
+        "leftPercent": 10.8,
+        "topPercent": 60.39
+      }
+    },
+    "arrows": {
+      "fanStatusBubble1": {
+        "xPercent": 56.99,
+        "yPercent": 15.23
+      },
+      "fanStatusBubble2": {
+        "xPercent": 70.55,
+        "yPercent": 15.35
+      },
+      "fanStatusBubble3": {
+        "xPercent": 55.49,
+        "yPercent": 68.72
+      },
+      "fanStatusBubble4": {
+        "xPercent": 35.01,
+        "yPercent": 66
+      },
+      "fanStatusBubble5": {
+        "xPercent": 27.07,
+        "yPercent": 66.85
+      },
+      "fanStatusBubble6": {
+        "xPercent": 42.1,
+        "yPercent": 16.6
+      },
+      "fanStatusBubble7": {
+        "xPercent": 32.2,
+        "yPercent": 20.34
+      },
+      "fanStatusBubble8": {
+        "xPercent": 24.18,
+        "yPercent": 22.2
+      },
+      "fanStatusBubble9": {
+        "xPercent": 44.52,
+        "yPercent": 53.24
+      },
+      "fanStatusBubble10": {
+        "xPercent": 61.12,
+        "yPercent": 60.22
+      },
+      "fanStatusBubble11": {
+        "xPercent": 64.07,
+        "yPercent": 38.77
+      },
+      "fanStatusBubble12": {
+        "xPercent": 57.8,
+        "yPercent": 48.81
+      },
+      "fanStatusBubble13": {
+        "xPercent": 76.7,
+        "yPercent": 41.58
+      },
+      "fanStatusBubble14": {
+        "xPercent": 76.35,
+        "yPercent": 56.41
+      },
+      "fanStatusBubble15": {
+        "xPercent": 65.29,
+        "yPercent": 56.53
+      },
+      "fanStatusBubble16": {
+        "xPercent": 68.59,
+        "yPercent": 60.64
+      },
+      "fanStatusBubble17": {
+        "xPercent": 30.51,
+        "yPercent": 63.51
+      },
+      "fanStatusBubble18": {
+        "xPercent": 41.12,
+        "yPercent": 65.63
+      },
+      "fanStatusBubble19": {
+        "xPercent": 74.2,
+        "yPercent": 19.41
+      },
+      "fanStatusBubble20": {
+        "xPercent": 20.16,
+        "yPercent": 71.98
+      },
+      "fanStatusBubble21": {
+        "xPercent": 27.39,
+        "yPercent": 28.63
+      },
+      "fanStatusBubble22": {
+        "xPercent": 79.38,
+        "yPercent": 21.53
+      },
+      "fanStatusBubble23": {
+        "xPercent": 24.62,
+        "yPercent": 64.76
+      },
+      "fanStatusBubble24": {
+        "xPercent": 67.87,
+        "yPercent": 33.98
+      },
+      "fanStatusBubble25": {
+        "xPercent": 69.57,
+        "yPercent": 36.1
+      },
+      "fanStatusBubble26": {
+        "xPercent": 27.03,
+        "yPercent": 35.35
+      },
+      "fanStatusBubble27": {
+        "xPercent": 26.41,
+        "yPercent": 41.09
+      },
+      "fanStatusBubble28": {
+        "xPercent": 26.23,
+        "yPercent": 45.82
+      },
+      "fanStatusBubble29": {
+        "xPercent": 23.19,
+        "yPercent": 53.79
+      },
+      "fanStatusBubble30": {
+        "xPercent": 19.63,
+        "yPercent": 60.02
+      }
+    }
+  },
+  "2": {
+    "bubbles": {
+      "fanStatusBubble1": {
+        "leftPercent": 46.92,
+        "topPercent": 87.47
+      },
+      "fanStatusBubble2": {
+        "leftPercent": 22.18,
+        "topPercent": 81.34
+      },
+      "fanStatusBubble3": {
+        "leftPercent": 72.74,
+        "topPercent": 62.96
+      },
+      "fanStatusBubble4": {
+        "leftPercent": 58.06,
+        "topPercent": 88.12
+      },
+      "fanStatusBubble5": {
+        "leftPercent": 65.52,
+        "topPercent": -3.39
+      },
+      "fanStatusBubble6": {
+        "leftPercent": 50.98,
+        "topPercent": -3.06
+      },
+      "fanStatusBubble7": {
+        "leftPercent": 36.8,
+        "topPercent": -3.06
+      },
+      "fanStatusBubble8": {
+        "leftPercent": 22.26,
+        "topPercent": -3.06
+      },
+      "fanStatusBubble9": {
+        "leftPercent": 80.85,
+        "topPercent": -1.51
+      },
+      "fanStatusBubble10": {
+        "leftPercent": 82.1,
+        "topPercent": 8.71
+      },
+      "fanStatusBubble11": {
+        "leftPercent": 82.64,
+        "topPercent": 19.27
+      },
+      "fanStatusBubble12": {
+        "leftPercent": 82.91,
+        "topPercent": 29.37
+      },
+      "fanStatusBubble13": {
+        "leftPercent": 7.91,
+        "topPercent": -3.06
+      },
+      "fanStatusBubble14": {
+        "leftPercent": 4.51,
+        "topPercent": 4.64
+      },
+      "fanStatusBubble15": {
+        "leftPercent": 3.31,
+        "topPercent": 14.38
+      },
+      "fanStatusBubble16": {
+        "leftPercent": 3.04,
+        "topPercent": 23.34
+      },
+      "fanStatusBubble17": {
+        "leftPercent": 1.48,
+        "topPercent": 35.38
+      },
+      "fanStatusBubble18": {
+        "leftPercent": 83.44,
+        "topPercent": 52.39
+      },
+      "fanStatusBubble19": {
+        "leftPercent": 84.07,
+        "topPercent": 63.44
+      },
+      "fanStatusBubble20": {
+        "leftPercent": 85.4,
+        "topPercent": 73.83
+      },
+      "fanStatusBubble21": {
+        "leftPercent": 86.12,
+        "topPercent": 85.22
+      },
+      "fanStatusBubble22": {
+        "leftPercent": 2.47,
+        "topPercent": 45.57
+      },
+      "fanStatusBubble23": {
+        "leftPercent": 4.07,
+        "topPercent": 56.68
+      },
+      "fanStatusBubble24": {
+        "leftPercent": 1.49,
+        "topPercent": 65.76
+      },
+      "fanStatusBubble25": {
+        "leftPercent": 3.13,
+        "topPercent": 73.67
+      },
+      "fanStatusBubble26": {
+        "leftPercent": 13.65,
+        "topPercent": 47.35
+      },
+      "fanStatusBubble27": {
+        "leftPercent": 12.05,
+        "topPercent": 86.17
+      },
+      "fanStatusBubble28": {
+        "leftPercent": 27.3,
+        "topPercent": 89.09
+      },
+      "fanStatusBubble29": {
+        "leftPercent": 71.53,
+        "topPercent": 83.41
+      },
+      "fanStatusBubble30": {
+        "leftPercent": 38.09,
+        "topPercent": 85.84
+      },
+      "fanStatusBubble31": {
+        "leftPercent": 84.02,
+        "topPercent": 39.89
+      }
+    },
+    "arrows": {
+      "fanStatusBubble1": {
+        "xPercent": 56.84,
+        "yPercent": 72.06
+      },
+      "fanStatusBubble2": {
+        "xPercent": 29.29,
+        "yPercent": 69.82
+      },
+      "fanStatusBubble3": {
+        "xPercent": 66.83,
+        "yPercent": 67.84
+      },
+      "fanStatusBubble4": {
+        "xPercent": 57.64,
+        "yPercent": 76.94
+      },
+      "fanStatusBubble5": {
+        "xPercent": 61.75,
+        "yPercent": 12.95
+      },
+      "fanStatusBubble6": {
+        "xPercent": 51.14,
+        "yPercent": 12.95
+      },
+      "fanStatusBubble7": {
+        "xPercent": 39.9,
+        "yPercent": 9.21
+      },
+      "fanStatusBubble8": {
+        "xPercent": 34.55,
+        "yPercent": 11.81
+      },
+      "fanStatusBubble9": {
+        "xPercent": 70.49,
+        "yPercent": 23.99
+      },
+      "fanStatusBubble10": {
+        "xPercent": 72.54,
+        "yPercent": 32.76
+      },
+      "fanStatusBubble11": {
+        "xPercent": 33.03,
+        "yPercent": 39.26
+      },
+      "fanStatusBubble12": {
+        "xPercent": 75.13,
+        "yPercent": 37.31
+      },
+      "fanStatusBubble13": {
+        "xPercent": 25.81,
+        "yPercent": 11.65
+      },
+      "fanStatusBubble14": {
+        "xPercent": 24.03,
+        "yPercent": 14.57
+      },
+      "fanStatusBubble15": {
+        "xPercent": 32.32,
+        "yPercent": 14.25
+      },
+      "fanStatusBubble16": {
+        "xPercent": 31.43,
+        "yPercent": 17.66
+      },
+      "fanStatusBubble17": {
+        "xPercent": 28.04,
+        "yPercent": 23.18
+      },
+      "fanStatusBubble18": {
+        "xPercent": 74.32,
+        "yPercent": 45.92
+      },
+      "fanStatusBubble19": {
+        "xPercent": 74.95,
+        "yPercent": 53.23
+      },
+      "fanStatusBubble20": {
+        "xPercent": 75.75,
+        "yPercent": 59.56
+      },
+      "fanStatusBubble21": {
+        "xPercent": 75.75,
+        "yPercent": 73.04
+      },
+      "fanStatusBubble22": {
+        "xPercent": 27.32,
+        "yPercent": 30.49
+      },
+      "fanStatusBubble23": {
+        "xPercent": 26.79,
+        "yPercent": 69.47
+      },
+      "fanStatusBubble24": {
+        "xPercent": 37.67,
+        "yPercent": 50.46
+      },
+      "fanStatusBubble25": {
+        "xPercent": 24.56,
+        "yPercent": 73.53
+      },
+      "fanStatusBubble26": {
+        "xPercent": 27.32,
+        "yPercent": 59.56
+      },
+      "fanStatusBubble27": {
+        "xPercent": 28.22,
+        "yPercent": 39.75
+      },
+      "fanStatusBubble28": {
+        "xPercent": 35.14,
+        "yPercent": 66.68
+      },
+      "fanStatusBubble29": {
+        "xPercent": 66.62,
+        "yPercent": 73.34
+      },
+      "fanStatusBubble30": {
+        "xPercent": 32.05,
+        "yPercent": 70.11
+      },
+      "fanStatusBubble31": {
+        "xPercent": 60.95,
+        "yPercent": 47.21
+      }
+    }
+  },
+  "11": {
+    "bubbles": {
+      "fanStatusBubble1": {
+        "leftPercent": 75.43,
+        "topPercent": 76.26
+      },
+      "fanStatusBubble2": {
+        "leftPercent": 27.19,
+        "topPercent": 81.13
+      },
+      "fanStatusBubble3": {
+        "leftPercent": 27.9,
+        "topPercent": 65.71
+      },
+      "fanStatusBubble4": {
+        "leftPercent": 29.33,
+        "topPercent": 35.33
+      },
+      "fanStatusBubble5": {
+        "leftPercent": 82.57,
+        "topPercent": 58.72
+      },
+      "fanStatusBubble6": {
+        "leftPercent": 29.6,
+        "topPercent": 18.44
+      },
+      "fanStatusBubble7": {
+        "leftPercent": 30.76,
+        "topPercent": 2.85
+      },
+      "fanStatusBubble8": {
+        "leftPercent": 75.43,
+        "topPercent": 6.43
+      }
+    },
+    "arrows": {
+      "fanStatusBubble1": {
+        "xPercent": 59.03,
+        "yPercent": 64.73
+      },
+      "fanStatusBubble2": {
+        "xPercent": 41.37,
+        "yPercent": 66.35
+      },
+      "fanStatusBubble3": {
+        "xPercent": 46,
+        "yPercent": 45.4
+      },
+      "fanStatusBubble4": {
+        "xPercent": 46.18,
+        "yPercent": 36.96
+      },
+      "fanStatusBubble5": {
+        "xPercent": 61.7,
+        "yPercent": 42.81
+      },
+      "fanStatusBubble6": {
+        "xPercent": 45.92,
+        "yPercent": 33.87
+      },
+      "fanStatusBubble7": {
+        "xPercent": 43.69,
+        "yPercent": 12.27
+      },
+      "fanStatusBubble8": {
+        "xPercent": 58.31,
+        "yPercent": 14.38
+      }
+    }
+  }
+}

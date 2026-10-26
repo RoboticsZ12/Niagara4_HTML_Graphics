@@ -1,0 +1,2829 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en" xmlns:b="http://www.tridium.com/baja/baja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control Panel - Floor Plans</title>
+<script type='text/javascript' src='/requirejs/config.js'></script>
+<script type='text/javascript' src='/module/js/com/tridium/js/ext/require/require.min.js?'></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./Floor_Plans/JS_3DFiles/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./Floor_Plans/JS_3DFiles/OrbitControls.js",
+    "three/addons/loaders/GLTFLoader.js":     "./Floor_Plans/JS_3DFiles/GLTFLoader.js",
+    "three/addons/loaders/DRACOLoader.js":    "./Floor_Plans/JS_3DFiles/DRACOLoader.js",
+    "./Floor_Plans/utils/BufferGeometryUtils.js": "./Floor_Plans/JS_3DFiles/BufferGeometryUtils.js",
+    "./Floor_Plans/libs/fflate.module.js":        "./Floor_Plans/JS_3DFiles/fflate.module.js",
+    "./Floor_Plans/curves/NURBSCurve.js":         "./Floor_Plans/JS_3DFiles/NURBSCurve.js",
+    "./Floor_Plans/curves/NURBSUtils.js":         "./Floor_Plans/JS_3DFiles/NURBSUtils.js"
+  }
+}
+</script>
+
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #080d14;
+      --surface:      #0d1520;
+      --surface-2:    #111c2b;
+      --border:       rgba(0,180,255,0.12);
+      --border-hover: rgba(0,180,255,0.45);
+      --accent:       #00b4ff;
+      --accent-dim:   rgba(0,180,255,0.18);
+      --accent-glow:  rgba(0,180,255,0.35);
+      --amber:        #ffab00;
+      --green:        #00e676;
+      --text:         #c8d8ea;
+      --text-dim:     #5a7080;
+      --text-muted:   #334455;
+      --font-ui:      'Rajdhani', sans-serif;
+      --font-mono:    'Share Tech Mono', monospace;
+      --font-body:    'Inter', sans-serif;
+      --top-h:        54px;
+      --bot-h:        44px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body.light-mode {
+      --bg:        #eef2f7;
+      --surface:   #ffffff;
+      --surface-2: #f4f7fc;
+      --border:    rgba(0,100,180,0.14);
+      --border-hover: rgba(0,100,180,0.45);
+      --text:      #1a2535;
+      --text-dim:  #6080a0;
+      --text-muted:#a0b0c0;
+      --accent-dim: rgba(0,120,200,0.1);
+    }
+
+    /* fade transitions */
+    body { opacity:0; transition: opacity .35s ease; }
+    body.fade-in  { opacity:1; }
+    body.fade-out { opacity:0; }
+
+    /* ── OVERLAY ──────────────────────────────────────── */
+    .overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.55);
+      backdrop-filter:blur(2px); z-index:100;
+      opacity:0; pointer-events:none;
+      transition: opacity .3s;
+    }
+    .overlay.active { opacity:1; pointer-events:all; }
+
+    /* ── SIDE PANEL ───────────────────────────────────── */
+    .side-panel {
+      position:fixed; top:0; left:-280px; width:260px; height:100%;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      z-index:200; transition: left .3s cubic-bezier(.4,0,.2,1);
+      display:flex; flex-direction:column;
+    }
+    .side-panel.active { left:0; }
+
+    .side-panel-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .side-panel-header h2 {
+      font-family: var(--font-ui);
+      font-size: 1.8rem; font-weight:700;
+      color: var(--accent); letter-spacing:.1em;
+    }
+    .side-panel-header p {
+      font-size: .7rem; color: var(--text-dim);
+      letter-spacing:.12em; text-transform:uppercase; margin-top:2px;
+    }
+
+    .side-panel-nav { padding:12px 0; }
+
+    .side-nav-section-label {
+      font-size:.85rem; letter-spacing:.18em; text-transform:uppercase;
+      color: var(--text-muted); padding: 8px 20px 4px;
+    }
+
+    .side-nav-link {
+      display:flex; align-items:center; gap:25px;
+      padding:10px 20px; text-decoration:none;
+      color: var(--text); transition: background .18s, color .18s;
+      font-family: var(--font-ui); font-size:1rem; font-weight:500;
+      letter-spacing:.04em;
+    }
+    .side-nav-link:hover {
+      background: var(--accent-dim); color: var(--accent);
+    }
+    .side-nav-icon { width:26px; height:26px; flex-shrink:0; }
+    .side-nav-icon svg { width:100%; height:100%; }
+
+    /* ── TOP BAR ──────────────────────────────────────── */
+    .top-bar {
+      position:fixed; top:0; left:0; right:0; height:var(--top-h);
+      background: rgba(8,13,20,.92);
+      backdrop-filter:blur(12px);
+      border-bottom: 1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; z-index:50;
+    }
+    body.light-mode .top-bar {
+      background: rgba(238,242,247,.92);
+    }
+
+    .hamburger {
+      width:36px; height:36px; cursor:pointer;
+      display:flex; flex-direction:column; justify-content:center;
+      gap:5px; padding:4px;
+    }
+    .hamburger-line {
+      height:2px; background:var(--text); border-radius:2px;
+      transition: transform .25s, opacity .25s, width .25s;
+    }
+    .hamburger:hover .hamburger-line { background: var(--accent); }
+    .hamburger.active .hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.active .hamburger-line:nth-child(2) { opacity:0; }
+    .hamburger.active .hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .top-center {
+      position:absolute; left:50%; transform:translateX(-50%);
+      text-align:center; pointer-events:none;
+    }
+    .site-label {
+      display:block; font-family:var(--font-ui);
+      font-size:.95rem; font-weight:600;
+      letter-spacing:.28em; text-transform:uppercase;
+      color: var(--accent);
+    }
+    .page-title {
+      display:block; font-family:var(--font-ui);
+      font-size:.95rem; font-weight:500;
+      letter-spacing:.18em; text-transform:uppercase;
+      color: var(--text);
+    }
+
+    .top-right {
+      display:flex; align-items:center; gap:16px;
+    }
+    .toggle-container {
+      display:flex; align-items:center; gap:8px;
+    }
+    .toggle-label {
+      font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+      color:var(--text-dim);
+    }
+    .toggle-switch {
+      width:40px; height:22px; background:var(--surface-2);
+      border:1px solid var(--border); border-radius:11px;
+      cursor:pointer; position:relative; transition:background .2s;
+    }
+    .toggle-switch.active { background: rgba(0,180,255,.25); }
+    .toggle-slider {
+      width:16px; height:16px; background:var(--text-dim);
+      border-radius:50%; position:absolute; top:2px; left:2px;
+      transition:transform .25s, background .2s;
+    }
+    .toggle-switch.active .toggle-slider {
+      transform:translateX(18px); background:var(--accent);
+    }
+
+    .user-badge {
+      display:flex; align-items:center; gap:7px;
+      background: var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:20px; padding:4px 12px 4px 8px;
+    }
+    .user-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 6px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100%{opacity:1} 50%{opacity:.5}
+    }
+    #userDisplay {
+      font-size:.72rem; font-family:var(--font-mono);
+      color:var(--text); letter-spacing:.05em;
+    }
+
+    /* ── MAIN CONTENT ─────────────────────────────────── */
+    .main-content {
+      padding: calc(var(--top-h) + 28px) 32px calc(var(--bot-h) + 28px);
+      max-width: 1500px; margin:0 auto;
+    }
+
+    /* ── PAGE HEADER ──────────────────────────────────── */
+    .page-header {
+      display:flex; align-items:center; gap:16px;
+      margin-bottom: 36px;
+    }
+    .page-header h2 {
+      font-family: var(--font-ui);
+      font-size:1.55rem; font-weight:600;
+      letter-spacing:.22em; text-transform:uppercase;
+      color: var(--text-dim); white-space:nowrap;
+    }
+    .page-header .line {
+      flex:1; height:1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .page-header .line:first-child {
+      background: linear-gradient(270deg, var(--border), transparent);
+    }
+
+    /* ── SECTION CARD ─────────────────────────────────── */
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius:10px;
+      margin-bottom:24px;
+      overflow:hidden;
+    }
+
+    .section-header {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 22px;
+      border-bottom:1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .section-header-badge {
+      width:6px; height:6px; border-radius:50%;
+      background: var(--accent);
+      box-shadow:0 0 8px var(--accent);
+      flex-shrink:0;
+    }
+    .section-header-badge.amber { background:var(--amber); box-shadow:0 0 8px var(--amber); }
+    .section-header h3 {
+      font-family: var(--font-ui);
+      font-size:.95rem; font-weight:600;
+      letter-spacing:.22em; text-transform:uppercase;
+      color: var(--text);
+    }
+    .section-header-count {
+      margin-left:auto;
+      font-family:var(--font-mono);
+      font-size:.85rem; color:var(--text-dim);
+      background: var(--accent-dim);
+      border:1px solid var(--border);
+      border-radius:10px; padding:2px 9px;
+    }
+
+    /* ── FLOOR GRID ───────────────────────────────────── */
+    .floor-grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap:12px;
+      padding:20px 22px;
+    }
+
+    /* ── FLOOR TILE ───────────────────────────────────── */
+    .floor-tile {
+      position:relative; display:flex;
+      flex-direction:column; justify-content:space-between;
+      padding:16px 18px 14px;
+      background: var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:8px;
+      text-decoration:none;
+      color: var(--text);
+      overflow:hidden;
+      cursor:pointer;
+      transition: border-color .2s, box-shadow .2s, background .2s, transform .18s;
+    }
+    .floor-tile::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity:0; transition:opacity .2s;
+    }
+    .floor-tile:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 0 24px var(--accent-glow), 0 4px 16px rgba(0,0,0,.3);
+      background: rgba(0,180,255,.05);
+      transform: translateY(-2px);
+    }
+    .floor-tile:hover::before { opacity:1; }
+    .floor-tile:active { transform: translateY(0); }
+
+    /* split wing modifier */
+    .floor-tile.wing { border-left-width:3px; border-left-color: var(--accent); }
+    .floor-tile.wing-east { border-left-color: var(--accent); }
+    .floor-tile.wing-west { border-left-color: var(--amber); }
+
+    .tile-floor-num {
+      font-family: var(--font-mono);
+      font-size:.58rem; color:var(--text-dim);
+      letter-spacing:.1em;
+      margin-bottom:6px;
+      text-transform:uppercase;
+    }
+    .tile-name {
+      font-family: var(--font-ui);
+      font-size:1.15rem; font-weight:600;
+      letter-spacing:.04em;
+      line-height:1.2;
+      color: var(--text);
+    }
+    .tile-wing-badge {
+      display:inline-block;
+      margin-top:10px;
+      font-family:var(--font-mono);
+      font-size:.75rem;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      padding:2px 8px;
+      border-radius:3px;
+      background:var(--accent-dim);
+      color:var(--accent);
+      border:1px solid rgba(0,180,255,.25);
+    }
+    .tile-wing-badge.west {
+      background:rgba(255,171,0,.12);
+      color:var(--amber);
+      border-color:rgba(255,171,0,.25);
+    }
+
+    .tile-arrow {
+      position:absolute; bottom:14px; right:14px;
+      width:18px; height:18px; opacity:0;
+      transition:opacity .2s, transform .2s;
+      color: var(--accent);
+    }
+    .floor-tile:hover .tile-arrow { opacity:1; transform:translate(2px,-2px); }
+
+    /* empty state */
+    .empty-state {
+      padding:32px 22px;
+      text-align:center;
+      font-size:.75rem;
+      color:var(--text-muted);
+      font-family:var(--font-mono);
+      letter-spacing:.1em;
+    }
+
+    /* ── BOTTOM BAR ───────────────────────────────────── */
+    .bottom-bar {
+      position:fixed; bottom:0; left:0; right:0; height:var(--bot-h);
+      background: rgba(8,13,20,.92);
+      backdrop-filter:blur(12px);
+      border-top:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 20px; z-index:50;
+    }
+    body.light-mode .bottom-bar {
+      background: rgba(238,242,247,.92);
+    }
+
+    .back-btn, .logoff-btn {
+      background:none; border:1px solid var(--border);
+      color:var(--text-dim); font-family:var(--font-ui);
+      font-size:.78rem; font-weight:600;
+      letter-spacing:.1em; text-transform:uppercase;
+      padding:5px 14px; border-radius:5px; cursor:pointer;
+      transition: border-color .2s, color .2s, background .2s;
+    }
+    .back-btn:hover {
+      border-color:var(--accent); color:var(--accent);
+      background:var(--accent-dim);
+    }
+    .logoff-btn:hover {
+      border-color:#ff5252; color:#ff5252;
+      background:rgba(255,82,82,.1);
+    }
+
+    .datetime-display {
+      font-family:var(--font-mono);
+      font-size:.68rem; color:var(--text-dim);
+      letter-spacing:.08em;
+    }
+
+    /* ── STAGGER ANIMATION ────────────────────────────── */
+    .floor-tile {
+      opacity:0;
+      animation: tileIn .35s ease forwards;
+    }
+    @keyframes tileIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    /* delays set via JS */
+
+    /* responsive */
+    @media(max-width:600px){
+      .main-content { padding-left:16px; padding-right:16px; }
+      .floor-grid { grid-template-columns: 1fr 1fr; gap:8px; padding:14px; }
+    }
+    
+    /* ── TILE THUMBNAIL ─────────────────────────────────── */
+.tile-thumb {
+  width:100%; height:110px; object-fit:cover; object-position:center;
+  border-bottom:1px solid var(--border); display:block; background:#0a1118;
+}
+.tile-thumb-placeholder {
+  width:100%; height:110px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  background:#0a1118; color:var(--text-muted);
+  font-family:var(--font-mono); font-size:.65rem; letter-spacing:.1em;
+}
+
+/* ── TILE V3: STACKED — NAME TOP, DIAL CENTER, BADGE BOTTOM ──── */
+.tile-body {
+  padding:14px 16px 12px; flex:1;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+}
+
+.tile-floor-num { align-self:flex-start; margin-bottom:0; }
+.tile-name { align-self:flex-start; font-size:1.05rem; margin-bottom:4px; }
+
+/* mini dial — now the click target */
+.tile-dial {
+  position:relative; flex-shrink:0;
+  width:88px; height:58px;
+  cursor:pointer;
+  transition: transform .15s, filter .15s;
+}
+.tile-dial:hover { transform:translateY(-1px); filter:brightness(1.15); }
+.tile-dial svg { width:100%; height:100%; overflow:visible; }
+.tile-dial-val {
+  position:absolute; bottom:-4px; left:50%; transform:translateX(-50%);
+  font-family:var(--font-mono); font-size:.95rem; font-weight:600;
+  color:var(--text); white-space:nowrap;
+}
+.tile-dial-hint {
+  font-family:var(--font-mono); font-size:.55rem; letter-spacing:.08em;
+  color:white; text-transform:uppercase; margin-top:2px;
+}
+
+.tile-meta-row {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  align-self:flex-start;
+}
+.tile-equip-compact {
+  font-family:var(--font-mono); font-size:.66rem; color:var(--text-dim);
+  letter-spacing:.04em;
+}
+
+.tile-highlights { display:flex; flex-wrap:wrap; gap:4px; align-self:flex-start; margin-top:2px; }
+.tile-hl-badge {
+  font-family:var(--font-mono); font-size:.6rem; letter-spacing:.05em;
+  padding:1px 6px; border-radius:10px; white-space:nowrap;
+}
+/* ─── NAV IMAGE BUTTONS (matched from Nav page) ────────────────────── */
+.nav-image-btn {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.nav-image-btn::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-image-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-card-hover);
+  transform: translateX(3px);
+  text-decoration: none;
+}
+.nav-image-btn:hover::before { opacity: 1; }
+.nav-btn-icon {
+  width: 60px; height: 60px;
+  border-radius: 8px;
+  background: rgba(0,200,255,0.08);
+  border: 1px solid rgba(0,200,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  transition: var(--transition);
+}
+.nav-image-btn:hover .nav-btn-icon {
+  background: rgba(0,200,255,0.15);
+  border-color: rgba(0,200,255,0.35);
+}
+.nav-btn-text { display: flex; flex-direction: column; gap: 2px; }
+.nav-btn-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+.nav-btn-sublabel {
+  font-family: var(--font-head);
+  font-size: 15px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+
+
+/* ── CANVAS LAYOUT OVERRIDE ─────────────────────────── */
+body { overflow:hidden; display:flex; flex-direction:column; }
+.main-content {
+  padding:0 !important; max-width:none !important;
+  flex:1; margin-top:var(--top-h); margin-bottom:var(--bot-h);
+  position:relative; overflow:hidden;
+  background:linear-gradient(135deg,#060d1a 0%,#0a1628 50%,#06111e 100%);
+  display:flex; align-items:center; justify-content:center;
+  transition:margin-right .3s cubic-bezier(.4,0,.2,1);
+}
+body.light-mode .main-content { background:linear-gradient(135deg,#dce6f0,#e8eff8,#d8e4f0); }
+body.drag-mode .main-content { margin-right:200px; cursor:default; }
+body.poly-draw-mode .main-content { cursor:crosshair !important; }
+#zoomContainer { position:relative; width:100%; height:100%; }
+#bgWrapper { position:relative; display:inline-block; max-width:100%; max-height:100%; }
+#bgImage { display:none; max-width:100%; max-height:calc(100vh - var(--top-h) - var(--bot-h)); object-fit:contain; border-radius:6px; }
+#bgStatus {
+  position:absolute; top:12px; left:12px; z-index:20; padding:5px 12px; border-radius:4px;
+  font-family:var(--font-mono); font-size:.65rem; letter-spacing:.08em;
+  background:rgba(0,180,255,.12); border:1px solid var(--border); color:var(--accent); transition:opacity .5s;
+}
+#bgStatus.ok { background:rgba(0,230,118,.1); border-color:rgba(0,230,118,.3); color:var(--green); }
+#bgStatus.err{ background:rgba(255,68,68,.1); border-color:rgba(255,68,68,.3); color:#ff5252; }
+#zoomResetBtn.visible { opacity:1; pointer-events:all; }
+
+/* ── EDIT MODE PILL / EXPORT ────────────────────────── */
+.drag-mode-pill {
+  display:flex; align-items:center; gap:6px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:20px; padding:4px 12px;
+  font-size:.7rem; font-family:var(--font-mono); letter-spacing:.08em;
+  color:var(--text-dim); cursor:pointer; user-select:none; transition:all .2s;
+}
+.drag-mode-pill:hover { border-color:var(--accent); color:var(--accent); }
+.drag-mode-pill.active { border-color:var(--amber); color:var(--amber); background:rgba(255,171,0,.08); }
+.drag-mode-dot { width:6px; height:6px; border-radius:50%; background:var(--text-dim); }
+.drag-mode-pill.active .drag-mode-dot { background:var(--amber); }
+#exportJsonBtn { display:none; background:var(--surface-2); border:1px solid var(--green); color:var(--green);
+  font-family:var(--font-mono); font-size:.65rem; padding:4px 12px; border-radius:5px; cursor:pointer; }
+#exportJsonBtn.visible { display:block; }
+
+/* ── ASSET PANEL ────────────────────────────────────── */
+#hlAssetPanel {
+  position:fixed; top:var(--top-h); right:-220px; width:200px;
+  height:calc(100vh - var(--top-h) - var(--bot-h));
+  background:var(--surface); border-left:1px solid var(--border); z-index:150;
+  display:flex; flex-direction:column; transition:right .3s cubic-bezier(.4,0,.2,1);
+}
+body.drag-mode #hlAssetPanel { right:0; }
+#hlAssetPanel .panel-header { padding:12px 14px 10px; border-bottom:1px solid var(--border); background:rgba(180,80,255,.06); }
+#hlAssetPanel .panel-header h3 { font-family:var(--font-ui); font-size:.85rem; letter-spacing:.14em; text-transform:uppercase; color:#c896ff; }
+#hlAssetPanel .panel-header p { font-family:var(--font-mono); font-size:.58rem; letter-spacing:.1em; color:var(--text-muted); text-transform:uppercase; }
+.asset-card { margin:10px 8px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+  padding:8px; cursor:grab; user-select:none; position:relative; transition:all .18s; }
+.asset-card:hover { border-color:#c896ff; background:rgba(180,80,255,.06); }
+.asset-card-label { font-family:var(--font-mono); font-size:.6rem; color:var(--text-dim); margin-top:6px; text-align:center; }
+#hlList { flex:1; overflow-y:auto; padding:6px 8px; }
+.hl-list-row { display:flex; align-items:center; gap:7px; padding:5px 7px; margin-bottom:4px;
+  border:1px solid var(--border); border-radius:4px; background:var(--surface-2);
+  font-family:var(--font-mono); font-size:.62rem; color:var(--text-dim); cursor:pointer; }
+.hl-list-row:hover { border-color:var(--accent); color:var(--text); }
+.hl-swatch { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+/* ── HIGHLIGHT BUTTON ───────────────────────────────── */
+.highlight-btn { opacity:0; pointer-events:none; }
+body.drag-mode .highlight-btn { opacity:1; pointer-events:all; }
+.hl-resize-handle { position:absolute; bottom:0; right:0; width:14px; height:14px; cursor:se-resize; display:none; }
+body.drag-mode .hl-resize-handle { display:block; }
+.hl-resize-handle::before { content:''; position:absolute; bottom:3px; right:3px; width:7px; height:7px;
+  border-right:2px solid rgba(255,255,255,.75); border-bottom:2px solid rgba(255,255,255,.75); }
+.hl-delete-btn { position:absolute; top:-1px; right:-1px; width:16px; height:16px; background:rgba(255,68,68,.85);
+  border-radius:0 5px 0 4px; display:none; align-items:center; justify-content:center; font-size:10px; color:#fff; z-index:5; }
+body.drag-mode .hl-delete-btn { display:flex; }
+.hl-shape-btn, .hl-edit-btn {
+  position:absolute; top:-20px; font-family:var(--font-mono); font-size:9px; padding:2px 6px;
+  border-radius:3px 3px 0 0; cursor:pointer; white-space:nowrap; display:none;
+  background:rgba(8,13,20,.92); border:1px solid rgba(180,80,255,.6); border-bottom:none; color:#dcb0ff;
+}
+.hl-shape-btn { left:0; } .hl-edit-btn { left:56px; }
+body.drag-mode .hl-shape-btn, body.drag-mode .hl-edit-btn { display:block; }
+
+#polyOverlay .highlight-poly { stroke-width:2; fill-opacity:0; stroke-opacity:0; pointer-events:none;
+  transition:fill-opacity .2s, stroke-opacity .2s; }
+#polyOverlay .highlight-poly.hover-active { fill-opacity:1; stroke-opacity:1; filter:drop-shadow(0 0 10px currentColor); }
+#polyOverlay .poly-preview { fill:none; stroke-width:1.5; stroke-dasharray:6 3; pointer-events:none; }
+#polyOverlay .poly-vertex { r:4; fill:#c896ff; stroke:rgba(255,255,255,.8); stroke-width:1.5; }
+#polyOverlay .poly-vertex.first-vertex { r:6; }
+#polyOverlay .poly-vertex.snap-active { r:9; fill:rgba(255,171,0,.35); stroke:#ffab00; stroke-width:2; }
+body.poly-draw-mode * { cursor:crosshair !important; }
+#polyDrawBanner { display:none; position:fixed; top:calc(var(--top-h) + 8px); left:50%; transform:translateX(-50%);
+  background:rgba(180,80,255,.18); border:1px solid #c896ff; color:#dcb0ff; font-family:var(--font-mono);
+  font-size:.68rem; letter-spacing:.1em; padding:6px 18px; border-radius:6px; z-index:1000; pointer-events:none; }
+#polyDrawBanner.active { display:block; }
+
+/* ── MODALS ─────────────────────────────────────────── */
+.mc-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:3000; align-items:center; justify-content:center; }
+.mc-modal.open { display:flex; }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:24px; max-width:560px; width:90%; max-height:80vh; overflow:auto; }
+.modal-box h3 { font-family:var(--font-ui); font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+.modal-box label { display:block; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--text-dim); margin:10px 0 4px; }
+.modal-box input[type=text], .modal-box textarea, .modal-box select {
+  width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border);
+  border-radius:6px; padding:8px; font-family:var(--font-mono); font-size:.72rem; outline:none; }
+.modal-box select option { background:var(--surface); color:var(--text); }
+.modal-box input[type=color] { width:52px; height:32px; background:none; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+.modal-box textarea { height:250px; resize:vertical; }
+.modal-actions { display:flex; gap:10px; margin-top:16px; }
+.modal-btn { flex:1; padding:9px; font-family:var(--font-ui); font-size:.85rem; font-weight:600; letter-spacing:.08em;
+  border:1px solid var(--border); border-radius:6px; cursor:pointer; background:var(--surface-2); color:var(--text); }
+.modal-btn.primary { border-color:var(--accent); color:var(--accent); }
+
+
+/* ── FLOOR LIST PANEL (next to image) ──────────────── */
+#floorListPanel {
+  position:fixed; top:calc(var(--top-h) + 12px); left:12px;
+  width:260px; max-height:calc(100vh - var(--top-h) - var(--bot-h) - 24px);
+  overflow-y:auto; z-index:40;
+}
+#floorPanelGrid { grid-template-columns:1fr; padding:12px; }
+/*#floorPanelGrid .floor-tile { cursor:default; }*/
+/*#floorPanelGrid .floor-tile:hover { transform:none; box-shadow:none; }*/
+
+.main-content { margin-left:284px; }
+#floorToggleBtn {
+  display:none;
+  position:fixed;
+  top:10px; left:10px;
+  z-index:999999;
+  width:36px; height:36px;
+  align-items:center; justify-content:center;
+  background:var(--surface);
+  border:1px solid var(--border); border-radius:6px;
+  cursor:pointer; color:var(--accent);
+}
+
+@media (max-width:900px) {
+  #floorListPanel {
+    left:-280px;
+    top:0; height:100%; max-height:100%;
+    z-index:250;
+    transition:left .3s cubic-bezier(.4,0,.2,1);
+  }
+  #floorListPanel.active { left:0; }
+  .main-content { margin-left:0; }
+  #floorToggleBtn { display:flex; }
+}
+
+.rtu-track-label {
+  position:absolute; top:-20px; right:0;
+  font-family:var(--font-mono); font-size:.62rem; letter-spacing:.05em;
+  padding:2px 8px; border-radius:4px 4px 0 0;
+  background:rgba(8,13,20,.9); border:1px solid currentColor; border-bottom:none;
+  white-space:nowrap; pointer-events:none; z-index:2;
+}
+.highlight-btn[data-kind="rtu"] { cursor:pointer; }
+
+/* ── RTU TRACK LIST (top-right, populated from saved data) ────────── */
+#rtuTrackListPanel {
+  position:fixed; top:calc(var(--top-h) + 12px); right:12px; z-index:60;
+  display:flex; flex-direction:column; gap:6px; max-width:230px;
+  pointer-events:none;
+}
+.rtu-track-panel-item {
+  pointer-events:all;
+  background:var(--surface); border-radius:6px; padding:7px 11px;
+  cursor:pointer; font-family:var(--font-mono); font-size:.66rem;
+  letter-spacing:.05em; display:flex; align-items:center; gap:7px;
+  transition:transform .15s, filter .15s;
+}
+.rtu-track-panel-item:hover { transform:translateX(-2px); filter:brightness(1.2); }
+.rtu-track-panel-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:currentColor; box-shadow:0 0 6px currentColor; }
+.rtu-track-panel-item span.rtu-track-panel-count { margin-left:auto; opacity:.7; }
+
+#rtuDataList { display:flex; flex-direction:column; gap:8px; margin:14px 0; }
+.rtu-data-row {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+  padding:8px 12px;
+}
+.rtu-data-row .rtu-data-name { font-size:.7rem; color:var(--text-dim); font-family:var(--font-mono); }
+.rtu-data-row .rtu-data-val { font-size:.95rem; color:var(--accent); font-family:var(--font-mono); font-weight:600; }
+
+/* ═════════════ 3D VIEW ═════════════ */
+#view3d{display:none}
+body.mode-3d #view3d{display:block}
+body.mode-3d .main-content{visibility:hidden;pointer-events:none}
+body.mode-3d #hlAssetPanel, body.mode-3d #rtuTrackListPanel, body.mode-3d #polyDrawBanner, body.mode-3d #bgStatus{display:none!important}
+
+#t3_stage{position:fixed;top:var(--top-h);bottom:var(--bot-h);left:284px;right:0;z-index:20;cursor:grab;
+  background:radial-gradient(ellipse at 50% 45%,rgba(0,180,255,.09) 0%,transparent 60%),
+    linear-gradient(rgba(0,180,255,.035) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg,rgba(0,180,255,.035) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(135deg,#060d1a 0%,#0a1628 50%,#06111e 100%)}
+body.light-mode #t3_stage{background:radial-gradient(ellipse at 50% 45%,rgba(0,100,180,.08) 0%,transparent 60%),
+    linear-gradient(rgba(0,100,180,.06) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg,rgba(0,100,180,.06) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(135deg,#dce6f0 0%,#e8eff8 50%,#d8e4f0 100%)}
+@media (max-width:900px){ #t3_stage{left:0} }
+#t3_stage:active{cursor:grabbing}
+#t3_stage canvas{display:block;width:100%;height:100%;touch-action:none}
+
+#view3d .btn{background:none;border:1px solid var(--border);color:var(--text-dim);font-family:var(--font-ui);font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:5px 14px;border-radius:5px;cursor:pointer;transition:border-color .2s,color .2s,background .2s}
+#view3d .btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+#view3d .btn.on{border-color:var(--amber);color:var(--amber);background:rgba(255,171,0,.08)}
+#t3_viewSel{max-width:150px}
+#t3_viewSel option{background:var(--surface);color:var(--text)}
+#t3_bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:8px;max-width:96%;overflow-x:auto}
+#t3_status{position:absolute;top:12px;left:12px;z-index:5;font-family:var(--font-mono);font-size:.65rem;letter-spacing:.08em;padding:5px 12px;border-radius:4px;max-width:min(560px,90%);background:rgba(0,180,255,.12);border:1px solid var(--border);color:var(--accent);transition:opacity .5s}
+#t3_status.error{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.3);color:#ff5252;line-height:1.5}
+#t3_status.ok{color:var(--green);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.08)}
+#t3_progress{position:absolute;left:0;top:0;height:3px;width:0;background:var(--accent);z-index:6;transition:width .2s,opacity .4s}
+#t3_help,#t3_info{position:absolute;bottom:12px;z-index:5;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.06em;line-height:1.6;color:var(--text-dim);pointer-events:none}
+#t3_help{right:14px;text-align:right}#t3_info{left:12px}
+@media (max-width:760px){#t3_help{display:none}}
+#t3_banner{position:absolute;top:54px;left:50%;transform:translateX(-50%);z-index:9;display:none;background:rgba(0,180,255,.18);border:1px solid var(--accent);color:var(--accent);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;padding:6px 16px;border-radius:6px;pointer-events:none;text-align:center}
+#t3_tip{position:fixed;z-index:9000;pointer-events:none;display:none;background:rgba(8,13,20,.95);border:1px solid var(--border-hover);border-radius:6px;padding:7px 12px;font-family:var(--font-mono);font-size:.72rem;color:#c8d8ea;white-space:nowrap}
+#t3_tip b{font-family:var(--font-ui);font-size:.95rem}
+
+#t3_edit{position:absolute;top:56px;right:12px;width:210px;z-index:8;display:none;flex-direction:column;gap:7px;padding:10px;background:var(--surface);border:1px solid var(--amber);border-radius:8px;font-family:var(--font-mono);font-size:.66rem;max-height:calc(100% - 70px);overflow-y:auto}
+body.drag-mode #t3_edit{display:flex}
+#t3_edit h3{font-family:var(--font-ui);font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+#t3_edit h3:not(:first-child){margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
+#t3_edit select,#t3_edit input[type=number],#t3_edit input[type=text]{background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:4px;font-family:inherit;font-size:.7rem;width:100%}
+#t3_edit option{background:var(--surface);color:var(--text)}
+#t3_edit input[type=range]{width:100%;accent-color:var(--amber)}
+#t3_edit .row{display:flex;gap:5px;align-items:center}
+#t3_edit .btn{padding:4px 8px;font-size:.68rem;flex:1}
+
+/* custom tag: slide-over modal + click popup */
+#t3_cuSlider{display:flex;width:200%;transition:transform .3s ease}
+#t3_cuSlider.other{transform:translateX(-50%)}
+.cuPane{width:50%;padding-right:1px}
+#t3_cuOtherList{max-height:260px;overflow-y:auto}
+.cuRow{display:flex;gap:6px;margin-bottom:6px}
+.cuRow input{min-width:0}
+.cuRow .cuN{flex:1}.cuRow .cuO{flex:2}
+.cuRow .cuX{flex:0 0 auto;padding:0 10px;background:var(--surface-2);border:1px solid #ff4444;color:#ff4444;border-radius:6px;cursor:pointer}
+#t3_eqInfo{position:fixed;z-index:9100;display:none;min-width:240px;max-width:420px;background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:12px 14px;font-family:var(--font-mono);font-size:.72rem;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#t3_eqInfo h4{font-family:var(--font-ui);font-size:.9rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}
+#t3_eqInfo h4 span{cursor:pointer;color:var(--text-dim)}
+#t3_eqInfo .ir{display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border)}
+#t3_eqInfo .ir b{color:var(--text)}
+  </style>
+</head>
+<body>
+
+<!-- overlay -->
+<div class="overlay" id="overlay"></div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel">
+  <div class="side-panel-header">
+    <h2>NAV Sheet</h2>
+    <p>System Selection</p>
+  </div>
+  <div class="side-panel-nav">
+    <p class="side-nav-section-label">Select System View</p>
+
+ <a href="Home.html" data-ahu="Home" data-nav class="nav-image-btn" id="nav-home-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <polygon points="20,4 4,18 7,18 7,36 16,36 16,26 24,26 24,36 33,36 33,18 36,18" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round"/>
+      <rect x="16" y="26" width="8" height="10" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+      <rect x="26" y="8" width="4" height="6" fill="none" stroke="var(--accent)" stroke-width="1.5" rx="0.5"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Home</span>
+    <span class="nav-btn-sublabel">Main dashboard</span>
+  </div>
+</a>
+
+<a href="FloorPlan.html" data-ahu="FloorPlan" data-nav class="nav-image-btn" id="nav-floorplan-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <rect x="4" y="4" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" rx="1"/>
+      <line x1="4" y1="20" x2="22" y2="20" stroke="var(--accent)" stroke-width="1.8"/>
+      <line x1="22" y1="4" x2="22" y2="36" stroke="var(--accent)" stroke-width="1.8"/>
+      <line x1="4" y1="28" x2="22" y2="28" stroke="var(--accent)" stroke-width="1.8"/>
+      <path d="M22,20 Q28,20 28,26" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+      <line x1="22" y1="20" x2="28" y2="20" stroke="var(--accent)" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Floor Plan</span>
+    <span class="nav-btn-sublabel">Building layout</span>
+  </div>
+</a>
+
+<a href="Alarms.html" data-ahu="Alarms" data-nav class="nav-image-btn" id="nav-alarms-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <polygon points="20,5 37,34 3,34" fill="rgba(255,171,0,0.12)" stroke="var(--amber)" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="20" y1="15" x2="20" y2="25" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="20" cy="30" r="1.8" fill="var(--amber)"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Alarming</span>
+    <span class="nav-btn-sublabel">System alerts</span>
+  </div>
+</a>
+
+<a href="Users.html" data-nav class="nav-image-btn" id="nav-users-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <circle cx="15" cy="13" r="6" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <path d="M4,36 C4,26 26,26 26,36" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="16" x2="38" y2="16" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="21" x2="36" y2="21" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+      <line x1="28" y1="26" x2="34" y2="26" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Users</span>
+    <span class="nav-btn-sublabel">Manage access</span>
+  </div>
+</a>
+
+<a href="LogsNUMERIC.html" data-ahu="LoggingNum" data-nav class="nav-image-btn" id="nav-logs-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <line x1="6" y1="34" x2="36" y2="34" stroke="var(--accent)" stroke-width="1.8"/>
+      <rect x="8"  y="20" width="5" height="14" fill="#e05252" rx="1"/>
+      <rect x="16" y="14" width="5" height="20" fill="var(--amber)" rx="1"/>
+      <rect x="24" y="8"  width="5" height="26" fill="var(--accent)" rx="1"/>
+      <rect x="32" y="18" width="5" height="16" fill="var(--green)" rx="1"/>
+    </svg>
+  </div>
+  <div class="nav-btn-text">
+    <span class="nav-btn-label">Histories</span>
+    <span class="nav-btn-sublabel">Data logs</span>
+  </div>
+</a>
+
+<a href="Shedules.html" data-ahu="Schedules" data-nav class="nav-image-btn" id="nav-schedules-link">
+  <div class="nav-btn-icon">
+    <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" width="26" height="26">
+      <rect x="4" y="8" width="32" height="28" rx="2" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <rect x="4" y="8" width="32" height="9" rx="2" fill="rgba(0,200,255,0.15)"/>
+      <line x1="13" y1="4" x2="13" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="27" y1="4" x2="27" y2="12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="12" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="20" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="28" cy="23" r="1.5" fill="var(--accent)"/>
+      <circle cx="12" cy="30" r="1.5" fill="var(--accent)"/>
+      <circle cx="20" cy="30" r="1.5" fill="var(--accent)"/>
+      <circle cx="28" cy="30" r="1.5" fill="var(--accent)"/>
+    </svg>
+  </div>
+      <span class="side-nav-label">Schedules</span>
+    </a>
+  </div>
+</div>
+<div id="floorToggleBtn" onclick="document.getElementById('floorListPanel').classList.toggle('active')">☰</div>
+
+<!-- top bar -->
+<div class="top-bar">
+ <div class="hamburger" id="hamburgerMenu">
+  <div class="hamburger-line"></div>
+  <div class="hamburger-line"></div>
+  <div class="hamburger-line"></div>
+</div>
+
+  <div class="top-center">
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Floor Plans</span>
+  </div>
+<div class="top-right">
+  <button id="exportJsonBtn" onclick="openExportModal()">Export JSON</button>
+  <div class="drag-mode-pill" id="mode3dToggle" onclick="toggleView3D()" title="Switch between 2D image and 3D model">
+    <span class="drag-mode-dot"></span><span id="mode3dLabel">3D Model</span>
+  </div>
+  <div class="drag-mode-pill" id="dragToggle" onclick="toggleDragMode()">
+    <span class="drag-mode-dot"></span><span id="dragToggleLabel">Edit Mode</span>
+  </div>
+  <div class="toggle-container">
+    <span class="toggle-label">Light</span>
+    <div id="toggleSwitch" class="toggle-switch"><div class="toggle-slider"></div></div>
+  </div>
+  <div class="user-badge"><div class="user-dot"></div><span id="userDisplay">—</span></div>
+</div>
+</div>
+
+<!-- FLOOR LIST PANEL -->
+<div class="section-card" id="floorListPanel">
+  <div class="section-header">
+    <span class="section-header-badge"></span>
+    <h3>Floors</h3>
+    <span class="section-header-count" id="floorPanelCount">0</span>
+  </div>
+  <div class="floor-grid" id="floorPanelGrid">
+    <div class="empty-state">Loading floor plans…</div>
+  </div>
+</div>
+
+<!-- RTU TRACK LIST PANEL (top-right) -->
+<div id="rtuTrackListPanel"></div>
+
+<!-- main content -->
+<div class="main-content" id="mainContent">
+  <div id="bgStatus">Loading background…</div>
+  <div id="zoomContainer">
+    <div id="bgWrapper">
+      <img id="bgImage" alt="Building" />
+      <svg id="polyOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:55;"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ASSET PANEL -->
+<div id="hlAssetPanel">
+  <div class="panel-header"><h3>⬡ Building Highlight</h3><p>Drag to add zone</p></div>
+  <div class="asset-card" id="newHighlightCard">
+    <div style="height:60px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#c896ff;">⬡</div>
+    <div class="asset-card-label">+ New Highlight</div>
+  </div>
+  
+  <div class="panel-header" style="border-top:1px solid var(--border);"><h3 style="color:var(--accent);">⛭ RTU Track</h3><p>Drag to add RTU point</p></div>
+<div class="asset-card" id="newRtuTrackCard">
+  <div style="height:60px;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--accent);">⛭</div>
+  <div class="asset-card-label">+ New RTU Track</div>
+</div>
+  
+  <div class="panel-header" style="border-top:1px solid var(--border);"><h3 style="color:var(--accent);">Placed</h3><p>Click to flash</p></div>
+  <div id="hlList"></div>
+</div>
+
+<div id="imgDragGhost" style="position:fixed;display:none;pointer-events:none;z-index:9999;border:2px dashed #c896ff;border-radius:4px;background:rgba(180,80,255,.15);"></div>
+<div id="polyDrawBanner">▸ Click to trace area — click first point to close — ESC to cancel</div>
+
+<!-- HIGHLIGHT PROPERTIES MODAL -->
+<div class="mc-modal" id="floorTempModal">
+  <div class="modal-box" style="max-width:420px;">
+    <h3 id="floorTempTitle">Floor Data</h3>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin:10px 0 18px;">
+      <svg id="floorTempGauge" viewBox="0 0 200 120" style="width:220px;height:auto;">
+        <defs>
+          <linearGradient id="floorTempGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00b4ff"/>
+            <stop offset="50%" stop-color="#00e676"/>
+            <stop offset="100%" stop-color="#ff5252"/>
+          </linearGradient>
+        </defs>
+        <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-linecap="round"/>
+        <path d="M20,100 A80,80 0 0 1 180,100" fill="none" stroke="url(#floorTempGrad)" stroke-width="14" stroke-linecap="round"/>
+        <g id="floorTempNeedle">
+          <line x1="100" y1="100" x2="100" y2="30" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="6" fill="#fff"/>
+        </g>
+      </svg>
+      <div style="font-family:var(--font-mono);font-size:1.6rem;color:var(--accent);" id="floorTempAvgVal">—°</div>
+      <div style="font-family:var(--font-mono);font-size:.65rem;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;">Average Temperature</div>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <div style="font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:#ff5252;text-transform:uppercase;">Max</div>
+        <div style="font-family:var(--font-mono);font-size:1.2rem;color:var(--text);" id="floorTempMaxVal">—</div>
+        <div style="font-size:.72rem;color:var(--text-dim);margin-top:2px;" id="floorTempMaxName">—</div>
+      </div>
+      <div style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <div style="font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:#00b4ff;text-transform:uppercase;">Min</div>
+        <div style="font-family:var(--font-mono);font-size:1.2rem;color:var(--text);" id="floorTempMinVal">—</div>
+        <div style="font-size:.72rem;color:var(--text-dim);margin-top:2px;" id="floorTempMinName">—</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="document.getElementById('floorTempModal').classList.remove('open')">Close</button>
+      
+    </div>
+  </div>
+</div>
+<div class="mc-modal" id="hlPropsModal">
+  <div class="modal-box" style="max-width:460px;">
+    <h3 id="hlPropsTitle">New Highlight</h3>
+   <label>Floor</label>
+<select id="hlPropFloor"></select>
+<label>Color</label><input type="color" id="hlPropColor" value="#00b4ff" />
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="hlPropsSave()">Save</button>
+      <button class="modal-btn" onclick="hlPropsCancel()">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="mc-modal" id="rtuPropsModal">
+  <div class="modal-box" style="max-width:460px;">
+    <h3 id="rtuPropsTitle">New RTU Track</h3>
+    <label>RTU Device</label>
+    <select id="rtuPropDevice"></select>
+    <label>Point IDs (multi-select — ctrl/cmd+click for more than one)</label>
+    <select id="rtuPropPoint" multiple size="8"></select>
+    <label>Color</label><input type="color" id="rtuPropColor" value="#00b4ff" />
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="rtuPropsSave()">Save</button>
+      <button class="modal-btn" onclick="rtuPropsCancel()">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="mc-modal" id="rtuDataModal">
+  <div class="modal-box" style="max-width:380px;">
+    <h3 id="rtuDataTitle">RTU Point</h3>
+    <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--text-dim);margin-bottom:10px;" id="rtuDataPath">—</div>
+    <div id="rtuDataList"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeRtuDataModal()">Close</button>
+    </div>
+  </div>
+</div>
+<!-- EXPORT MODAL -->
+<div class="mc-modal" id="exportModal">
+  <div class="modal-box">
+    <h3>Export → FloorPlan.json</h3>
+    <p style="font-size:.72rem;color:var(--text-dim);margin-bottom:10px;">
+      Copy and save to <code style="color:var(--accent)">FloorPlan.json</code> — Page ID: <strong style="color:var(--accent)">BUILDING</strong>
+    </p>
+    <textarea id="jsonOutput" readonly></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="copyExportJson()">Copy to Clipboard</button>
+      <button class="modal-btn" onclick="document.getElementById('exportModal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+<!--</div>-->
+
+<!-- ═════════════ 3D VIEW ═════════════ -->
+<div id="view3d">
+  <div id="t3_stage">
+    <div id="t3_progress"></div>
+    <div id="t3_status">Loading model…</div>
+    <div id="t3_banner"></div>
+    <div id="t3_bar">
+      <select class="btn" id="t3_viewSel" title="Saved camera views" style="display:none"></select>
+      <button class="btn" id="t3_btnReset">Reset View</button>
+      <button class="btn" id="t3_btnRotate">Auto-Rotate</button>
+      <button class="btn" id="t3_btnGrid">Grid</button>
+    </div>
+    <div id="t3_info"></div>
+    <div id="t3_help">Left-drag: orbit &nbsp;|&nbsp; Right-drag / two fingers: pan &nbsp;|&nbsp; Wheel / pinch: zoom</div>
+
+    <div id="t3_edit">
+      <h3>⬡ Floor highlights</h3>
+      <select id="t3_hSel"></select>
+      <div class="row"><button class="btn" id="t3_bHl">+ New</button><button class="btn" id="t3_hEdit">Edit</button></div>
+
+      <h3>⬡ Custom tags</h3>
+      <select id="t3_cSel"></select>
+      <div class="row"><button class="btn" id="t3_cNew">+ New</button><button class="btn" id="t3_cEdit">Edit</button></div>
+      <div class="row"><button class="btn" id="t3_cMove">Move</button><button class="btn" id="t3_cDel">Remove</button></div>
+      <div class="row"><span style="min-width:60px">Tag size</span><input type="number" id="t3_cSzN" min="0.1" max="10" step="0.05"></div>
+      <input type="range" id="t3_cSz" min="0.2" max="3" step="0.05" value="1">
+
+      <h3>⬡ Camera views</h3>
+      <input type="text" id="t3_vName" placeholder="View name (e.g. Roof)">
+      <div class="row"><button class="btn" id="t3_vSave">Save current view</button></div>
+      <div class="row"><button class="btn" id="t3_vUpd">Overwrite selected</button><button class="btn" id="t3_vDel">Delete selected</button></div>
+    </div>
+  </div>
+
+  <div id="t3_tip"></div>
+
+  <div class="mc-modal" id="t3_hlModal"><div class="modal-box" style="max-width:460px;">
+    <h3 id="t3_hlTitle">New Highlight</h3>
+    <label>Floor</label><select id="t3_hlFloor"></select>
+    <label>Color</label><input type="color" id="t3_hlColor" value="#c878ff">
+    <label>Shape</label><select id="t3_hlShape"></select>
+    <div class="modal-actions">
+      <button class="modal-btn primary" id="t3_hlSave">Save</button>
+      <button class="modal-btn" id="t3_hlDel" style="display:none">Delete</button>
+      <button class="modal-btn" id="t3_hlCancel">Cancel</button>
+    </div>
+  </div></div>
+
+   <div id="t3_eqInfo"></div>
+
+  <div class="mc-modal" id="t3_cuModal"><div class="modal-box" style="max-width:540px;overflow:hidden;">
+    <div id="t3_cuSlider">
+      <div class="cuPane">
+        <h3 id="t3_cuTitle">New Custom Tag</h3>
+        <label>Name</label><input type="text" id="t3_cuName" placeholder="e.g. Chiller Supply Temp">
+        <label>ORD</label><input type="text" id="t3_cuOrd" placeholder="station:|slot:/Drivers/...">
+        <label>Hyperlink ORD (optional)</label>
+        <input type="text" id="t3_cuLink" placeholder="https://10.10.10.10/file/Murphy_MasterGraphics/RTUs/RTU_3/RTU3.html">
+        <div id="t3_cuLinkPreview" style="margin-top:5px;font-family:var(--font-mono);font-size:.62rem;color:var(--text-dim);word-break:break-all"></div>
+        <div class="modal-actions" style="flex-wrap:wrap">
+          <button class="modal-btn" id="t3_cuOtherBtn">Other data →</button>
+          <button class="modal-btn primary" id="t3_cuFinish">Finish</button>
+          <button class="modal-btn" id="t3_cuCancel">Cancel</button>
+        </div>
+      </div>
+      <div class="cuPane">
+        <h3>Other Data</h3>
+        <label>Shown when you click the tag</label>
+        <div id="t3_cuOtherList"></div>
+        <button class="modal-btn" id="t3_cuAddRow" style="width:100%;margin-top:6px">+ Add point</button>
+        <div class="modal-actions">
+          <button class="modal-btn" id="t3_cuBack">← Back</button>
+          <button class="modal-btn primary" id="t3_cuFinish2">Finish</button>
+          <button class="modal-btn" id="t3_cuCancel2">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<!-- bottom bar -->
+<div class="bottom-bar">
+  <button class="back-btn" onclick="history.back()">← Back</button>
+  <div class="datetime-display" id="currentDateTime">—</div>
+  <button class="logoff-btn" onclick="handleLogoff()">🔒 Logoff</button>
+</div>
+
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════════════════ -->
+
+<!-- FADE IN -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('fade-in');
+  document.body.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (!link || link.hostname !== window.location.hostname) return;
+    e.preventDefault();
+    const href = link.href;
+    document.body.classList.remove('fade-in');
+    document.body.classList.add('fade-out');
+    setTimeout(() => { window.location.href = href; }, 300);
+  });
+});
+</script>
+
+<!-- AUTH -->
+<script>
+window.onload = function () {
+  const username = sessionStorage.getItem('username');
+  if (!username) { window.location.href = 'LOGIN/Login.html'; return; }
+  document.getElementById('userDisplay').textContent = `${username}`;
+};
+function handleLogoff() {
+  sessionStorage.removeItem('SyncedSessionStorage');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('role');
+  window.location.href = 'https://' + window.location.hostname + '/logout';
+}
+</script>
+
+<!-- DATETIME -->
+<script>
+(function startClock() {
+  function tick() {
+    const now = new Date();
+    const opts = { day:'2-digit', month:'short', year:'numeric',
+                   hour:'numeric', minute:'2-digit', hour12:true, timeZoneName:'short' };
+    document.getElementById('currentDateTime').textContent =
+      now.toLocaleString('en-US', opts).replace(',','');
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+
+<!-- HAMBURGER -->
+<script>
+const hamburger = document.getElementById('hamburgerMenu');
+const sidePanel = document.getElementById('sidePanel');
+const overlay   = document.getElementById('overlay');
+hamburger.addEventListener('click', () => {
+  hamburger.classList.toggle('active');
+  sidePanel.classList.toggle('active');
+  overlay.classList.toggle('active');
+});
+overlay.addEventListener('click', () => {
+  hamburger.classList.remove('active');
+  sidePanel.classList.remove('active');
+  overlay.classList.remove('active');
+});
+</script>
+
+<!-- LIGHT/DARK TOGGLE -->
+<script>
+const toggleSwitch = document.getElementById('toggleSwitch');
+const body = document.body;
+const currentTheme = localStorage.getItem('theme') || 'dark';
+if (currentTheme === 'light') {
+  body.classList.add('light-mode');
+  toggleSwitch.classList.add('active');
+}
+toggleSwitch.addEventListener('click', function() {
+  body.classList.toggle('light-mode');
+  toggleSwitch.classList.toggle('active');
+  localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+  if (window.Three3D) window.Three3D.syncTheme();
+});
+</script>
+
+
+
+<script>
+'use strict';
+/* ════════ BACKGROUND + BUILDING HIGHLIGHT ENGINE ════════ */
+
+const PAGE_ID = 'BUILDING';
+let homeConfigData = null, positionData = null, usingJsonData = false;
+let floorOptions = [];
+let dragEnabled = localStorage.getItem('bg-drag-enabled') === 'true';
+
+
+const highlightPolyStore = {};      // id -> [{x,y}] in image-local px
+let rtuResolved = {};               // trackId -> { values: { fullPath: displayValue } }   <-- ADD THIS
+let highlightCounter = 0, _hlDragState = null, polyDrawActive = false, polyDrawPts = [];
+let lastImgW = 0, lastImgH = 0;
+
+const HL_COLORS = ['#00b4ff','#ffab00','#00e676','#c07fff','#ff5252','#00e5ff',
+                   '#ff9100','#76ff03','#ff4081','#40c4ff','#ffd740','#69f0ae',
+                   '#ff6e40','#18ffff','#b2ff59','#ea80fc'];
+function nextColor(){ return HL_COLORS[highlightCounter % HL_COLORS.length]; }
+function hexA(hex,a){ const n=parseInt(hex.replace('#',''),16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+
+const getBg   = () => document.getElementById('bgImage');
+const getWrap = () => document.getElementById('bgWrapper');
+const getSVG  = () => document.getElementById('polyOverlay');
+function status(msg,cls){ const e=document.getElementById('bgStatus');
+  e.textContent=msg; e.className=cls||''; e.style.opacity='1';
+  if(cls) setTimeout(()=>e.style.opacity='0',3000); }
+
+/* ── EDIT MODE ───────────────────────────────────── */
+function updateDragModeUI(){
+  const pill=document.getElementById('dragToggle'), lbl=document.getElementById('dragToggleLabel'),
+        ex=document.getElementById('exportJsonBtn');
+  pill.classList.toggle('active',dragEnabled);
+  lbl.textContent = dragEnabled ? 'Exit Edit' : 'Edit Mode';
+  document.body.classList.toggle('drag-mode',dragEnabled);
+  ex.classList.toggle('visible',dragEnabled);
+  if(window.Three3D) window.Three3D.setEdit(dragEnabled);
+}
+function toggleDragMode(){
+  dragEnabled=!dragEnabled;
+  localStorage.setItem('bg-drag-enabled',dragEnabled);
+  updateDragModeUI();
+}
+/* ── FLOOR OPTIONS (ported from FloorPlan.html) ──── */
+function buildFloorNameMap(){
+  const map={};
+  if(homeConfigData?.floorNames && Array.isArray(homeConfigData.floorNames)){
+    homeConfigData.floorNames.forEach((name,i)=>{map[i]=name;});
+  }
+  ['VAVs','FTUs'].forEach(key=>{
+    (homeConfigData?.[key]||[]).forEach(u=>{
+      if(u.floornumber!==undefined && u.Floornumber_NAME && !map[u.floornumber]) map[u.floornumber]=u.Floornumber_NAME;
+    });
+  });
+  return map;
+}
+function buildEquipmentMap(){
+  const map={};
+  const add=(arr,key)=>{ if(!Array.isArray(arr))return;
+    arr.forEach(item=>{ const f=parseInt(item.floornumber ?? item.FLNUM ?? item.FloorNUM ?? 0);
+      if(!map[f]) map[f]={vav:0,rtu:0,ahu:0,ftu:0}; map[f][key]++; }); };
+  add(homeConfigData?.VAVs,'vav'); add(homeConfigData?.RTUs,'rtu');
+  add(homeConfigData?.AHUs,'ahu'); add(homeConfigData?.FTUs,'ftu');
+  return map;
+}
+function buildFloorOptions(){
+  floorOptions=[];
+  if(!homeConfigData?.floorPlans) return;
+  const nameMap=buildFloorNameMap(), equipMap=buildEquipmentMap();
+  for(const [key,value] of Object.entries(homeConfigData.floorPlans)){
+    const floorNum = value.FloorNUM!==undefined ? value.FloorNUM : parseInt((value.name||key).replace(/\D/g,''));
+    const displayName = nameMap[floorNum] || value.name || key;
+    const equip = equipMap[floorNum] || {};
+    const total = (equip.vav||0)+(equip.rtu||0)+(equip.ahu||0)+(equip.ftu||0);
+
+    if(value.wing === 'Split'){
+      const hasE = value.dataEast && value.originalFileNameEast && value.originalFileNameEast !== 'null';
+      const hasW = value.dataWest && value.originalFileNameWest && value.originalFileNameWest !== 'null';
+      if(hasE) floorOptions.push({ href:'Floor_Plans/'+displayName.replace(/\s+/g,'_')+'_Floor'+floorNum+'_East.html',
+        label:`Floor ${floorNum} — ${displayName} (East)`, floorNum, wing:'East', equip, total });
+      if(hasW) floorOptions.push({ href:'Floor_Plans/'+displayName.replace(/\s+/g,'_')+'_Floor'+floorNum+'_West.html',
+        label:`Floor ${floorNum} — ${displayName} (West)`, floorNum, wing:'West', equip, total });
+    } else {
+      if(!value.originalFileName || value.originalFileName === 'null') continue;
+      floorOptions.push({ href:'Floor_Plans/'+displayName.replace(/\s+/g,'_')+'_Floor'+floorNum+'.html',
+        label:`Floor ${floorNum} — ${displayName}`, floorNum, wing:null, equip, total });
+    }
+  }
+  floorOptions.sort((a,b)=>a.floorNum-b.floorNum);
+}
+
+function renderFloorPanel(){
+  const grid=document.getElementById('floorPanelGrid'), count=document.getElementById('floorPanelCount');
+  if(!grid) return;
+  grid.innerHTML='';
+  if(!floorOptions.length){ grid.innerHTML='<div class="empty-state">No floor plans configured.</div>'; if(count) count.textContent='0'; return; }
+  floorOptions.forEach(f=>{
+ const tile=document.createElement('a');
+tile.href=f.href;
+tile.className='floor-tile'+(f.wing?` wing wing-${f.wing.toLowerCase()}`:'');
+tile.addEventListener('mouseenter', () => setFloorHighlightsVisible(f.href, true));
+tile.addEventListener('mouseleave', () => setFloorHighlightsVisible(f.href, false));
+          const body=document.createElement('div'); body.className='tile-body';
+
+    // ── name at top ──
+    const num=document.createElement('div'); num.className='tile-floor-num';
+    num.textContent=`Floor ${String(f.floorNum).padStart(2,'0')}`;
+    const name=document.createElement('div'); name.className='tile-name';
+    name.textContent=f.label.replace(/^Floor \d+ — /,'');
+    body.appendChild(num); body.appendChild(name);
+
+    // ── dial in the middle — click opens popup ──
+    const dial=document.createElement('div'); dial.className='tile-dial';
+    dial.title='Click for full temperature breakdown';
+    dial.innerHTML=`
+      <svg viewBox="0 0 100 60">
+        <path d="M10,50 A40,40 0 0 1 90,50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="7" stroke-linecap="round"/>
+        <path id="tdArc_${f.floorNum}" d="M10,50 A40,40 0 0 1 90,50" fill="none" stroke="#5a7080" stroke-width="7" stroke-linecap="round"/>
+        <g id="tdNeedle_${f.floorNum}"><line x1="50" y1="50" x2="50" y2="18" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="50" r="3.5" fill="#fff"/></g>
+      </svg>
+      <div class="tile-dial-val" id="tdVal_${f.floorNum}">—°</div>`;
+    dial.addEventListener('click', ev=>{
+      ev.preventDefault(); ev.stopPropagation();
+      if(window.openFloorTempPopup) window.openFloorTempPopup(f.floorNum);
+    });
+    body.appendChild(dial);
+
+    const dialHint=document.createElement('div'); dialHint.className='tile-dial-hint';
+    dialHint.textContent='Cick for details';
+    body.appendChild(dialHint);
+
+    // ── equipment + wing row ──
+    const meta=document.createElement('div'); meta.className='tile-meta-row';
+    const equipParts=[]; ['vav','rtu','ahu','ftu'].forEach(k=>{ const n=f.equip[k]||0; if(n>0) equipParts.push(`${n} ${k.toUpperCase()}`); });
+    const equipSpan=document.createElement('span'); equipSpan.className='tile-equip-compact';
+    equipSpan.textContent=equipParts.join(' · ');
+    meta.appendChild(equipSpan);
+    if(f.wing){ const badge=document.createElement('span'); badge.className='tile-wing-badge'+(f.wing==='West'?' west':'');
+      badge.textContent=f.wing; meta.appendChild(badge); }
+    body.appendChild(meta);
+
+    // ── highlight color badge (e.g. "Floor 0 — Lower Level") ──
+    const hlBox=document.createElement('div'); hlBox.className='tile-highlights';
+    body.appendChild(hlBox);
+
+    tile.appendChild(body);
+    grid.appendChild(tile);
+  });
+  if(count) count.textContent=`${floorOptions.length} floor${floorOptions.length!==1?'s':''}`;
+}
+
+function populateFloorSelect(selectedHref){
+  const sel=document.getElementById('hlPropFloor');
+  if(!sel) return;
+  sel.innerHTML='<option value="">— Select Floor —</option>'+
+    floorOptions.map(f=>`<option value="${f.href}">${f.label}</option>`).join('');
+  sel.value = selectedHref || '';
+}
+/* ── LOAD CONFIG + BACKGROUND IMAGE ──────────────── */
+async function loadBackground(){
+  try{
+    const r=await fetch('HomeConfig.json'); if(!r.ok) throw new Error('HTTP '+r.status);
+    homeConfigData=await r.json();
+buildFloorOptions();
+renderFloorPanel();
+
+
+// const src=homeConfigData.backgroundimage;
+//     if(!src) throw new Error('backgroundimage missing in HomeConfig.json');
+//     const img=getBg();
+const src='./IMAGES/3DImage.png';
+    const img=getBg();
+    
+    
+    
+    img.onload=()=>{ img.style.display='block'; lastImgW=img.clientWidth; lastImgH=img.clientHeight;
+      status('Background loaded','ok'); loadHighlights(); };
+    img.onerror=()=>status('Background image failed to load','err');
+    img.src=src;
+  }catch(e){ status('Config error: '+e.message,'err'); }
+}
+async function loadPositionsFromJSON(){
+  try{ const r=await fetch('FloorPlan.json'); if(!r.ok) throw 0;
+    const d=await r.json(); if(d&&d[PAGE_ID]){ positionData=d[PAGE_ID]; usingJsonData=true; return true; }
+  }catch{} return false;
+}
+
+/* ── PROPERTIES MODAL (name / href / color) ──────── */
+let _hlPropsTarget=null,_hlPropsOnSave=null;
+function hlPropsOpen(title,{href,color},cb){
+  _hlPropsOnSave=cb;
+  document.getElementById('hlPropsTitle').textContent=title;
+  populateFloorSelect(href);
+  document.getElementById('hlPropColor').value=color||nextColor();
+  document.getElementById('hlPropsModal').classList.add('open');
+}
+function hlPropsCancel(){ document.getElementById('hlPropsModal').classList.remove('open'); _hlPropsOnSave=null; }
+function hlPropsSave(){
+  const sel=document.getElementById('hlPropFloor');
+  const opt=sel.options[sel.selectedIndex];
+  const v={ name:(opt && opt.value) ? opt.textContent.trim() : 'Highlight',
+            href: sel.value || '',
+            color:document.getElementById('hlPropColor').value };
+  document.getElementById('hlPropsModal').classList.remove('open');
+  const cb=_hlPropsOnSave; _hlPropsOnSave=null; if(cb) cb(v);
+}
+
+/* ── DRAG NEW HIGHLIGHT FROM PANEL ───────────────── */
+function beginHighlightDrag(e){
+  const ghost=document.getElementById('imgDragGhost'), W=110,H=34;
+  ghost.style.width=W+'px'; ghost.style.height=H+'px'; ghost.style.display='block';
+  ghost.style.left=(e.clientX-W/2)+'px'; ghost.style.top=(e.clientY-H/2)+'px';
+  _hlDragState={ghost,W,H};
+  document.addEventListener('mousemove',_onHlMove);
+  document.addEventListener('mouseup',_onHlDrop);
+}
+function _onHlMove(e){ if(!_hlDragState)return; const{ghost,W,H}=_hlDragState;
+  ghost.style.left=(e.clientX-W/2)+'px'; ghost.style.top=(e.clientY-H/2)+'px'; }
+function _onHlDrop(e){
+  if(!_hlDragState)return;
+  document.removeEventListener('mousemove',_onHlMove);
+  document.removeEventListener('mouseup',_onHlDrop);
+  const{ghost,W,H}=_hlDragState; ghost.style.display='none'; _hlDragState=null;
+  const wrap=getWrap(), img=getBg(); if(!wrap||!img||!img.complete)return;
+  const wr=wrap.getBoundingClientRect();
+  if(e.clientX<wr.left||e.clientX>wr.right||e.clientY<wr.top||e.clientY>wr.bottom)return;
+   const ir=img.getBoundingClientRect();
+  const x=(e.clientX-ir.left)-W/2;
+  const y=(e.clientY-ir.top )-H/2;
+  hlPropsOpen('New Highlight',{name:'Highlight '+(highlightCounter+1),href:'',color:nextColor()},v=>{
+    const el=placeHighlightButton({...v,x,y,w:W,h:H});
+    if(el) startHighlightDraw(el);
+  });
+}
+
+/* ── CREATE BUTTON ───────────────────────────────── */
+function applyHlStyle(el){
+  const c=el.dataset.color||'#00b4ff';
+  el.style.background=hexA(c,.16);
+  el.style.border='1.5px solid '+hexA(c,.75);
+  el.style.color=c;
+}
+function placeHighlightButton({id,name,href,color,x,y,w,h,kind,points}){
+  const wrap=getWrap(); if(!wrap)return null;
+  const nid=id||`hl_${Date.now()}_${++highlightCounter}`;
+  if(id) highlightCounter++;
+  const old=document.getElementById(nid); if(old) old.remove();
+  const el=document.createElement('div');
+  el.className='highlight-btn'; el.id=nid;
+  el.dataset.name=name; el.dataset.href=href||''; el.dataset.color=color||nextColor();
+  el.dataset.kind = kind || 'highlight';
+  el.dataset.points = JSON.stringify(points || []);   // [{id,name,fullPath,deviceKey}]
+  el.style.left=x+'px'; el.style.top=y+'px'; el.style.width=w+'px'; el.style.height=h+'px';
+
+  if(el.dataset.kind==='rtu'){
+    const label=document.createElement('div'); label.className='rtu-track-label';
+    label.textContent=name; el.appendChild(label);
+  } else {
+    el.appendChild(document.createTextNode(name));
+  }
+  applyHlStyle(el);
+
+  const shape=document.createElement('div'); shape.className='hl-shape-btn'; shape.textContent='⬡ Shape';
+  shape.onmousedown=ev=>ev.stopPropagation();
+  shape.onclick=ev=>{ev.stopPropagation(); startHighlightDraw(el);};
+  el.appendChild(shape);
+
+  const edit=document.createElement('div'); edit.className='hl-edit-btn'; edit.textContent='✎ Edit';
+  edit.onmousedown=ev=>ev.stopPropagation();
+  edit.onclick=ev=>{ev.stopPropagation();
+    if(el.dataset.kind==='rtu'){
+      const curPoints = JSON.parse(el.dataset.points || '[]');
+      rtuPropsOpen('Edit RTU Track',{points:curPoints,color:el.dataset.color},v=>{
+        el.dataset.name=v.name; el.dataset.points=JSON.stringify(v.points); el.dataset.color=v.color;
+        const lbl=el.querySelector('.rtu-track-label'); if(lbl) lbl.textContent=v.name;
+        applyHlStyle(el);
+        if(highlightPolyStore[el.id]) renderHighlightPoly(el.id,highlightPolyStore[el.id]);
+        subscribeRtuPoints(el.id, v.points);
+        refreshHlList();
+        renderRtuTrackListPanel();
+      });
+    } else {
+      hlPropsOpen('Edit Highlight',{name:el.dataset.name,href:el.dataset.href,color:el.dataset.color},v=>{
+        el.dataset.name=v.name; el.dataset.href=v.href; el.dataset.color=v.color;
+        el.childNodes[0].textContent=v.name; applyHlStyle(el);
+        if(highlightPolyStore[el.id]) renderHighlightPoly(el.id,highlightPolyStore[el.id]);
+        refreshHlList();
+      });
+    }
+  };
+  el.appendChild(edit);
+
+  const rh=document.createElement('div'); rh.className='hl-resize-handle'; el.appendChild(rh);
+  const del=document.createElement('div'); del.className='hl-delete-btn'; del.textContent='×';
+  del.onmousedown=ev=>ev.stopPropagation();
+  del.onclick=ev=>{ev.stopPropagation(); deleteHighlight(el); delete rtuResolved[el.id]; el.remove(); refreshHlList(); renderRtuTrackListPanel();};
+  el.appendChild(del);
+
+  el.addEventListener('mouseenter',()=>setHighlightVisible(nid,true));
+  el.addEventListener('mouseleave',()=>setHighlightVisible(nid,false));
+  el.addEventListener('click',ev=>{
+    if(dragEnabled)return;
+    ev.stopPropagation();
+    if(el.dataset.kind==='rtu'){ openRtuDataPopup(el.id); return; }
+    const h2=el.dataset.href; if(!h2)return;
+    if(/^[a-z]+:/i.test(h2)&&!/^https?:/i.test(h2)) window.location.href='/ord?'+encodeURIComponent(h2);
+    else window.location.href=h2;
+  });
+
+  wrap.appendChild(el);
+  makeHighlightDraggable(el); makeHighlightResizable(el,rh);
+  if(el.dataset.kind==='rtu'){
+    const pts = JSON.parse(el.dataset.points || '[]');
+    if(pts.length) subscribeRtuPoints(nid, pts);
+  }
+  refreshHlList();
+  syncFloorHighlightBadges();
+  renderRtuTrackListPanel();
+  return el;
+}
+function deleteHighlight(el){
+  delete highlightPolyStore[el.id];
+  const g=document.getElementById('hlpg_'+el.id); if(g) g.remove();
+}
+function setFloorHighlightsVisible(href, on){
+  if(window.Three3D) window.Three3D.hoverHref(href, on);
+  document.querySelectorAll('.highlight-btn').forEach(el=>{
+    if(el.dataset.href === href) setHighlightVisible(el.id, on);
+  });
+}
+/* ── POLY RENDER ─────────────────────────────────── */
+function setHighlightVisible(id,on){
+  const g=document.getElementById('hlpg_'+id); if(!g)return;
+  const p=g.querySelector('.highlight-poly'); if(p) p.classList.toggle('hover-active',on);
+}
+function renderHighlightPoly(id,pts){
+  const svg=getSVG(), gid='hlpg_'+id, old=document.getElementById(gid); if(old) old.remove();
+  if(!pts||pts.length<3)return;
+  const el=document.getElementById(id), c=el?el.dataset.color:'#00b4ff';
+  const ns='http://www.w3.org/2000/svg', g=document.createElementNS(ns,'g'); g.id=gid;
+  const poly=document.createElementNS(ns,'polygon');
+  poly.setAttribute('points',pts.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+  poly.setAttribute('class','highlight-poly');
+  poly.style.fill=hexA(c,.28); poly.style.stroke=c; poly.style.color=c;
+  g.appendChild(poly); svg.appendChild(g);
+}
+function applyHighlightPoly(id,pts){ highlightPolyStore[id]=pts; renderHighlightPoly(id,pts); renderRtuTrackListPanel(); }
+
+/* ── POLYLINE DRAW ───────────────────────────────── */
+function startHighlightDraw(btnEl){
+  if(polyDrawActive&&polyDrawActive._cancel) polyDrawActive._cancel();
+  polyDrawActive=true; polyDrawPts=[]; let mousePt=null;
+  document.body.classList.add('poly-draw-mode');
+  const banner=document.getElementById('polyDrawBanner');
+  banner.textContent=`⬡ "${btnEl.dataset.name}" — click to trace — click first point / Enter to close — ESC cancel`;
+  banner.classList.add('active');
+  const img=getBg(), svg=getSVG(), c=btnEl.dataset.color;
+  svg.style.pointerEvents='all';
+  const prev=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  prev.id='polyPreviewLine'; prev.setAttribute('class','poly-preview'); prev.style.stroke=c; svg.appendChild(prev);
+  const vg=document.createElementNS('http://www.w3.org/2000/svg','g'); vg.id='polyVertexGroup'; svg.appendChild(vg);
+
+    const pt=e=>{const r=img.getBoundingClientRect();return{x:(e.clientX-r.left),y:(e.clientY-r.top)};};
+  const snap=p=>polyDrawPts.length>=3&&Math.hypot(p.x-polyDrawPts[0].x,p.y-polyDrawPts[0].y)<14;
+  function upd(mp){ const a=mp?[...polyDrawPts,mp]:polyDrawPts;
+    prev.setAttribute('points',a.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+    const f=document.getElementById('polyV0'); if(f) f.classList.toggle('snap-active',!!(mp&&snap(mp))); }
+  function addV(p){ const i=polyDrawPts.length,
+      cc=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    cc.setAttribute('cx',p.x.toFixed(1)); cc.setAttribute('cy',p.y.toFixed(1));
+    cc.setAttribute('class',i===0?'poly-vertex first-vertex':'poly-vertex');
+    cc.style.fill=c; if(i===0) cc.id='polyV0'; vg.appendChild(cc); polyDrawPts.push(p); }
+  function finish(){ const p=[...polyDrawPts]; cleanup(); if(p.length>=3) applyHighlightPoly(btnEl.id,p); }
+  function cleanup(){
+    svg.style.pointerEvents='none'; document.body.classList.remove('poly-draw-mode');
+    banner.classList.remove('active');
+    document.getElementById('polyPreviewLine')?.remove();
+    document.getElementById('polyVertexGroup')?.remove();
+    svg.removeEventListener('mousemove',onMove); svg.removeEventListener('click',onClick);
+    document.removeEventListener('keydown',onKey);
+    polyDrawActive=false; polyDrawPts=[];
+  }
+  function onMove(e){ mousePt=pt(e); upd(mousePt); }
+  function onClick(e){ const p=pt(e); if(snap(p)){finish();return;} addV(p); upd(mousePt); }
+  function onKey(e){ if(e.key==='Escape') cleanup(); if(e.key==='Enter'&&polyDrawPts.length>=3) finish(); }
+  svg.addEventListener('mousemove',onMove); svg.addEventListener('click',onClick);
+  document.addEventListener('keydown',onKey);
+  polyDrawActive._cancel=cleanup;
+}
+
+/* ── DRAG / RESIZE ───────────────────────────────── */
+function makeHighlightDraggable(el){
+  let d=false,sx,sy,sl,st;
+  el.addEventListener('mousedown',e=>{
+    if(!dragEnabled)return;
+    if(e.target!==el)return;
+    d=true; sx=e.clientX; sy=e.clientY; sl=parseFloat(el.style.left)||0; st=parseFloat(el.style.top)||0;
+    el.style.zIndex='200'; e.preventDefault(); e.stopPropagation();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!d||!dragEnabled)return; const img=getBg(); if(!img)return;
+    const w=parseFloat(el.style.width)||90,h=parseFloat(el.style.height)||32;
+       el.style.left=Math.max(0,Math.min(sl+(e.clientX-sx),img.clientWidth-w))+'px';
+    el.style.top =Math.max(0,Math.min(st+(e.clientY-sy),img.clientHeight-h))+'px';
+  });
+  document.addEventListener('mouseup',()=>{ if(d){d=false; el.style.zIndex='';} });
+}
+function makeHighlightResizable(el,handle){
+  let r=false,sx,sy,sw,sh;
+  handle.addEventListener('mousedown',e=>{ if(!dragEnabled)return; r=true;
+    sx=e.clientX; sy=e.clientY; sw=parseFloat(el.style.width)||90; sh=parseFloat(el.style.height)||32;
+    e.preventDefault(); e.stopPropagation(); });
+  document.addEventListener('mousemove',e=>{ if(!r||!dragEnabled)return;
+     el.style.width =Math.max(30,sw+(e.clientX-sx))+'px';
+    el.style.height=Math.max(18,sh+(e.clientY-sy))+'px'; });
+  document.addEventListener('mouseup',()=>{ r=false; });
+}
+
+/* ── PANEL LIST ──────────────────────────────────── */
+function refreshHlList(){
+  const list=document.getElementById('hlList'); if(!list)return;
+  list.innerHTML='';
+  document.querySelectorAll('.highlight-btn').forEach(el=>{
+    const row=document.createElement('div'); row.className='hl-list-row';
+    row.innerHTML=`<span class="hl-swatch" style="background:${el.dataset.color}"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${el.dataset.name}</span>`;
+    row.onclick=()=>{ setHighlightVisible(el.id,true); setTimeout(()=>setHighlightVisible(el.id,false),1200); };
+    list.appendChild(row);
+  });
+}
+function syncFloorHighlightBadges(){
+  document.querySelectorAll('#floorPanelGrid .floor-tile .tile-highlights').forEach(box=>box.innerHTML='');
+  document.querySelectorAll('.highlight-btn').forEach(el=>{
+    const href = el.dataset.href;
+    if(!href) return;
+    const f = floorOptions.find(fo => fo.href === href);           // NEW
+    const tile = document.querySelector(`#floorPanelGrid .floor-tile[href="${CSS.escape(href)}"]`);
+    const box = tile?.querySelector('.tile-highlights');
+    if(!box) return;
+    const badge=document.createElement('span');
+    badge.className='tile-hl-badge';
+    badge.style.background=hexA(el.dataset.color,.16);
+    badge.style.border='1px solid '+hexA(el.dataset.color,.6);
+    badge.style.color=el.dataset.color;
+    badge.textContent=el.dataset.name;
+    // if(f){                                                          // NEW
+    //   badge.title='View '+f.label+' temperature data';
+    //   badge.addEventListener('click', ev=>{
+    //     ev.preventDefault();
+    //     ev.stopPropagation();                 // stops the tile's own <a> navigation
+    //     if(window.openFloorTempPopup) window.openFloorTempPopup(f.floorNum);
+    //   });
+    // }
+    box.appendChild(badge);
+  });
+}
+
+/* ── RTU TRACK LIST PANEL (top-right) — shows every RTU track that
+     has a drawn polyline, whether it came from FloorPlan.json on load
+     or was just drawn in this session ─────────────────────────────── */
+function renderRtuTrackListPanel(){
+  const panel=document.getElementById('rtuTrackListPanel'); if(!panel)return;
+  panel.innerHTML='';
+  document.querySelectorAll('.highlight-btn[data-kind="rtu"]').forEach(el=>{
+    if(!highlightPolyStore[el.id]) return;                 // only tracks with a traced polyline
+    const pts = JSON.parse(el.dataset.points || '[]');
+    const item=document.createElement('div');
+    item.className='rtu-track-panel-item';
+    item.style.color = el.dataset.color;
+    item.innerHTML = `<span class="rtu-track-panel-dot"></span>
+      <span style="color:var(--text);">${el.dataset.name}</span>
+      <span class="rtu-track-panel-count">${pts.length}</span>`;
+    item.addEventListener('click', ()=>{
+      setHighlightVisible(el.id,true);
+      setTimeout(()=>setHighlightVisible(el.id,false),1600);
+      openRtuDataPopup(el.id);
+    });
+    panel.appendChild(item);
+  });
+}
+
+/* ── LOAD / EXPORT ───────────────────────────────── */
+function loadHighlights(){
+  const img=getBg(); if(!img||!usingJsonData||!positionData?.buildingHighlights)return;
+  positionData.buildingHighlights.forEach(it=>{
+    // back-compat: older saves had a single fullPath/deviceKey/pointId instead of a points[] array
+    let points = it.points;
+    if(!points && it.fullPath){
+      points = [{ id: it.pointId||'', name: it.name||'', fullPath: it.fullPath, deviceKey: it.deviceKey||'' }];
+    }
+    placeHighlightButton({
+      id:it.id, name:it.name, href:it.href||'', color:it.color||nextColor(),
+      kind: it.kind || 'highlight',
+      points: points || [],
+      x:(it.leftPercent/100)*img.clientWidth,  y:(it.topPercent/100)*img.clientHeight,
+      w:(it.widthPercent/100)*img.clientWidth, h:(it.heightPercent/100)*img.clientHeight });
+    if(it.polyPoints?.length>=3){
+      const pts=it.polyPoints.map(p=>({x:p.xPct/100*img.clientWidth,y:p.yPct/100*img.clientHeight}));
+      highlightPolyStore[it.id]=pts; renderHighlightPoly(it.id,pts);
+    }
+  });
+  refreshHlList();
+  renderRtuTrackListPanel();
+}
+
+async function exportToJSON(){
+  let existing={};
+  try{ const r=await fetch('FloorPlan.json'); if(r.ok) existing=await r.json(); }catch{}
+  const img=getBg(); if(!img) return existing;
+  const out={ buildingHighlights:[] };
+ document.querySelectorAll('.highlight-btn').forEach(el=>{
+  const w=parseFloat(el.style.width)||90, h=parseFloat(el.style.height)||32;
+  const l=parseFloat(el.style.left)||0,  t=parseFloat(el.style.top)||0;
+  const e={ id:el.id, name:el.dataset.name, href:el.dataset.href||'', color:el.dataset.color,
+    kind: el.dataset.kind || 'highlight',
+    points: JSON.parse(el.dataset.points || '[]'),   // [{id,name,fullPath,deviceKey}, ...]
+    leftPercent:+((l/img.clientWidth)*100).toFixed(2),
+    topPercent:+((t/img.clientHeight)*100).toFixed(2),
+    widthPercent:+((w/img.clientWidth)*100).toFixed(2),
+    heightPercent:+((h/img.clientHeight)*100).toFixed(2) };
+  const p=highlightPolyStore[el.id];
+  if(p&&p.length>=3) e.polyPoints=p.map(q=>({
+    xPct:+((q.x/img.clientWidth)*100).toFixed(3), yPct:+((q.y/img.clientHeight)*100).toFixed(3) }));
+  out.buildingHighlights.push(e);
+});
+  const t3 = window.Three3D && window.Three3D.exportData();
+  if (t3) out.three = t3;
+  else if (existing[PAGE_ID] && existing[PAGE_ID].three) out.three = existing[PAGE_ID].three;
+  existing[PAGE_ID]=out;
+  return existing;
+}
+async function openExportModal(){
+  document.getElementById('jsonOutput').value=JSON.stringify(await exportToJSON(),null,2);
+  document.getElementById('exportModal').classList.add('open');
+}
+function copyExportJson(){ const ta=document.getElementById('jsonOutput'); ta.select();
+  document.execCommand('copy'); alert('JSON copied to clipboard!'); if (window.Three3D) window.Three3D.clean(); }
+
+/* ── ZOOM / PAN ──────────────────────────────────── */
+
+window.addEventListener('resize',()=>{
+  const img=getBg(); if(!img||!lastImgW)return;
+  const nw=img.clientWidth, nh=img.clientHeight;
+  if(nw===lastImgW&&nh===lastImgH)return;
+  const sx=nw/lastImgW, sy=nh/lastImgH;
+  document.querySelectorAll('.highlight-btn').forEach(el=>{
+    el.style.left=parseFloat(el.style.left)*sx+'px'; el.style.top=parseFloat(el.style.top)*sy+'px';
+    el.style.width=parseFloat(el.style.width)*sx+'px'; el.style.height=parseFloat(el.style.height)*sy+'px'; });
+  Object.keys(highlightPolyStore).forEach(id=>{
+    highlightPolyStore[id]=highlightPolyStore[id].map(p=>({x:p.x*sx,y:p.y*sy}));
+    renderHighlightPoly(id,highlightPolyStore[id]); });
+  lastImgW=nw; lastImgH=nh;
+});
+
+/* ════════ RTU TRACK — Global.json integration ════════ */
+let globalRtuData = null;
+let rtuDevices = {};             // deviceKey -> [{id,name,fullPath,deviceKey,label}]
+let _rtuPropsOnSave = null;
+
+async function loadGlobalRtus(){
+  try{
+    const r = await fetch('Global.json');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    globalRtuData = await r.json();
+    buildRtuOptions();
+  }catch(e){ console.warn('[RTU Track] Global.json load failed:', e.message); }
+}
+
+function buildRtuOptions(){
+  rtuDevices = {};
+  const vars = globalRtuData?.globalVariables || {};
+  Object.entries(vars).forEach(([deviceKey, device])=>{
+    if(!/rtu/i.test(deviceKey)) return;                 // only RTU devices
+    const list = [];
+    (device.points || []).forEach(pt=>{
+      if(!pt.id || pt.id === 'N/A') return;              // only mapped points
+      list.push({ id: pt.id, name: pt.name, fullPath: pt.fullPath, deviceKey,
+        label: `${pt.name} (${pt.id})` });
+    });
+    if(list.length) rtuDevices[deviceKey] = list;
+  });
+}
+
+function populateRtuDeviceSelect(selectedDevice){
+  const sel = document.getElementById('rtuPropDevice');
+  if(!sel) return;
+  const keys = Object.keys(rtuDevices);
+  sel.innerHTML = '<option value="">— Select RTU —</option>' +
+    keys.map(k=>`<option value="${k}">${k}</option>`).join('');
+  sel.value = selectedDevice || '';
+}
+function populateRtuPointSelect(deviceKey, selectedPaths){
+  const sel = document.getElementById('rtuPropPoint');
+  if(!sel) return;
+  const list = rtuDevices[deviceKey] || [];
+  sel.innerHTML = list.map(o=>`<option value="${o.fullPath}">${o.label}</option>`).join('');
+  const sp = new Set(selectedPaths||[]);
+  Array.from(sel.options).forEach(opt=>{ opt.selected = sp.has(opt.value); });
+}
+
+function rtuPropsOpen(title,{points,color},cb){
+  _rtuPropsOnSave = cb;
+  document.getElementById('rtuPropsTitle').textContent = title;
+  const initialDevice = (points && points[0]) ? points[0].deviceKey : '';
+  populateRtuDeviceSelect(initialDevice);
+  populateRtuPointSelect(initialDevice, (points||[]).map(p=>p.fullPath));
+  document.getElementById('rtuPropColor').value = color || nextColor();
+  document.getElementById('rtuPropsModal').classList.add('open');
+}
+function rtuPropsCancel(){ document.getElementById('rtuPropsModal').classList.remove('open'); _rtuPropsOnSave=null; }
+function rtuPropsSave(){
+  const deviceSel = document.getElementById('rtuPropDevice');
+  const pointSel = document.getElementById('rtuPropPoint');
+  const deviceKey = deviceSel.value;
+  const chosenPaths = Array.from(pointSel.selectedOptions).map(o=>o.value);
+  const list = rtuDevices[deviceKey] || [];
+  const points = chosenPaths.map(fp => list.find(o=>o.fullPath===fp)).filter(Boolean)
+    .map(o=>({ id:o.id, name:o.name, fullPath:o.fullPath, deviceKey:o.deviceKey }));
+  const v = {
+    name: deviceKey ? (points.length ? `${deviceKey} (${points.length} pts)` : deviceKey) : 'RTU Track',
+    points,
+    color: document.getElementById('rtuPropColor').value
+  };
+  document.getElementById('rtuPropsModal').classList.remove('open');
+  const cb = _rtuPropsOnSave; _rtuPropsOnSave = null;
+  if(cb) cb(v);
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('rtuPropDevice')?.addEventListener('change', e=>{
+    populateRtuPointSelect(e.target.value, []);
+  });
+});
+
+/* drag-to-place, mirrors beginHighlightDrag/_onHlDrop */
+function beginRtuDrag(e){
+  const ghost=document.getElementById('imgDragGhost'), W=130,H=34;
+  ghost.style.width=W+'px'; ghost.style.height=H+'px'; ghost.style.display='block';
+  ghost.style.left=(e.clientX-W/2)+'px'; ghost.style.top=(e.clientY-H/2)+'px';
+  _hlDragState={ghost,W,H};
+  document.addEventListener('mousemove',_onHlMove);
+  document.addEventListener('mouseup',_onRtuDrop);
+}
+function _onRtuDrop(e){
+  if(!_hlDragState)return;
+  document.removeEventListener('mousemove',_onHlMove);
+  document.removeEventListener('mouseup',_onRtuDrop);
+  const{ghost,W,H}=_hlDragState; ghost.style.display='none'; _hlDragState=null;
+  const wrap=getWrap(), img=getBg(); if(!wrap||!img||!img.complete)return;
+  const wr=wrap.getBoundingClientRect();
+  if(e.clientX<wr.left||e.clientX>wr.right||e.clientY<wr.top||e.clientY>wr.bottom)return;
+  const ir=img.getBoundingClientRect();
+  const x=(e.clientX-ir.left)-W/2;
+  const y=(e.clientY-ir.top)-H/2;
+  rtuPropsOpen('New RTU Track',{points:[],color:nextColor()},v=>{
+    const el=placeHighlightButton({...v, kind:'rtu', x,y,w:W,h:H});
+    if(el) startHighlightDraw(el);
+  });
+}
+
+/* live-data popup — now lists every fullPath saved on this track */
+function openRtuDataPopup(trackId){
+  const el=document.getElementById(trackId); if(!el)return;
+  const points = JSON.parse(el.dataset.points || '[]');
+  document.getElementById('rtuDataTitle').textContent = el.dataset.name || 'RTU Track';
+  document.getElementById('rtuDataPath').textContent = points.length ? `${points.length} point${points.length!==1?'s':''}` : '—';
+  const listEl = document.getElementById('rtuDataList');
+  listEl.innerHTML = '';
+  const resolved = rtuResolved[trackId]?.values || {};
+  points.forEach(p=>{
+    const row=document.createElement('div'); row.className='rtu-data-row';
+    const val = resolved[p.fullPath];
+    row.innerHTML = `<span class="rtu-data-name">${p.name} (${p.id})</span><span class="rtu-data-val">${val ?? '—'}</span>`;
+    listEl.appendChild(row);
+  });
+  if(!points.length) listEl.innerHTML = '<div class="empty-state">No points on this track.</div>';
+  document.getElementById('rtuDataModal').classList.add('open');
+  window._activeRtuTrackId = trackId;
+  if(points.length) subscribeRtuPoints(trackId, points);
+}
+function updateRtuTrackDisplay(trackId){
+  if(window._activeRtuTrackId===trackId) openRtuDataPopup(trackId);
+}
+function closeRtuDataModal(){
+  document.getElementById('rtuDataModal').classList.remove('open');
+  window._activeRtuTrackId = null;
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  loadGlobalRtus();
+  document.getElementById('newRtuTrackCard')
+    ?.addEventListener('mousedown', e=>{ if(!dragEnabled)return; e.preventDefault(); beginRtuDrag(e); });
+});
+
+/* ── BOOT ────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',async()=>{
+  updateDragModeUI();
+  document.getElementById('newHighlightCard')
+    .addEventListener('mousedown',e=>{ if(!dragEnabled)return; e.preventDefault(); beginHighlightDrag(e); });
+  await loadPositionsFromJSON();
+  await loadBackground();
+  setTimeout(()=>{ Object.keys({0:0,1:0,2:0,3:0}).forEach(f=>{
+    require(['baja!'], () => {}); // no-op ensures baja module loaded before subscribing
+  }); }, 0);
+});
+</script>
+
+
+
+
+<script>
+require(['baja!'], function (baja) {
+'use strict';
+
+// Map each floor's index to its Building_Temp ORDs — copied from Home.html's FLOOR_GROUPS.
+// Adjust the floorNum keys (0/1/2/3) if they don't line up with your actual floor numbering.
+const TEMP_SLOTS = {
+  avg:     'avg',
+  max:     'max',
+  maxName: 'maxZoneIdentifier',
+  min:     'min',
+  minName: 'minZoneIdentifier'
+};
+
+const FLOOR_TEMP_GROUPS = {
+  0: { label:'Lower Level', ord:'station:|slot:/Building_Temp/LowerLevel_Avg',  slots:TEMP_SLOTS },
+  1: { label:'1st Floor',   ord:'station:|slot:/Building_Temp/FirstFloor_Avg',  slots:TEMP_SLOTS },
+  2: { label:'2nd Floor',   ord:'station:|slot:/Building_Temp/SecondFloor_Avg', slots:TEMP_SLOTS },
+  3: { label:'3rd Floor',   ord:'station:|slot:/Building_Temp/ThirdFloor_Avg',  slots:TEMP_SLOTS }
+};
+
+
+const GAUGE_MIN = 60, GAUGE_MAX = 85;   // tweak to your comfort scale
+let floorTempSub = null;
+let floorTempResolved = {};
+window._activeFloorTempNum = null;
+
+function decodeName(n){ if(!n) return n; return n.replace(/\$([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16))); }
+
+const COMFORT_LOW = 66, COMFORT_HIGH = 75;   // comfort band
+const GAUGE_FLOOR = 55, GAUGE_CEIL  = 90;    // absolute ends of the dial
+const MID_LOW = 0.4, MID_HIGH = 0.6;         // where comfort band sits on the arc (0=left/blue, 1=right/red)
+
+function tempToPct(val){
+  if(val <= GAUGE_FLOOR) return 0;
+  if(val >= GAUGE_CEIL)  return 1;
+
+  if(val < COMFORT_LOW){
+    // below comfort → blue side, steep slope
+    return ((val - GAUGE_FLOOR) / (COMFORT_LOW - GAUGE_FLOOR)) * MID_LOW;
+  }
+  if(val > COMFORT_HIGH){
+    // above comfort → red side, steep slope
+    return MID_HIGH + ((val - COMFORT_HIGH) / (GAUGE_CEIL - COMFORT_HIGH)) * (1 - MID_HIGH);
+  }
+  // inside comfort band → gentle slope through the middle
+  return MID_LOW + ((val - COMFORT_LOW) / (COMFORT_HIGH - COMFORT_LOW)) * (MID_HIGH - MID_LOW);
+}
+
+function setNeedle(val){
+  const pct = tempToPct(val);
+  const angleDeg = 180 - pct*180;      // 180°=left(blue) → 90°=top(green) → 0°=right(red)
+  const rad = angleDeg * Math.PI/180;
+  const x2 = 100 + 70*Math.cos(rad);
+  const y2 = 100 - 70*Math.sin(rad);   // note: minus, since SVG y grows downward
+  const line = document.querySelector('#floorTempNeedle line');
+  line.setAttribute('x2', x2.toFixed(1));
+  line.setAttribute('y2', y2.toFixed(1));
+}
+function renderFloorTemp(floorNum){
+  const d = floorTempResolved[floorNum];
+  if(!d) return;
+  const avgVal = parseFloat(d.avg);
+  document.getElementById('floorTempAvgVal').textContent = isNaN(avgVal) ? (d.avg||'—') : avgVal.toFixed(1)+'°';
+  if(!isNaN(avgVal)) setNeedle(avgVal);
+  document.getElementById('floorTempMaxVal').textContent  = d.max || '—';
+  document.getElementById('floorTempMaxName').textContent = decodeName(d.maxName) || '—';
+  document.getElementById('floorTempMinVal').textContent  = d.min || '—';
+  document.getElementById('floorTempMinName').textContent = decodeName(d.minName) || '—';
+}
+function updateTileDial(floorNum){
+  const d = floorTempResolved[floorNum];
+  if(!d) return;
+  const avgVal = parseFloat(d.avg);
+  const valEl = document.getElementById('tdVal_'+floorNum);
+  const arcEl = document.getElementById('tdArc_'+floorNum);
+  const needleEl = document.querySelector('#tdNeedle_'+floorNum+' line');
+  // const mmEl = document.getElementById('tdMinMax_'+floorNum);
+  if(valEl) valEl.textContent = isNaN(avgVal) ? '—°' : avgVal.toFixed(0)+'°';
+  if(!isNaN(avgVal) && needleEl){
+    const pct = tempToPct(avgVal);
+    const angleDeg = 180 - pct*180;
+    const rad = angleDeg*Math.PI/180;
+    needleEl.setAttribute('x2',(50+32*Math.cos(rad)).toFixed(1));
+    needleEl.setAttribute('y2',(50-32*Math.sin(rad)).toFixed(1));
+    const color = avgVal<COMFORT_LOW ? '#00b4ff' : avgVal>COMFORT_HIGH ? '#ff5252' : '#00e676';
+    if(arcEl) arcEl.setAttribute('stroke', color);
+  }
+  // if(mmEl && (d.min || d.max)) mmEl.innerHTML = `<span class="lo">${d.min||'—'}</span> / <span class="hi">${d.max||'—'}</span>`;
+}
+const floorTempComps = {};   // floorNum -> resolved component (used by the refresh poll)
+
+function readSlotDisplay(comp, slot){
+  const sv = comp.get(slot);   // StatusNumeric / StatusString
+  return sv.getValueDisplay ? sv.getValueDisplay() : String(sv.getValue());
+}
+
+function applyFloor(comp, floorNum, slots){
+  floorTempResolved[floorNum] = floorTempResolved[floorNum] || {};
+  Object.entries(slots).forEach(([field, slot]) => {
+    try { floorTempResolved[floorNum][field] = readSlotDisplay(comp, slot); }
+    catch(e){ console.warn('[FloorTemp] slot read failed', floorNum, slot, e.message); }
+  });
+  if(floorNum === window._activeFloorTempNum) renderFloorTemp(floorNum);
+  updateTileDial(floorNum);
+}
+
+function subscribeFloor(floorNum){
+  const grp = FLOOR_TEMP_GROUPS[floorNum];
+  if(!grp) return;
+
+  if(!floorTempSub){
+    floorTempSub = new baja.Subscriber();
+    floorTempSub.attach('changed', function(prop){
+      const meta = this._floorMeta; if(!meta) return;
+      if(!Object.values(meta.slots).includes(prop.getName())) return;
+      applyFloor(this, meta.floorNum, meta.slots);
+    });
+  }
+
+  if(floorTempResolved[floorNum]?._subscribed) return;
+  floorTempResolved[floorNum] = floorTempResolved[floorNum] || {};
+  floorTempResolved[floorNum]._subscribed = true;
+
+  // one ORD per floor, resolved once
+  baja.Ord.make(grp.ord).get({subscriber: floorTempSub}).then(comp => {
+    comp._floorMeta = { floorNum, slots: grp.slots };
+    floorTempComps[floorNum] = comp;
+    applyFloor(comp, floorNum, grp.slots);
+  }).catch(e => console.warn('[FloorTemp] could not resolve', grp.ord, e.message));
+}
+
+// safety net: re-read every 5 s in case the subscriber doesn't fire for slot values
+setInterval(() => {
+  Object.entries(floorTempComps).forEach(([fn, comp]) => {
+    const grp = FLOOR_TEMP_GROUPS[fn];
+    if(grp) applyFloor(comp, parseInt(fn), grp.slots);
+  });
+}, 5000);
+window.openFloorTempPopup = function(floorNum){
+  const grp = FLOOR_TEMP_GROUPS[floorNum];
+  if(!grp){ console.warn('[FloorTemp] no temp group mapped for floor', floorNum); return; }
+  window._activeFloorTempNum = floorNum;
+  document.getElementById('floorTempTitle').textContent = grp.label + ' — Avg FL Temp';
+  document.getElementById('floorTempAvgVal').textContent='—°';
+  document.getElementById('floorTempMaxVal').textContent='—';
+  document.getElementById('floorTempMaxName').textContent='—';
+  document.getElementById('floorTempMinVal').textContent='—';
+  document.getElementById('floorTempMinName').textContent='—';
+  setNeedle(GAUGE_MIN);
+  document.getElementById('floorTempModal').classList.add('open');
+  subscribeFloor(floorNum);
+  if(floorTempResolved[floorNum]) renderFloorTemp(floorNum);
+};
+Object.keys(FLOOR_TEMP_GROUPS).forEach(f => subscribeFloor(parseInt(f)));
+});
+
+require(['baja!'], function(baja){
+  'use strict';
+  let rtuSub = null;
+  window.subscribeRtuPoints = function(trackId, points){
+    if(!points || !points.length) return;
+    rtuResolved[trackId] = rtuResolved[trackId] || { values:{}, _subscribed: new Set() };
+
+    if(!rtuSub){
+      rtuSub = new baja.Subscriber();
+      rtuSub.attach('changed', function(prop){
+        if(prop.getName()!=='out') return;
+        const meta = this._rtuMeta; if(!meta) return;
+        rtuResolved[meta.trackId] = rtuResolved[meta.trackId] || { values:{}, _subscribed: new Set() };
+        rtuResolved[meta.trackId].values[meta.fullPath] = this.getOut().getValueDisplay();
+        updateRtuTrackDisplay(meta.trackId);
+      });
+    }
+
+    points.forEach(p=>{
+      if(!p.fullPath) return;
+      if(rtuResolved[trackId]._subscribed.has(p.fullPath)) return;   // <-- the guard that breaks the loop
+      rtuResolved[trackId]._subscribed.add(p.fullPath);
+      baja.Ord.make(p.fullPath).get({subscriber: rtuSub}).then(pt=>{
+        pt._rtuMeta = { trackId, fullPath: p.fullPath };
+        rtuResolved[trackId].values[p.fullPath] = pt.getOut().getValueDisplay();
+        updateRtuTrackDisplay(trackId);
+      }).catch(e=>console.warn('[RTU Track] subscribe failed', p.fullPath, e.message));
+    });
+  };
+});
+</script>
+
+
+
+
+<!--3D-->
+<script>
+function toggleView3D() {
+  if (!window.Three3D) { alert('3D engine did not load. Check the importmap paths (step 1).'); return; }
+  const on = window.Three3D.toggle();
+  document.getElementById('mode3dToggle').classList.toggle('active', on);
+  document.getElementById('mode3dLabel').textContent = on ? '2D Image' : '3D Model';
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+/* ══ CHANGE THESE TWO IF NEEDED ══ */
+const BASE3D     = './Floor_Plans/';              // folder that holds JS_3DFiles/ (draco decoder)
+const MODEL_FILE = BASE3D + 'CityPlace5_Building.glb';       // your whole-building model
+const POLL_MS = 20000;
+
+const $ = id => document.getElementById('t3_' + id);
+const stage = $('stage'), statusEl = $('status'), progress = $('progress'), infoEl = $('info');
+function setStatus(msg, type) {
+  statusEl.className = type || ''; statusEl.textContent = msg; statusEl.style.opacity = '1';
+  if (type === 'ok') setTimeout(() => { statusEl.style.opacity = '0'; }, 3000);
+}
+const banner = t => { const b = $('banner'); b.textContent = t || ''; b.style.display = t ? 'block' : 'none'; };
+const decodeBaja = v => typeof v === 'string' ? v.replace(/\$([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) : v;
+
+/* ── renderer / scene / camera ── */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+camera.position.set(30, 20, 30);
+scene.add(new THREE.HemisphereLight(0xdfeaff, 0x1a2535, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(60, 100, 40); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+let grid = new THREE.GridHelper(100, 50, 0x04d9ff, 0x1d3a55);
+grid.material.transparent = true; grid.material.opacity = 0.35;
+scene.add(grid);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.screenSpacePanning = true; controls.maxPolarAngle = Math.PI * 0.499; controls.autoRotateSpeed = 0.8;
+
+let model = null, R = 10, active3d = false, edit = false;
+const home = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+const overlay = new THREE.Group(); scene.add(overlay);
+const pickables = [];
+
+/* ── load model ── */
+const loader = new GLTFLoader(), dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath(BASE3D + 'JS_3DFiles/'); loader.setDRACOLoader(dracoLoader);
+
+window.__t3Start = () => loader.load(MODEL_FILE,
+  gltf => {
+    model = gltf.scene;
+    let tris = 0, meshes = 0;
+    model.traverse(o => { if (o.isMesh) { meshes++; o.castShadow = o.receiveShadow = true;
+      const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; } });
+    scene.add(model); frameModel();
+    model.traverse(o => { o.matrixAutoUpdate = false; });
+    renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+    progress.style.opacity = '0';
+    setStatus(`Loaded ${MODEL_FILE}`, 'ok');
+    infoEl.textContent = `${meshes.toLocaleString()} meshes · ${Math.round(tris).toLocaleString()} triangles`;
+    initBAS();
+  },
+  xhr => { if (xhr.lengthComputable) { const p = xhr.loaded / xhr.total;
+    progress.style.width = (p * 100) + '%'; statusEl.textContent = `Loading ${MODEL_FILE}… ${Math.round(p * 100)}%`; } },
+  err => { progress.style.opacity = '0';
+    setStatus(`Could not load ${MODEL_FILE}. Check the file path/permissions (F12 console). ${err && err.message ? err.message : err}`, 'error');
+    console.error(err); });
+
+function frameModel() {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const radius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
+  R = radius;
+  model.position.y -= box.min.y; center.y = size.y / 2;
+  const dist = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.4;
+  camera.position.set(center.x + dist * 0.7, center.y + dist * 0.5, center.z + dist * 0.7);
+  camera.near = radius / 1000; camera.far = radius * 100; camera.updateProjectionMatrix();
+  controls.target.copy(center); controls.zoomToCursor = true;
+  controls.minDistance = radius * 0.01; controls.maxDistance = radius * 12; controls.update();
+  home.pos.copy(camera.position); home.target.copy(center);
+
+  scene.remove(grid); grid.geometry.dispose();
+  const gs = Math.ceil(radius * 6 / 10) * 10;
+  grid = new THREE.GridHelper(gs, gs / 2, 0x04d9ff, 0x1d3a55);
+  grid.material.transparent = true; grid.material.opacity = 0.35;
+  grid.visible = !$('btnGrid').classList.contains('off');
+  grid.material.color.set(document.body.classList.contains('light-mode') ? 0x6b8bb0 : 0x1d3a55);
+  scene.add(grid);
+
+  const sc = sun.shadow.camera;
+  sc.left = -radius * 1.5; sc.right = radius * 1.5; sc.top = radius * 1.5; sc.bottom = -radius * 1.5;
+  sc.near = 1; sc.far = radius * 8; sc.updateProjectionMatrix();
+  sun.position.set(center.x + radius * 2, radius * 4, center.z + radius * 1.5);
+  sun.target.position.copy(center); scene.add(sun.target);
+
+  model.updateMatrixWorld(true);
+  overlay.position.copy(model.position); overlay.quaternion.copy(model.quaternion);
+}
+
+/* ── toolbar ── */
+$('btnReset').addEventListener('click', () => { camera.position.copy(home.pos); controls.target.copy(home.target); controls.update(); });
+$('btnRotate').addEventListener('click', e => { controls.autoRotate = !controls.autoRotate; e.currentTarget.classList.toggle('on', controls.autoRotate); });
+$('btnGrid').addEventListener('click', e => {
+  const off = e.currentTarget.classList.toggle('off'); e.currentTarget.classList.toggle('on', !off); grid.visible = !off;
+});
+$('btnGrid').classList.add('on');
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+new ResizeObserver(resize).observe(stage); resize();
+
+const _tv = new THREE.Vector3();
+renderer.setAnimationLoop(t => { if (!active3d) return; stepCam(); controls.update(); tickTags(t); renderer.render(scene, camera); });
+
+/* ═══════════ DATA LAYER ═══════════ */
+const data = { highlights: [], custom: {}, views: [] };
+let dirty = false;
+const save = () => { dirty = true; refreshHlList(); refreshCustList(); };
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* status → colour */
+const ST = {
+  alarm:      { c: 'hsl(4,100%,52%)',   label: 'IN ALARM'   },
+  fault:      { c: 'hsl(52,100%,50%)',  label: 'FAULT'      },
+  down:       { c: 'hsl(52,100%,50%)',  label: 'DOWN'       },
+  stale:      { c: 'hsl(28,100%,50%)',  label: 'STALE'      },
+  overridden: { c: 'hsl(280,100%,65%)', label: 'OVERRIDDEN' },
+};
+const ST_ORDER = ['alarm', 'fault', 'down', 'stale', 'overridden'];
+const stKey = st => { const f = (st || '').split(/[^a-z]+/).filter(Boolean); return ST_ORDER.find(k => f.includes(k)) || null; };
+
+/* live subscription (falls back to polling) */
+function watch(ord, cb) {
+  let sub = null, timer = null, dead = false;
+  if (!ord || ord.includes('{')) { cb(new Error('bad path')); return () => {}; }
+  if (typeof require === 'undefined') { cb(new Error('Baja not available')); return () => {}; }
+  const push = p => {
+    try { const out = p.getOut(); let st = '';
+      try { const s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+      cb(null, decodeBaja(out.getValueDisplay()), st);
+    } catch (x) { cb(x); }
+  };
+  const fallback = () => {
+    if (dead || timer) return;
+    const run = () => require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+      baja.Ord.make(ord).get().then(p => { if (!dead && p?.getOut) push(p); }).catch(e => { if (!dead) cb(e); });
+    });
+    run(); timer = setInterval(run, POLL_MS);
+  };
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    if (dead) return;
+    try {
+      sub = new baja.Subscriber();
+      sub.attach('changed', function () { if (!dead) push(this); });
+      baja.Ord.make(ord).get({ subscriber: sub })
+        .then(p => { if (dead) { try { sub.unsubscribeAll(); } catch (x) {} return; } if (!p?.getOut) { cb(new Error('no getOut')); return; } push(p); })
+        .catch(() => { try { sub.unsubscribeAll(); } catch (x) {} sub = null; fallback(); });
+    } catch (x) { fallback(); }
+  });
+  return () => { dead = true; if (timer) clearInterval(timer); if (sub) { try { sub.unsubscribeAll(); } catch (x) {} } };
+}
+
+/* ── shape builders ── */
+function makePoly(arr, color, opacity) {
+  const pts = arr.map(a => new THREE.Vector3(...a)), g = new THREE.Group();
+  const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  line.renderOrder = 8;
+  const n = new THREE.Vector3();
+  pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; n.x += (p.y - q.y) * (p.z + q.z); n.y += (p.z - q.z) * (p.x + q.x); n.z += (p.x - q.x) * (p.y + q.y); });
+  const ax = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)], d = ax.indexOf(Math.max(...ax));
+  const flat = pts.map(p => d === 0 ? new THREE.Vector2(p.y, p.z) : d === 1 ? new THREE.Vector2(p.x, p.z) : new THREE.Vector2(p.x, p.y));
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  geo.setIndex(THREE.ShapeUtils.triangulateShape(flat, []).flat());
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  fill.renderOrder = 7; g.add(fill, line); g.userData = { line, fill };
+  return g;
+}
+function boxGeo(b) {
+  const s = b.max.clone().sub(b.min), g = new THREE.BoxGeometry(s.x, s.y, s.z);
+  g.translate((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2); return g;
+}
+function makeBox(b, color, opacity) {
+  const geo = boxGeo({ min: new THREE.Vector3(...b.min), max: new THREE.Vector3(...b.max) });
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  fill.renderOrder = 7; line.renderOrder = 8;
+  const g = new THREE.Group(); g.add(fill, line); g.userData = { line, fill }; return g;
+}
+function makePrism(p, color, opacity) {
+  const pts = p.poly, n = pts.length, y0 = p.y0, y1 = p.y1, pos = [];
+  const V = (a, y) => pos.push(a[0], y, a[2]);
+  THREE.ShapeUtils.triangulateShape(pts.map(a => new THREE.Vector2(a[0], a[2])), [])
+    .forEach(t => { t.forEach(i => V(pts[i], y0)); t.forEach(i => V(pts[i], y1)); });
+  for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n]; V(a, y0); V(b, y0); V(b, y1); V(a, y0); V(b, y1); V(a, y1); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  fill.renderOrder = 7; line.renderOrder = 8;
+  const g = new THREE.Group(); g.add(fill, line); g.userData = { line, fill }; return g;
+}
+
+/* ═══════════ FLOOR HIGHLIGHTS ═══════════ */
+const hlObjs = {};
+const HL_COLORS = ['#c878ff','#00b4ff','#ffab00','#00e676','#ff5252','#00e5ff','#ff9100','#76ff03','#ff4081','#40c4ff'];
+const hlById = id => data.highlights.find(x => x.id === id);
+const goHl = h => { if (h.href) window.location.href = h.href; };   // href is already relative to this page
+
+function removeHl(id) {
+  const g = hlObjs[id]; if (!g) return;
+  overlay.remove(g);
+  const i = pickables.indexOf(g.userData.fill); if (i >= 0) pickables.splice(i, 1);
+  delete hlObjs[id];
+}
+function renderHl(h) {
+  removeHl(h.id);
+  const g = h.prism ? makePrism(h.prism, h.color, 0.35) : h.box ? makeBox(h.box, h.color, 0.35)
+          : (h.poly && h.poly.length >= 3) ? makePoly(h.poly, h.color, 0.35) : null;
+  if (!g) return;
+  g.visible = edit; g.userData.fill.userData.hl = h.id;
+  overlay.add(g); pickables.push(g.userData.fill); hlObjs[h.id] = g;
+}
+function showAll(on) { Object.values(hlObjs).forEach(g => { g.visible = on || edit; }); hoverId = null; }
+let hoverId = null;
+function hoverHl(id) {
+  if (id === hoverId) return;
+  if (hoverId && hlObjs[hoverId]) hlObjs[hoverId].visible = edit;
+  hoverId = id || null;
+  if (hoverId && hlObjs[hoverId]) hlObjs[hoverId].visible = true;
+  renderer.domElement.style.cursor = hoverId ? 'pointer' : '';
+}
+function refreshHlList() {
+  const sel = $('hSel'), keep = sel.value;
+  sel.innerHTML = data.highlights.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+
+let hlEditId = null;
+function hlOpen(id) {
+  hlEditId = id || null;
+  const h = id && hlById(id);
+  $('hlTitle').textContent = h ? 'Edit Highlight' : 'New Highlight';
+  const fl = (typeof floorOptions !== 'undefined' && floorOptions) ? floorOptions : [];   // from the 2D page
+  $('hlFloor').innerHTML = '<option value="">— Select Floor —</option>' + fl.map(f => `<option value="${f.href}">${f.label}</option>`).join('');
+  $('hlFloor').value = h ? (h.href || '') : '';
+  $('hlColor').value = h ? h.color : HL_COLORS[data.highlights.length % HL_COLORS.length];
+  $('hlShape').innerHTML = (h ? '<option value="">Keep current shape</option>' : '') +
+    '<option value="rect">Floor box (2 clicks)</option><option value="poly">Free polygon (Shift = straight)</option><option value="prism">Polygon + height (trace, then click bottom &amp; top)</option>';
+  $('hlDel').style.display = h ? '' : 'none';
+  $('hlModal').classList.add('open');
+}
+$('hlCancel').onclick = () => $('hlModal').classList.remove('open');
+$('hlSave').onclick = () => {
+  const sel = $('hlFloor'), opt = sel.options[sel.selectedIndex];
+  const v = { name: sel.value ? opt.textContent.trim() : 'Highlight', href: sel.value, color: $('hlColor').value };
+  const shape = $('hlShape').value;
+  $('hlModal').classList.remove('open');
+  if (hlEditId) {
+    const h = hlById(hlEditId); Object.assign(h, v); renderHl(h); save();
+    if (shape) startDraw(h.id, `HIGHLIGHT "${h.name}"`, shape);
+  } else {
+    const h = { id: 'hl_' + Date.now(), ...v }; data.highlights.push(h); save();
+    startDraw(h.id, `HIGHLIGHT "${h.name}"`, shape || 'rect');
+  }
+};
+$('hlDel').onclick = () => {
+  const id = hlEditId; if (!id) return;
+  $('hlModal').classList.remove('open'); removeHl(id);
+  data.highlights = data.highlights.filter(x => x.id !== id); save();
+};
+$('bHl').onclick = () => { cancelDraw(); hlOpen(null); };
+$('hEdit').onclick = () => { if ($('hSel').value) hlOpen($('hSel').value); };
+
+/* ═══════════ CUSTOM TAGS ═══════════ */
+const cust = {};
+let cuId = null, cuPlaceId = null;
+function makeTag(name) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  s.renderOrder = 10; s.userData.cv = cv; return s;
+}
+const tagSize = (s, m) => s.scale.set(R * 0.12 * (m || 1), R * 0.06 * (m || 1), 1);
+function drawCust(c) {
+  const s = c.sprite; if (!s) return;
+  const g = s.userData.cv.getContext('2d');
+  g.clearRect(0, 0, 256, 128);
+  g.fillStyle = 'rgba(8,13,20,.86)'; g.fillRect(4, 4, 248, 120);
+  g.strokeStyle = c.st ? ST[c.st].c : c.v != null ? 'hsl(122,100%,44%)' : 'hsl(195,80%,50%)'; g.lineWidth = 7; g.strokeRect(4, 4, 248, 120);
+  g.textAlign = 'center'; g.fillStyle = '#c8d8ea'; g.font = '700 28px sans-serif';
+  g.fillText(c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name, 128, 44);
+  g.fillStyle = '#fff'; g.font = '700 40px monospace';
+  const v = c.v == null ? '—' : String(c.v); g.fillText(v.length > 9 ? v.slice(0, 8) + '…' : v, 128, 100);
+  s.material.map.needsUpdate = true;
+}
+function applyCust(id) {
+  const c = cust[id], d = data.custom[id]; if (!c || !d) return;
+  c.name = d.label; c.ord = d.ord;
+  if (c.sprite) { overlay.remove(c.sprite); const i = pickables.indexOf(c.sprite); if (i >= 0) pickables.splice(i, 1); c.sprite = null; }
+  if (d.pos) {
+    c.sprite = makeTag(c.name); tagSize(c.sprite, d.size); c.sprite.userData.cust = id;
+    c.sprite.position.fromArray(d.pos); overlay.add(c.sprite); pickables.push(c.sprite); drawCust(c);
+  }
+  watchCust(id);
+}
+function watchCust(id) {
+  const c = cust[id], d = data.custom[id]; if (!c) return;
+  if (c.unsub) { c.unsub(); c.unsub = null; }
+  if (!d || !d.ord) return;
+  c.unsub = watch(d.ord, (e, v, st) => { c.v = e ? null : v; c.st = e ? null : stKey(st); drawCust(c); });
+}
+function syncCSz() { const s = data.custom[$('cSel').value]?.size || 1; $('cSz').value = s; $('cSzN').value = s; }
+function setCustSize(v, commit) {
+  const id = $('cSel').value, d = data.custom[id]; if (!d || isNaN(v) || v <= 0) return;
+  d.size = v; $('cSz').value = v; $('cSzN').value = v;
+  const c = cust[id]; if (c && c.sprite) tagSize(c.sprite, v);
+  if (commit) save();
+}
+$('cSz').addEventListener('input',  e => setCustSize(parseFloat(e.target.value), false));
+$('cSz').addEventListener('change', e => setCustSize(parseFloat(e.target.value), true));
+$('cSzN').addEventListener('change', e => setCustSize(parseFloat(e.target.value), true));
+$('cSel').addEventListener('change', syncCSz);
+function refreshCustList() {
+  const sel = $('cSel'), keep = sel.value;
+  sel.innerHTML = Object.entries(data.custom).map(([id, d]) => `<option value="${id}">${d.label}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  syncCSz();
+}
+function openCu(id) {
+  cuId = id || null; const d = (id && data.custom[id]) || {};
+  $('cuTitle').textContent = id ? 'Edit Custom Tag' : 'New Custom Tag';
+  $('cuName').value = d.label || ''; $('cuOrd').value = d.ord || '';
+  $('cuLink').value = d.linkOrd || '';
+  $('cuOtherList').innerHTML = '';
+  (d.other || []).forEach(o => cuRowAdd(o.name, o.ord));
+  if (!(d.other || []).length) cuRowAdd();
+  cuSyncLink(); cuSlide(false);
+  $('cuModal').classList.add('open');
+}
+function cuRowAdd(name = '', ord = '') {
+  const r = document.createElement('div'); r.className = 'cuRow';
+  r.innerHTML = '<input type="text" class="cuN" placeholder="Name"><input type="text" class="cuO" placeholder="ORD"><button class="cuX" title="Remove">✕</button>';
+  r.querySelector('.cuN').value = name; r.querySelector('.cuO').value = ord;
+  r.querySelector('.cuX').onclick = () => r.remove();
+  $('cuOtherList').appendChild(r); return r;
+}
+const cuSlide = on => $('cuSlider').classList.toggle('other', on);
+const cuClose = () => { $('cuModal').classList.remove('open'); cuSlide(false); };
+/* link as typed: strips station:| and turns file:^Murphy/... into /file/Murphy/... (add ?unit=... yourself if the page needs it) */
+function buildCuLink(typed) {
+  let u = (typed || '').trim(); if (!u) return '';
+  u = u.replace(/^station:\|/i, '');
+  if (/^file:/i.test(u)) u = '/file/' + u.replace(/^file:\^?\/?/i, '');
+  return u;
+}
+function cuSyncLink() { const l = buildCuLink($('cuLink').value); $('cuLinkPreview').textContent = l ? '→ ' + l : ''; }
+$('cuLink').oninput = cuSyncLink;
+$('cuOtherBtn').onclick = () => cuSlide(true);
+$('cuBack').onclick = () => cuSlide(false);
+$('cuAddRow').onclick = () => cuRowAdd().querySelector('.cuN').focus();
+
+/* click popup: the tag's own value + every "other" point, live, with the Open page button */
+let infoStop = null;
+function closeInfo() { if (infoStop) { infoStop(); infoStop = null; } $('eqInfo').style.display = 'none'; }
+function clickCust(id, e) {
+  const d = data.custom[id]; if (!d) return;
+  if (d.other && d.other.length) showCustInfo(id, e);
+  else if (d.link) { closeInfo(); window.open(d.link, '_blank'); }
+}
+function showCustInfo(id, e) {
+  const d = data.custom[id]; closeInfo(); if (!d) return;
+  const box = $('eqInfo'); box.innerHTML = '';
+  const h = document.createElement('h4'), t = document.createElement('div'), x = document.createElement('span');
+  t.textContent = d.label; x.textContent = '✕'; x.onclick = closeInfo; h.append(t, x); box.appendChild(h);
+  const rows = [{ name: d.label, ord: d.ord }, ...(d.other || [])];
+  const stops = rows.map(r => {
+    const row = document.createElement('div'); row.className = 'ir';
+    const a = document.createElement('span'); a.textContent = r.name;
+    const b = document.createElement('b'); b.textContent = '…';
+    row.append(a, b); box.appendChild(row);
+    return watch(r.ord, (err, v, st) => {
+      b.textContent = err || v == null ? '—' : v;
+      const k = err ? null : stKey(st); b.style.color = k ? ST[k].c : '';
+    });
+  });
+  if (d.link) {
+    const lb = document.createElement('button'); lb.className = 'btn';
+    lb.style.cssText = 'width:100%;margin-top:10px'; lb.textContent = 'Open page →';
+    lb.onclick = () => { window.open(d.link, '_blank'); closeInfo(); };
+    box.appendChild(lb);
+  }
+  infoStop = () => stops.forEach(s => s());
+  box.style.display = 'block';
+  const w = box.offsetWidth, hgt = box.offsetHeight;
+  box.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - w - 8)) + 'px';
+  box.style.top  = Math.max(8, Math.min(e.clientY + 14, innerHeight - hgt - 8)) + 'px';
+}
+function armCustPlace(id) { cancelDraw(); armed = 'cplace'; cuPlaceId = id; banner(`Click the model where "${data.custom[id].label}" should sit`); }
+$('cNew').onclick  = () => { cancelDraw(); openCu(null); };
+$('cEdit').onclick = () => { if ($('cSel').value) openCu($('cSel').value); };
+$('cMove').onclick = () => { if ($('cSel').value) armCustPlace($('cSel').value); };
+$('cuCancel').onclick = $('cuCancel2').onclick = cuClose;
+function cuSave() {
+  const label = $('cuName').value.trim(), ord = $('cuOrd').value.trim();
+  if (!label || !ord) { cuSlide(false); return; }          // name + main ORD still required
+  const other = [...document.querySelectorAll('#t3_cuOtherList .cuRow')]
+    .map(r => ({ name: r.querySelector('.cuN').value.trim(), ord: r.querySelector('.cuO').value.trim() }))
+    .filter(o => o.ord)
+    .map(o => ({ name: o.name || o.ord.split('/').pop(), ord: o.ord }));
+  const id = cuId || 'cu_' + Date.now();
+  const d = (data.custom[id] ||= {});
+  d.label = label; d.ord = ord; d.other = other;
+  d.linkOrd = $('cuLink').value.trim();                    // what you typed (shown again on edit)
+  d.link = buildCuLink(d.linkOrd);                         // final URL used by the button
+  cust[id] ||= { id, v: null, st: null, sprite: null };
+  cuClose(); applyCust(id); save(); $('cSel').value = id;
+  if (!d.pos) armCustPlace(id);
+}
+$('cuFinish').onclick = $('cuFinish2').onclick = cuSave;
+$('cDel').onclick = () => {
+  const id = $('cSel').value; if (!id || !data.custom[id]) return;
+  if (!confirm(`Delete "${data.custom[id].label}"?`)) return;
+  const c = cust[id]; if (c.unsub) c.unsub();
+  if (c.sprite) { overlay.remove(c.sprite); const i = pickables.indexOf(c.sprite); if (i >= 0) pickables.splice(i, 1); }
+  delete cust[id]; delete data.custom[id]; save();
+};
+
+/* tag distance fade + alarm pulse */
+function tickTags(t) {
+  if (!model) return;
+  const far = R * 10.5, pulse = 0.55 + 0.45 * Math.sin(t * 0.007);
+  Object.values(cust).forEach(c => {
+    const s = c.sprite; if (!s) return;
+    _tv.copy(s.position).applyMatrix4(overlay.matrixWorld);
+    let f = Math.min(1, Math.max(0, (far - camera.position.distanceTo(_tv)) / (far * 0.75)));
+    if (edit || c.st === 'alarm') f = 1;
+    s.visible = f > 0.01; s.material.opacity = c.st === 'alarm' ? pulse : f;
+  });
+}
+
+/* ═══════════ CAMERA VIEWS ═══════════ */
+let camAnim = null;
+function flyCam(pos, tgt, ms = 900) { camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1: new THREE.Vector3(...pos), t1: new THREE.Vector3(...tgt), s: performance.now(), ms }; }
+function stepCam() {
+  if (!camAnim) return;
+  const k = Math.min(1, (performance.now() - camAnim.s) / camAnim.ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  camera.position.lerpVectors(camAnim.p0, camAnim.p1, e); controls.target.lerpVectors(camAnim.t0, camAnim.t1, e);
+  if (k >= 1) camAnim = null;
+}
+controls.addEventListener('start', () => { camAnim = null; });
+function refreshViews() {
+  const s = $('viewSel'), keep = s.value; s.innerHTML = ''; s.add(new Option('Views', ''));
+  data.views.forEach(v => s.add(new Option(v.name, v.id)));
+  if (keep && data.views.some(v => v.id === keep)) s.value = keep;
+  s.style.display = data.views.length ? '' : 'none';
+}
+const camSnap = () => ({ pos: camera.position.toArray(), target: controls.target.toArray() });
+$('viewSel').onchange = e => { const v = data.views.find(x => x.id === e.target.value); if (v) flyCam(v.pos, v.target); };
+$('vSave').onclick = () => {
+  const v = { id: 'v_' + Date.now(), name: $('vName').value.trim() || 'View ' + (data.views.length + 1), ...camSnap() };
+  data.views.push(v); $('vName').value = ''; refreshViews(); $('viewSel').value = v.id; save();
+};
+$('vUpd').onclick = () => { const v = data.views.find(x => x.id === $('viewSel').value); if (!v) return; Object.assign(v, camSnap()); save(); };
+$('vDel').onclick = () => {
+  const v = data.views.find(x => x.id === $('viewSel').value); if (!v || !confirm(`Delete view "${v.name}"?`)) return;
+  data.views = data.views.filter(x => x !== v); refreshViews(); save();
+};
+
+/* ═══════════ RAYCAST + DRAW ═══════════ */
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let draw = null, armed = null;
+function setRay(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(mouse, camera);
+}
+function hitModel(e) {
+  if (!model) return null; setRay(e);
+  const h = ray.intersectObject(model, true)[0];
+  return h ? overlay.worldToLocal(h.point.clone()) : null;
+}
+function hitPick(e) {
+  setRay(e);
+  const hits = ray.intersectObjects(pickables, false).filter(h => !(h.object.isSprite && !h.object.visible));
+  return (hits.find(h => !h.object.userData.hl) || hits[0])?.object || null;
+}
+function startDraw(target, label, mode = 'rect') {
+  cancelDraw();
+  draw = { target, mode: mode === 'prism' ? 'poly' : mode, prism: mode === 'prism', heightStage: false, ys: [], pts: [], line: null, prev: null, box: null };
+  showAll(true);
+  banner(label + (mode === 'rect' ? ' — click one corner, then the opposite corner · Esc cancels'
+    : ' — click points (Shift = straight line) · click first point or Enter to close · Esc cancels'));
+}
+function hitDraw(e) {
+  if (!model) return null; setRay(e);
+  const h = ray.intersectObject(model, true)[0]; if (!h) return null;
+  let wp = h.point.clone();
+  if (e.shiftKey && draw.mode === 'poly' && draw.pts.length) {
+    const prev = overlay.localToWorld(draw.pts[draw.pts.length - 1].clone()), d = wp.clone().sub(prev);
+    const ax = [Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)], k = ax.indexOf(Math.max(...ax));
+    wp = prev.clone(); wp.setComponent(k, prev.getComponent(k) + d.getComponent(k));
+  }
+  return overlay.worldToLocal(wp);
+}
+function boxFrom(a, b) {
+  const A = overlay.localToWorld(a.clone()), B = overlay.localToWorld(b.clone());
+  const mb = new THREE.Box3().setFromObject(model), pad = R * 0.004, min = new THREE.Vector3(), max = new THREE.Vector3();
+  ['x', 'y', 'z'].forEach(k => {
+    let lo = Math.min(A[k], B[k]), hi = Math.max(A[k], B[k]);
+    if (k !== 'y' && hi - lo < R * 0.05) { lo = mb.min[k]; hi = mb.max[k]; }
+    min[k] = lo - pad; max[k] = hi + pad;
+  });
+  return { min: overlay.worldToLocal(min), max: overlay.worldToLocal(max) };
+}
+function updatePreview(e) {
+  const p = hitDraw(e); if (!p) return;
+  if (draw.prev) { overlay.remove(draw.prev); draw.prev.geometry.dispose(); draw.prev = null; }
+  const mat = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true, opacity: 0.8 });
+  if (draw.mode === 'rect') { if (draw.pts.length !== 1) return; draw.prev = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo(boxFrom(draw.pts[0], p))), mat); }
+  else draw.prev = new THREE.Line(new THREE.BufferGeometry().setFromPoints([...draw.pts, p]), mat);
+  draw.prev.renderOrder = 20; overlay.add(draw.prev);
+}
+function cancelDraw() {
+  if (draw) [draw.line, draw.prev].forEach(o => { if (o) { overlay.remove(o); o.geometry.dispose(); } });
+  draw = null; armed = null; showAll(false); banner('');
+}
+function addPt(p) {
+  draw.pts.push(p); if (draw.line) overlay.remove(draw.line);
+  draw.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(draw.pts), new THREE.LineBasicMaterial({ color: 0xffae00, depthTest: false }));
+  draw.line.renderOrder = 20; overlay.add(draw.line);
+}
+function nearFirst(e) {
+  const v = overlay.localToWorld(draw.pts[0].clone()).project(camera), r = renderer.domElement.getBoundingClientRect();
+  return Math.hypot((v.x + 1) / 2 * r.width + r.left - e.clientX, (1 - v.y) / 2 * r.height + r.top - e.clientY) < 14;
+}
+function finishDraw() {
+  if (!draw) return;
+  if (draw.prism) {
+    if (draw.heightStage || draw.pts.length < 3) return;
+    draw.heightStage = true;
+    if (draw.prev) { overlay.remove(draw.prev); draw.prev.geometry.dispose(); draw.prev = null; }
+    banner('Click the BOTTOM height on the model, then the TOP height · Esc cancels'); return;
+  }
+  const h = hlById(draw.target);
+  if (draw.box) { h.box = { min: draw.box.min.toArray(), max: draw.box.max.toArray() }; h.poly = null; h.prism = null; renderHl(h); save(); }
+  else if (draw.pts.length >= 3) { h.poly = draw.pts.map(p => p.toArray()); h.box = null; h.prism = null; renderHl(h); save(); }
+  cancelDraw();
+}
+
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || e.button !== 0) return;
+  down = null;
+  if (draw) {
+    if (draw.heightStage) {
+      const p = hitModel(e); if (!p) return;
+      draw.ys.push(p.y);
+      if (draw.ys.length < 2) { banner('Now click the TOP height'); return; }
+      const h = hlById(draw.target);
+      h.prism = { poly: draw.pts.map(q => q.toArray()), y0: Math.min(...draw.ys), y1: Math.max(...draw.ys) }; h.box = null; h.poly = null;
+      renderHl(h); save(); cancelDraw(); return;
+    }
+    if (draw.mode === 'poly' && draw.pts.length >= 3 && nearFirst(e)) return finishDraw();
+    const p = hitDraw(e); if (!p) return;
+    if (draw.mode === 'rect' && draw.pts.length === 1) { draw.box = boxFrom(draw.pts[0], p); return finishDraw(); }
+    addPt(p); return;
+  }
+  if (armed) return;
+  const o = hitPick(e); if (!o) { closeInfo(); return; }
+  if (o.userData.hl) { const h = hlById(o.userData.hl); if (h) { if (edit) hlOpen(h.id); else goHl(h); } return; }
+  if (o.userData.cust) {
+    if (edit) { $('cSel').value = o.userData.cust; syncCSz(); openCu(o.userData.cust); }
+    else clickCust(o.userData.cust, e);
+  }
+});
+/* drop / move a custom tag */
+renderer.domElement.addEventListener('click', e => {
+  if (armed !== 'cplace' || !edit || draw) return;
+  const p = hitModel(e); if (!p) return;
+  data.custom[cuPlaceId].pos = p.toArray(); applyCust(cuPlaceId); save(); armed = null; banner('');
+});
+window.addEventListener('keydown', e => {
+  if (!active3d) return;
+  if (e.key === 'Escape') { cancelDraw(); closeInfo(); }
+  if (e.key === 'Enter') finishDraw();
+});
+
+/* hover tooltip */
+const tip = $('tip');
+let _pm = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  if (_pm) { _pm = e; return; } _pm = e;
+  requestAnimationFrame(() => { const ev = _pm; _pm = null; if (ev) onHoverMove(ev); });
+});
+function onHoverMove(e) {
+  if (draw && !e.buttons && draw.pts.length && !draw.heightStage) updatePreview(e);
+  if (draw || e.buttons) { hoverHl(null); tip.style.display = 'none'; return; }
+  const o = hitPick(e);
+  hoverHl(o && o.userData.hl);
+  let html = '';
+  if (o && o.userData.hl) {
+    const h = hlById(o.userData.hl);
+    html = `<b>${h ? h.name : ''}</b>` + (h && h.href && !edit ? '<br>Click to open floor plan' : edit ? '<br><span style="color:#5a7080">Click to edit</span>' : '');
+  } else if (o && o.userData.cust) {
+    const q = cust[o.userData.cust];
+    if (q) {
+      const cd = data.custom[o.userData.cust] || {};
+      html = `<b>${q.name}</b><br><span style="color:${q.st ? ST[q.st].c : '#c8d8ea'}">${q.v == null ? '—' : q.v}${q.st ? ' · ' + ST[q.st].label : ''}</span>` +
+        (edit ? '<br><span style="color:#5a7080">Click to edit</span>'
+          : (cd.other && cd.other.length) ? '<br><span style="color:#5a7080">Click for more data' + (cd.link ? ' or page' : '') + '</span>'
+          : cd.link ? '<br><span style="color:#5a7080">Click to open page</span>' : '');
+    }
+  }
+  if (!html) { tip.style.display = 'none'; return; }
+  tip.innerHTML = html; tip.style.display = 'block'; tip.style.left = (e.clientX + 16) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+}
+renderer.domElement.addEventListener('pointerleave', () => { _pm = null; hoverHl(null); tip.style.display = 'none'; });
+
+/* ═══════════ INIT (after model loads) ═══════════ */
+async function initBAS() {
+  try {
+    const r = await fetch('FloorPlan.json', { cache: 'no-store' });
+    const j = r.ok ? await r.json() : null, t = j && j.BUILDING && j.BUILDING.three;
+    if (t) { data.highlights = t.highlights || []; data.custom = t.custom || {}; data.views = t.views || []; }
+  } catch (e) { console.warn('FloorPlan.json three data not available:', e.message); }
+  data.highlights.forEach(renderHl);
+  Object.keys(data.custom).forEach(id => { cust[id] = { id, v: null, st: null, sprite: null }; applyCust(id); });
+  refreshHlList(); refreshCustList(); refreshViews();
+  window.__t3Ready = true;
+}
+
+/* ═══════════ BRIDGE TO THE 2D PAGE ═══════════ */
+let started3d = false;
+function start3DLoad() { if (started3d) return; started3d = true; window.__t3Start(); }
+function setEditMode(on) {
+  edit = !!on;
+  if (!edit) cancelDraw();
+  Object.values(hlObjs).forEach(g => { g.visible = edit; });
+}
+function setView3D(on) {
+  active3d = on;
+  document.body.classList.toggle('mode-3d', on);
+  if (!on) { cancelDraw(); closeInfo(); tip.style.display = 'none'; return; }
+  start3DLoad();
+  setEditMode(typeof dragEnabled !== 'undefined' ? dragEnabled : false);
+  resize(); renderer.shadowMap.needsUpdate = true;
+}
+/* preload the model in the background once the 2D page has loaded */
+function preload3D() {
+  setTimeout(() => { const go = () => start3DLoad(); 'requestIdleCallback' in window ? requestIdleCallback(go, { timeout: 5000 }) : go(); }, 1000);
+}
+if (document.readyState === 'complete') preload3D(); else window.addEventListener('load', preload3D, { once: true });
+
+const rnd = (k, v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
+window.Three3D = {
+  toggle:    () => { setView3D(!active3d); return active3d; },
+  setEdit:   on => setEditMode(on),
+  syncTheme: () => grid.material.color.set(document.body.classList.contains('light-mode') ? 0x6b8bb0 : 0x1d3a55),
+  hoverHref: (href, on) => { if (edit) return; data.highlights.forEach(h => { if (h.href === href && hlObjs[h.id]) hlObjs[h.id].visible = !!on; }); },
+  clean:     () => { dirty = false; },
+  exportData:() => window.__t3Ready ? JSON.parse(JSON.stringify(data, rnd)) : null
+};
+</script>
+</body>
+</html>

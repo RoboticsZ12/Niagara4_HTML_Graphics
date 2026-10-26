@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control — Psychrometric Chart</title>
+<!-- Niagara/Baja loader (needed for live point values; harmless if absent) -->
+<script src="/requirejs/config.js"></script>
+<script src="/module/js/com/tridium/js/ext/require/require.min.js?"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#080d14; --surface:#0d1520; --surface-2:#111c2b; --border:rgba(0,180,255,.12); --border-hover:rgba(0,180,255,.45);
+  --accent:#04d9ff; --accent-dim:rgba(0,180,255,.18); --amber:#ffae00; --red:#ff4444; --green:#66ff00;
+  --text:#c8d8ea; --text-dim:#5a7080; --font-ui:'Rajdhani','Segoe UI',sans-serif; --font-mono:'Share Tech Mono',Consolas,monospace;
+  --top-h:54px; --bot-h:44px;
+}
+body.light-mode {
+  --bg:#eef2f7; --surface:#fff; --surface-2:#f4f7fc; --border:rgba(0,100,180,.18); --border-hover:rgba(0,100,180,.5);
+  --text:#1a2535; --text-dim:#4a6070; --accent:#0060c0; --accent-dim:rgba(0,112,204,.12); --amber:#ff8800; --green:#1a8a3a;
+}
+html, body { height:100%; }
+body { color-scheme:dark; } body.light-mode { color-scheme:light; }
+body { font-family:var(--font-ui); background:var(--bg); color:var(--text); overflow:hidden; }
+.top-bar, .bottom-bar { position:fixed; left:0; right:0; z-index:50; background:rgba(8,13,20,.92); border:0 solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background:rgba(238,242,247,.95); }
+.top-bar { top:0; height:var(--top-h); border-bottom-width:1px; }
+.bottom-bar { bottom:0; height:var(--bot-h); border-top-width:1px; }
+.bottom-bar .datetime { position:absolute; left:50%; transform:translateX(-50%); }
+.site-label { display:block; font-size:.72rem; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:var(--accent); }
+.page-title { display:block; font-size:.82rem; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); }
+.btn { background:none; border:1px solid var(--border); color:var(--text-dim); font-family:var(--font-ui); font-size:.78rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; padding:5px 14px; border-radius:5px; cursor:pointer; transition:border-color .2s,color .2s,background .2s; }
+.btn:hover, .btn:focus-visible { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); outline:none; }
+.btn.on { border-color:var(--amber); color:var(--amber); background:rgba(255,171,0,.08); }
+.tools { display:flex; gap:8px; }
+.datetime { font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); letter-spacing:.08em; }
+
+#main { position:fixed; top:var(--top-h); bottom:var(--bot-h); left:0; right:0; display:flex; }
+#side { width:390px; flex:0 0 390px; overflow-y:auto; background:var(--surface); border-right:1px solid var(--border); padding:12px; display:flex; flex-direction:column; gap:10px; }
+#chartWrap { flex:1; position:relative; min-width:0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(0,180,255,.07) 0%, transparent 60%), var(--bg); }
+#chart { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair; touch-action:none; }
+@media (max-width:900px){
+  #main { flex-direction:column; }
+  #side { width:100%; flex:0 0 46%; border-right:0; border-bottom:1px solid var(--border); }
+  .datetime { display:none; }
+}
+
+.card { background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.card h3 { font-size:.82rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.fld { display:flex; flex-direction:column; gap:4px; }
+.fld > label { font-family:var(--font-mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); display:flex; justify-content:space-between; gap:8px; }
+#side input[type=number], #side input[type=text], #side input[type=datetime-local], #side select {
+  width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:6px 8px; font-family:var(--font-mono); font-size:.74rem; }
+#side input:focus, #side select:focus { outline:none; border-color:var(--accent); }
+#side input[readonly] { border-style:dashed; color:var(--accent); opacity:.9; }
+#side select option { background:var(--surface); color:var(--text); }
+input[type=color] { width:34px; height:30px; padding:0; background:none; border:1px solid var(--border); border-radius:5px; cursor:pointer; flex:0 0 34px; }
+.chk { display:flex; gap:6px; align-items:center; font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); cursor:pointer; }
+.chk input { accent-color:var(--accent); }
+.ptHead { display:flex; gap:6px; align-items:center; }
+.ptHead .pn { flex:1; }
+.ptHead .del { border-color:var(--red); color:var(--red); padding:4px 9px; }
+.ptHead .dup { padding:4px 9px; }
+.tsRow { display:flex; gap:6px; align-items:center; }
+.ptHead .tog { padding:4px 9px; }
+.psum { display:none; font-family:var(--font-mono); font-size:.7rem; color:var(--accent); }
+.pt.collapsed .psum { display:block; }
+.pt.collapsed .tsRow, .pt.collapsed .rows, .pt.collapsed .pnote { display:none; }
+.card.collapsed:not(.pt) > :not(h3) { display:none; }
+.card > h3 { user-select:none; }
+.tsRow .tsl { font-family:var(--font-mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); flex:0 0 auto; }
+.tsRow .pts { flex:1; min-width:0; }
+.tsRow .tsx { padding:4px 9px; }
+.src { font-weight:700; letter-spacing:.06em; }
+.src.live { color:var(--green); } .src.man { color:var(--text-dim); } .src.err { color:var(--red); }
+
+.rows { display:flex; flex-direction:column; gap:3px; }
+.prow { display:flex; flex-direction:column; gap:3px; padding:5px 7px; border:1px solid transparent; border-radius:6px; }
+.prow.active { border-color:var(--border); background:var(--bg); }
+.pl { display:flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); cursor:pointer; }
+.pl .nm { flex:1; }
+.pl input[type=radio] { accent-color:var(--accent); margin:0; cursor:pointer; }
+.prow:not(.active) .pv { color:var(--text-dim); }
+.pnote { font-family:var(--font-mono); font-size:.64rem; color:var(--amber); }
+.hint { font-family:var(--font-mono); font-size:.62rem; line-height:1.5; color:var(--text-dim); }
+#bajaNote { display:none; color:var(--amber); }
+#tip { position:fixed; z-index:9000; pointer-events:none; display:none; background:rgba(8,13,20,.95); border:1px solid var(--border-hover); border-radius:6px; padding:7px 12px; font-family:var(--font-mono); font-size:.7rem; color:#c8d8ea; white-space:nowrap; line-height:1.55; }
+#tip b { font-family:var(--font-ui); font-size:.95rem; }
+.tipPin { position:fixed; z-index:8900; pointer-events:none; display:none; background:rgba(8,13,20,.95); border:1px solid var(--accent); border-radius:6px; padding:7px 12px; font-family:var(--font-mono); font-size:.7rem; color:#c8d8ea; white-space:nowrap; line-height:1.55; }
+.tipPin b { font-family:var(--font-ui); font-size:.95rem; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <span class="site-label">Murphy Control</span>
+    <span class="page-title">Psychrometric Chart</span>
+  </div>
+  <div class="tools">
+    <button class="btn" id="btnZin" title="Zoom in">+</button>
+    <button class="btn" id="btnZout" title="Zoom out">−</button>
+    <button class="btn" id="btnZoom" title="Back to the full chart (or double-click the chart)">Reset zoom</button>
+    <button class="btn" id="btnPng" title="Download the chart as an image">Save PNG</button>
+    <button class="btn" id="btnTheme" title="Switch light / dark">Light</button>
+  </div>
+</div>
+
+<div id="main">
+  <aside id="side">
+    <div class="card">
+      <h3>Chart Settings</h3>
+      <div class="grid2">
+        <div class="fld"><label>Chart units</label>
+          <select id="uSel"><option value="IP">°F · gr/lb</option><option value="SI">°C · g/kg</option></select></div>
+        <div class="fld"><label>Temp units from ORDs</label>
+          <select id="oUnit"><option value="F">°F</option><option value="C">°C</option></select></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label id="altLbl">Altitude (ft)</label><input type="number" id="alt" step="50" min="0"></div>
+        <div class="fld"><label>Pressure</label><input type="text" id="pOut" readonly></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label id="tMinLbl">Temp min</label><input type="number" id="tMin" step="5"></div>
+        <div class="fld"><label id="tMaxLbl">Temp max</label><input type="number" id="tMax" step="5"></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label id="wMaxLbl">Humidity ratio max</label><input type="number" id="wMax" step="10" min="1"></div>
+        <div class="fld"><label>&nbsp;</label><button class="btn" id="rRange">Reset to defaults</button></div>
+      </div>
+      <div class="grid2">
+        <div class="fld"><label>RH line every (%)</label><input type="number" id="rhStep" min="1" max="50" step="1"></div>
+        <div class="fld"><label id="wbStepLbl">Wet-bulb line every</label><input type="number" id="wbStep" min="0.5" step="0.5"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="chkWb"> Show wet-bulb lines</label>
+      <label class="chk"><input type="checkbox" id="chkLines"> Show lines through each point (RH, dry bulb, humidity ratio, wet bulb)</label>
+      <label class="chk"><input type="checkbox" id="chkLine"> Connect points with arrows (in time order when times are set)</label>
+      <div class="hint" id="bajaNote">Live ORD data is not available on this page (Baja not loaded). Manual entry still works.</div>
+    </div>
+
+    <div id="pts" style="display:flex;flex-direction:column;gap:10px"></div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="addPt" style="flex:1">+ Add point</button>
+      <button class="btn" id="clrPts" style="flex:0 0 auto">Clear all</button>
+    </div>
+    <div class="hint">
+      Dry bulb plus one other value defines a point. The selected dot marks that second input.
+      Type into any other row, or click its dot, to make it the input instead; the rest are calculated.
+      Every input row has an ORD box: leave it blank to type a value, or paste an ORD to subscribe to the live value.
+      ORDs for humidity ratio, enthalpy, specific volume and vapor pressure are read in the chart units.
+      Defaults are 72 °F and 50% RH at sea level (the middle of the ASHRAE 55 comfort zone).
+      Set a Time on a point and its ORDs are read from history for that moment instead of live.
+      Use a history: ORD (history:/Station/Point), or a point that has a history extension.
+      Use the copy button on a point and change its time to build a trend. A point only gets a label on the chart if you give it a title.
+    </div>
+  </aside>
+
+  <div id="chartWrap"><canvas id="chart"></canvas></div>
+</div>
+<div id="tip"></div>
+
+<div class="bottom-bar">
+  <button class="btn" onclick="history.back()">← Back</button>
+  <div class="datetime" id="clock">—</div>
+  <span></span>
+</div>
+
+<script>
+// Same login logic as the Murphy home page: use the Niagara session user, fall back to 'username'
+(function () {
+  function getUser() {
+    let u = null;
+    try {
+      const synced = sessionStorage.getItem('SyncedSessionStorage');
+      if (synced) { const p = JSON.parse(synced); if (p && p.user) u = p.user; }
+    } catch (e) {}
+    return u || sessionStorage.getItem('username');
+  }
+  let tries = 0;
+  (function check() {
+    const u = getUser();
+    if (u) { sessionStorage.setItem('username', u); return; }
+    if (++tries < 30) return setTimeout(check, 100);
+    window.location.href = '../LOGIN/Login.html';
+  })();
+})();
+(function tick() {
+  const o = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true };
+  document.getElementById('clock').textContent = new Date().toLocaleString('en-US', o).replace(',', '');
+  setTimeout(tick, 1000);
+})();
+</script>
+
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+const POLL_MS = 20000;
+
+/* ════════════ Baja subscription (same approach as the 3D page) ════════════ */
+const decodeBaja = v => typeof v === 'string' ? v.replace(/\$([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) : v;
+
+function fetchBajaFull(path, cb) {
+  if (typeof require === 'undefined') return cb(new Error('Baja not available'));
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    try {
+      if (!path || path.includes('{')) return cb(new Error('bad path'));
+      baja.Ord.make(path).get().then(p => {
+               if (!p?.getOut && !p?.getValue) return cb(new Error('no getOut'));
+        const out = p.getOut ? p.getOut() : p;
+        let st = ''; try { const s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+        cb(null, decodeBaja(out.getValueDisplay()), st);
+      }).catch(cb);
+    } catch (e) { cb(e); }
+  });
+}
+/* pushes (err, value, status) whenever the point changes; returns an unsubscribe function. Falls back to polling. */
+function watch(ord, cb) {
+  let sub = null, timer = null, dead = false;
+  if (!ord || ord.includes('{')) { cb(new Error('bad path')); return () => {}; }
+  if (typeof require === 'undefined') { cb(new Error('Baja not available')); return () => {}; }
+    const slotName = (ord.match(/\/([^\/|]+)$/) || [])[1];
+  const parentOrd = slotName ? ord.slice(0, -(slotName.length + 1)) : null;
+  const push = p => {
+    try {
+      const out = p.getOut ? p.getOut() : (p.getValue ? p : p.get(slotName));
+      let st = ''; try { const s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+      cb(null, decodeBaja(out.getValueDisplay()), st);
+    } catch (x) { cb(x); }
+  };
+  const fallback = () => {
+    if (dead || timer) return;
+    const run = () => fetchBajaFull(ord, (e, v, st) => { if (!dead) cb(e, v, st); });
+    run(); timer = setInterval(run, POLL_MS);
+  };
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    if (dead) return;
+    try {
+      sub = new baja.Subscriber();
+      sub.attach('changed', function () { if (!dead) push(this); });
+      baja.Ord.make(ord).get({ subscriber: sub })
+        .then(p => {
+          if (dead) { try { sub.unsubscribeAll(); } catch (x) {} return; }
+                   if (!p?.getOut && !p?.getValue) { cb(new Error('no getOut')); return; }
+          push(p);
+          if (!p.getOut && parentOrd) baja.Ord.make(parentOrd).get({ subscriber: sub }).catch(() => {});
+        })
+        .catch(() => { try { sub.unsubscribeAll(); } catch (x) {} sub = null; fallback(); });
+    } catch (x) { fallback(); }
+  });
+  return () => { dead = true; if (timer) clearInterval(timer); if (sub) { try { sub.unsubscribeAll(); } catch (x) {} } };
+}
+const ST = {
+  alarm:      { c:'hsl(4,100%,52%)',   label:'IN ALARM'   },
+  fault:      { c:'hsl(52,100%,50%)',  label:'FAULT'      },
+  down:       { c:'hsl(52,100%,50%)',  label:'DOWN'       },
+  stale:      { c:'hsl(28,100%,50%)',  label:'STALE'      },
+  overridden: { c:'hsl(280,100%,65%)', label:'OVERRIDDEN' },
+};
+const ST_ORDER = ['alarm', 'fault', 'down', 'stale', 'overridden'];
+const stKey = st => { const f = (st || '').split(/[^a-z]+/).filter(Boolean); return ST_ORDER.find(k => f.includes(k)) || null; };
+
+/* ════════════ Psychrometric math (ASHRAE Fundamentals, Hyland–Wexler) ════════════ */
+const KC = 273.15;
+let P = 101325;                                   // atmospheric pressure, Pa
+function pws(tC) {                                // saturation vapor pressure, Pa
+  const T = tC + KC;
+  if (tC >= 0) return Math.exp(-5.8002206e3 / T + 1.3914993 - 4.8640239e-2 * T + 4.1764768e-5 * T * T - 1.4452093e-8 * T * T * T + 6.5459673 * Math.log(T));
+  return Math.exp(-5.6745359e3 / T + 6.3925247 - 9.677843e-3 * T + 6.2215701e-7 * T * T + 2.0747825e-9 * T ** 3 - 9.484024e-13 * T ** 4 + 4.1635019 * Math.log(T));
+}
+const wFromPw = pw => pw >= P * 0.999 ? 1 : 0.621945 * pw / (P - pw);
+const wSat  = tC => wFromPw(pws(tC));
+const wFrom = (tC, rh) => wFromPw(rh / 100 * pws(tC));
+const rhFromW = (tC, W) => (W * P / (0.621945 + W)) / pws(tC) * 100;
+function dewPt(W) {
+  if (!(W > 0)) return null;
+  const pw = W * P / (0.621945 + W);
+  let lo = -80, hi = 120;
+  for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (pws(m) < pw) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+const wbW = (t, twb) => ((2501 - 2.326 * twb) * wSat(twb) - 1.006 * (t - twb)) / (2501 + 1.86 * t - 4.186 * twb);
+function wetBulb(tC, W) {
+  if (W >= wSat(tC) * 0.9999) return tC;
+  let lo = -60, hi = tC;
+  for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (wbW(tC, m) < W) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+function updateP(altFt) { P = 101325 * Math.pow(1 - 2.25577e-5 * altFt * 0.3048, 5.2559); }
+
+/* ════════════ State + unit helpers ════════════ */
+const DEF = {
+  IP: { tMin:20, tMax:120, wMax:210, rhStep:10, wbStep:5 },
+  SI: { tMin:-5, tMax:50,  wMax:30,  rhStep:10, wbStep:2 },
+};
+const S = { units:'IP', ordUnit:'F', altFt:0, tMin:20, tMax:120, wMax:210, rhStep:10, wbStep:5, wb:true, lines:true, line:false };
+let points = [], nextId = 1;
+const COLORS = ['#ff5252', '#00e676', '#ffab00', '#c07fff', '#00b4ff', '#ff4081', '#76ff03', '#ffd740'];
+
+const IP = () => S.units === 'IP';
+const cToD = c => IP() ? c * 1.8 + 32 : c;
+const dToC = d => IP() ? (d - 32) / 1.8 : d;
+const ordToC = v => S.ordUnit === 'F' ? (v - 32) / 1.8 : v;
+const wToD = W => IP() ? W * 7000 : W * 1000;
+const dToW = d => IP() ? d / 7000 : d / 1000;
+const clamp = r => Math.min(100, Math.max(0, r));
+const f1 = (x, d = 1) => x == null || !isFinite(x) ? '—' : x.toFixed(d);
+const uT = () => IP() ? '°F' : '°C';
+
+/* every value a point can show. Stored (canonical) units: °C, %, °C, °C, kg/kg, kJ/kg, m³/kg, Pa */
+const ROWS = [
+  { k:'db', name:'Dry bulb',          unit:() => uT(),                      dec:() => 1 },
+  { k:'rh', name:'Relative humidity', unit:() => '%',                       dec:() => 1 },
+  { k:'wb', name:'Wet bulb',          unit:() => uT(),                      dec:() => 1 },
+  { k:'dp', name:'Dew point',         unit:() => uT(),                      dec:() => 1 },
+  { k:'w',  name:'Humidity ratio',    unit:() => IP() ? 'gr/lb' : 'g/kg',   dec:() => IP() ? 1 : 2 },
+  { k:'h',  name:'Enthalpy',          unit:() => IP() ? 'Btu/lb' : 'kJ/kg', dec:() => 1 },
+  { k:'v',  name:'Specific volume',   unit:() => IP() ? 'ft³/lb' : 'm³/kg', dec:() => IP() ? 3 : 4 },
+  { k:'pw', name:'Vapor pressure',    unit:() => IP() ? 'inHg' : 'kPa',     dec:() => 3 },
+];
+const TEMPK = { db:1, wb:1, dp:1 };
+
+/* all properties of a state (tC, W) */
+function props(tC, W) {
+  const tF = tC * 1.8 + 32, ws = wSat(tC);
+  return {
+    tC, W,
+    rh: Math.min(100, rhFromW(tC, W)),
+    dp: W >= ws * 0.9999 ? tC : dewPt(W),
+    wb: wetBulb(tC, W),
+    hSI: 1.006 * tC + W * (2501 + 1.86 * tC),
+    hIP: 0.240 * tF + W * (1061 + 0.444 * tF),
+    vSI: 0.287042 * (tC + KC) * (1 + 1.607858 * W) / (P / 1000),
+    pw:  W * P / (0.621945 + W),
+  };
+}
+/* what to show for row k, in chart units */
+function disp(k, q) {
+  switch (k) {
+    case 'db': return cToD(q.tC);
+    case 'rh': return q.rh;
+    case 'wb': return cToD(q.wb);
+    case 'dp': return q.dp == null ? null : cToD(q.dp);
+    case 'w':  return wToD(q.W);
+    case 'h':  return IP() ? q.hIP : q.hSI;
+    case 'v':  return IP() ? q.vSI * 16.0185 : q.vSI;
+    case 'pw': return IP() ? q.pw / 3386.389 : q.pw / 1000;
+  }
+}
+const canonQ = (k, q) => ({ db:q.tC, rh:q.rh, wb:q.wb, dp:q.dp, w:q.W, h:q.hSI, v:q.vSI, pw:q.pw })[k];
+/* typed / ORD number (chart units) → canonical. tC is needed for enthalpy in °F units */
+function fromDisp(k, n, tC) {
+  switch (k) {
+    case 'db': case 'wb': case 'dp': return dToC(n);
+    case 'rh': return n;
+    case 'w':  return dToW(n);
+    case 'h':  { if (!IP()) return n; if (tC == null) return null;
+                 const tF = tC * 1.8 + 32, W = (n - 0.240 * tF) / (1061 + 0.444 * tF);
+                 return 1.006 * tC + W * (2501 + 1.86 * tC); }
+    case 'v':  return IP() ? n / 16.0185 : n;
+    case 'pw': return IP() ? n * 3386.389 : n * 1000;
+  }
+}
+/* dry bulb (°C) + one other canonical value → humidity ratio, or null if impossible */
+function solveW(k, c, t) {
+  switch (k) {
+    case 'rh': return wFrom(t, clamp(c));
+    case 'wb': { if (c > t + 1e-9) return null; const W = wbW(t, c); return W < 0 ? null : W; }
+    case 'dp': { if (c > t + 1e-9) return null; return wFromPw(pws(c)); }
+    case 'w':  return c < 0 ? null : c;
+    case 'h':  { const W = (c - 1.006 * t) / (2501 + 1.86 * t); return W < 0 ? null : W; }
+    case 'v':  { const W = (c * (P / 1000) / (0.287042 * (t + KC)) - 1) / 1.607858; return W < 0 ? null : W; }
+    case 'pw': return c < 0 ? null : wFromPw(c);
+  }
+}
+
+/* ════════════ Default values from the weather service ════════════ */
+const WX_ORD = 'station:|slot:/Services/WeatherService/Lambert/current';
+const WX = { db:null, rh:null, dp:null };                 // canonical: °C, %, °C
+const wxDefault = k => WX[k] != null ? WX[k] : (k === 'db' ? (72 - 32) / 1.8 : k === 'rh' ? 50 : null);
+const wxLive = k => (k === 'db' || k === 'rh' || k === 'dp') && WX[k] != null;
+/* show the service's own dew point while the card is running purely on weather defaults */
+const wxDpShown = p => WX.dp != null && p.drv === 'rh' &&
+  ['db', 'rh', 'dp'].every(k => p.f[k].man == null && !p.f[k].ord.trim());
+function startWeather() {
+  if (typeof require === 'undefined') return;
+  require(['baja!'], baja => {
+    const num = (comp, slot) => {
+      try { const v = comp.get(slot), n = v && v.getValue ? Number(v.getValue()) : Number(v); return isFinite(n) ? n : null; }
+      catch (e) { return null; }
+    };
+    let comp = null;
+    const apply = () => {
+      if (!comp) return;
+      const t = num(comp, 'temp'), h = num(comp, 'humidity'), d = num(comp, 'dewPoint');   // slots are °F / %RH
+      WX.db = t == null ? null : (t - 32) / 1.8;
+      WX.rh = h == null ? null : Math.min(100, Math.max(0, h));
+      WX.dp = d == null ? null : (d - 32) / 1.8;
+      points.forEach(renderPoint); queueDraw();
+    };
+    try {
+      const sub = new baja.Subscriber();
+      sub.attach('changed', apply);
+      baja.Ord.make(WX_ORD).get({ subscriber: sub }).then(c => { comp = c; apply(); setInterval(apply, 10000); }).catch(() => {});
+    } catch (e) {}
+  });
+}
+
+/* ════════════ Points ════════════ */
+const mkField = (man, ord) => ({ man: man ?? null, ord: ord || '', raw: null, err: null, st: null, un: null, at: null, gap: null });
+const isActive = (p, k) => k === 'db' || k === p.drv;
+
+/* canonical value of field k: from its live ORD if one is set, otherwise the typed value */
+function canon(p, k, tC) {
+  const f = p.f[k];
+  if (f.ord.trim()) {
+    if (f.raw == null) return null;
+    return TEMPK[k] ? ordToC(f.raw) : fromDisp(k, f.raw, tC);
+  }
+   if (f.man == null) { const d = wxDefault(k); if (d != null) return d; }
+  return f.man;
+}
+function state(p) {
+  const tC = canon(p, 'db');
+  if (tC == null || !isFinite(tC)) return { err: 'Waiting for a dry-bulb temperature…' };
+  const k = p.drv, c = canon(p, k, tC), nm = ROWS.find(r => r.k === k).name.toLowerCase();
+  if (c == null || !isFinite(c)) return { err: 'Waiting for ' + nm + '…' };
+  let W = solveW(k, c, tC);
+  if (W == null || !isFinite(W)) return { err: 'That ' + nm + ' is not possible at this dry bulb.' };
+  const ws = wSat(tC);
+  if (W > ws * 1.0005) return { err: 'That ' + nm + ' is above saturation at this dry bulb.' };
+  return { tC, W: Math.min(W, ws) };
+}
+
+function newPoint() {
+  const id = nextId++;
+  const p = { id, name:'', ts:'', color:COLORS[(id - 1) % COLORS.length], drv:'rh', f:{} };
+  ROWS.forEach(r => { p.f[r.k] = mkField(null); });
+  /* db and rh stay null: blank means "use the weather service default" (see wxDefault) */
+  return p;
+}
+/* same ORDs, input and time as another point, so only the time needs changing */
+function clonePoint(src) {
+  const id = nextId++;
+  const p = { id, name:'', ts:src.ts || '', color:COLORS[(id - 1) % COLORS.length], drv:src.drv, f:{} };
+  ROWS.forEach(r => { p.f[r.k] = mkField(src.f[r.k].man, src.f[r.k].ord); });
+  return p;
+}
+function persist() {}   /* nothing is saved; kept empty so the existing calls still work */
+function restore() {
+  /* wipe anything an older version saved in this browser */
+  try { localStorage.removeItem('Murphy_Psychrometric_v2'); localStorage.removeItem('theme'); } catch (e) {}
+  points = [newPoint()];
+}
+/* ════════════ Point cards ════════════ */
+function buildCard(p) {
+  const el = document.createElement('div');
+  el.className = 'card pt'; el.style.borderLeft = '3px solid ' + p.color;
+  el.innerHTML = '<div class="ptHead"><button class="btn tog" title="Collapse / expand">▾</button><input type="color" class="pc"><input type="text" class="pn" placeholder="Title (optional)"><button class="btn dup" title="Copy this point (same ORDs and time) so you can change the time">⧉</button><button class="btn del" title="Remove">✕</button></div>' +
+    '<div class="psum"></div><div class="tsRow"><span class="tsl">Time</span><input type="datetime-local" class="pts" title="Blank = live values. Set a time to read the ORDs from history."><button class="btn tsx" title="Clear the time and go back to live values">Live</button></div>' +
+    '<div class="rows"></div><div class="pnote"></div>';
+   const rowsEl = el.querySelector('.rows');
+  p.e = { el, rows:{}, note:el.querySelector('.pnote'), sum:el.querySelector('.psum') };
+  const tog = el.querySelector('.tog');
+  tog.onclick = () => { const c = el.classList.toggle('collapsed'); tog.textContent = c ? '▸' : '▾'; };
+  el.querySelector('.pc').value = p.color; el.querySelector('.pn').value = p.name;
+  el.querySelector('.pc').oninput = e => { p.color = e.target.value; el.style.borderLeftColor = p.color; persist(); queueDraw(); };
+  el.querySelector('.pn').oninput = e => { p.name = e.target.value; persist(); queueDraw(); };
+  el.querySelector('.del').onclick = () => { stopPoint(p); points = points.filter(x => x !== p); el.remove(); persist(); queueDraw(); };
+  el.querySelector('.dup').onclick = () => { const c = clonePoint(p); points.push(c); addCard(c); persist(); queueDraw(); c.e.el.scrollIntoView({ block:'nearest' }); };
+  const tsIn = el.querySelector('.pts'); p.e.ts = tsIn; tsIn.value = p.ts || '';
+  const applyTs = () => {                                   // new time → re-read every ORD for it
+    p.ts = tsIn.value || '';
+    ROWS.forEach(r => { if (isActive(p, r.k)) subscribe(p, r.k); });
+    persist(); renderPoint(p); queueDraw();
+  };
+  tsIn.onchange = applyTs;
+  el.querySelector('.tsx').onclick = () => { tsIn.value = ''; applyTs(); };
+
+  ROWS.forEach(r => {
+    const row = document.createElement('div'); row.className = 'prow';
+    row.innerHTML = '<label class="pl"><input type="radio" class="pr"><span class="nm"></span><span class="src"></span></label>' +
+                    '<input type="number" step="any" class="pv"><input type="text" class="po" placeholder="ORD  (blank = manual)">';
+    rowsEl.appendChild(row);
+    const rw = p.e.rows[r.k] = { row, radio:row.querySelector('.pr'), nm:row.querySelector('.nm'), src:row.querySelector('.src'), pv:row.querySelector('.pv'), po:row.querySelector('.po') };
+    const f = p.f[r.k];
+    rw.po.value = f.ord;
+    if (r.k === 'db') { rw.radio.checked = true; rw.radio.disabled = true; }
+    else { rw.radio.name = 'drv' + p.id; rw.radio.onchange = () => { setDriver(p, r.k, true); persist(); renderPoint(p); queueDraw(); }; }
+
+    rw.pv.oninput = () => {
+      if (r.k !== 'db' && p.drv !== r.k) setDriver(p, r.k, false);     // typing into a calculated row makes it the input
+      const n = parseFloat(rw.pv.value);
+      f.man = isNaN(n) ? null : fromDisp(r.k, n, r.k === 'db' ? null : canon(p, 'db'));
+      persist(); renderPoint(p); queueDraw();
+    };
+    rw.po.onchange = () => { f.ord = rw.po.value.trim(); subscribe(p, r.k); persist(); renderPoint(p); queueDraw(); };
+  });
+  return el;
+}
+
+/* make row k the second input. Keeps the point where it is by seeding the new input with the current value. */
+function setDriver(p, k, keepOrd) {
+  if (p.drv === k) return;
+  const st = state(p), f = p.f[k];
+  p.drv = k;
+  if (wxLive(k) && !f.ord.trim()) f.man = null;            // dry bulb, RH and dew point fall back to the weather service
+  else if (!st.err) f.man = canonQ(k, props(st.tC, st.W));
+  if (!keepOrd) { f.ord = ''; p.e.rows[k].po.value = ''; }
+  syncSubs(p);
+}
+
+const fmtClock = ms => new Date(ms).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+function badge(p, k, el) {
+  const f = p.f[k]; el.style.color = ''; el.title = '';
+  if (k === 'dp' && !isActive(p, k) && wxDpShown(p)) { el.textContent = 'WEATHER'; el.className = 'src live'; el.title = 'dewPoint from ' + WX_ORD; return; }
+  if (!isActive(p, k)) { el.textContent = 'CALC'; el.className = 'src man'; return; }
+  if (!f.ord.trim() && f.man == null && wxLive(k)) { el.textContent = 'WEATHER'; el.className = 'src live'; el.title = 'Default from ' + WX_ORD; return; }
+  if (!f.ord.trim())   { el.textContent = 'MANUAL'; el.className = 'src man'; return; }
+  if (f.err)           { el.textContent = 'ORD ERROR'; el.className = 'src err'; el.title = f.err; return; }
+  if (f.raw == null)   { el.textContent = p.ts ? 'LOADING…' : 'WAITING…'; el.className = 'src man'; return; }
+  if (p.ts) {                                               // history value: show which record was used
+    el.textContent = 'HISTORY ' + fmtClock(f.at); el.className = 'src live';
+    if (f.gap > 3600000) el.style.color = 'var(--amber)';   // nearest record is over an hour from the time you set
+    el.title = 'History record from ' + new Date(f.at).toLocaleString() + ' (' + Math.round(f.gap / 60000) + ' min from the time you set)';
+    return;
+  }
+  const s = f.st && ST[f.st];
+  el.textContent = s ? s.label : 'LIVE'; el.className = 'src live'; if (s) el.style.color = s.c;
+}
+function renderPoint(p) {
+  const e = p.e; if (!e) return;
+  const st = state(p), q = st.err ? null : props(st.tC, st.W);
+  if (e.sum) e.sum.textContent = q ? f1(disp('db', q)) + ' ' + uT() + '  ·  ' + f1(q.rh, 0) + '% RH' : '';
+  ROWS.forEach(r => {
+    const rw = e.rows[r.k], f = p.f[r.k], act = isActive(p, r.k), hasOrd = !!f.ord.trim();
+    rw.row.classList.toggle('active', act);
+    rw.po.style.display = act ? '' : 'none';
+    rw.pv.readOnly = act && hasOrd;
+    rw.po.placeholder = p.ts ? 'History ORD  (history:/Station/Point)' : 'ORD  (blank = manual)';
+    if (r.k !== 'db') rw.radio.checked = p.drv === r.k;
+    rw.nm.textContent = r.name + ' ' + r.unit();
+    badge(p, r.k, rw.src);
+    if (document.activeElement === rw.pv && !rw.pv.readOnly) return;       // never overwrite what's being typed
+    if (q && r.k === 'dp' && !act && wxDpShown(p)) rw.pv.value = cToD(WX.dp).toFixed(r.dec());
+    else if (q) { const v = disp(r.k, q); rw.pv.value = v == null || !isFinite(v) ? '' : v.toFixed(r.dec()); }
+    else if (r.k === 'db') { const t = canon(p, 'db'); rw.pv.value = t == null || !isFinite(t) ? '' : cToD(t).toFixed(1); }
+    else if (act && !hasOrd) { /* leave the typed text alone */ }
+    else rw.pv.value = '';
+  });
+  if (st.err) {
+    const oe = ROWS.filter(r => isActive(p, r.k) && p.f[r.k].ord.trim() && p.f[r.k].err).map(r => r.name + ' ORD: ' + p.f[r.k].err);
+    e.note.textContent = oe.length ? oe.join(' · ') : st.err;
+  }
+  else {
+    const x = cToD(st.tC), y = wToD(st.W);
+    e.note.textContent = (x < S.tMin || x > S.tMax || y > S.wMax) ? 'Outside the chart range — widen the range to see it.' : '';
+  }
+}
+
+/* ════════════ History lookup: the value of an ORD at a chosen time ════════════ */
+const histCache = new Map();
+const pad2 = n => String(n).padStart(2, '0');
+function isoLocal(d) {                                      // 2026-10-19T08:00:00.000-05:00
+  const off = -d.getTimezoneOffset(), a = Math.abs(off);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()) +
+         '.000' + (off >= 0 ? '+' : '-') + pad2(Math.floor(a / 60)) + ':' + pad2(a % 60);
+}
+const asErr = e => e instanceof Error ? e : new Error(String((e && e.message) || e || 'history query failed'));
+/* a history: ORD is used as given; for a point ORD, look for its history extension and use that history's id */
+/* same value parser the Histories page uses: numbers, booleans, "{ok}" suffixes, enums */
+function parseHistVal(val) {
+  let v = val;
+  if (v !== null && typeof v === 'object') {
+    if (typeof v.getOrdinal === 'function') return { num: v.getOrdinal() };
+    if (typeof v.getValue === 'function') v = v.getValue();
+  }
+  const s = String(v).replace(/\s*\{.*\}\s*$/, '').trim(), low = s.toLowerCase();
+  if (/^(true|on|active)$/.test(low))     return { num: 1 };
+  if (/^(false|off|inactive)$/.test(low)) return { num: 0 };
+  if (/^-?\d/.test(s) && !isNaN(parseFloat(s))) return { num: parseFloat(s) };
+  return null;
+}
+/* a history: ORD is used as given; a point ORD is resolved through its n:history tag (same as the Histories page) */
+function resolveHistoryOrd(baja, ord, cb) {
+  if (/^history:/i.test(ord)) return cb(null, ord.split('|')[0].split('?')[0]);
+  baja.Ord.make(ord).get()
+    .then(comp => comp.tags())
+    .then(tagMap => {
+      const h = tagMap.get('n:history');
+      const s = h ? h.toString().trim() : '';
+      if (!s) return cb(new Error('no n:history tag on that point. Paste its history: ORD instead'));
+      cb(null, s.startsWith('history:') ? s : 'history:' + s);
+    })
+    .catch(e => cb(asErr(e)));
+}
+/* every record for the local day starting at d0 → [{t (ms), v}] */
+function queryHistoryDay(ord, d0, cb) {
+  if (typeof require === 'undefined') return cb(new Error('Baja not available'));
+  require(['baja!'], baja => {
+    resolveHistoryOrd(baja, ord, (err, hOrd) => {
+      if (err) return cb(err);
+      const d1 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 1);
+      const bql = hOrd + "|bql:select timestamp, value where timestamp >= '" + d0.toISOString() +
+                  "' and timestamp <= '" + d1.toISOString() + "' order by timestamp";
+      const rows = [];
+      baja.Ord.make(bql).get({
+        cursor: {
+          limit: 5000,
+          each: function () {
+            try {
+              const row = this.get();
+              const t = new Date(row.get('timestamp').getMillis()).getTime();
+              const r = parseHistVal(row.get('value'));
+              if (r && r.num !== null && isFinite(t)) rows.push({ t, v: r.num });
+            } catch (x) {}
+          }
+        }
+      }).then(() => cb(null, rows)).catch(e => cb(asErr(e)));
+    });
+  });
+}
+/* one fetch per ORD per day, shared by every point and reused while you move the time around that day */
+function histDay(ord, d0, cb) {
+  const key = ord + '|' + d0.getTime();
+  let e = histCache.get(key);
+  if (e && e.cbs) { e.cbs.push(cb); return; }                                   // already loading
+  if (e && e.rows && Date.now() - e.time < 300000) return cb(null, e.rows);     // fresh enough
+  e = { rows: null, cbs: [cb], time: Date.now() }; histCache.set(key, e);
+  queryHistoryDay(ord, d0, (err, rows) => {
+    const cbs = e.cbs; e.cbs = null;
+    if (err) histCache.delete(key); else { e.rows = rows; e.time = Date.now(); }
+    cbs.forEach(f => f(err, rows));
+  });
+}
+/* the record closest to the time asked for */
+function histValueAt(ord, tsStr, cb) {
+  const t = new Date(tsStr); if (isNaN(t)) return cb(new Error('bad time'));
+  const d0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  histDay(ord, d0, (err, rows) => {
+    if (err) return cb(err);
+    if (!rows.length) return cb(new Error('no history records on that day'));
+    const T = t.getTime(); let best = rows[0];
+    rows.forEach(r => { if (Math.abs(r.t - T) < Math.abs(best.t - T)) best = r; });
+    cb(null, { v: best.v, at: best.t, gap: Math.abs(best.t - T) });
+  });
+}
+
+function stopPoint(p) { ROWS.forEach(r => { const f = p.f[r.k]; if (f.un) { f.un(); f.un = null; } }); }
+function subscribe(p, k) {
+  const f = p.f[k];
+  if (f.un) { f.un(); f.un = null; }
+  f.raw = null; f.err = null; f.st = null; f.at = null; f.gap = null;
+  const ord = f.ord.trim();
+  if (!ord || !isActive(p, k)) return;
+  if (p.ts) {                                               // a time is set: read the value from history instead of subscribing
+    let dead = false; f.un = () => { dead = true; };
+    histValueAt(ord, p.ts, (err, res) => {
+      if (dead) return;
+      if (err) { f.raw = null; f.err = err.message || String(err); }
+      else if (k === 'rh' && (res.v < 0 || res.v > 100)) { f.raw = null; f.err = 'RH outside 0–100'; }
+      else { f.raw = res.v; f.err = null; f.at = res.at; f.gap = res.gap; }
+      renderPoint(p); queueDraw();
+    });
+    return;
+  }
+  f.un = watch(ord, (err, v, st) => {
+    if (err) { f.raw = null; f.err = err.message || 'error'; f.st = null; }
+    else {
+      const n = parseFloat(decodeBaja(v));
+      if (isNaN(n)) { f.raw = null; f.err = 'value is not numeric'; f.st = null; }
+      else if (k === 'rh' && (n < 0 || n > 100)) { f.raw = null; f.err = 'RH outside 0–100'; f.st = null; }
+      else { f.raw = n; f.err = null; f.st = stKey(st); }
+    }
+    renderPoint(p); queueDraw();
+  });
+}
+/* only the dry bulb and the chosen input are subscribed */
+function syncSubs(p) {
+  ROWS.forEach(r => {
+    const f = p.f[r.k];
+    if (!isActive(p, r.k)) { if (f.un) { f.un(); f.un = null; } f.raw = null; f.err = null; f.st = null; }
+    else if (f.ord.trim() && !f.un) subscribe(p, r.k);
+  });
+}
+function addCard(p) { $('pts').appendChild(buildCard(p)); syncSubs(p); renderPoint(p); }
+
+/* ════════════ Chart ════════════ */
+const cv = $('chart'), ctx = cv.getContext('2d');
+let cw = 0, ch = 0, dpr = 1, raf = 0, drawn = [];
+const M = { l:58, r:78, t:20, b:48 };
+let Z = null;                                     // zoom window {t0,t1,w0,w1} in chart units; null = full chart
+const T0 = () => Z ? Z.t0 : S.tMin, T1 = () => Z ? Z.t1 : S.tMax;
+const W0 = () => Z ? Z.w0 : 0,      W1 = () => Z ? Z.w1 : S.wMax;
+const X = d => M.l + (d - T0()) / (T1() - T0()) * (cw - M.l - M.r);
+const Y = wd => ch - M.b - (wd - W0()) / (W1() - W0()) * (ch - M.t - M.b);
+const queueDraw = () => { if (!raf) raf = requestAnimationFrame(draw); };
+
+function niceStep(r, n) {
+  const raw = r / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+}
+function pal() {
+  return document.body.classList.contains('light-mode')
+    ? { bg:'#eef2f7', plot:'#ffffff', fill:'rgba(120,140,170,.20)', grid:'rgba(0,80,160,.16)', rh:'rgba(0,96,192,.55)', sat:'#0060c0', wb:'rgba(220,120,0,.55)', wbT:'#b86a00', txt:'#1a2535', dim:'#4a6070' }
+    : { bg:'#0a1220', plot:'#0b1626', fill:'rgba(0,0,0,.38)',     grid:'rgba(0,180,255,.13)', rh:'rgba(4,217,255,.45)', sat:'#04d9ff', wb:'rgba(255,174,0,.42)', wbT:'#d9962a', txt:'#c8d8ea', dim:'#7f95a8' };
+}
+function resize() {
+  const w = $('chartWrap');
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cw = w.clientWidth; ch = w.clientHeight;
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  queueDraw();
+}
+
+function draw() {
+  raf = 0; if (!cw || !ch) return;
+  const c = pal(), g = ctx;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = c.bg; g.fillRect(0, 0, cw, ch);
+  const L = M.l, Rt = cw - M.r, T = M.t, B = ch - M.b;
+  drawn = [];
+  if (Rt - L < 80 || B - T < 80) return;
+  g.font = '12px "Share Tech Mono", Consolas, monospace'; g.textBaseline = 'alphabetic';
+  if (!(S.tMax > S.tMin + 1) || !(S.wMax > 0)) {
+    g.fillStyle = c.dim; g.textAlign = 'center'; g.fillText('Check the chart range settings', cw / 2, ch / 2); return;
+  }
+  g.fillStyle = c.plot; g.fillRect(L, T, Rt - L, B - T);
+
+  const tMinC = dToC(S.tMin), tMaxC = dToC(S.tMax), N = 220;
+  const vMinC = dToC(T0()), vMaxC = dToC(T1());
+  const tAt = i => vMinC + (vMaxC - vMinC) * i / N;
+  const curve = rh => { const a = []; for (let i = 0; i <= N; i++) { const t = tAt(i); a.push([X(cToD(t)), Y(wToD(wFrom(t, rh)))]); } return a; };
+  const path = a => { g.beginPath(); a.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); };
+  const sat = curve(100);
+
+  g.save(); g.beginPath(); g.rect(L, T, Rt - L, B - T); g.clip();
+
+  /* the impossible region above saturation */
+  path(sat); g.lineTo(Rt, T - 5); g.lineTo(L, T - 5); g.closePath(); g.fillStyle = c.fill; g.fill();
+
+  /* dry-bulb lines (stop at saturation) */
+   const tStep = niceStep(T1() - T0(), 16);
+  const tTicks = []; for (let v = Math.ceil(T0() / tStep) * tStep; v <= T1() + 1e-9; v += tStep) tTicks.push(Math.round(v * 1000) / 1000);
+  g.strokeStyle = c.grid; g.lineWidth = 1;
+  tTicks.forEach(d => {
+    const top = Math.min(wToD(wSat(dToC(d))), W1()), x = Math.round(X(d)) + .5;
+    g.beginPath(); g.moveTo(x, Y(0)); g.lineTo(x, Y(top)); g.stroke();
+  });
+  /* humidity-ratio / dew-point lines (start at saturation) */
+  const wStep = niceStep(W1() - W0(), 10);
+  const wTicks = []; for (let v = Math.max(wStep, Math.ceil(W0() / wStep) * wStep); v <= W1() + 1e-9; v += wStep) wTicks.push(Math.round(v * 1000) / 1000);
+  wTicks.forEach(wd => {
+    const dp = dewPt(dToW(wd)); if (dp == null) return;
+    const x0 = Math.max(X(cToD(dp)), L), y = Math.round(Y(wd)) + .5;
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(Rt, y); g.stroke();
+  });
+
+  /* wet-bulb lines */
+  const wbLabels = [], wbStep = S.wbStep > 0 ? S.wbStep : (IP() ? 5 : 2);
+  if (S.wb) {
+    g.strokeStyle = c.wb; g.lineWidth = 1;
+    for (let d = Math.ceil(S.tMin / wbStep) * wbStep; d <= S.tMax + 1e-9; d += wbStep) {
+      const twb = dToC(d), pts = [[X(d), Y(wToD(wSat(twb)))]];
+      let prevT = twb, prevW = wbW(twb, twb);
+      for (let t = twb + 0.25; t <= tMaxC + 0.25; t += 0.25) {
+        const W = wbW(t, twb);
+        if (W < 0) { const k = prevW / (prevW - W); pts.push([X(cToD(prevT + (t - prevT) * k)), Y(0)]); break; }
+        pts.push([X(cToD(t)), Y(wToD(W))]); prevT = t; prevW = W;
+      }
+      path(pts); g.stroke();
+      wbLabels.push([Math.round(d * 100) / 100, pts[0]]);
+    }
+  }
+
+  /* RH curves */
+  const rhLabels = [], rhStep = S.rhStep >= 1 ? S.rhStep : 10;
+  for (let rh = rhStep; rh < 100 - 1e-9; rh += rhStep) {
+    const a = curve(rh); let last = null;
+    a.forEach(([x, y]) => { if (x >= L && x <= Rt && y >= T && y <= B) last = [x, y]; });
+    g.strokeStyle = c.rh; g.lineWidth = 1.2; path(a); g.stroke();
+    if (last) rhLabels.push([Math.round(rh * 100) / 100 + '%', last]);
+  }
+  g.strokeStyle = c.sat; g.lineWidth = 2.4; path(sat); g.stroke();
+  g.restore();
+
+  /* border + axis ticks + titles */
+  g.strokeStyle = c.dim; g.lineWidth = 1; g.strokeRect(L + .5, T + .5, Rt - L, B - T);
+  g.fillStyle = c.txt; g.textAlign = 'center';
+  tTicks.forEach(d => g.fillText(String(d), X(d), B + 16));
+  g.fillStyle = c.dim; g.fillText('Dry-Bulb Temperature (' + uT() + ')', (L + Rt) / 2, B + 38);
+  g.fillStyle = c.txt; g.textAlign = 'left';
+  wTicks.forEach(wd => g.fillText(String(wd), Rt + 8, Y(wd) + 4));
+  g.save(); g.translate(cw - 12, (T + B) / 2); g.rotate(Math.PI / 2); g.textAlign = 'center'; g.fillStyle = c.dim;
+  g.fillText('Humidity Ratio (' + (IP() ? 'gr/lb' : 'g/kg') + ')', 0, 0); g.restore();
+
+  /* curve labels, drawn with a halo so they stay readable */
+  const label = (txt, x, y, col, al) => {
+    g.textAlign = al; g.lineWidth = 3; g.strokeStyle = c.plot; g.strokeText(txt, x, y); g.fillStyle = col; g.fillText(txt, x, y);
+  };
+  g.font = '11px "Share Tech Mono", Consolas, monospace';
+  rhLabels.forEach(([t, [x, y]]) => label(t, x + 4, y - 3, c.sat, 'left'));
+  wbLabels.forEach(([d, [x, y]]) => { if (x > L + 8 && x < Rt && y > T + 8 && y < B) label(String(d), x - 4, y - 3, c.wbT, 'right'); });
+  g.font = '12px "Share Tech Mono", Consolas, monospace';
+
+  /* legend, in the unused top-left corner */
+  g.save(); g.beginPath(); g.rect(L, T, Rt - L, B - T); g.clip();
+  const lg = (y, col, txt, w, dash) => { g.setLineDash(dash || []); g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(L + 12, y); g.lineTo(L + 36, y); g.stroke(); g.setLineDash([]); g.fillStyle = c.dim; g.textAlign = 'left'; g.fillText(txt, L + 44, y + 4); };
+  let ly = T + 16;
+  const lrow = (col, txt, w, dash) => { lg(ly, col, txt, w, dash); ly += 18; };
+  lrow(c.sat, 'Saturation (100% RH)', 2.4);
+  lrow(c.rh, 'Relative humidity', 1.2);
+  if (S.wb) lrow(c.wb, 'Wet bulb (' + uT() + ')', 1.2);
+  if (S.lines && points.some(p => !state(p).err)) {
+    lrow(c.txt, 'Through point: RH', 1.5);
+    lrow(c.txt, 'Through point: dry bulb', 1.5, [8, 4]);
+    lrow(c.txt, 'Through point: humidity ratio', 1.5, [2, 4]);
+    lrow(c.txt, 'Through point: wet bulb', 1.5, [10, 3, 2, 3]);
+  }
+  g.fillStyle = c.dim; g.textAlign = 'left'; g.fillText('P = ' + (P / 1000).toFixed(2) + ' kPa', L + 12, ly + 4);
+
+  /* points */
+  const vis = [];
+  points.forEach(p => {
+    const st = state(p); if (st.err) return;
+    const x = X(cToD(st.tC)), y = Y(wToD(st.W));
+    if (x < L || x > Rt || y < T || y > B) return;
+    vis.push({ p, x, y, st });
+  });
+  /* process line with direction arrows; in time order when every point has a time */
+  if (S.line && vis.length > 1) {
+    const ord = vis.every(v => v.p.ts) ? [...vis].sort((a, b) => a.p.ts < b.p.ts ? -1 : a.p.ts > b.p.ts ? 1 : 0) : vis;
+    g.strokeStyle = c.txt; g.globalAlpha = .7; g.lineWidth = 1.5; g.setLineDash([6, 4]);
+    g.beginPath(); ord.forEach(({ x, y }, i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke();
+    g.setLineDash([]); g.fillStyle = c.txt; g.globalAlpha = .9;
+    for (let i = 1; i < ord.length; i++) {
+      const a = ord[i - 1], b = ord[i];
+      if (Math.hypot(b.x - a.x, b.y - a.y) < 26) continue;
+      g.save(); g.translate((a.x + b.x) / 2, (a.y + b.y) / 2); g.rotate(Math.atan2(b.y - a.y, b.x - a.x));
+      g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5); g.lineTo(-5, 5); g.closePath(); g.fill(); g.restore();
+    }
+    g.globalAlpha = 1;
+  }
+  /* the four property lines through each point, so you can see where they cross */
+  if (S.lines) vis.forEach(({ p, x, y, st }) => {
+    const q = props(st.tC, st.W);
+    g.strokeStyle = p.color; g.lineWidth = 1.5; g.globalAlpha = .9;
+    const rc = curve(q.rh);                                                   // relative humidity
+    g.setLineDash([]); path(rc); g.stroke();
+    g.setLineDash([8, 4]); g.beginPath();                                     // dry bulb: bottom axis up to saturation
+    g.moveTo(x, Y(0)); g.lineTo(x, Y(Math.min(wToD(wSat(st.tC)), W1()))); g.stroke();
+    g.setLineDash([2, 4]); g.beginPath();                                     // humidity ratio: saturation across to the right axis
+    const hx = q.dp == null ? L : Math.max(X(cToD(q.dp)), L);
+    g.moveTo(hx, y); g.lineTo(Rt, y); g.stroke();
+    const wpts = [[X(cToD(q.wb)), Y(wToD(wSat(q.wb)))]];                      // wet bulb: saturation down to the bottom axis
+    let pT = q.wb, pW = wbW(q.wb, q.wb);
+    for (let t = q.wb + 0.25; t <= tMaxC + 0.25; t += 0.25) {
+      const W = wbW(t, q.wb);
+      if (W < 0) { const k = pW / (pW - W); wpts.push([X(cToD(pT + (t - pT) * k)), Y(0)]); break; }
+      wpts.push([X(cToD(t)), Y(wToD(W))]); pT = t; pW = W;
+    }
+    g.setLineDash([10, 3, 2, 3]); path(wpts); g.stroke();
+    g.setLineDash([]); g.globalAlpha = 1;
+    /* value tags where each line meets the chart */
+    g.font = '11px "Share Tech Mono", Consolas, monospace';
+    label(f1(cToD(st.tC)), x, B - 6, p.color, 'center');
+    label(f1(wToD(st.W), IP() ? 1 : 2), Rt - 4, y - 4, p.color, 'right');
+    if (wpts[0][0] > L + 30 && wpts[0][0] < Rt && wpts[0][1] > T + 10 && wpts[0][1] < B) label(f1(cToD(q.wb)), wpts[0][0] - 5, wpts[0][1] - 4, p.color, 'right');
+    let last = null; rc.forEach(([rx, ry]) => { if (rx >= L && rx <= Rt && ry >= T && ry <= B) last = [rx, ry]; });
+    if (last) label(f1(q.rh, 0) + '%', last[0] - 5, last[1] - 5, p.color, 'right');
+  });
+  vis.forEach(v => {
+    const { p, x, y } = v;
+    g.beginPath(); g.arc(x, y, 7, 0, Math.PI * 2); g.fillStyle = p.color; g.fill();
+    g.lineWidth = 2.5; g.strokeStyle = '#fff'; g.stroke();
+    if (p.name && p.name.trim()) {                                            // no title → just the dot
+      g.font = '700 12px "Segoe UI", sans-serif';
+      label(p.name.trim(), x + 11, y - 9, c.txt, 'left');
+    }
+    drawn.push(v);
+  });
+  g.restore();
+  syncPins();
+}
+
+/* ════════════ Hover readout ════════════ */
+const tip = $('tip');
+const tipRows = q => ROWS.map(r => { const v = disp(r.k, q); return `${r.name}: ${f1(v, r.dec())} ${r.unit()}`; }).join('<br>');
+cv.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const L = M.l, Rt = cw - M.r, T = M.t, B = ch - M.b;
+  const place = () => { tip.style.display = 'block'; tip.style.left = Math.min(e.clientX + 16, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = Math.max(8, e.clientY - 10) + 'px'; };
+   const near = drawn.find(d => Math.hypot(d.x - mx, d.y - my) < 12);
+  if (near && pins.has(near.p)) { tip.style.display = 'none'; return; }
+  if (near) {
+    const hd = (near.p.name.trim() || (near.p.ts ? new Date(near.p.ts).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : 'Point')).replace(/</g, '&lt;');
+    tip.innerHTML = `<b>${hd}</b><br>` + tipRows(props(near.st.tC, near.st.W));
+    return place();
+  }
+  if (mx < L || mx > Rt || my < T || my > B) { tip.style.display = 'none'; return; }
+  const dd = T0() + (mx - L) / (Rt - L) * (T1() - T0()), wd = W0() + (B - my) / (B - T) * (W1() - W0());
+  const tC = dToC(dd), W = dToW(wd), rh = rhFromW(tC, W);
+  if (!(rh <= 100)) { tip.innerHTML = '<span style="color:#7f95a8">Above saturation</span>'; return place(); }
+  tip.innerHTML = tipRows(props(tC, W));
+  place();
+});
+cv.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+
+/* ════════════ Click a dot to pin its readout ════════════ */
+const pins = new Map();                                    // point → pinned popup element
+let panEndAt = 0;                                          // a drag-pan must not count as a click
+const tipHead = p => (p.name.trim() || (p.ts ? new Date(p.ts).toLocaleString([], { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : 'Point')).replace(/</g, '&lt;');
+function syncPins() {
+  const r = cv.getBoundingClientRect();
+  pins.forEach((el, p) => {
+    if (!points.includes(p)) { el.remove(); pins.delete(p); return; }
+    const d = drawn.find(v => v.p === p);
+    if (!d) { el.style.display = 'none'; return; }         // point is off the chart or has no valid value
+    el.innerHTML = '<b>' + tipHead(p) + '</b><br>' + tipRows(props(d.st.tC, d.st.W));
+    el.style.borderColor = p.color;
+    el.style.display = 'block';
+    el.style.left = Math.max(8, Math.min(r.left + d.x + 16, innerWidth - el.offsetWidth - 8)) + 'px';
+    el.style.top = Math.max(8, Math.min(r.top + d.y - 10, innerHeight - el.offsetHeight - 8)) + 'px';
+  });
+}
+cv.addEventListener('click', e => {
+  if (performance.now() - panEndAt < 100) return;
+  const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const hit = drawn.find(d => Math.hypot(d.x - mx, d.y - my) < 12);
+  if (!hit) return;
+  if (pins.has(hit.p)) { pins.get(hit.p).remove(); pins.delete(hit.p); }
+  else { const el = document.createElement('div'); el.className = 'tipPin'; document.body.appendChild(el); pins.set(hit.p, el); }
+  tip.style.display = 'none';
+  syncPins();
+});
+
+/* ════════════ Zoom and pan ════════════ */
+const MAX_ZOOM = 40;
+const zoomBtn = $('btnZoom');
+function zoomUi() {
+  zoomBtn.textContent = Z ? 'Reset zoom (' + ((S.tMax - S.tMin) / (Z.t1 - Z.t0)).toFixed(1) + '×)' : 'Reset zoom';
+  zoomBtn.style.opacity = Z ? 1 : .45;
+}
+function setView(t0, t1, w0, w1) {
+  const fullT = S.tMax - S.tMin, fullW = S.wMax;
+  let dt = t1 - t0, dw = w1 - w0;
+  if (dt >= fullT * 0.999 || dw >= fullW * 0.999) Z = null;
+  else {
+    dt = Math.max(dt, fullT / MAX_ZOOM); dw = Math.max(dw, fullW / MAX_ZOOM);
+    t0 = Math.min(Math.max(t0, S.tMin), S.tMax - dt);
+    w0 = Math.min(Math.max(w0, 0), S.wMax - dw);
+    Z = { t0, t1: t0 + dt, w0, w1: w0 + dw };
+  }
+  zoomUi(); tip.style.display = 'none'; queueDraw();
+}
+function zoomAt(mx, my, f) {                       // f > 1 zooms in, f < 1 zooms out; the point under the cursor stays put
+  const L = M.l, Rt = cw - M.r, T = M.t, B = ch - M.b;
+  const fx = Math.min(1, Math.max(0, (mx - L) / (Rt - L))), fy = Math.min(1, Math.max(0, (B - my) / (B - T)));
+  const t0 = T0(), dt = T1() - T0(), w0 = W0(), dw = W1() - W0(), ndt = dt / f, ndw = dw / f;
+  const nt0 = t0 + fx * (dt - ndt), nw0 = w0 + fy * (dw - ndw);
+  setView(nt0, nt0 + ndt, nw0, nw0 + ndw);
+}
+const zoomCenter = f => zoomAt((M.l + cw - M.r) / 2, (M.t + ch - M.b) / 2, f);
+const resetZoom = () => { Z = null; zoomUi(); queueDraw(); };
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.25 : 0.8);
+}, { passive: false });
+cv.addEventListener('dblclick', resetZoom);
+$('btnZin').onclick = () => zoomCenter(1.5);
+$('btnZout').onclick = () => zoomCenter(1 / 1.5);
+zoomBtn.onclick = resetZoom;
+
+/* drag to pan while zoomed in */
+let pan = null;
+cv.addEventListener('pointerdown', e => {
+  if (!Z || e.button !== 0) return;
+  pan = { x: e.clientX, y: e.clientY, z: { ...Z }, moved: false };
+  try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+});
+cv.addEventListener('pointermove', e => {
+  if (!pan) return;
+  const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+  if (!pan.moved && Math.hypot(dx, dy) < 3) return;
+  pan.moved = true; cv.style.cursor = 'grabbing';
+  const W = cw - M.l - M.r, H = ch - M.t - M.b, z = pan.z, dt = z.t1 - z.t0, dw = z.w1 - z.w0;
+  setView(z.t0 - dx / W * dt, z.t1 - dx / W * dt, z.w0 + dy / H * dw, z.w1 + dy / H * dw);
+});
+const endPan = () => { if (pan && pan.moved) panEndAt = performance.now(); pan = null; cv.style.cursor = ''; };
+cv.addEventListener('pointerup', endPan);
+cv.addEventListener('pointercancel', endPan);
+zoomUi();
+
+/* ════════════ Settings panel ════════════ */
+const pText = () => IP() ? (P / 6894.757).toFixed(3) + ' psia' : (P / 1000).toFixed(2) + ' kPa';
+function syncSettings() {
+  $('uSel').value = S.units; $('oUnit').value = S.ordUnit;
+  $('alt').value = IP() ? Math.round(S.altFt) : Math.round(S.altFt * 0.3048);
+  $('altLbl').textContent = 'Altitude (' + (IP() ? 'ft' : 'm') + ')';
+  $('tMin').value = S.tMin; $('tMax').value = S.tMax; $('wMax').value = S.wMax;
+  $('rhStep').value = S.rhStep; $('wbStep').value = S.wbStep;
+  $('tMinLbl').textContent = 'Temp min ' + uT(); $('tMaxLbl').textContent = 'Temp max ' + uT();
+  $('wbStepLbl').textContent = 'Wet-bulb line every ' + uT();
+  $('wMaxLbl').textContent = 'Hum. ratio max (' + (IP() ? 'gr/lb' : 'g/kg') + ')';
+  $('chkWb').checked = S.wb; $('chkLines').checked = S.lines; $('chkLine').checked = S.line;
+  updateP(S.altFt); $('pOut').value = pText();
+}
+function refreshAll() { Z = null; zoomUi(); syncSettings(); points.forEach(renderPoint); persist(); queueDraw(); }
+
+$('uSel').onchange = e => {
+  const to = e.target.value; if (to === S.units) return;
+  if (to === 'SI') { S.tMin = Math.round((S.tMin - 32) / 1.8); S.tMax = Math.round((S.tMax - 32) / 1.8); S.wMax = Math.round(S.wMax / 7 * 10) / 10; }
+  else             { S.tMin = Math.round(S.tMin * 1.8 + 32);   S.tMax = Math.round(S.tMax * 1.8 + 32);   S.wMax = Math.round(S.wMax * 7); }
+  S.wbStep = DEF[to].wbStep;
+  S.units = to; refreshAll();
+};
+$('oUnit').onchange = e => { S.ordUnit = e.target.value; refreshAll(); };
+$('alt').oninput = e => { const v = parseFloat(e.target.value); if (isNaN(v)) return; S.altFt = Math.max(0, IP() ? v : v / 0.3048); updateP(S.altFt); $('pOut').value = pText(); points.forEach(renderPoint); persist(); queueDraw(); };
+['tMin', 'tMax', 'wMax', 'rhStep', 'wbStep'].forEach(k => {
+  $(k).oninput = e => { const v = parseFloat(e.target.value); if (isNaN(v)) return; S[k] = v; Z = null; zoomUi(); points.forEach(renderPoint); persist(); queueDraw(); };
+});
+$('rRange').onclick = () => { Object.assign(S, DEF[S.units]); refreshAll(); };
+$('chkWb').onchange    = e => { S.wb = e.target.checked; persist(); queueDraw(); };
+$('chkLines').onchange = e => { S.lines = e.target.checked; persist(); queueDraw(); };
+$('chkLine').onchange  = e => { S.line = e.target.checked; persist(); queueDraw(); };
+
+$('addPt').onclick = () => { const p = newPoint(); points.push(p); addCard(p); persist(); queueDraw(); $('side').scrollTop = $('side').scrollHeight; };
+$('clrPts').onclick = () => {
+  if (!points.length || !confirm('Remove all points?')) return;
+  points.forEach(stopPoint); points = []; $('pts').innerHTML = ''; persist(); queueDraw();
+};
+
+/* theme + export */
+const themeBtn = $('btnTheme');
+function applyTheme(light) {
+  document.body.classList.toggle('light-mode', light);
+  themeBtn.textContent = light ? 'Dark' : 'Light';
+  localStorage.setItem('theme', light ? 'light' : 'dark');
+  queueDraw();
+}
+themeBtn.onclick = () => applyTheme(!document.body.classList.contains('light-mode'));
+$('btnPng').onclick = () => {
+  draw();
+  cv.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'psychrometric_chart.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); });
+};
+
+/* ════════════ Init ════════════ */
+applyTheme(localStorage.getItem('theme') === 'light');
+restore();
+syncSettings();
+if (typeof require === 'undefined') $('bajaNote').style.display = 'block';
+points.forEach(addCard);
+startWeather();
+(function () {
+  const sc = document.querySelector('#side > .card'), sh = sc.querySelector('h3');
+  const set = () => { sh.textContent = (sc.classList.contains('collapsed') ? '▸ ' : '▾ ') + 'Chart Settings'; };
+  sh.style.cursor = 'pointer'; set();
+  sh.onclick = () => { sc.classList.toggle('collapsed'); set(); };
+})();
+window.addEventListener('resize', resize);
+new ResizeObserver(resize).observe($('chartWrap'));
+resize();
+})();
+</script>
+</body>
+</html>
