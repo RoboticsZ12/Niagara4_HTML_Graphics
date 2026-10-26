@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<!-- @noSnoop -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murphy Control — 3D Building</title>
+<!-- Niagara/Baja loader (needed for live point values; harmless if absent) -->
+<script src="/requirejs/config.js"></script>
+<script src="/module/js/com/tridium/js/ext/require/require.min.js?"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./JS_3DFiles/three.module.js",
+
+    "three/addons/controls/OrbitControls.js": "./JS_3DFiles/OrbitControls.js",
+    "three/addons/loaders/GLTFLoader.js":     "./JS_3DFiles/GLTFLoader.js",
+"three/addons/loaders/DRACOLoader.js":    "./JS_3DFiles/DRACOLoader.js",
+    "three/addons/loaders/FBXLoader.js":      "./JS_3DFiles/FBXLoader.js",
+
+    "./utils/BufferGeometryUtils.js": "./JS_3DFiles/BufferGeometryUtils.js",
+    "./libs/fflate.module.js":        "./JS_3DFiles/fflate.module.js",
+    "./curves/NURBSCurve.js":         "./JS_3DFiles/NURBSCurve.js",
+    "./curves/NURBSUtils.js":         "./JS_3DFiles/NURBSUtils.js"
+  }
+}
+</script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#080d14; --surface:#0d1520; --surface-2:#111c2b; --border:rgba(0,180,255,.12); --border-hover:rgba(0,180,255,.45);
+  --accent:#04d9ff; --accent-dim:rgba(0,180,255,.18); --amber:#ffae00; --red:#ff4444; --green:#66ff00;
+  --text:#c8d8ea; --text-dim:#5a7080; --font-ui:'Rajdhani','Segoe UI',sans-serif; --font-mono:'Share Tech Mono',Consolas,monospace;
+  --top-h:54px; --bot-h:44px;
+}
+body.light-mode {
+  --bg:#eef2f7; --surface:#fff; --surface-2:#f4f7fc; --border:rgba(0,100,180,.18); --border-hover:rgba(0,100,180,.5);
+  --text:#1a2535; --text-dim:#4a6070; --accent:#0060c0; --accent-dim:rgba(0,112,204,.12); --amber:#ff8800;
+}
+html, body { height:100%; }
+body { font-family:var(--font-ui); background:var(--bg); color:var(--text); overflow:hidden; }
+.top-bar, .bottom-bar { position:fixed; left:0; right:0; z-index:50; background:rgba(8,13,20,.92); border:0 solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+body.light-mode .top-bar, body.light-mode .bottom-bar { background:rgba(238,242,247,.95); }
+.top-bar { top:0; height:var(--top-h); border-bottom-width:1px; justify-content:center; }
+.tools { overflow-x:auto; max-width:100%; }
+.bottom-bar .datetime { position:absolute; left:50%; transform:translateX(-50%); }
+.bottom-bar { bottom:0; height:var(--bot-h); border-top-width:1px; }
+.top-center { position:absolute; left:50%; transform:translateX(-50%); text-align:center; pointer-events:none; }
+.site-label { display:block; font-size:.72rem; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:var(--accent); }
+.page-title { display:block; font-size:.82rem; font-weight:500; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); }
+.btn { background:none; border:1px solid var(--border); color:var(--text-dim); font-family:var(--font-ui); font-size:.78rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; padding:5px 14px; border-radius:5px; cursor:pointer; transition:border-color .2s,color .2s,background .2s; }
+.btn:hover, .btn:focus-visible { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); outline:none; }
+.btn.on { border-color:var(--amber); color:var(--amber); background:rgba(255,171,0,.08); }
+.tools { display:flex; gap:8px; }
+.datetime { font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); letter-spacing:.08em; }
+#stage { position:fixed; top:var(--top-h); bottom:var(--bot-h); left:0; right:0;
+  background: radial-gradient(ellipse at 50% 45%, rgba(0,180,255,.09) 0%, transparent 60%),
+    linear-gradient(rgba(0,180,255,.035) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg, rgba(0,180,255,.035) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(135deg,#060d1a 0%,#0a1628 50%,#06111e 100%); cursor:grab; }
+body.light-mode #stage { background: radial-gradient(ellipse at 50% 45%, rgba(0,100,180,.08) 0%, transparent 60%),
+    linear-gradient(rgba(0,100,180,.06) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg, rgba(0,100,180,.06) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(135deg,#dce6f0 0%,#e8eff8 50%,#d8e4f0 100%); }
+#stage:active { cursor:grabbing; }
+#stage canvas { display:block; width:100%; height:100%; touch-action:none; }
+#status { position:absolute; top:12px; left:12px; z-index:5; font-family:var(--font-mono); font-size:.65rem; letter-spacing:.08em; padding:5px 12px; border-radius:4px; max-width:min(560px,90%); background:rgba(0,180,255,.12); border:1px solid var(--border); color:var(--accent); transition:opacity .5s; }
+#status.error { background:rgba(255,68,68,.1); border-color:rgba(255,68,68,.3); color:var(--red); line-height:1.5; }
+#status.ok { color:var(--green); border-color:rgba(102,255,0,.3); background:rgba(102,255,0,.08); }
+#progress { position:absolute; left:0; top:0; height:3px; width:0; background:var(--accent); z-index:6; transition:width .2s,opacity .4s; }
+#help, #info { position:absolute; bottom:12px; z-index:5; font-family:var(--font-mono); font-size:.62rem; letter-spacing:.06em; line-height:1.6; color:var(--text-dim); pointer-events:none; }
+#help { right:14px; text-align:right; } #info { left:12px; }
+@media (max-width:760px){ .top-center{display:none} .btn{padding:5px 9px;font-size:.7rem} .datetime,#help{display:none} }
+
+/* ── added: edit panel, banner, tooltip, highlights, rails, modal ── */
+#edit { position:absolute; top:12px; right:12px; width:210px; z-index:8; display:none; flex-direction:column; gap:7px; padding:10px; background:var(--surface); border:1px solid var(--amber); border-radius:8px; font-family:var(--font-mono); font-size:.66rem; max-height:calc(100% - 24px); overflow-y:auto; }
+body.edit-mode #edit { display:flex; }
+#edit h3 { font-family:var(--font-ui); font-size:.8rem; letter-spacing:.14em; text-transform:uppercase; color:var(--amber); }
+#edit select, #edit input[type=number] { background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:4px; font-family:inherit; font-size:.7rem; width:100%; }
+#edit .row { display:flex; gap:5px; align-items:center; } #edit .btn { padding:4px 8px; font-size:.68rem; flex:1; }
+#assets { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.asset { border:1px solid var(--border); border-radius:5px; padding:4px; text-align:center; cursor:pointer; color:var(--text-dim); }
+.asset:hover, .asset.on { border-color:var(--amber); color:var(--amber); }
+.asset img { width:100%; height:44px; object-fit:contain; display:block; pointer-events:none; }
+#banner { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:9; display:none; background:rgba(0,180,255,.18); border:1px solid var(--accent); color:var(--accent); font-family:var(--font-mono); font-size:.68rem; letter-spacing:.08em; padding:6px 16px; border-radius:6px; pointer-events:none; text-align:center; }
+#tip { position:fixed; z-index:9000; pointer-events:none; display:none; background:rgba(8,13,20,.95); border:1px solid var(--border-hover); border-radius:6px; padding:7px 12px; font-family:var(--font-mono); font-size:.72rem; color:#c8d8ea; white-space:nowrap; }
+#tip b { font-family:var(--font-ui); font-size:.95rem; }
+#hlWrap { position:absolute; left:12px; bottom:44px; z-index:6; display:flex; flex-direction:column-reverse; align-items:flex-start; gap:6px; }
+#hlList { display:none; flex-direction:column; gap:5px; max-height:50vh; overflow-y:auto; padding:8px; background:var(--surface); border:1px solid var(--border-hover); border-radius:8px; }
+#hlWrap.open #hlList { display:flex; }
+#hlWrap.empty { display:none; }
+.rail { position:absolute; top:48px; left:12px; width:225px; z-index:6; background:rgba(8,13,20,.75); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-family:var(--font-mono); font-size:.68rem; max-height:calc(100% - 130px); overflow-y:auto; }
+#railR { left:auto; right:12px; top:12px; }
+body.light-mode .rail { background:rgba(255,255,255,.85); } body.edit-mode .rail { display:none; }
+.rail h4 { font-family:var(--font-ui); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); display:flex; justify-content:space-between; gap:8px; cursor:pointer; user-select:none; }
+.rail.collapsed .body { display:none; } .rail .body { margin-top:8px; }
+.stat { display:flex; justify-content:space-between; margin:6px 0; color:var(--text-dim); } .stat b { font-size:1rem; color:var(--text); }
+.row2 { display:flex; justify-content:space-between; gap:8px; padding:5px 8px; margin:3px 0; border:1px solid var(--border); border-left-width:3px; border-radius:5px; cursor:pointer; }
+.row2:hover { background:var(--accent-dim); }
+@media (max-width:1100px){ .rail{display:none} }
+
+.hl { background:rgba(180,80,255,.14); border:1.5px solid rgba(180,80,255,.55); color:rgba(220,170,255,.95); font-family:var(--font-mono); font-size:.68rem; padding:4px 12px; border-radius:6px; cursor:pointer; }
+.hl:hover { filter:brightness(1.35); box-shadow:0 0 10px currentColor; }
+
+#exportModal, #hlModal, #eqModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:3000; align-items:center; justify-content:center; }
+#exportModal.open, #hlModal.open, #eqModal.open { display:flex; }
+.modal-box input[type=text] { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font-family:var(--font-mono); font-size:.72rem; }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:22px; width:min(580px,90%); }
+.modal-box h3 { font-size:1.05rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+.modal-box textarea { width:100%; height:260px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font-family:var(--font-mono); font-size:.7rem; }
+.modal-box .row { display:flex; gap:10px; margin-top:10px; }
+.modal-box label { display:block;font-family:var(--font-mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim); margin:10px 0 4px; }
+.modal-box select { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font-family:var(--font-mono); font-size:.72rem; }
+.modal-box select option { background:var(--surface); color:var(--text); }
+.modal-box input[type=color] { width:52px; height:32px; background:none; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
+.modal-box .row .btn { flex:1; }
+
+
+#eqSlider { display:flex; width:200%; transition:transform .3s ease; }
+#eqSlider.other { transform:translateX(-50%); }
+.eqPane { width:50%; padding-right:1px; }
+#eqOtherList { max-height:260px; overflow-y:auto; }
+.eqRow { display:flex; gap:6px; margin-bottom:6px; }
+.eqRow input { min-width:0; }
+.eqRow .eqN { flex:1; } .eqRow .eqO { flex:2; }
+.eqRow .btn { flex:0 0 auto; border-color:var(--red); color:var(--red); }
+
+#eqInfo { position:fixed; z-index:9100; display:none; min-width:240px; max-width:420px; background:var(--surface); border:1px solid var(--accent); border-radius:8px; padding:12px 14px; font-family:var(--font-mono); font-size:.72rem; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+#eqInfo h4 { font-family:var(--font-ui); font-size:.9rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; }
+#eqInfo h4 span { cursor:pointer; color:var(--text-dim); }
+#eqInfo .ir { display:flex; justify-content:space-between; gap:16px; padding:4px 0; border-bottom:1px solid var(--border); }
+#eqInfo .ir b { color:var(--text); }
+
+#floorPrev { position:fixed; right:14px; bottom:60px; z-index:9; display:none; width:340px; max-width:40vw; background:var(--surface); border:1px solid var(--accent); border-radius:8px; padding:8px; box-shadow:0 8px 30px rgba(0,0,0,.5); pointer-events:none; }
+#floorPrev .t { font-family:var(--font-ui); font-size:.85rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+#floorPrev img { display:block; width:100%; max-height:260px; object-fit:contain; border-radius:4px; background:rgba(0,0,0,.25); }
+
+#cuModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:3000; align-items:center; justify-content:center; }
+#cuModal.open { display:flex; }
+
+#btnAlarms.alarming { border-color:var(--red); color:var(--red); background:rgba(255,68,68,.12); animation:alPulse 1.1s ease-in-out infinite; }
+@keyframes alPulse { 0%,100% { box-shadow:0 0 0 rgba(255,68,68,0); } 50% { box-shadow:0 0 14px rgba(255,68,68,.9); } }
+#alarmPanel { position:fixed; bottom:calc(var(--bot-h) + 6px); right:20px; z-index:60; display:none; width:300px; max-height:60vh; overflow-y:auto; background:var(--surface); border:1px solid var(--border-hover); border-radius:8px; padding:6px; font-family:var(--font-mono); font-size:.68rem; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+#alarmPanel.open { display:block; }
+#viewSel { max-width:150px; }
+#viewSel option { background:var(--surface); color:var(--text); }
+#edit input[type=text] { background:var(--surface-2); color:var(--text); border:1px solid var(--border); border-radius:4px; padding:4px; font-family:inherit; font-size:.7rem; width:100%; }
+
+
+#edit input[type=range] { width:100%; accent-color:var(--amber); }
+#ovFilter { position:absolute; top:56px; right:12px; z-index:10; display:none; max-width:230px; max-height:55vh; overflow-y:auto; padding:10px 12px; background:var(--surface); border:1px solid var(--accent); border-radius:8px; font-family:var(--font-mono); font-size:.68rem; color:var(--text); }
+#ovFilter h4 { font-family:var(--font-ui); font-size:.78rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+#ovFilter label { display:flex; gap:6px; align-items:center; padding:3px 0; cursor:pointer; }
+#ovFilter input { accent-color:var(--accent); }
+#subTools { position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:7; display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none; }
+.subpanel { display:none; align-items:center; gap:10px; padding:8px 14px; background:var(--surface); border:1px solid var(--accent); border-radius:8px; font-family:var(--font-mono); font-size:.68rem; color:var(--text-dim); pointer-events:auto; }
+.subpanel.open { display:flex; }
+.subpanel input[type=range] { width:240px; accent-color:var(--accent); }
+.subpanel b { color:var(--text); min-width:48px; text-align:right; }
+@media (max-width:760px){ .subpanel { flex-wrap:wrap; justify-content:center; max-width:94vw; } .subpanel input[type=range]{ width:140px; } }
+
+#edit h3.sh { cursor:pointer; user-select:none; display:flex; justify-content:space-between; padding:4px 2px; border-bottom:1px solid var(--border); }
+#edit h3.sh::after { content:'▸'; }
+#edit h3.sh.open::after { content:'▾'; }
+.secBody { display:flex; flex-direction:column; gap:7px; }
+.secBody.closed { display:none; }
+#glbList { display:grid; grid-template-columns:1fr 1fr; gap:6px; max-height:160px; overflow-y:auto; }
+#glbList .asset { padding:8px 4px; font-size:.62rem; word-break:break-all; cursor:grab; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="tools">
+    <select class="btn" id="viewSel" title="Saved camera views" style="display:none"></select>
+    <button class="btn" id="btnEdit" title="Place zones, trace areas, add images and highlights">Edit Mode</button>
+    <button class="btn" id="btnReset" title="Return to the starting view">Reset View</button>
+    <button class="btn" id="btnRotate" title="Slowly orbit the building">Auto-Rotate</button>
+    <button class="btn" id="btnWire" title="Show model edges only">Wireframe</button>
+    <button class="btn" id="btnSlice" title="Cut the building at a height">Slice</button>
+    <button class="btn" id="btnGrid" title="Show or hide the ground grid">Grid</button>
+    <button class="btn" id="btnTheme" title="Switch light / dark">Light</button>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="progress"></div>
+  <div id="status">Loading model…</div>
+  <div id="banner"></div>
+  <div id="subTools">
+    <div class="subpanel" id="slicer">
+      <span>SLICE</span><input type="range" id="sliceR" min="2" max="100" step="0.5" value="100">
+      <b id="sliceV">Full</b><button class="btn" id="sliceReset">Full</button>
+    </div>
+  </div>
+  <div id="info"></div>
+  <div id="ovFilter"></div>
+  <div id="help">Left-drag: orbit &nbsp;|&nbsp; Right-drag / two fingers: pan &nbsp;|&nbsp; Wheel / pinch: zoom</div>
+  <div id="hlWrap">
+  <button class="btn" id="hlToggle">Floors ▴</button>
+  <div id="hlList"></div>
+</div>
+  <div class="rail collapsed" id="railL"></div>
+  <div class="rail collapsed" id="railR"></div>
+  <div id="edit">
+    <h3>⬡ Zones</h3>
+    <select id="zSel"></select>
+    <label style="display:flex;gap:6px;align-items:center;color:var(--text-dim)"><input type="checkbox" id="zHide"> Hide placed zones</label>
+    <div class="row"><span>±</span><input type="number" id="zDb" min="0.1" max="20" step="0.5"><span>°F</span></div>
+    <div class="row"><span style="min-width:60px">Tag size</span><input type="number" id="zSzN" min="0.1" max="10" step="0.05"></div>
+    <input type="range" id="zSz" min="0.2" max="3" step="0.05" value="1">
+    <div class="row"><button class="btn" id="bPlace">Place tag</button><button class="btn" id="bTrace">Trace area</button></div>
+    <div class="row"><button class="btn" id="bClr">Remove zone</button></div>
+    <h3>⬡ RTUs / AHUs</h3>
+    <select id="eSel"></select>
+    <div class="row"><button class="btn" id="eTrace">Trace area</button><button class="btn" id="eClr">Remove</button></div>
+    
+    <h3>⬡ Custom tags</h3>
+<select id="cSel"></select>
+<div class="row"><button class="btn" id="cNew">+ New</button><button class="btn" id="cEdit">Edit</button></div>
+<div class="row"><button class="btn" id="cMove">Move</button><button class="btn" id="cDel">Remove</button></div>
+<div class="row"><span style="min-width:60px">Tag size</span><input type="number" id="cSzN" min="0.1" max="10" step="0.05"></div>
+<input type="range" id="cSz" min="0.2" max="3" step="0.05" value="1">
+
+<h3>⬡ Camera views</h3>
+<input type="text" id="vName" placeholder="View name (e.g. Roof)">
+<div class="row"><button class="btn" id="vSave">Save current view</button></div>
+<div class="row"><button class="btn" id="vUpd">Overwrite selected</button><button class="btn" id="vDel">Delete selected</button></div>
+
+    <h3>⬡ Selected image</h3>
+    <div id="imHint" style="color:var(--text-dim)">Click an image to select it, drag to move.</div>
+    <div id="imgCtl" style="display:none;flex-direction:column;gap:6px">
+      <div style="color:var(--text-dim)">Size <span id="imSv"></span></div>
+      <input type="range" id="imS" min="0.1" max="10" step="0.05">
+      <div style="color:var(--text-dim)">Spin <span id="imRzv"></span></div>
+      <input type="range" id="imRz" min="-180" max="180" step="1">
+      <label style="display:flex;gap:6px;align-items:center;color:var(--text-dim)"><input type="checkbox" id="imBb"> Face camera</label>
+      <div id="imXY" style="display:none;flex-direction:column;gap:6px">
+        <div style="color:var(--text-dim)">Rotate X <span id="imRxv"></span></div>
+        <input type="range" id="imRx" min="-180" max="180" step="1">
+        <div style="color:var(--text-dim)">Rotate Y <span id="imRyv"></span></div>
+        <input type="range" id="imRy" min="-180" max="180" step="1">
+      </div>
+      <div style="color:var(--text-dim)">Exact values</div>
+      <div class="row"><span style="min-width:44px">Size</span><input type="number" id="imSn" min="0.01" step="0.05"></div>
+      <div class="row"><span style="min-width:44px">Spin</span><input type="number" id="imRzn" step="1"></div>
+      <div id="imXYn" style="display:none;flex-direction:column;gap:6px">
+        <div class="row"><span style="min-width:44px">Rot X</span><input type="number" id="imRxn" step="1"></div>
+        <div class="row"><span style="min-width:44px">Rot Y</span><input type="number" id="imRyn" step="1"></div>
+      </div>
+      <div class="row"><span style="min-width:44px">Pos X</span><input type="number" id="imPx" step="0.1"></div>
+      <div class="row"><span style="min-width:44px">Pos Y</span><input type="number" id="imPy" step="0.1"></div>
+      <div class="row"><span style="min-width:44px">Pos Z</span><input type="number" id="imPz" step="0.1"></div>
+      <div class="row"><button class="btn" id="imDup">Duplicate</button><button class="btn" id="imDel">Delete</button></div>
+    </div>
+
+    <h3>⬡ Image assets</h3>
+    <div id="assets"></div>
+    
+<h3>⬡ Polyline tags</h3>
+<select id="hSel"></select>
+<div class="row"><button class="btn" id="hMove">Move tag</button></div>
+<div class="row"><span style="min-width:60px">Tag size</span><input type="number" id="hSzN" min="0.1" max="10" step="0.05"></div>
+<input type="range" id="hSz" min="0.1" max="3" step="0.05" value="0.4">
+
+    <h3>⬡ Floor image overlay</h3>
+    <select id="oSel"></select>
+    <div class="row"><button class="btn" id="oAdd">Add image</button><button class="btn" id="oDel">Remove</button></div>
+    <div id="ovCtl" style="display:flex;flex-direction:column;gap:6px">
+         <label style="display:flex;gap:6px;align-items:center;color:var(--text-dim)"><input type="checkbox" id="oAlways"> Always show</label>
+      <div style="color:var(--text-dim)">Drag the orange bubbles: corners reshape, center moves.</div>
+      <div style="color:var(--text-dim)">Opacity</div><input type="range" id="oOp" min="0.1" max="1" step="0.05">
+    </div>
+
+        <h3>⬡ Highlights</h3>
+    <div class="row"><button class="btn" id="bHl">+ New highlight</button></div>
+
+    <h3>⬡ GLB models</h3>
+    <div class="row"><button class="btn" id="glbRefresh">Refresh list</button></div>
+    <div style="color:var(--text-dim)">Drag a file onto the scene, or click one then click the scene.</div>
+    <div id="glbList"></div>
+    <div id="glbHint" style="color:var(--text-dim)">Click a placed model to select it, drag to move.</div>
+    <div id="glbCtl" style="display:none;flex-direction:column;gap:6px">
+      <div style="color:var(--text-dim)">Size <span id="gSv"></span></div>
+      <input type="range" id="gS" min="0.05" max="10" step="0.05">
+      <div class="row"><span style="min-width:44px">Size</span><input type="number" id="gSn" min="0.01" step="0.05"></div>
+      <div style="color:var(--text-dim)">Spin <span id="gRv"></span></div>
+      <input type="range" id="gR" min="-180" max="180" step="1">
+      <div class="row"><span style="min-width:44px">Pos X</span><input type="number" id="gPx" step="0.1"></div>
+      <div class="row"><span style="min-width:44px">Pos Y</span><input type="number" id="gPy" step="0.1"></div>
+      <div class="row"><span style="min-width:44px">Pos Z</span><input type="number" id="gPz" step="0.1"></div>
+      <div class="row"><button class="btn" id="gDup">Duplicate</button><button class="btn" id="gDel">Delete</button></div>
+    </div>
+
+    <h3>⬡ Export</h3>
+    <div class="row"><button class="btn" id="bExp">Export JSON</button></div>
+  </div>
+</div>
+<div id="tip"></div>
+<div id="alarmPanel"></div>
+<div id="eqInfo"></div>
+<div id="floorPrev"><div class="t" id="floorPrevTitle"></div><img id="floorPrevImg" alt=""></div>
+
+<div class="bottom-bar">
+  <button class="btn" onclick="history.back()">← Back</button>
+  <div class="datetime" id="clock">—</div>
+  <button class="btn" id="btnAlarms" title="Active alarms and statuses">✓ No Alarms</button>
+</div>
+
+<div id="hlModal"><div class="modal-box" style="max-width:460px;">
+  <h3 id="hlTitle">New Highlight</h3>
+  <label>Floor</label>
+  <select id="hlFloor"></select>
+<label style="display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;cursor:pointer">
+  <input type="checkbox" id="hlCustom"> Custom point data (no floor link)
+</label>
+<div id="hlCustomWrap" style="display:none">
+  <label>Name</label>
+  <input type="text" id="hlCName" placeholder="e.g. Chiller Supply Temp">
+  <label>ORD</label>
+  <input type="text" id="hlCOrd" placeholder="station:|slot:/Drivers/...">
+</div>
+  <label>Color</label>
+  <input type="color" id="hlColor" value="#c878ff">
+  <label>Shape</label>
+  <select id="hlShape">
+<option value="rect">Floor box (2 clicks)</option>
+<option value="poly">Free polygon (Shift = straight)</option>
+<option value="prism">Polygon + height (trace, then click bottom &amp; top)</option>
+  </select>
+  <div class="row">
+    <button class="btn" id="hlSave">Save</button>
+    <button class="btn" id="hlDel" style="display:none;border-color:var(--red);color:var(--red)">Delete</button>
+    <button class="btn" id="hlCancel">Cancel</button>
+  </div>
+</div></div>
+
+<div id="eqModal"><div class="modal-box" style="max-width:560px;overflow:hidden;">
+  <div id="eqSlider">
+
+    <!-- Pane 1: main point -->
+    <div class="eqPane">
+      <h3>RTU / AHU Status Point</h3>
+      <label>Name</label>
+      <input type="text" id="eqName" placeholder="e.g. RTU3 Surgery Supply Fan">
+      <label>ORD</label>
+      <input type="text" id="eqOrd" placeholder="station:|slot:/Drivers/NiagaraNetwork/CityPlace5RTU/points/RTU3_Surgery/SupplyFan_OutputStatus">
+             <div id="eqLinkWrap">
+        <label>Hyperlink ORD (optional, the page without ?unit=)</label>
+        <input type="text" id="eqLink" placeholder="https://10.10.10.10/file/Murphy_MasterGraphics/RTUs/RTU_3/RTU3.html">
+        <div id="eqLinkPreview" style="margin-top:5px;font-family:var(--font-mono);font-size:.62rem;color:var(--text-dim);word-break:break-all"></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="btn" id="eqOtherBtn">Other data →</button>
+        <button class="btn" id="eqSaveOnly" style="display:none">Save</button>
+        <button class="btn" id="eqSave">Save &amp; Trace</button>
+        <button class="btn" id="eqDelete" style="display:none;border-color:var(--red);color:var(--red)">Delete</button>
+        <button class="btn" id="eqCancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Pane 2: other data -->
+    <div class="eqPane">
+      <h3>Other Data</h3>
+      <label>Shown when you click the area</label>
+      <div id="eqOtherList"></div>
+      <div class="row"><button class="btn" id="eqAddRow" style="flex:none;width:100%">+ Add point</button></div>
+      <div class="row">
+        <button class="btn" id="eqBack">← Back</button>
+        <button class="btn" id="eqSaveOnly2" style="display:none">Save</button>
+        <button class="btn" id="eqSave2">Save &amp; Trace</button>
+        <button class="btn" id="eqCancel2">Cancel</button>
+      </div>
+    </div>
+
+  </div>
+</div></div>
+
+<div id="cuModal"><div class="modal-box" style="max-width:460px;">
+  <h3 id="cuTitle">New Custom Tag</h3>
+  <label>Name</label>
+  <input type="text" id="cuName" placeholder="e.g. Chiller Supply Temp">
+  <label>ORD</label>
+  <input type="text" id="cuOrd" placeholder="station:|slot:/Drivers/...">
+  <div class="row">
+    <button class="btn" id="cuFinish">Finish</button>
+    <button class="btn" id="cuCancel">Cancel</button>
+  </div>
+</div></div>
+
+<div id="exportModal"><div class="modal-box">
+  <h3>Export → 3D.json</h3>
+  <textarea id="jsonOut" readonly></textarea>
+  <div class="row"><button class="btn" id="mCopy">Copy</button><button class="btn" id="mClose">Close</button></div>
+</div></div>
+
+<script>
+// Same login logic as the Murphy home page: use the Niagara session user, fall back to 'username'
+(function () {
+  function getUser() {
+    let u = null;
+    try {
+      const synced = sessionStorage.getItem('SyncedSessionStorage');
+      if (synced) { const p = JSON.parse(synced); if (p && p.user) u = p.user; }
+    } catch (e) {}
+    return u || sessionStorage.getItem('username');
+  }
+
+  // SyncedSessionStorage can take a moment to fill in on a fresh page load, so wait briefly before giving up
+  let tries = 0;
+  (function check() {
+    const u = getUser();
+    if (u) { sessionStorage.setItem('username', u); return; }
+    if (++tries < 30) return setTimeout(check, 100);        // ~3 seconds
+    window.location.href = '../LOGIN/Login.html';
+  })();
+})();
+(function tick() {
+  const o = { day:'2-digit', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', hour12:true };
+  document.getElementById('clock').textContent = new Date().toLocaleString('en-US', o).replace(',', '');
+  setTimeout(tick, 1000);
+})();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+// import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const MODEL_FILE = 'Lower_Level.glb';   // same folder as this page
+// const MODEL_FILE = 'test2GLB.gltf';   // same folder as this page
+// const MODEL_FILE = 'St_Gerard_exportTestFBX.fbx';   // same folder as this page
+
+const HOME_CFG = '../HomeConfig.json', GLOBAL_CFG = '../Global.json', SAVED_JSON = '../3D.json';
+
+// tiny files: start now, in parallel with the FBX (negligible bandwidth)
+const prefetch = {
+  json: fetch(SAVED_JSON, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+  cfg:  fetch(HOME_CFG).then(r => r.json()).catch(() => null),
+  glob: fetch(GLOBAL_CFG).then(r => r.json()).catch(() => null),
+};
+// big files: start only after the FBX has finished downloading (so they never compete with it)
+let glbPrefetched = false, glbListed = false;
+function startGlbPrefetch() {
+  if (glbPrefetched) return; glbPrefetched = true;
+  prefetch.json.then(j => (j?.models || []).forEach(m => loadGlb(m.file).catch(() => {})));
+}
+const DEF_DB = 3, POLL_MS = 20000;
+
+const DB_LS_KEY = 'Murphy_3DDeadband';
+const readDbStore = () => { try { return JSON.parse(localStorage.getItem(DB_LS_KEY)) || {}; } catch { return {}; } };
+const readDb = n => { const v = parseFloat(readDbStore()[n]); return !isNaN(v) && v > 0 ? v : DEF_DB; };
+function saveDb(n, v) {
+  const s = readDbStore();
+  if (v === DEF_DB) delete s[n]; else s[n] = v;          // default → don't store it
+  try { Object.keys(s).length ? localStorage.setItem(DB_LS_KEY, JSON.stringify(s)) : localStorage.removeItem(DB_LS_KEY); } catch {}
+}
+try { localStorage.removeItem('Murphy_Building3D'); } catch {}   // clear the old copy once
+const IMAGE_ASSETS = [
+  { src:'../RTUs/RTU_IMAGES/Intellipak/Ipak3_ElectricHeat_Static.png', label:'Intellipak' },
+  { src:'../RTUs/RTU_IMAGES/Voyager/Voyager.png', label:'Voyager' },
+  { src:'../RTUs/RTU_IMAGES/Precedent/Precedent.png', label:'Precedent' },
+  { src:'../IMAGES/Chiller/animation.gif', label:'Animation' },
+  { src:'../IMAGES/Chiller/Trane Centrifugal Chiller CVGF - CLOSED.png', label:'Trane CVGF' },
+    { src:'../IMAGES/MarlyCooler.svg', label:'Cooler' },
+
+];
+
+const $ = id => document.getElementById(id);
+const stage = $('stage'), statusEl = $('status'), progress = $('progress'), infoEl = $('info');
+function setStatus(msg, type) {
+  statusEl.className = type || ''; statusEl.textContent = msg; statusEl.style.opacity = '1';
+  if (type === 'ok') setTimeout(() => { statusEl.style.opacity = '0'; }, 3000);
+}
+
+/* ── renderer / scene / camera ─────────────────────────────── */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+camera.position.set(30, 20, 30);
+
+scene.add(new THREE.HemisphereLight(0xdfeaff, 0x1a2535, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(60, 100, 40); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+let grid = new THREE.GridHelper(100, 50, 0x04d9ff, 0x1d3a55);
+grid.material.transparent = true; grid.material.opacity = 0.35;
+scene.add(grid);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.screenSpacePanning = true; controls.maxPolarAngle = Math.PI * 0.499; controls.autoRotateSpeed = 0.8;
+
+/* ── load the model ────────────────────────────────────────── */
+let model = null, R = 10, modelH = 10;
+let home = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+
+const buildingLoader = /\.fbx$/i.test(MODEL_FILE) ? new FBXLoader() : (() => {
+  const g = new GLTFLoader(), d = new DRACOLoader();
+  d.setDecoderPath('./JS_3DFiles/'); g.setDRACOLoader(d);
+  return g;
+})();
+
+buildingLoader.load(
+  MODEL_FILE,
+  loaded => {
+    const obj = loaded.scene || loaded;      // GLTF returns {scene}, FBX returns the object itself
+    model = obj;
+    model = obj;
+    startGlbPrefetch();   // fallback if progress never reported 100%
+    let tris = 0, meshes = 0;
+    // ...rest unchanged
+    model.traverse(o => {
+      if (o.isMesh) {
+        meshes++; o.castShadow = true; o.receiveShadow = true;
+        const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3;
+      }
+    });
+    scene.add(model);
+    frameModel();
+    model.traverse(o => { o.matrixAutoUpdate = false; });   // static model: skip per-frame matrix updates
+    renderer.shadowMap.autoUpdate = false;                   // render shadows once...
+    renderer.shadowMap.needsUpdate = true;
+    progress.style.opacity = '0';
+    setStatus(`Loaded ${MODEL_FILE}`, 'ok');
+    infoEl.textContent = `${meshes.toLocaleString()} meshes · ${Math.round(tris).toLocaleString()} triangles`;
+    initBAS();   // add-on layer
+  },
+  xhr => {
+    if (xhr.lengthComputable) {
+      const p = xhr.loaded / xhr.total;
+      progress.style.width = (p * 100) + '%';
+      if (p >= 1) startGlbPrefetch();
+      statusEl.textContent = `Loading ${MODEL_FILE}… ${Math.round(p * 100)}%`;
+    }
+  },
+  err => {
+    progress.style.opacity = '0';
+    setStatus(`Could not load ${MODEL_FILE}. Check that the file is in the same folder as this page, ` +
+      `the station user can read it, and the Web Service allows it (see browser console, F12). ` +
+      `Details: ${err && err.message ? err.message : err}`, 'error');
+    console.error(err);
+  }
+);
+
+function frameModel() {
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const radius = Math.max(size.x, size.y, size.z) * 0.5 || 1;
+   R = radius; modelH = size.y;
+  model.position.y -= box.min.y; center.y = size.y / 2;
+  const dist = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.4;
+  camera.position.set(center.x + dist * 0.7, center.y + dist * 0.5, center.z + dist * 0.7);
+  camera.near = radius / 1000; camera.far = radius * 100; camera.updateProjectionMatrix();
+  controls.target.copy(center);
+  controls.zoomToCursor = true;
+  // camera zoom
+  controls.minDistance = radius * 0.01; controls.maxDistance = radius * 12; controls.update();
+  home.pos.copy(camera.position); home.target.copy(center);
+
+  scene.remove(grid); grid.geometry.dispose();
+  const gs = Math.ceil(radius * 6 / 10) * 10;
+  grid = new THREE.GridHelper(gs, gs / 2, 0x04d9ff, 0x1d3a55);
+  grid.material.transparent = true; grid.material.opacity = 0.35;
+  grid.visible = !$('btnGrid').classList.contains('off');
+  grid.material.color.set(document.body.classList.contains('light-mode') ? 0x6b8bb0 : 0x1d3a55);
+  scene.add(grid);
+
+  const sc = sun.shadow.camera;
+  sc.left = -radius * 1.5; sc.right = radius * 1.5; sc.top = radius * 1.5; sc.bottom = -radius * 1.5;
+  sc.near = 1; sc.far = radius * 8; sc.updateProjectionMatrix();
+  sun.position.set(center.x + radius * 2, radius * 4, center.z + radius * 1.5);
+  sun.target.position.copy(center); scene.add(sun.target);
+  
+  model.updateMatrixWorld(true);
+overlay.position.copy(model.position);
+overlay.quaternion.copy(model.quaternion);
+}
+
+/* ── toolbar (original) ────────────────────────────────────── */
+$('btnReset').addEventListener('click', () => { camera.position.copy(home.pos); controls.target.copy(home.target); controls.update(); });
+$('btnRotate').addEventListener('click', e => { controls.autoRotate = !controls.autoRotate; e.currentTarget.classList.toggle('on', controls.autoRotate); });
+$('btnWire').addEventListener('click', e => {
+  if (!model) return;
+   const on = e.currentTarget.classList.toggle('on');
+  // if (!on) showFloorPrev(null);
+  model.traverse(o => {
+    if (!o.isMesh) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.wireframe = on; });
+  });
+});
+$('btnGrid').addEventListener('click', e => {
+  const off = e.currentTarget.classList.toggle('off');
+  e.currentTarget.classList.toggle('on', !off); grid.visible = !off;
+});
+$('btnGrid').classList.add('on');
+const themeBtn = $('btnTheme');
+function applyTheme(light) {
+  document.body.classList.toggle('light-mode', light);
+  themeBtn.textContent = light ? 'Dark' : 'Light';
+  localStorage.setItem('theme', light ? 'light' : 'dark');
+  grid.material.color.set(light ? 0x6b8bb0 : 0x1d3a55);
+}
+themeBtn.addEventListener('click', () => applyTheme(!document.body.classList.contains('light-mode')));
+applyTheme(localStorage.getItem('theme') === 'light');
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+new ResizeObserver(resize).observe(stage);
+resize();
+renderer.setAnimationLoop(t => { stepCam(); controls.update(); tickTags(t); renderer.render(scene, camera); });
+
+/* ── floor slicer ── */
+renderer.localClippingEnabled = true;
+const slicePlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);   // keeps everything below the plane
+let sliceY = Infinity, sliceOn = false;
+const clipOK = h => h.point.y <= sliceY + 1e-4;
+function setSlice(pct) {
+  const on = pct < 100;
+  sliceY = on ? modelH * pct / 100 : Infinity;
+  slicePlane.constant = on ? sliceY : 0;
+  renderer.clippingPlanes = on ? [slicePlane] : [];             // tags, areas, images
+  if (on !== sliceOn && model) {
+    sliceOn = on;
+    model.traverse(o => {
+      if (!o.isMesh) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        if (m.userData.side0 === undefined) m.userData.side0 = m.side;
+        m.side = on ? THREE.DoubleSide : m.userData.side0;      // so you can see into the cut
+        m.clippingPlanes = on ? [slicePlane] : null;
+        m.clipShadows = on;
+        m.needsUpdate = true;
+      });
+    });
+  }
+  renderer.shadowMap.needsUpdate = true;   // ...and again whenever the slice changes
+  $('sliceV').textContent = on ? Math.round(pct) + '%' : 'Full';
+}
+$('sliceR')?.addEventListener('input', e => setSlice(parseFloat(e.target.value)));
+$('sliceReset')?.addEventListener('click', () => { $('sliceR').value = 100; setSlice(100); });
+$('btnSlice')?.addEventListener('click', e => {
+  const open = $('slicer').classList.toggle('open');
+  e.currentTarget.classList.toggle('on', open);
+  if (!open) { $('sliceR').value = 100; setSlice(100); }
+});
+
+/* ════════════════════════════════════════════════════════════
+   ADD-ON LAYER: zone tags, traced areas, images, highlights, health
+   ════════════════════════════════════════════════════════════ */
+   
+   
+   
+const data = { zones:{}, images:[], highlights:[], equip:{}, custom:{}, views:[], models:[] };
+const equip = {};                                      // live RTU/AHU objects by name
+const zones = {};                                      // live zone objects by display name
+const overlay = new THREE.Group(); scene.add(overlay);
+const pickables = [];
+let GLOBAL = null, edit = false, armed = null, draw = null, selZone = null;
+
+const decodeBaja = v => typeof v === 'string' ? v.replace(/\$([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))) : v;
+let dirty = false;
+const save = () => { dirty = true; $('bExp').textContent = 'Export JSON ●'; refreshZoneList(); refreshEquipList(); refreshCustList(); refreshHlTagList(); refreshOvList(); };
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });const banner = t => { const b = $('banner'); b.textContent = t || ''; b.style.display = t ? 'block' : 'none'; };
+
+function fetchBaja(path, cb) {
+  if (typeof require === 'undefined') return cb(new Error('Baja not available'));
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    try {
+      if (!path || path.includes('{')) return cb(new Error('bad path'));
+      baja.Ord.make(path).get().then(p => p?.getOut ? cb(null, decodeBaja(p.getOut().getValueDisplay())) : cb(new Error('no getOut'))).catch(cb);
+    } catch (e) { cb(e); }
+  });
+}
+/* like fetchBaja, but also returns the out-slot status, e.g. "{ok}" or "{alarm,unackedAlarm}" */
+function fetchBajaFull(path, cb) {
+  if (typeof require === 'undefined') return cb(new Error('Baja not available'));
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    try {
+      if (!path || path.includes('{')) return cb(new Error('bad path'));
+      baja.Ord.make(path).get().then(p => {
+        if (!p?.getOut) return cb(new Error('no getOut'));
+        const out = p.getOut();
+        let st = ''; try { const s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+        cb(null, decodeBaja(out.getValueDisplay()), st);
+      }).catch(cb);
+    } catch (e) { cb(e); }
+  });
+}
+
+/* ── status → color / label (priority order) ── */
+const ST = {
+  alarm:      { c:'hsl(4,100%,52%)',   label:'IN ALARM'   },
+  fault:      { c:'hsl(52,100%,50%)',  label:'FAULT'      },
+  down:       { c:'hsl(52,100%,50%)',  label:'DOWN'       },
+  stale:      { c:'hsl(28,100%,50%)',  label:'STALE'      },
+  overridden: { c:'hsl(280,100%,65%)', label:'OVERRIDDEN' },
+};
+const ST_ORDER = ['alarm', 'fault', 'down', 'stale', 'overridden'];
+const stKey = st => { const f = (st || '').split(/[^a-z]+/).filter(Boolean); return ST_ORDER.find(k => f.includes(k)) || null; };
+
+/* ── subscription: pushes (value, status) whenever the point changes. Returns an unsubscribe function.
+      If subscribing fails it falls back to polling that one point. ── */
+function watch(ord, cb) {
+  let sub = null, timer = null, dead = false;
+  if (!ord || ord.includes('{')) { cb(new Error('bad path')); return () => {}; }
+  if (typeof require === 'undefined') { cb(new Error('Baja not available')); return () => {}; }
+  const push = p => {
+    try {
+      const out = p.getOut();
+      let st = ''; try { const s = out.getStatus(); st = s ? s.toString().toLowerCase() : ''; } catch (x) {}
+      cb(null, decodeBaja(out.getValueDisplay()), st);
+    } catch (x) { cb(x); }
+  };
+  const fallback = () => {
+    if (dead || timer) return;
+    const run = () => fetchBajaFull(ord, (e, v, st) => { if (!dead) cb(e, v, st); });
+    run(); timer = setInterval(run, POLL_MS);
+  };
+  require(['baja!', 'baja!control:Override', 'baja!control:NumericOverride'], baja => {
+    if (dead) return;
+    try {
+      sub = new baja.Subscriber();
+      sub.attach('changed', function () { if (!dead) push(this); });
+      baja.Ord.make(ord).get({ subscriber: sub })
+        .then(p => {
+          if (dead) { try { sub.unsubscribeAll(); } catch (x) {} return; }
+          if (!p?.getOut) { cb(new Error('no getOut')); return; }
+          push(p);
+        })
+        .catch(() => { try { sub.unsubscribeAll(); } catch (x) {} sub = null; fallback(); });
+    } catch (x) { fallback(); }
+  });
+  return () => { dead = true; if (timer) clearInterval(timer); if (sub) { try { sub.unsubscribeAll(); } catch (x) {} } };
+}
+
+/* batches UI refreshes so a burst of updates at startup doesn't rebuild the panels hundreds of times */
+let uiQ = false;
+function queueUI() { if (uiQ) return; uiQ = true; setTimeout(() => { uiQ = false; renderRails(); renderAlarms(); }, 250); }
+
+const isPlaced = n => { const d = data.zones[n]; return !!(d && (d.pos || d.poly)); };
+function refreshZoneList() {
+  const sel = $('zSel'), keep = sel.value, hide = $('zHide').checked;
+  sel.innerHTML = Object.keys(zones).sort().filter(n => !(hide && isPlaced(n))).map(n =>
+    isPlaced(n) ? `<option value="${n}" style="color:#6b7a8a">✓ ${n} — placed</option>`
+                : `<option value="${n}">${n}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  syncDb();
+}
+function selectNextUnplaced() {
+  const o = [...$('zSel').options].find(o => !isPlaced(o.value));
+  if (o) { $('zSel').value = o.value; syncDb(); }
+}
+$('zHide').addEventListener('change', refreshZoneList);
+/* deadband colour: green in band → yellow → orange → red */
+const C = [[122,100,44],[48,100,50],[25,100,50],[4,100,52]];
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+function zColor(z) {
+  if (z.st) return ST[z.st].c;
+  if (z.t == null || z.sp == null) return 'hsl(195,80%,50%)';
+  const ex = Math.abs(z.t - z.sp) - z.db; let c;
+  if (ex <= 0) c = C[0]; else { const r = ex / z.db; c = r <= 1 ? mix(C[0], C[1], r) : r <= 2 ? mix(C[1], C[2], r - 1) : mix(C[2], C[3], Math.min(1, (r - 2) / 2)); }
+  return `hsl(${c[0].toFixed(1)},${c[1]}%,${c[2].toFixed(1)}%)`;
+}
+
+/* tag sprite (name + temp) */
+function makeTag(z) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  s.scale.set(R * 0.12, R * 0.06, 1); s.renderOrder = 10; s.userData.zone = z.name; s.userData.cv = cv;
+  return s;
+}
+const tagSize = (s, m) => s.scale.set(R * 0.12 * (m || 1), R * 0.06 * (m || 1), 1);
+function drawTag(z) {
+  const s = z.sprite; if (!s) return;
+  const cv = s.userData.cv, g = cv.getContext('2d'), col = zColor(z);
+  g.clearRect(0, 0, 256, 128);
+  g.fillStyle = 'rgba(8,13,20,.86)'; g.fillRect(4, 4, 248, 120);
+  g.strokeStyle = col; g.lineWidth = 7; g.strokeRect(4, 4, 248, 120);
+  g.textAlign = 'center'; g.fillStyle = '#c8d8ea'; g.font = '700 28px sans-serif';
+  g.fillText(z.name.length > 14 ? z.name.slice(0, 13) + '…' : z.name, 128, 44);
+  g.fillStyle = '#fff'; g.font = '700 46px monospace';
+  g.fillText(z.t == null ? '—°F' : z.t.toFixed(1) + '°F', 128, 100);
+  s.material.map.needsUpdate = true;
+}
+
+/* polygon from 3D points: outline + fill triangulated on the dominant plane */
+function makePoly(arr, color, opacity) {
+  const pts = arr.map(a => new THREE.Vector3(...a)), g = new THREE.Group();
+  const line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  line.renderOrder = 8;
+  const n = new THREE.Vector3();
+  pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; n.x += (p.y - q.y) * (p.z + q.z); n.y += (p.z - q.z) * (p.x + q.x); n.z += (p.x - q.x) * (p.y + q.y); });
+  const ax = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)], d = ax.indexOf(Math.max(...ax));
+  const flat = pts.map(p => d === 0 ? new THREE.Vector2(p.y, p.z) : d === 1 ? new THREE.Vector2(p.x, p.z) : new THREE.Vector2(p.x, p.y));
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  geo.setIndex(THREE.ShapeUtils.triangulateShape(flat, []).flat());
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  fill.renderOrder = 7;
+  g.add(fill, line); g.userData = { line, fill };
+  return g;
+}
+const setPolyColor = (g, col) => { g.userData.line.material.color.set(col); g.userData.fill.material.color.set(col); };
+
+function boxGeo(b) {
+  const s = b.max.clone().sub(b.min), g = new THREE.BoxGeometry(s.x, s.y, s.z);
+  g.translate((b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2);
+  return g;
+}
+function makeBox(b, color, opacity) {
+  const geo = boxGeo({ min: new THREE.Vector3(...b.min), max: new THREE.Vector3(...b.max) });
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  fill.renderOrder = 7; line.renderOrder = 8;
+  const g = new THREE.Group(); g.add(fill, line); g.userData = { line, fill };
+  return g;
+}
+function makePrism(p, color, opacity) {
+  const pts = p.poly, n = pts.length, y0 = p.y0, y1 = p.y1, pos = [];
+  const V = (a, y) => pos.push(a[0], y, a[2]);
+  const tri = THREE.ShapeUtils.triangulateShape(pts.map(a => new THREE.Vector2(a[0], a[2])), []);
+  tri.forEach(t => { t.forEach(i => V(pts[i], y0)); t.forEach(i => V(pts[i], y1)); });   // bottom + top caps
+  for (let i = 0; i < n; i++) {                                                          // walls
+    const a = pts[i], b = pts[(i + 1) % n];
+    V(a, y0); V(b, y0); V(b, y1);  V(a, y0); V(b, y1); V(a, y1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const fill = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  const line = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }));
+  fill.renderOrder = 7; line.renderOrder = 8;
+  const g = new THREE.Group(); g.add(fill, line); g.userData = { line, fill };
+  return g;
+}
+function refresh(z) {
+  drawTag(z);
+  if (z.poly) setPolyColor(z.poly, zColor(z));
+  queueUI();
+}
+
+function applyZone(z) {
+  const d = data.zones[z.name]; if (!d) return;
+  z.db = readDb(z.name);
+  if (z.sprite) { overlay.remove(z.sprite); pickables.splice(pickables.indexOf(z.sprite), 1); z.sprite = null; }
+  if (z.poly) { overlay.remove(z.poly); pickables.splice(pickables.indexOf(z.poly.userData.fill), 1); z.poly = null; }
+  if (d.pos) { z.sprite = makeTag(z); tagSize(z.sprite, d.size); z.sprite.position.fromArray(d.pos); overlay.add(z.sprite); pickables.push(z.sprite); }
+  if (d.poly && d.poly.length >= 3) {
+    z.poly = makePoly(d.poly, 0x04d9ff, 0.22); z.poly.userData.fill.userData.zone = z.name;
+    overlay.add(z.poly); pickables.push(z.poly.userData.fill);
+  }
+  refresh(z); watchZone(z);
+}
+const stopWatch = z => { (z.unsubs || []).forEach(u => u()); z.unsubs = []; z.st = null; };
+function watchZone(z) {
+  const u = GLOBAL?.globalVariables?.[z.raw]; if (!u?.points || !data.zones[z.name]) return;
+  const f = n => u.points.find(p => p.id === n || p.name === n);
+  const num = v => { const n = parseFloat(decodeBaja(v)); return isNaN(n) ? null : n; };
+  stopWatch(z);
+  const sp = f('Space-Setpoint'), t = f('Space-Temp');
+  if (sp?.fullPath) z.unsubs.push(watch(sp.fullPath, (e, v) => { z.sp = e ? null : num(v); refresh(z); }));
+  if (t?.fullPath)  z.unsubs.push(watch(t.fullPath,  (e, v, st) => { z.t = e ? null : num(v); z.st = e ? null : stKey(st); refresh(z); }));
+}
+
+/* images */
+/* ── RTU / AHU status areas (user-entered ORD, subscribed like the zones) ── */
+const eqColor = v => {
+  if (v == null) return 'hsl(195,80%,50%)';
+  const t = String(v).trim().split(/\s+/)[0];
+  return /^(true|on|active|run|running|yes|1(\.0*)?)$/i.test(t) ? 'hsl(122,100%,44%)' : 'hsl(4,100%,52%)';
+};
+const isEqPlaced = n => !!(data.equip[n] && data.equip[n].poly);
+function refreshEquipList() {
+  const sel = $('eSel'), keep = sel.value;
+  sel.innerHTML = Object.keys(equip).sort().map(n => {
+    const d = data.equip[n];
+    return d ? `<option value="${n}" style="color:#6b7a8a">✓ ${n} — ${d.label || 'set'}</option>` : `<option value="${n}">${n}</option>`;
+  }).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+function applyEquip(n) {
+  const e = equip[n], d = data.equip[n]; if (!e || !d) return;
+  if (e.poly) { overlay.remove(e.poly); const i = pickables.indexOf(e.poly.userData.fill); if (i >= 0) pickables.splice(i, 1); e.poly = null; }
+  if (d.poly && d.poly.length >= 3) {
+    e.poly = makePoly(d.poly, 0x04d9ff, 0.3);
+    e.poly.userData.fill.userData.equip = n;
+        e.poly.visible = false;
+    overlay.add(e.poly); pickables.push(e.poly.userData.fill);
+    setEqLook(n);
+  }
+  watchEquip(n);
+}
+/* hidden unless hovered, in edit mode, or in alarm; red when in alarm, cyan when just hovered */
+let hoverEqName = null;
+function setEqLook(n) {
+  const e = equip[n]; if (!e || !e.poly) return;
+  setPolyColor(e.poly, e.st ? ST[e.st].c : '#04d9ff');
+  e.poly.visible = !!e.st || hoverEqName === n || edit;
+}
+function hoverEq(n) {
+  n = n || null;
+  if (n === hoverEqName) return;
+  const old = hoverEqName; hoverEqName = n;
+  if (old) setEqLook(old);
+  if (n) setEqLook(n);
+}
+function watchEquip(n) {
+  const e = equip[n], d = data.equip[n]; if (!e) return;
+  if (e.unsub) { e.unsub(); e.unsub = null; }
+  if (!d || !d.ord) return;
+  e.unsub = watch(d.ord, (err, v, st) => {
+    e.v = err ? null : v;
+    e.st = err ? null : stKey(st);
+    e.alarm = e.st === 'alarm';
+    setEqLook(n); queueUI();
+  });
+}
+
+/* ── "Other data" rows in the RTU/AHU popup ── */
+function eqRowAdd(name = '', ord = '') {
+  const r = document.createElement('div'); r.className = 'eqRow';
+  r.innerHTML = '<input type="text" class="eqN" placeholder="Name"><input type="text" class="eqO" placeholder="ORD"><button class="btn" title="Remove">✕</button>';
+  r.querySelector('.eqN').value = name;
+  r.querySelector('.eqO').value = ord;
+  r.querySelector('.btn').onclick = () => r.remove();
+  $('eqOtherList').appendChild(r);
+  return r;
+}
+const eqSlide = on => $('eqSlider').classList.toggle('other', on);
+const eqClose = () => { $('eqModal').classList.remove('open'); eqSlide(false); };
+
+/* builds the final link: what you typed + ?unit=<actual unit name from HomeConfig> */
+function buildEqLink(typed, n) {
+  let u = (typed || '').trim(); if (!u) return '';
+  u = u.replace(/^station:\|/i, '').replace(/\?.*$/, '');                 // drop any ?unit=... you typed
+  if (/^file:/i.test(u)) u = '/file/' + u.replace(/^file:\^?\/?/i, '');   // file:^Murphy/... → /file/Murphy/...
+  const raw = (equip[n] && equip[n].raw) || n;
+  return u + '?unit=' + encodeURIComponent(raw);
+}
+function syncEqAction() {
+  $('eqLinkPreview').textContent = $('eqLink').value.trim() ? '→ ' + buildEqLink($('eqLink').value, $('eSel').value) : '';
+}
+$('eqLink').oninput = syncEqAction;
+
+function openEqModal(n) {
+  if (!n) return;
+  $('eSel').value = n;
+  const d = data.equip[n] || {};
+  $('eqName').value = d.label || n;
+  $('eqOrd').value = d.ord || '';
+  // $('eqAction').value = d.action || 'other';
+  $('eqLink').value = d.linkOrd || '';
+  $('eqOtherList').innerHTML = '';
+  (d.other || []).forEach(o => eqRowAdd(o.name, o.ord));
+  if (!(d.other || []).length) eqRowAdd();
+  $('eqSaveOnly').style.display = $('eqSaveOnly2').style.display = d.poly ? '' : 'none';   // Save-only only if already traced
+  $('eqDelete').style.display = data.equip[n] ? '' : 'none';
+  syncEqAction();
+  eqSlide(false);
+  $('eqModal').classList.add('open');
+}
+$('eTrace').onclick = () => openEqModal($('eSel').value);
+$('eqOtherBtn').onclick = () => eqSlide(true);
+$('eqBack').onclick     = () => eqSlide(false);
+$('eqAddRow').onclick   = () => eqRowAdd().querySelector('.eqN').focus();
+$('eqCancel').onclick = $('eqCancel2').onclick = eqClose;
+
+function eqSaveAndTrace(trace) {
+  const n = $('eSel').value, ord = $('eqOrd').value.trim(), label = $('eqName').value.trim() || n;
+  if (!n) return;
+  if (!ord) { eqSlide(false); $('eqOrd').focus(); return; }   // main ORD still required
+  const linkOrd = $('eqLink').value.trim();
+  const other = [...document.querySelectorAll('#eqOtherList .eqRow')]
+    .map(r => ({ name: r.querySelector('.eqN').value.trim(), ord: r.querySelector('.eqO').value.trim() }))
+    .filter(o => o.ord)
+    .map(o => ({ name: o.name || o.ord.split('/').pop(), ord: o.ord }));
+  const d = (data.equip[n] ||= {});
+  d.label = label;
+  d.ord = ord;
+  d.other = other;
+  // d.action = action;
+  d.linkOrd = linkOrd;                       // what you typed (shown again when you edit)
+  d.link = buildEqLink(linkOrd, n);          // final URL with ?unit=<actual name>
+  eqClose();
+  save(); watchEquip(n);
+  if (trace) startDraw('equip', n, `TRACE ${label}`);
+}
+$('eqSave').onclick     = $('eqSave2').onclick     = () => eqSaveAndTrace(true);
+$('eqSaveOnly').onclick = $('eqSaveOnly2').onclick = () => eqSaveAndTrace(false);
+$('eqDelete').onclick = () => { const n = $('eSel').value; eqClose(); deleteEquip(n); };
+
+/* view-mode click: open the hyperlink, or show the other-data popup */
+function clickEq(n, e) {
+  const d = data.equip[n]; if (!d) return;
+  if (d.other && d.other.length) showEqInfo(n, e);          // popup (includes the link button if one is set)
+  else if (d.link) { closeEqInfo(); window.open(d.link, '_blank'); }
+}
+$('eqSave').onclick = $('eqSave2').onclick = eqSaveAndTrace;
+
+/* ── click popup: shows every "other" point with a live value ── */
+let eqInfoStop = null;
+function closeEqInfo() {
+  if (eqInfoStop) { eqInfoStop(); eqInfoStop = null; }
+  $('eqInfo').style.display = 'none';
+}
+function showEqInfo(n, e) {
+  const d = data.equip[n]; closeEqInfo();
+  if (!d || !d.other || !d.other.length) return;
+  const box = $('eqInfo');
+  box.innerHTML = '';
+  const h = document.createElement('h4');
+  const t = document.createElement('div'); t.textContent = d.label || n;
+  const x = document.createElement('span'); x.textContent = '✕'; x.onclick = closeEqInfo;
+  h.append(t, x); box.appendChild(h);
+
+  const cells = d.other.map(o => {
+    const row = document.createElement('div'); row.className = 'ir';
+    const a = document.createElement('span'); a.textContent = o.name;
+    const b = document.createElement('b'); b.textContent = '…';
+    row.append(a, b); box.appendChild(row);
+    return { ord: o.ord, el: b };
+  });
+  if (d.link) {
+    const lb = document.createElement('button'); lb.className = 'btn';
+    lb.style.cssText = 'width:100%;margin-top:10px';
+    lb.textContent = 'Open page →';
+    lb.onclick = () => { window.open(d.link, '_blank'); closeEqInfo(); };
+    box.appendChild(lb);
+  }
+  const stops = cells.map(c => watch(c.ord, (err, v) => { c.el.textContent = err || v == null ? '—' : v; }));
+eqInfoStop = () => stops.forEach(s => s());
+
+  box.style.display = 'block';
+  const w = box.offsetWidth, hgt = box.offsetHeight;
+  box.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - w - 8)) + 'px';
+  box.style.top  = Math.max(8, Math.min(e.clientY + 14, innerHeight - hgt - 8)) + 'px';
+}
+/* ── zone popup (VAV / FTU / CAV): live points by ID from Global.json ── */
+const ZONE_POINTS = [['Space-Temp', 'Space Temp'], ['Space-Setpoint', 'Space Setpoint'], ['Air-Flow', 'Air Flow'], ['AirFlow-SP', 'Airflow SP'], ['DPR-Pos', 'Damper Pos']];
+function showZoneInfo(z, e) {
+  closeEqInfo();
+  const u = GLOBAL?.globalVariables?.[z.raw];
+  const find = n => u?.points?.find(p => p.id === n || p.name === n);
+  const box = $('eqInfo'); box.innerHTML = '';
+  const h = document.createElement('h4'), t = document.createElement('div'), x = document.createElement('span');
+  t.textContent = z.name; x.textContent = '✕'; x.onclick = closeEqInfo; h.append(t, x); box.appendChild(h);
+
+  const stops = [];
+  ZONE_POINTS.forEach(([id, label]) => {
+    const p = find(id); if (!p?.fullPath) return;
+    const row = document.createElement('div'); row.className = 'ir';
+    const a = document.createElement('span'); a.textContent = label;
+    const b = document.createElement('b'); b.textContent = '…';
+    row.append(a, b); box.appendChild(row);
+    stops.push(watch(p.fullPath, (err, v, st) => {
+      b.textContent = err || v == null ? '—' : v;
+      const k = err ? null : stKey(st); b.style.color = k ? ST[k].c : '';
+    }));
+  });
+  if (!stops.length) {
+    const m = document.createElement('div'); m.style.color = 'var(--text-dim)'; m.textContent = 'No live points found for this unit.'; box.appendChild(m);
+  }
+  if (z.href) {
+    const lb = document.createElement('button'); lb.className = 'btn';
+    lb.style.cssText = 'width:100%;margin-top:10px'; lb.textContent = 'Open page →';
+    lb.onclick = () => { window.open(z.href, '_blank'); closeEqInfo(); };
+    box.appendChild(lb);
+  }
+  eqInfoStop = () => stops.forEach(s => s());
+  box.style.display = 'block';
+  const w = box.offsetWidth, hgt = box.offsetHeight;
+  box.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - w - 8)) + 'px';
+  box.style.top  = Math.max(8, Math.min(e.clientY + 14, innerHeight - hgt - 8)) + 'px';
+}
+
+function deleteEquip(n) {
+  if (!n || !data.equip[n]) return;
+  if (!confirm(`Delete "${data.equip[n].label || n}" and all its data?`)) return;
+  delete data.equip[n];
+  const e = equip[n];
+  if (e.poly) { overlay.remove(e.poly); const i = pickables.indexOf(e.poly.userData.fill); if (i >= 0) pickables.splice(i, 1); e.poly = null; }
+if (e.unsub) { e.unsub(); e.unsub = null; } e.v = null; e.alarm = false; e.st = null; queueUI();
+hoverEq(null); closeEqInfo(); $('tip').style.display = 'none';
+  save();
+}
+$('eClr').onclick = () => deleteEquip($('eSel').value);
+
+/* ── Custom tags (name + ORD, drawn like the zone tags) ── */
+const cust = {};
+let cuId = null, cuPlaceId = null;
+
+function drawCust(c) {
+  const s = c.sprite; if (!s) return;
+  const g = s.userData.cv.getContext('2d');
+  g.clearRect(0, 0, 256, 128);
+  g.fillStyle = 'rgba(8,13,20,.86)'; g.fillRect(4, 4, 248, 120);
+g.strokeStyle = c.st ? ST[c.st].c : c.v != null ? 'hsl(122,100%,44%)' : 'hsl(195,80%,50%)'; g.lineWidth = 7; g.strokeRect(4, 4, 248, 120);
+g.textAlign = 'center'; g.fillStyle = '#c8d8ea'; g.font = '700 28px sans-serif';
+  g.fillText(c.name.length > 14 ? c.name.slice(0, 13) + '…' : c.name, 128, 44);
+  g.fillStyle = '#fff'; g.font = '700 40px monospace';
+  const v = c.v == null ? '—' : String(c.v);
+  g.fillText(v.length > 9 ? v.slice(0, 8) + '…' : v, 128, 100);
+  s.material.map.needsUpdate = true;
+}
+function applyCust(id) {
+  const c = cust[id], d = data.custom[id]; if (!c || !d) return;
+  c.name = d.label; c.ord = d.ord;
+  if (c.sprite) { overlay.remove(c.sprite); const i = pickables.indexOf(c.sprite); if (i >= 0) pickables.splice(i, 1); c.sprite = null; }
+  if (d.pos) {
+    c.sprite = makeTag({ name: c.name });
+    tagSize(c.sprite, d.size);
+    delete c.sprite.userData.zone; c.sprite.userData.cust = id;
+    c.sprite.position.fromArray(d.pos); overlay.add(c.sprite); pickables.push(c.sprite);
+    drawCust(c);
+  }
+watchCust(id);
+  
+}
+function watchCust(id) {
+  const c = cust[id], d = data.custom[id]; if (!c) return;
+  if (c.unsub) { c.unsub(); c.unsub = null; }
+  if (!d || !d.ord) return;
+  c.unsub = watch(d.ord, (e, v, st) => {
+    c.v = e ? null : v;
+    c.st = e ? null : stKey(st);
+    c.alarm = c.st === 'alarm';
+    drawCust(c); queueUI();
+  });
+}
+function syncCSz() {
+  const s = data.custom[$('cSel').value]?.size || 1;
+  $('cSz').value = s; $('cSzN').value = s;
+}
+function setCustSize(v, commit) {
+  const id = $('cSel').value, d = data.custom[id];
+  if (!d || isNaN(v) || v <= 0) return;
+  d.size = v; $('cSz').value = v; $('cSzN').value = v;
+  const c = cust[id]; if (c && c.sprite) tagSize(c.sprite, v);
+  if (commit) save();
+}
+$('cSz').addEventListener('input',  e => setCustSize(parseFloat(e.target.value), false));
+$('cSz').addEventListener('change', e => setCustSize(parseFloat(e.target.value), true));
+$('cSzN').addEventListener('change', e => setCustSize(parseFloat(e.target.value), true));
+$('cSel').addEventListener('change', syncCSz);
+function refreshCustList() {
+  const sel = $('cSel'), keep = sel.value;
+  sel.innerHTML = Object.entries(data.custom).map(([id, d]) => `<option value="${id}">${d.label}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  syncCSz();
+}
+function openCu(id) {
+  cuId = id || null;
+  const d = (id && data.custom[id]) || {};
+  $('cuTitle').textContent = id ? 'Edit Custom Tag' : 'New Custom Tag';
+  $('cuName').value = d.label || ''; $('cuOrd').value = d.ord || '';
+  $('cuModal').classList.add('open');
+}
+function armCustPlace(id) {
+  cancelDraw(); armed = 'cplace'; cuPlaceId = id;
+  banner(`Click the model where "${data.custom[id].label}" should sit`);
+}
+$('cNew').onclick  = () => { cancelDraw(); openCu(null); };
+$('cEdit').onclick = () => { if ($('cSel').value) openCu($('cSel').value); };
+$('cMove').onclick = () => { if ($('cSel').value) armCustPlace($('cSel').value); };
+$('cuCancel').onclick = () => $('cuModal').classList.remove('open');
+$('cuFinish').onclick = () => {
+  const label = $('cuName').value.trim(), ord = $('cuOrd').value.trim();
+  if (!label || !ord) return;
+  const id = cuId || 'cu_' + Date.now();
+  const d = (data.custom[id] ||= {}); d.label = label; d.ord = ord;
+  cust[id] ||= { id, v: null, sprite: null };
+  $('cuModal').classList.remove('open');
+  applyCust(id); save(); $('cSel').value = id;
+  if (!d.pos) armCustPlace(id);          // new tag → click the model to drop it
+};
+$('cDel').onclick = () => {
+  const id = $('cSel').value; if (!id || !data.custom[id]) return;
+  if (!confirm(`Delete "${data.custom[id].label}"?`)) return;
+  const c = cust[id];
+  if (c.unsub) c.unsub();
+  if (c.sprite) { overlay.remove(c.sprite); const i = pickables.indexOf(c.sprite); if (i >= 0) pickables.splice(i, 1); }
+  delete cust[id]; delete data.custom[id]; save();
+};
+/* drop / move the tag on the next model click */
+renderer.domElement.addEventListener('click', e => {
+  if (armed !== 'cplace' || !edit || draw) return;
+  const p = hitModel(e); if (!p) return;
+  data.custom[cuPlaceId].pos = p.toArray();
+  applyCust(cuPlaceId); save(); armed = null; banner('');
+});
+
+/* images */
+const texLoader = new THREE.TextureLoader();
+const imgMesh = new Map();                 // data item -> 3D plane
+let selImg = null;
+const rad = d => d * Math.PI / 180;
+
+function updateImage(item) {
+  const m = imgMesh.get(item); if (!m) return;
+  const h = R * 0.1 * (item.s || 1);
+  m.scale.set(h * m.userData.asp, h, 1);
+  m.position.fromArray(item.pos);
+}
+function placeImage(item, select) {
+  texLoader.load(item.src, tex => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, alphaTest: 0.02,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    m.userData.img = item; m.userData.asp = tex.image.width / tex.image.height;
+    const ol = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(1, 1)),
+      new THREE.LineBasicMaterial({ color: 0xffae00, depthTest: false }));
+    ol.visible = false; ol.renderOrder = 20; m.add(ol); m.userData.ol = ol;
+    imgMesh.set(item, m); overlay.add(m); pickables.push(m);
+    updateImage(item);
+    if (select) selectImg(item);
+  });
+}
+
+function imShow() {
+  if (!selImg) return;
+  const bb = selImg.bb ?? true;
+  $('imS').value = selImg.s || 1;   $('imSv').textContent  = (selImg.s || 1).toFixed(2) + '×';
+  $('imRz').value = selImg.rz || 0; $('imRzv').textContent = Math.round(selImg.rz || 0) + '°';
+  $('imRx').value = selImg.rx || 0; $('imRxv').textContent = Math.round(selImg.rx || 0) + '°';
+  $('imRy').value = selImg.ry || 0; $('imRyv').textContent = Math.round(selImg.ry || 0) + '°';
+  $('imBb').checked = bb;
+  $('imXY').style.display = bb ? 'none' : 'flex';
+  $('imXYn').style.display = bb ? 'none' : 'flex';
+  $('imSn').value  = +(selImg.s || 1).toFixed(3);
+  $('imRzn').value = Math.round(selImg.rz || 0);
+  $('imRxn').value = Math.round(selImg.rx || 0);
+  $('imRyn').value = Math.round(selImg.ry || 0);
+  $('imPx').value = +selImg.pos[0].toFixed(3);
+  $('imPy').value = +selImg.pos[1].toFixed(3);
+  $('imPz').value = +selImg.pos[2].toFixed(3);
+}
+function selectImg(item) {
+  selImg = item || null;
+  $('imgCtl').style.display = selImg ? 'flex' : 'none';
+  $('imHint').style.display = selImg ? 'none' : '';
+  imShow();
+}
+[['imS','s'], ['imRz','rz'], ['imRx','rx'], ['imRy','ry']].forEach(([id, k]) => {
+  $(id).addEventListener('input', () => { if (!selImg) return; selImg[k] = parseFloat($(id).value); updateImage(selImg); imShow(); });
+  $(id).addEventListener('change', () => save());
+});
+$('imBb').addEventListener('change', () => { if (!selImg) return; selImg.bb = $('imBb').checked; imShow(); save(); });
+[['imSn','s'], ['imRzn','rz'], ['imRxn','rx'], ['imRyn','ry']].forEach(([id, k]) => {
+  $(id).addEventListener('change', () => {
+    if (!selImg) return;
+    const v = parseFloat($(id).value); if (isNaN(v)) { imShow(); return; }
+    selImg[k] = k === 's' ? Math.max(0.01, v) : v;
+    updateImage(selImg); imShow(); save();
+  });
+});
+[['imPx', 0], ['imPy', 1], ['imPz', 2]].forEach(([id, i]) => {
+  $(id).addEventListener('change', () => {
+    if (!selImg) return;
+    const v = parseFloat($(id).value); if (isNaN(v)) { imShow(); return; }
+    selImg.pos[i] = v;
+    updateImage(selImg); imShow(); save();
+  });
+});
+$('imDup').onclick = () => {
+  if (!selImg) return;
+  const it = { ...selImg, pos: [selImg.pos[0] + R * 0.03, selImg.pos[1], selImg.pos[2] + R * 0.03] };
+  data.images.push(it); placeImage(it, true); save();
+};
+$('imDel').onclick = () => {
+  if (!selImg) return;
+  const m = imgMesh.get(selImg);
+  if (m) { overlay.remove(m); const i = pickables.indexOf(m); if (i >= 0) pickables.splice(i, 1); }
+  imgMesh.delete(selImg);
+  data.images = data.images.filter(i => i !== selImg);
+  selectImg(null); save();
+};
+
+/* drag a selected image across the model surface (capture phase so orbit doesn't also grab it) */
+let dragImg = null, dragMoved = false;
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!edit || draw || armed || e.button !== 0) return;
+  const o = hitPick(e);
+  if (o && o.userData.img) { selectImg(o.userData.img); dragImg = o.userData.img; dragMoved = false; controls.enabled = false; }
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!dragImg) return;
+  const p = hitModel(e); if (!p) return;
+  dragImg.pos = p.toArray(); dragMoved = true; updateImage(dragImg); imShow();
+});
+window.addEventListener('pointerup', () => {
+  if (!dragImg) return;
+  dragImg = null; controls.enabled = true;
+  if (dragMoved) save();
+});
+
+/* ── GLB models ── */
+const GLB_DIR = './glbFiles/';
+const GLB_FILES = ['TEST.glb', 'Tower2.glb', 'Intellipak.glb', 'Voyager_RTU-compressed.glb', 'RTU_Intellipak-compressed.glb'];   // add more names here, e.g. ['TEST.glb', 'pump.glb']
+const glbLoader = new GLTFLoader(), glbCache = new Map(), glbRoots = new Map();
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('./JS_3DFiles/');
+glbLoader.setDRACOLoader(dracoLoader);
+let selGlb = null, dragFile = null;
+
+async function glbListFiles() {
+  let names = [];
+  try {
+    const t = await (await fetch(GLB_DIR, { cache: 'no-store' })).text();
+    const d = new DOMParser().parseFromString(t, 'text/html');
+    names = [...d.querySelectorAll('a')].map(a => decodeURIComponent((a.getAttribute('href') || '').split('?')[0].split('/').pop()));
+  } catch {}
+  names = names.filter(n => /\.(glb|gltf)$/i.test(n));
+  if (!names.length) { try { names = await (await fetch(GLB_DIR + 'files.json', { cache: 'no-store' })).json(); } catch {} }
+  names = [...new Set([...names, ...GLB_FILES])].sort();
+  const box = $('glbList'); box.innerHTML = '';
+  if (!names.length) { box.innerHTML = '<div style="color:var(--text-dim);grid-column:1/3">No files found (add glbFiles/files.json)</div>'; return; }
+  names.forEach(n => {
+    const d = document.createElement('div'); d.className = 'asset'; d.textContent = n; d.draggable = true;
+    d.ondragstart = e => { dragFile = n; e.dataTransfer.setData('text/plain', n); };
+    d.ondragend = () => { dragFile = null; };
+    d.onclick = () => {
+      cancelDraw(); armed = 'glb:' + n; d.classList.add('on'); banner(`Click the scene to place "${n}"`);
+    };
+    box.appendChild(d);
+  });
+}
+$('glbRefresh').onclick = glbListFiles;
+
+const loadGlb = f => {
+  if (!glbCache.has(f)) glbCache.set(f, new Promise((res, rej) =>
+    glbLoader.load(GLB_DIR + encodeURIComponent(f), g => res(g.scene), undefined, rej)));
+  return glbCache.get(f);
+};
+
+async function placeGlb(item, select) {
+  let src; try { src = await loadGlb(item.file); } catch (e) { setStatus(`Could not load ${item.file}`, 'error'); console.error(e); return; }
+  const inst = src.clone(true);
+  inst.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+  const box = new THREE.Box3().setFromObject(inst), size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+  inst.position.set(-c.x, -box.min.y, -c.z);                 // sit on its base, centered
+  const root = new THREE.Group(); root.add(inst);
+  root.userData.k = (R * 0.1) / (Math.max(size.x, size.y, size.z) || 1);   // 1.0 size = 10% of building
+  root.userData.item = item;
+  root.userData.sel = new THREE.BoxHelper(root, 0xffae00);
+  root.userData.sel.material.depthTest = false; root.userData.sel.renderOrder = 20; root.userData.sel.visible = false;
+  scene.add(root.userData.sel);
+  overlay.add(root); glbRoots.set(item, root);
+  updateGlb(item);
+  if (select) selectGlb(item);
+}
+function updateGlb(item) {
+  const r = glbRoots.get(item); if (!r) return;
+  r.position.fromArray(item.pos);
+  r.scale.setScalar(r.userData.k * (item.s || 1));
+  r.rotation.y = rad(item.ry || 0);
+  overlay.updateMatrixWorld(true);
+  r.userData.sel.update();
+  if (edit) renderer.shadowMap.needsUpdate = true;
+}
+function glbVis() { glbRoots.forEach((r, it) => { r.userData.sel.visible = edit && it === selGlb; }); }
+function glbShow() {
+  if (!selGlb) return;
+  $('gS').value = selGlb.s || 1; $('gSn').value = +(selGlb.s || 1).toFixed(3); $('gSv').textContent = (selGlb.s || 1).toFixed(2) + '×';
+  $('gR').value = selGlb.ry || 0; $('gRv').textContent = Math.round(selGlb.ry || 0) + '°';
+  $('gPx').value = +selGlb.pos[0].toFixed(3); $('gPy').value = +selGlb.pos[1].toFixed(3); $('gPz').value = +selGlb.pos[2].toFixed(3);
+}
+function selectGlb(item) {
+  selGlb = item || null;
+  $('glbCtl').style.display = selGlb ? 'flex' : 'none';
+  $('glbHint').style.display = selGlb ? 'none' : '';
+  glbShow(); glbVis();
+}
+[['gS','s'], ['gR','ry']].forEach(([id, k]) => {
+  $(id).addEventListener('input', () => { if (!selGlb) return; selGlb[k] = parseFloat($(id).value); updateGlb(selGlb); glbShow(); });
+  $(id).addEventListener('change', () => save());
+});
+$('gSn').addEventListener('change', () => {
+  if (!selGlb) return; const v = parseFloat($('gSn').value); if (isNaN(v)) return glbShow();
+  selGlb.s = Math.max(0.01, v); updateGlb(selGlb); glbShow(); save();
+});
+[['gPx',0],['gPy',1],['gPz',2]].forEach(([id, i]) => $(id).addEventListener('change', () => {
+  if (!selGlb) return; const v = parseFloat($(id).value); if (isNaN(v)) return glbShow();
+  selGlb.pos[i] = v; updateGlb(selGlb); glbShow(); save();
+}));
+$('gDup').onclick = () => {
+  if (!selGlb) return;
+  const it = { ...selGlb, pos: [selGlb.pos[0] + R * 0.03, selGlb.pos[1], selGlb.pos[2] + R * 0.03] };
+  data.models.push(it); placeGlb(it, true); save();
+};
+$('gDel').onclick = () => {
+  if (!selGlb) return;
+  const r = glbRoots.get(selGlb);
+  if (r) { overlay.remove(r); scene.remove(r.userData.sel); }
+  glbRoots.delete(selGlb); data.models = data.models.filter(m => m !== selGlb);
+  selectGlb(null); save(); renderer.shadowMap.needsUpdate = true;
+};
+
+/* where a click/drop lands: the building surface, else the ground plane */
+function hitGround(e) {
+  setRay(e); const w = new THREE.Vector3();
+  return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), w) ? overlay.worldToLocal(w) : null;
+}
+function dropGlb(file, e) {
+  const p = hitModel(e) || hitGround(e); if (!p) return;
+  const it = { file, pos: p.toArray(), s: 1, ry: 0 };
+  data.models.push(it); placeGlb(it, true); save();
+}
+stage.addEventListener('dragover', e => { if (edit && dragFile) e.preventDefault(); });
+stage.addEventListener('drop', e => {
+  if (!edit || !dragFile || e.target.closest('#edit')) return;
+  e.preventDefault(); dropGlb(dragFile, e); dragFile = null;
+});
+/* click-to-place (after clicking a file in the list) */
+renderer.domElement.addEventListener('click', e => {
+  if (!edit || draw || !String(armed).startsWith('glb:')) return;
+  dropGlb(armed.slice(4), e); armed = null; banner('');
+  document.querySelectorAll('.asset.on').forEach(a => a.classList.remove('on'));
+});
+/* select + drag a placed model (capture phase so orbit doesn't grab it) */
+let dragG = null, dragGMoved = false;
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (!edit || draw || armed || e.button !== 0) return;
+  setRay(e);
+  const hit = ray.intersectObjects([...glbRoots.values()], true).find(clipOK); if (!hit) return;
+  let o = hit.object; while (o && !o.userData.item) o = o.parent;
+  if (!o) return;
+  selectGlb(o.userData.item); dragG = o.userData.item; dragGMoved = false; controls.enabled = false;
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!dragG) return;
+  const p = hitModel(e) || hitGround(e); if (!p) return;
+  dragG.pos = p.toArray(); dragGMoved = true; updateGlb(dragG); glbShow();
+});
+window.addEventListener('pointerup', () => {
+  if (!dragG) return;
+  dragG = null; controls.enabled = true; if (dragGMoved) save();
+});
+
+/* ── distance decluttering + pulsing ── */
+const TAG_SHOW_MULT = 1.5;       // tags show within (model radius × this) of the camera. Raise = tags appear from farther away, Lower = tags disappear from farther away. 
+const TAG_FADE      = 0.75;      // fraction of that distance used for the fade-out
+const ALWAYS_SHOW   = ['alarm'];  // statuses that ignore the distance rule (add 'fault','down' if you want those too)
+const _tv = new THREE.Vector3(), _q = new THREE.Quaternion();
+
+function tickTags(t) {
+  if (!model) return;
+  const far = R * TAG_SHOW_MULT, pulse = 0.55 + 0.45 * Math.sin(t * 0.007);
+  const tag = (s, st) => {
+    if (!s) return;
+    _tv.copy(s.position).applyMatrix4(overlay.matrixWorld);
+    let f = Math.min(1, Math.max(0, (far - camera.position.distanceTo(_tv)) / (far * TAG_FADE)));
+    if (edit || (st && ALWAYS_SHOW.includes(st))) f = 1;
+    s.visible = f > 0.01;
+    s.material.opacity = st === 'alarm' ? pulse : f;
+  };
+  Object.values(zones).forEach(z => {
+    tag(z.sprite, z.st);
+    if (z.poly) z.poly.userData.fill.material.opacity = z.st === 'alarm' ? 0.1 + 0.3 * pulse : 0.22;
+  });
+  Object.values(cust).forEach(c => tag(c.sprite, c.st));
+  Object.values(hlObjs).forEach(o => tag(o.tag, o.st));
+  const fOn = filterOn(); ovFilterSync(fOn);
+  Object.entries(hlObjs).forEach(([id, o]) => {
+    const hide = fOn && !!o.img && ovShow[id] === false;
+    if (hide && o.g) o.g.visible = false;
+    if (o.img) o.img.visible = !hide && !!o.imgReady && (edit || fOn || o.imgAlways || !!(o.g && o.g.visible));
+  });
+    imgMesh.forEach((m, it) => {
+    if (it.bb ?? true) { m.quaternion.copy(_q.copy(overlay.quaternion).invert().multiply(camera.quaternion)); m.rotateZ(rad(it.rz || 0)); }
+    else m.rotation.set(rad(it.rx || 0), rad(it.ry || 0), rad(it.rz || 0), 'YXZ');
+    m.userData.ol.visible = edit && it === selImg;
+  });
+  Object.values(equip).forEach(e => {
+    if (e.poly) e.poly.userData.fill.material.opacity = e.st === 'alarm' ? 0.15 + 0.3 * pulse : 0.3;
+  });
+}
+
+/* ── smooth camera fly ── */
+let camAnim = null;
+function flyCam(pos, tgt, ms = 900) {
+  camAnim = { p0: camera.position.clone(), t0: controls.target.clone(), p1: new THREE.Vector3(...pos), t1: new THREE.Vector3(...tgt), s: performance.now(), ms };
+}
+function stepCam() {
+  if (!camAnim) return;
+  const k = Math.min(1, (performance.now() - camAnim.s) / camAnim.ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  camera.position.lerpVectors(camAnim.p0, camAnim.p1, e);
+  controls.target.lerpVectors(camAnim.t0, camAnim.t1, e);
+  if (k >= 1) camAnim = null;
+}
+controls.addEventListener('start', () => { camAnim = null; });   // user grabs the view → stop the animation
+/* highlights: hover a button → its traced area glows; click → floor plan */
+const hlObjs = {};
+const HL_COLORS = ['#00b4ff','#ffab00','#00e676','#c07fff','#ff5252','#00e5ff','#ff9100','#76ff03','#ff4081','#40c4ff','#ffd740','#69f0ae'];
+const hexA = (hex, a) => { const n = parseInt(hex.replace('#',''), 16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; };
+
+const goHl = h => { if (h.href) window.location.href = '../' + h.href; };   // same link the button uses
+
+function removeHlGroup(id) {
+  const im = hlObjs[id]?.img;
+  if (im) { overlay.remove(im); im.geometry.dispose(); im.material.dispose(); hlObjs[id].img = null; }
+  const g = hlObjs[id]?.g; if (!g) return;
+  overlay.remove(g);
+   [g.userData.fill, g.userData.line].forEach(m => {
+    const i = pickables.indexOf(m); if (i >= 0) pickables.splice(i, 1);
+  });
+  hlObjs[id].g = null;
+}
+
+let hoverId = null;
+function hoverHl(id) {
+  if (id === hoverId) return;
+  if (hoverId && hlObjs[hoverId]?.g) hlObjs[hoverId].g.visible = !!hlObjs[hoverId].g.userData.always;
+  hoverId = id || null;
+  if (hoverId && hlObjs[hoverId]?.g) hlObjs[hoverId].g.visible = true;
+  renderer.domElement.style.cursor = hoverId ? 'pointer' : '';
+  showFloorPrev(hoverId);
+}
+
+function renderHl(h) {
+  h.color = h.color || '#c878ff';
+  removeHlGroup(h.id);
+  hlClearCustom(h.id);
+  let btn = hlObjs[h.id]?.btn;
+  if (h.custom) { if (btn) { btn.remove(); btn = null; } }
+  else {
+    if (!btn) {
+      btn = document.createElement('div'); btn.className = 'hl';
+      btn.onmouseenter = () => { if (hlObjs[h.id].g) hlObjs[h.id].g.visible = true; };
+      btn.onmouseleave = () => { if (hlObjs[h.id].g) hlObjs[h.id].g.visible = false; };
+      btn.onclick = () => { if (edit) { hlOpen(h.id); return; } goHl(h); };
+      $('hlList').appendChild(btn);
+    }
+    btn.textContent = h.name;
+    btn.style.background = hexA(h.color, .16);
+    btn.style.border = '1.5px solid ' + hexA(h.color, .75);
+    btn.style.color = h.color;
+  }
+  hlObjs[h.id] = { btn, g: null };
+  const g = h.prism ? makePrism(h.prism, h.color, 0.35)
+        : h.box ? makeBox(h.box, h.color, 0.35)
+        : (h.poly && h.poly.length >= 3) ? makePoly(h.poly, h.color, 0.35) : null;
+  if (g) {
+    g.userData.custom = !!h.custom;
+    g.userData.always = !!h.custom && edit;      // always visible only while in Edit Mode
+    g.visible = g.userData.always;
+    overlay.add(g); hlObjs[h.id].g = g;
+    if (h.custom) {                              // polyline: hover/click the LINE itself
+      g.userData.line.userData.hl = h.id;
+      pickables.push(g.userData.line);
+    } else {                                     // floor highlights: unchanged
+      g.userData.fill.userData.hl = h.id;
+      pickables.push(g.userData.fill);
+    }
+  }
+  if (h.custom) applyHlData(h);
+  buildHlImage(h);
+  updateHlToggle();
+}
+
+/* ── custom-polyline data tag ── */
+function hlClearCustom(id) {
+  const o = hlObjs[id]; if (!o) return;
+  if (o.unsub) { o.unsub(); o.unsub = null; }
+  if (o.tag) { overlay.remove(o.tag); const i = pickables.indexOf(o.tag); if (i >= 0) pickables.splice(i, 1); o.tag = null; }
+}
+function drawHlTag(o, h) {
+  const col = o.st ? ST[o.st].c : o.v != null ? 'hsl(122,100%,44%)' : 'hsl(195,80%,50%)';
+  if (o.g) setPolyColor(o.g, o.st ? ST[o.st].c : h.color);
+  const s = o.tag; if (!s) return;
+  const g = s.userData.cv.getContext('2d');
+  g.clearRect(0, 0, 256, 128);
+  g.fillStyle = 'rgba(8,13,20,.86)'; g.fillRect(4, 4, 248, 120);
+  g.strokeStyle = col; g.lineWidth = 7; g.strokeRect(4, 4, 248, 120);
+  g.textAlign = 'center'; g.fillStyle = '#c8d8ea'; g.font = '700 28px sans-serif';
+  const n = h.custom.label; g.fillText(n.length > 14 ? n.slice(0, 13) + '…' : n, 128, 44);
+  g.fillStyle = '#fff'; g.font = '700 40px monospace';
+  const v = o.v == null ? '—' : String(o.v); g.fillText(v.length > 9 ? v.slice(0, 8) + '…' : v, 128, 100);
+  s.material.map.needsUpdate = true;
+}
+function applyHlData(h) {
+  const o = hlObjs[h.id]; if (!o || !h.custom) return;
+  if (h.tagPos) {
+    o.tag = makeTag({ name: h.custom.label });
+    delete o.tag.userData.zone; o.tag.userData.hlTag = h.id;
+    tagSize(o.tag, h.tagSize ?? HL_TAG_DEF);
+    o.tag.position.fromArray(h.tagPos);
+    overlay.add(o.tag); pickables.push(o.tag);
+  }
+  drawHlTag(o, h);
+  o.unsub = watch(h.custom.ord, (e, v, st) => {
+    o.v = e ? null : v; o.st = e ? null : stKey(st);
+    drawHlTag(o, h); queueUI();
+  });
+}
+
+/* after the polyline closes: click once to drop the data tag */
+let hlTagId = null;
+function armHlTag(id) { armed = 'hltag'; hlTagId = id; banner('Click where the point data should sit · Esc skips'); }
+renderer.domElement.addEventListener('click', e => {
+  if (armed !== 'hltag' || !edit || draw) return;
+  const p = hitModel(e); if (!p) return;
+  const h = data.highlights.find(x => x.id === hlTagId); if (!h) return;
+  h.tagPos = p.toArray(); renderHl(h); save(); armed = null; banner('');
+});
+
+const HL_TAG_DEF = 0.4;   // default size for polyline tags (old behavior was 1.0)
+
+function syncHSz() {
+  const h = data.highlights.find(x => x.id === $('hSel').value);
+  const s = h?.tagSize ?? HL_TAG_DEF;
+  $('hSz').value = s; $('hSzN').value = s;
+}
+function refreshHlTagList() {
+  const sel = $('hSel'), keep = sel.value;
+  sel.innerHTML = data.highlights.filter(h => h.custom)
+    .map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  syncHSz();
+}
+function setHlTagSize(v, commit) {
+  const h = data.highlights.find(x => x.id === $('hSel').value);
+  if (!h || isNaN(v) || v <= 0) return;
+  h.tagSize = v; $('hSz').value = v; $('hSzN').value = v;
+  const o = hlObjs[h.id]; if (o && o.tag) tagSize(o.tag, v);
+  if (commit) save();
+}
+$('hSz').addEventListener('input',  e => setHlTagSize(parseFloat(e.target.value), false));
+$('hSz').addEventListener('change', e => setHlTagSize(parseFloat(e.target.value), true));
+$('hSzN').addEventListener('change', e => setHlTagSize(parseFloat(e.target.value), true));
+$('hSel').addEventListener('change', syncHSz);
+$('hMove').onclick = () => { const id = $('hSel').value; if (id) armHlTag(id); };
+
+function updateHlToggle() {
+  const n = $('hlList').children.length;
+  $('hlWrap').classList.toggle('empty', !n);
+  $('hlToggle').textContent = `Floors (${n}) ${$('hlWrap').classList.contains('open') ? '▾' : '▴'}`;
+}
+$('hlToggle').onclick = e => { e.stopPropagation(); $('hlWrap').classList.toggle('open'); updateHlToggle(); };
+document.addEventListener('click', e => { if (!$('hlWrap').contains(e.target)) { $('hlWrap').classList.remove('open'); updateHlToggle(); } });
+
+/* floor list + properties dialog (ported from FloorPlan.html) */
+let hlFloors = [], hlEditId = null;
+
+function buildFloorOptions(cfg) {
+  const out = [];
+  if (!cfg?.floorPlans) return out;
+  const nameMap = {};
+  if (Array.isArray(cfg.floorNames)) cfg.floorNames.forEach((n, i) => { nameMap[i] = n; });
+  ['VAVs','FTUs'].forEach(k => (cfg[k] || []).forEach(u => {
+    if (u.floornumber !== undefined && u.Floornumber_NAME && !nameMap[u.floornumber]) nameMap[u.floornumber] = u.Floornumber_NAME;
+  }));
+  for (const [key, v] of Object.entries(cfg.floorPlans)) {
+    const num = v.FloorNUM !== undefined ? v.FloorNUM : parseInt((v.name || key).replace(/\D/g, ''));
+    const disp = nameMap[num] || v.name || key, base = 'Floor_Plans/' + disp.replace(/\s+/g, '_') + '_Floor' + num;
+    if (v.wing === 'Split') {
+          if (v.dataEast && v.originalFileNameEast && v.originalFileNameEast !== 'null')
+        out.push({ href: base + '_East.html', label: `Floor ${num} — ${disp} (East)`, num, img: floorImgUrl(v.dataEast) });
+      if (v.dataWest && v.originalFileNameWest && v.originalFileNameWest !== 'null')
+        out.push({ href: base + '_West.html', label: `Floor ${num} — ${disp} (West)`, num, img: floorImgUrl(v.dataWest) });
+    } else if (v.originalFileName && v.originalFileName !== 'null') {
+      out.push({ href: base + '.html', label: `Floor ${num} — ${disp}`, num, img: floorImgUrl(v.data) });
+    }
+  }
+  return out.sort((a, b) => a.num - b.num);
+}
+
+/* the floor pages live in ../Floor_Plans/, and they load the image relative to themselves */
+function floorImgUrl(src) {
+  if (!src) return '';
+  try { return new URL(src, new URL('../Floor_Plans/', location.href)).href; } catch { return src; }
+}
+
+/* wireframe only: show the floor image for the hovered floor highlight */
+function showFloorPrev(id) {
+  const box = $('floorPrev');
+  const h = id && data.highlights.find(x => x.id === id);
+  const f = h && hlFloors.find(x => x.href === h.href);
+if (!f || !f.img) { box.style.display = 'none'; return; }
+      const im = $('floorPrevImg');
+  im.onerror = () => { box.style.display = 'none'; };
+  $('floorPrevTitle').textContent = f.label;
+  if (im.dataset.src !== f.img) { im.dataset.src = f.img; im.src = f.img; }
+  box.style.display = 'block';
+}
+
+function hlSyncCustom() {
+  const on = $('hlCustom').checked;
+  $('hlFloor').disabled = on;
+  $('hlFloor').style.opacity = on ? .35 : 1;
+  $('hlCustomWrap').style.display = on ? 'block' : 'none';
+}
+$('hlCustom').onchange = hlSyncCustom;
+
+function hlOpen(id) {
+  hlEditId = id || null;
+  const h = id && data.highlights.find(x => x.id === id);
+  $('hlTitle').textContent = h ? 'Edit Highlight' : 'New Highlight';
+  $('hlFloor').innerHTML = '<option value="">— Select Floor —</option>' +
+    hlFloors.map(f => `<option value="${f.href}">${f.label}</option>`).join('');
+  $('hlFloor').value = h ? (h.href || '') : '';
+  $('hlColor').value = h ? h.color : HL_COLORS[data.highlights.length % HL_COLORS.length];
+  $('hlCustom').checked = !!(h && h.custom);
+  $('hlCName').value = h?.custom?.label || '';
+  $('hlCOrd').value  = h?.custom?.ord || '';
+  hlSyncCustom();
+  $('hlDel').style.display = h ? '' : 'none';
+  $('hlModal').classList.add('open');
+}
+$('hlCancel').onclick = () => $('hlModal').classList.remove('open');
+$('hlSave').onclick = () => {
+  const sel = $('hlFloor'), opt = sel.options[sel.selectedIndex], isC = $('hlCustom').checked;
+  let v;
+  if (isC) {
+    const label = $('hlCName').value.trim(), ord = $('hlCOrd').value.trim();
+    if (!label || !ord) return;
+    v = { name: label, href: '', color: $('hlColor').value, custom: { label, ord } };
+  } else {
+    v = { name: sel.value ? opt.textContent.trim() : 'Highlight', href: sel.value, color: $('hlColor').value, custom: null };
+  }
+  $('hlModal').classList.remove('open');
+  if (hlEditId) {
+    const h = data.highlights.find(x => x.id === hlEditId);
+    Object.assign(h, v); renderHl(h); save();
+    if (h.custom && !h.tagPos) setTimeout(() => armHlTag(h.id), 50);
+  } else {
+    const h = { id: 'hl_' + Date.now(), ...v, poly: null };
+    data.highlights.push(h); renderHl(h);
+    startDraw('hl', h.id, `HIGHLIGHT "${h.name}"`, isC ? 'poly' : $('hlShape').value);   // custom = polyline only
+  }
+};
+$('hlDel').onclick = () => {
+  const id = hlEditId; if (!id) return;
+  $('hlModal').classList.remove('open');
+  removeHlGroup(id); hlClearCustom(id);
+  hlObjs[id].btn?.remove(); delete hlObjs[id];
+  data.highlights = data.highlights.filter(x => x.id !== id); save(); updateHlToggle();
+};
+/* ── editing: raycast + draw ───────────────────────────────── */
+/* ── floor-plan image overlay on a traced highlight (image comes from HomeConfig via hlFloors) ── */
+const OV_DEF = { op:0.9, always:false };
+function hlOutline(h) {
+  if (h.prism) { const y = h.prism.y0 + R * 0.002; return h.prism.poly.map(a => [a[0], y, a[2]]); }
+  if (h.box) { const a = h.box.min, b = h.box.max, y = a[1] + R * 0.002;
+    return [[a[0],y,a[2]],[b[0],y,a[2]],[b[0],y,b[2]],[a[0],y,b[2]]]; }
+  return h.poly && h.poly.length >= 3 ? h.poly : null;
+}
+/* 4-point homography: maps src quad -> dst quad, returns 8 coefficients (or null if degenerate) */
+function homography(s, d) {
+  const A = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = s[i], [u, v] = d[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y, u], [0, 0, 0, x, y, 1, -v * x, -v * y, v]);
+  }
+  for (let c = 0; c < 8; c++) {
+    let p = c;
+    for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    if (Math.abs(A[p][c]) < 1e-12) return null;
+    [A[c], A[p]] = [A[p], A[c]];
+    for (let r = 0; r < 8; r++) if (r !== c) {
+      const k = A[r][c] / A[c][c];
+      for (let j = c; j < 9; j++) A[r][j] -= k * A[c][j];
+    }
+  }
+  return A.map((r, i) => r[8] / r[i]);
+}
+
+function buildHlImage(h) {
+  const o = hlObjs[h.id]; if (!o) return;
+  if (o.img) { overlay.remove(o.img); o.img.geometry.dispose(); o.img.material.dispose(); o.img = null; }
+  if (!h.ov || h.custom) return;
+  const out = hlOutline(h), f = hlFloors.find(x => x.href === h.href);
+  if (!out || !f || !f.img) return;
+  const pts = out.map(a => new THREE.Vector3(...a)), n = new THREE.Vector3();
+  pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; n.x += (p.y - q.y) * (p.z + q.z); n.y += (p.z - q.z) * (p.x + q.x); n.z += (p.x - q.x) * (p.y + q.y); });
+  n.normalize(); if (n.lengthSq() < 1e-9) n.set(0, 1, 0);
+  const { u, v } = planeBasis(n), horiz = Math.abs(n.y) > 0.9;
+  const d = pts.reduce((s, p) => s + p.dot(n), 0) / pts.length;
+  const uu = pts.map(p => p.dot(u)), vv = pts.map(p => p.dot(v));
+  const u0 = Math.min(...uu), u1 = Math.max(...uu), v0 = Math.min(...vv), v1 = Math.max(...vv);
+  o.ovB = { u, v, n, d, org: [(u0 + u1) / 2, (v0 + v1) / 2] };
+
+  /* first time: corners = bounding rectangle of the traced area. Order: top-left, top-right, bottom-right, bottom-left */
+  if (!h.ov.c) {
+    const vt = horiz ? v0 : v1, vb = horiz ? v1 : v0;
+    h.ov.c = [[u0, vt], [u1, vt], [u1, vb], [u0, vb]].map(([a, b]) =>
+      u.clone().multiplyScalar(a).add(v.clone().multiplyScalar(b)).add(n.clone().multiplyScalar(d)).toArray());
+  }
+
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  geo.setIndex(THREE.ShapeUtils.triangulateShape(pts.map((_, i) => new THREE.Vector2(uu[i], vv[i])), []).flat());
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: null }, op: { value: 0.9 }, U: { value: u }, V: { value: v },
+                org: { value: new THREE.Vector2(...o.ovB.org) }, H: { value: new THREE.Matrix3() } },
+    vertexShader: 'varying vec3 vP;\n' +
+  'void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+  fragmentShader: 'uniform sampler2D map; uniform float op; uniform vec3 U; uniform vec3 V; uniform vec2 org; uniform mat3 H; varying vec3 vP;\n' +
+  'void main(){\n vec3 q = H * vec3(dot(vP,U)-org.x, dot(vP,V)-org.y, 1.0); vec2 t = q.xy / q.z;\n' +
+  'if(t.x<0.||t.x>1.||t.y<0.||t.y>1.) discard; vec4 c = texture2D(map, t); gl_FragColor = vec4(c.rgb, c.a*op);\n#include <colorspace_fragment>\n}',
+    transparent: true, side: THREE.DoubleSide, depthWrite: false,
+    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3
+  });
+  const mesh = new THREE.Mesh(geo, mat); mesh.renderOrder = 6; mesh.visible = false;
+  o.img = mesh; o.imgReady = false; overlay.add(mesh);
+  texLoader.load(f.img, tex => { tex.colorSpace = THREE.SRGBColorSpace; mat.uniforms.map.value = tex; o.imgReady = true; });
+  updateHlImage(h);
+}
+function updateHlImage(h) {
+  const o = hlObjs[h.id], m = o && o.img; if (!m || !h.ov || !h.ov.c) return;
+  const B = o.ovB, t = { ...OV_DEF, ...h.ov };
+  const src = t.c.map(a => { const p = new THREE.Vector3(...a); return [p.dot(B.u) - B.org[0], p.dot(B.v) - B.org[1]]; });
+  const H = homography(src, [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  if (H) m.material.uniforms.H.value.set(H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7], 1);
+  m.material.uniforms.op.value = t.op; o.imgAlways = !!t.always;
+  updateOvHandles();
+}
+function offerHlImage(h) {
+  if (!h || h.custom || !h.href) return;
+  const f = hlFloors.find(x => x.href === h.href);
+  if (!f || !f.img) return;
+  if (!confirm(`Overlay the "${f.label}" floor plan image on this area?\n(You can reshape it by dragging the corner bubbles in the Edit panel.)`)) return;
+  h.ov = { ...OV_DEF }; renderHl(h); save(); $('oSel').value = h.id; syncOv();
+}
+
+const OV_SL = [['oOp','op']];
+
+/* ── slice-mode checkboxes: which floor images to show ── */
+const ovShow = {};                                   // id -> false when unchecked (default = shown)
+let ovFilterKey = '';
+function filterOn() { return $('slicer').classList.contains('open') && !edit; }
+function ovFilterSync(on) {
+  const list = data.highlights.filter(h => h.ov && !h.custom);
+  const key = on + '|' + list.map(h => h.id + h.name).join(',');
+  if (key === ovFilterKey) return;
+  ovFilterKey = key;
+  const box = $('ovFilter');
+  if (!on || !list.length) { box.style.display = 'none'; return; }
+  box.innerHTML = '<h4>Floor images</h4>';
+  list.forEach(h => {
+    const l = document.createElement('label'), c = document.createElement('input'), s = document.createElement('span');
+    c.type = 'checkbox'; c.checked = ovShow[h.id] !== false;
+    c.onchange = () => { ovShow[h.id] = c.checked; };
+    s.textContent = h.name;
+    l.append(c, s); box.appendChild(l);
+  });
+  box.style.display = 'block';
+}
+const ovSel = () => data.highlights.find(x => x.id === $('oSel').value);
+function refreshOvList() {
+  const sel = $('oSel'), keep = sel.value;
+  sel.innerHTML = data.highlights.filter(h => !h.custom).map(h => `<option value="${h.id}">${h.ov ? '🖼 ' : ''}${h.name}</option>`).join('');
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+  syncOv();
+}
+function syncOv() {
+  const h = ovSel(), on = !!(h && h.ov), t = { ...OV_DEF, ...((h && h.ov) || {}) };
+  $('ovCtl').style.opacity = on ? 1 : 0.35;
+  OV_SL.forEach(([id, k]) => { $(id).value = t[k]; });
+  $('oAlways').checked = !!t.always;
+  $('oAdd').textContent = on ? 'Re-fit' : 'Add image';
+  updateOvHandles();
+}
+$('oSel').addEventListener('change', syncOv);
+OV_SL.forEach(([id, k]) => {
+  $(id).addEventListener('input', () => { const h = ovSel(); if (!h || !h.ov) return; h.ov[k] = parseFloat($(id).value); updateHlImage(h); });
+  $(id).addEventListener('change', () => { if (ovSel()?.ov) save(); });
+});
+$('oAlways').addEventListener('change', () => { const h = ovSel(); if (!h || !h.ov) return; h.ov.always = $('oAlways').checked; updateHlImage(h); save(); });
+$('oAdd').onclick = () => {
+  const h = ovSel(); if (!h) return;
+  if (!hlFloors.find(x => x.href === h.href && x.img)) { alert('This highlight has no floor selected (or that floor has no image in HomeConfig).'); return; }
+  h.ov = { ...OV_DEF }; renderHl(h); save();
+};
+$('oDel').onclick = () => { const h = ovSel(); if (!h || !h.ov) return; delete h.ov; renderHl(h); save(); };
+
+/* ── corner bubbles (0-3 = corners, 4 = center/move) ── */
+let ovHandles = [], dragH = null;
+const hdlTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const g = cv.getContext('2d');
+  g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fillStyle = 'rgba(255,174,0,.85)'; g.fill();
+  g.lineWidth = 5; g.strokeStyle = '#fff'; g.stroke();
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+function clearOvHandles() { ovHandles.forEach(s => { overlay.remove(s); s.material.dispose(); }); ovHandles = []; }
+function updateOvHandles() {
+  const h = ovSel(), o = h && hlObjs[h.id];
+  if (!edit || !h || !h.ov || !h.ov.c || !o || !o.img) { clearOvHandles(); return; }
+  if (ovHandles.length !== 5) {
+    clearOvHandles();
+    for (let i = 0; i < 5; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: hdlTex, depthTest: false, transparent: true, sizeAttenuation: false }));
+      s.scale.set(i === 4 ? 0.03 : 0.035, i === 4 ? 0.03 : 0.035, 1);
+      s.renderOrder = 30; s.userData.hIdx = i;
+      if (i === 4) s.material.opacity = 0.6;
+      overlay.add(s); ovHandles.push(s);
+    }
+  }
+  const c = h.ov.c, ctr = new THREE.Vector3();
+  for (let i = 0; i < 4; i++) { ovHandles[i].position.fromArray(c[i]); ctr.add(ovHandles[i].position); }
+  ovHandles[4].position.copy(ctr.multiplyScalar(0.25));
+}
+window.addEventListener('pointerdown', e => {
+  if (!edit || e.button !== 0 || e.target !== renderer.domElement || !ovHandles.length || draw || armed) return;
+  setRay(e);
+  const hit = ray.intersectObjects(ovHandles, false)[0];
+  if (!hit) return;
+  e.stopPropagation(); down = null;                      // keep orbit + click handlers out of it
+  dragH = { i: hit.object.userData.hIdx, last: null };
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!dragH) return;
+  const h = ovSel(), o = h && hlObjs[h.id]; if (!h || !h.ov || !o || !o.ovB) return;
+  setRay(e);
+  const B = o.ovB;
+  const org = overlay.worldToLocal(ray.ray.origin.clone());
+  const tgt = overlay.worldToLocal(ray.ray.origin.clone().add(ray.ray.direction));
+  const p = new THREE.Ray(org, tgt.sub(org).normalize())
+    .intersectPlane(new THREE.Plane(B.n.clone(), -B.d), new THREE.Vector3());
+  if (!p) return;
+  if (dragH.last) {
+    const dl = p.clone().sub(dragH.last), c = h.ov.c;
+    if (dragH.i === 4) c.forEach(a => { a[0] += dl.x; a[1] += dl.y; a[2] += dl.z; });
+    else { const a = c[dragH.i]; a[0] += dl.x; a[1] += dl.y; a[2] += dl.z; }
+    updateHlImage(h);
+  }
+  dragH.last = p;
+});
+window.addEventListener('pointerup', () => {
+  if (!dragH) return;
+  dragH = null; save();
+});
+
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+function setRay(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.params.Line.threshold = R * 0.01;   // how close the cursor must be to the line. Raise if hard to hit
+  ray.setFromCamera(mouse, camera);
+}
+function hitModel(e) {
+  if (!model) return null; setRay(e);
+   const h = ray.intersectObject(model, true).find(clipOK);
+  return h ? overlay.worldToLocal(h.point.clone()) : null;
+}
+/* equipment areas, zone tags/areas and images win over floor highlights, even when the floor box is closer to the camera */
+function hitPick(e) {
+  setRay(e);
+  const hits = ray.intersectObjects(pickables, false).filter(h => clipOK(h) && !(h.object.isSprite && !h.object.visible)
+    && !(filterOn() && h.object.userData.hl && ovShow[h.object.userData.hl] === false && hlObjs[h.object.userData.hl]?.img));
+  return (hits.find(h => !h.object.userData.hl) || hits[0])?.object || null;
+}
+
+const UP = new THREE.Vector3(0, 1, 0);
+
+/* two in-plane axes: u = horizontal, v = vertical (or world X/Z on roofs and floors) */
+function planeBasis(n) {
+  if (Math.abs(n.y) > 0.9) return { u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1) };
+  const u = new THREE.Vector3().crossVectors(UP, n).normalize();
+  const v = UP.clone().sub(n.clone().multiplyScalar(UP.dot(n))).normalize();
+  return { u, v };
+}
+
+function startDraw(kind, target, label, mode = 'poly') {
+  cancelDraw();
+draw = { kind, target, mode: mode === 'prism' ? 'poly' : mode, prism: mode === 'prism', heightStage: false, ys: [], pts: [], line: null, prev: null, plane: null };
+showAllAreas(true);
+banner(label + (mode === 'rect'
+    ? ' — click one corner, then the opposite corner · Esc cancels'
+    : ' — click points (Shift = straight line) · click first point or Enter to close · Esc cancels'));
+}
+
+
+/* every click hits the model; Shift snaps to the nearest world axis (X, Y or Z) from the previous point */
+function hitDraw(e) {
+  if (!model) return null; setRay(e);
+  const h = ray.intersectObject(model, true).find(clipOK); if (!h) return null;
+  let wp = h.point.clone();
+  if (e.shiftKey && draw.mode === 'poly' && draw.pts.length) {
+    const prev = overlay.localToWorld(draw.pts[draw.pts.length - 1].clone());
+    const d = wp.clone().sub(prev), ax = [Math.abs(d.x), draw.kind === 'equip' ? 0 : Math.abs(d.y), Math.abs(d.z)], k = ax.indexOf(Math.max(...ax));
+    wp = prev.clone(); wp.setComponent(k, prev.getComponent(k) + d.getComponent(k));
+  }
+  return overlay.worldToLocal(wp);
+}
+
+/* 3D box from two clicks. If the clicks are on one wall (almost no span on X or Z),
+   that axis stretches across the whole building, so one wall = a full floor band. */
+function boxFrom(a, b) {
+  const A = overlay.localToWorld(a.clone()), B = overlay.localToWorld(b.clone());
+  const mb = new THREE.Box3().setFromObject(model), pad = R * 0.004;
+  const min = new THREE.Vector3(), max = new THREE.Vector3();
+  ['x', 'y', 'z'].forEach(k => {
+    let lo = Math.min(A[k], B[k]), hi = Math.max(A[k], B[k]);
+    if (k !== 'y' && hi - lo < R * 0.05) { lo = mb.min[k]; hi = mb.max[k]; }
+    min[k] = lo - pad; max[k] = hi + pad;
+  });
+  return { min: overlay.worldToLocal(min), max: overlay.worldToLocal(max) };
+}
+
+/* rubber-band preview that follows the cursor */
+function updatePreview(e) {
+  const p = hitDraw(e); if (!p) return;
+  if (draw.prev) { overlay.remove(draw.prev); draw.prev.geometry.dispose(); draw.prev = null; }
+  const mat = new THREE.LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true, opacity: 0.8 });
+  if (draw.mode === 'rect') {
+    if (draw.pts.length !== 1) return;
+    draw.prev = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo(boxFrom(draw.pts[0], p))), mat);
+  } else {
+    draw.prev = new THREE.Line(new THREE.BufferGeometry().setFromPoints([...draw.pts, p]), mat);
+  }
+  draw.prev.renderOrder = 20; overlay.add(draw.prev);
+}
+/* while tracing, reveal every saved highlight so you can see what's already drawn */
+function showAllAreas(on) {
+  Object.values(hlObjs).forEach(o => { if (o.g) o.g.visible = on || !!o.g.userData.always; });
+  hoverId = null;
+}
+function cancelDraw() {
+  showAllAreas(false);
+  if (draw) [draw.line, draw.prev].forEach(o => { if (o) { overlay.remove(o); o.geometry.dispose(); } });
+  draw = null; armed = null;
+  document.querySelectorAll('.asset.on').forEach(a => a.classList.remove('on')); banner('');
+}
+function addPt(p) {
+  draw.pts.push(p);
+    if (draw.line) overlay.remove(draw.line);
+  draw.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(draw.pts), new THREE.LineBasicMaterial({ color: 0xffae00, depthTest: false }));
+  draw.line.renderOrder = 20; overlay.add(draw.line);
+}
+function nearFirst(e) {
+const v = overlay.localToWorld(draw.pts[0].clone()).project(camera), r = renderer.domElement.getBoundingClientRect();
+return Math.hypot((v.x + 1) / 2 * r.width + r.left - e.clientX, (1 - v.y) / 2 * r.height + r.top - e.clientY) < 14;
+}
+function finishDraw() {
+  if (!draw) return;
+    if (draw.prism) {
+    if (draw.heightStage) return;                       // waiting on the 2 height clicks
+    if (draw.pts.length < 3) return;
+    draw.heightStage = true;
+    if (draw.prev) { overlay.remove(draw.prev); draw.prev.geometry.dispose(); draw.prev = null; }
+    banner('Click the BOTTOM height on the model, then the TOP height · Esc cancels');
+    return;
+  }
+  if (draw.box) {
+    const h = data.highlights.find(x => x.id === draw.target);
+    h.box = { min: draw.box.min.toArray(), max: draw.box.max.toArray() }; h.poly = null;
+    renderHl(h); save();
+  } else if (draw.pts.length >= 3) {
+    const arr = draw.pts.map(p => p.toArray());
+    if (draw.kind === 'zone') { data.zones[draw.target].poly = arr; applyZone(zones[draw.target]); }
+    else if (draw.kind === 'equip') { data.equip[draw.target].poly = arr; applyEquip(draw.target); }
+    else { const h = data.highlights.find(x => x.id === draw.target); h.poly = arr; renderHl(h); }
+    save();
+  }
+   const tId = draw && draw.kind === 'hl' ? draw.target : null;
+  cancelDraw();
+  const hh = tId && data.highlights.find(x => x.id === tId);
+  if (hh && hh.custom && !hh.tagPos) setTimeout(() => armHlTag(tId), 100);
+  else if (hh) setTimeout(() => offerHlImage(hh), 60);   // delay so the closing click isn't also the tag click
+}
+
+let down = null;
+renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || e.button !== 0) return;
+  down = null;
+     if (draw) {
+    if (draw.heightStage) {
+      const p = hitModel(e); if (!p) return;
+      draw.ys.push(p.y);
+      if (draw.ys.length < 2) { banner('Now click the TOP height'); return; }
+      const h = data.highlights.find(x => x.id === draw.target);
+      h.prism = { poly: draw.pts.map(q => q.toArray()), y0: Math.min(...draw.ys), y1: Math.max(...draw.ys) };
+      h.box = null; h.poly = null;
+      renderHl(h); save(); cancelDraw(); setTimeout(() => offerHlImage(h), 60); return;
+    }
+    if (draw.mode === 'poly' && draw.pts.length >= 3 && nearFirst(e)) return finishDraw();
+    const p = hitDraw(e); if (!p) return;
+    if (draw.mode === 'rect' && draw.pts.length === 1) { draw.box = boxFrom(draw.pts[0], p); return finishDraw(); }
+    addPt(p); return;
+  }
+  if (armed && armed !== 'place' && armed !== 'cplace' && armed !== 'hltag' && !String(armed).startsWith('glb:') && edit) {
+    const p = hitModel(e); if (!p) return;
+    const it = { src: armed, pos: p.toArray(), s: 1, bb: true }; data.images.push(it); placeImage(it, true); save();
+    armed = null; document.querySelectorAll('.asset.on').forEach(a => a.classList.remove('on')); banner('');
+    return;
+  }
+  if (armed) return;
+  const o = hitPick(e);
+  if (!o) { closeEqInfo(); if (edit) { selectImg(null); if (!dragG) selectGlb(null); } return; }
+  if (o.userData.hl) {
+    const h = data.highlights.find(x => x.id === o.userData.hl);
+    if (h) { if (edit) hlOpen(h.id); else goHl(h); }
+    return;
+  }
+  if (o.userData.hlTag) { if (edit) { $('hSel').value = o.userData.hlTag; syncHSz(); hlOpen(o.userData.hlTag); } return; }
+  if (o.userData.img) { if (edit) selectImg(o.userData.img); return; }
+  if (o.userData.equip) { if (edit) openEqModal(o.userData.equip); else clickEq(o.userData.equip, e); return; }
+if (o.userData.cust) { if (edit) { $('cSel').value = o.userData.cust; syncCSz(); openCu(o.userData.cust); } return; }
+const z = zones[o.userData.zone]; if (!z) return;
+if (edit) { $('zSel').value = z.name; syncDb(); } else showZoneInfo(z, e);
+});
+renderer.domElement.addEventListener('pointerup', e => {   // "place tag" click
+  if (!armed || armed !== 'place' || !edit || draw) return;
+});
+window.addEventListener('keydown', e => { if (e.key === 'Escape') { cancelDraw(); closeEqInfo(); } if (e.key === 'Enter') finishDraw(); });
+
+/* place-tag mode handled on click so it doesn't clash with orbit drags */
+renderer.domElement.addEventListener('click', e => {
+  if (armed !== 'place' || !edit || draw) return;
+  const p = hitModel(e); if (!p) return;
+  const n = $('zSel').value; if (!n) return;
+  (data.zones[n] ||= {}).pos = p.toArray(); applyZone(zones[n]);    save(); armed = null; banner(''); selectNextUnplaced();
+});
+
+/* hover tooltip */
+const tip = $('tip');
+let _pm = null;
+renderer.domElement.addEventListener('pointermove', e => {
+  if (_pm) { _pm = e; return; }
+  _pm = e;
+  requestAnimationFrame(() => { const ev = _pm; _pm = null; if (ev) onHoverMove(ev); });
+});
+const onHoverMove = e => {
+    if (draw && !e.buttons && draw.pts.length && !draw.heightStage) updatePreview(e);
+   if (draw || e.buttons) { hoverHl(null); hoverEq(null); tip.style.display = 'none'; return; }
+  const o = hitPick(e), z = o && zones[o.userData.zone];
+    const hid = o && (o.userData.hl || o.userData.hlTag);
+   hoverHl(hid);
+  hoverEq(hid ? null : o && o.userData.equip);
+  if (hid) {
+    const h = data.highlights.find(x => x.id === hid), q = hlObjs[hid];
+    tip.innerHTML = `<b>${h ? h.name : ''}</b>` +
+      (h?.custom ? `<br><span style="color:${q?.st ? ST[q.st].c : '#c8d8ea'}">${q?.v == null ? '—' : q.v}${q?.st ? ' · ' + ST[q.st].label : ''}</span>` +
+                   (edit ? '<br><span style="color:#5a7080">Click to edit</span>' : '')
+                 : (h && h.href && !edit ? '<br>Click to open floor plan' : ''));
+    tip.style.display = 'block'; tip.style.left = (e.clientX + 16) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+    return;
+  }
+
+   if (o && o.userData.equip) {
+    const n = o.userData.equip, q = equip[n], d = data.equip[n];
+tip.innerHTML = `<b>${d?.label || n}</b><br><span style="color:${q?.st ? ST[q.st].c : '#c8d8ea'}">${q?.v == null ? '—' : q.v}${q?.st ? ' · ' + ST[q.st].label : ''}</span>` +
+(edit ? '<br><span style="color:#5a7080">Click to edit</span>'
+        : d?.other?.length && d.link ? '<br><span style="color:#5a7080">Click for more data or page</span>'
+        : d?.link ? '<br><span style="color:#5a7080">Click to open page</span>'
+        : d?.other?.length ? '<br><span style="color:#5a7080">Click for more data</span>' : '');
+    tip.style.display = 'block'; tip.style.left = (e.clientX + 16) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+    return;
+  }
+    if (o && o.userData.cust) {
+    const q = cust[o.userData.cust];
+    if (q) {
+tip.innerHTML = `<b>${q.name}</b><br><span style="color:${q.st ? ST[q.st].c : '#c8d8ea'}">${q.v == null ? '—' : q.v}${q.st ? ' · ' + ST[q.st].label : ''}</span>` +
+(edit ? '<br><span style="color:#5a7080">Click to edit</span>' : '');
+      tip.style.display = 'block'; tip.style.left = (e.clientX + 16) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+      return;
+    }
+  }
+  if (!z) { tip.style.display = 'none'; return; }
+tip.innerHTML = `<b>${z.name}</b><br><span style="color:${zColor(z)}">${z.t == null ? '—' : z.t.toFixed(1) + '°F'}${z.st ? ' · ' + ST[z.st].label : ''}</span>` +
+(z.sp != null ? `<br>SP: ${z.sp}°F · ±${z.db}°F` : '');
+  tip.style.display = 'block'; tip.style.left = (e.clientX + 16) + 'px'; tip.style.top = (e.clientY - 10) + 'px';
+};
+renderer.domElement.addEventListener('pointerleave', () => { _pm = null; hoverHl(null); hoverEq(null); tip.style.display = 'none'; });
+
+/* ── edit panel wiring ─────────────────────────────────────── */
+function syncDb() {
+  const z = zones[$('zSel').value]; $('zDb').value = z ? z.db : DEF_DB;
+  const s = data.zones[$('zSel').value]?.size || 1;
+  $('zSz').value = s; $('zSzN').value = s;
+}
+function setZoneSize(v, commit) {
+  const n = $('zSel').value, d = data.zones[n];
+  if (!d || isNaN(v) || v <= 0) return;
+  d.size = v; $('zSz').value = v; $('zSzN').value = v;
+  const z = zones[n]; if (z && z.sprite) tagSize(z.sprite, v);
+  if (commit) save();
+}
+$('zSz').addEventListener('input',  e => setZoneSize(parseFloat(e.target.value), false));
+$('zSz').addEventListener('change', e => setZoneSize(parseFloat(e.target.value), true));
+$('zSzN').addEventListener('change', e => setZoneSize(parseFloat(e.target.value), true));
+$('zSel').addEventListener('change', syncDb);
+$('zDb').addEventListener('change', () => {
+  const z = zones[$('zSel').value], v = parseFloat($('zDb').value); if (!z || isNaN(v) || v <= 0) return;
+  z.db = v; saveDb(z.name, v); refresh(z);
+});
+$('bPlace').onclick = () => { cancelDraw(); armed = 'place'; banner('Click the model where the tag should sit'); };
+$('bTrace').onclick = () => { const n = $('zSel').value; if (n) { (data.zones[n] ||= {}); startDraw('zone', n, `TRACE ${n}`); } };
+$('bClr').onclick = () => {
+  const n = $('zSel').value; if (!n || !data.zones[n]) return;
+  delete data.zones[n]; const z = zones[n]; stopWatch(z);
+  if (z.sprite) { overlay.remove(z.sprite); pickables.splice(pickables.indexOf(z.sprite), 1); z.sprite = null; }
+  if (z.poly) { overlay.remove(z.poly); pickables.splice(pickables.indexOf(z.poly.userData.fill), 1); z.poly = null; }
+  save(); renderRails();
+};
+$('bHl').onclick = () => { cancelDraw(); hlOpen(null); };
+IMAGE_ASSETS.forEach(a => {
+  const d = document.createElement('div'); d.className = 'asset'; d.title = 'Click, then click the model to place';
+  d.innerHTML = `<img src="${a.src}" alt=""><div>${a.label}</div>`;
+  d.onclick = () => { cancelDraw(); armed = a.src; d.classList.add('on'); banner(`Click the model to place "${a.label}"`); };
+  $('assets').appendChild(d);
+});
+$('btnEdit').addEventListener('click', () => {
+  edit = !edit; cancelDraw();
+  if (edit && !glbListed) { glbListed = true; glbListFiles(); }
+  document.body.classList.toggle('edit-mode', edit);
+  $('btnEdit').classList.toggle('on', edit); $('btnEdit').textContent = edit ? 'Exit Edit' : 'Edit Mode';
+   Object.keys(equip).forEach(setEqLook);
+  updateOvHandles();
+  if (!edit) selectGlb(null);
+  glbVis();
+  Object.values(hlObjs).forEach(o => {
+    if (o.g?.userData.custom) { o.g.userData.always = edit; o.g.visible = edit; }
+  });
+});
+/* group everything under each <h3> in the edit panel into a collapsible section */
+(function groupEditSections() {
+  let open = {}; try { open = JSON.parse(localStorage.getItem('Murphy_EditSecs')) || {}; } catch {}
+  [...$('edit').querySelectorAll(':scope > h3')].forEach(h => {
+    const body = document.createElement('div'); body.className = 'secBody';
+    let n = h.nextElementSibling;
+    while (n && n.tagName !== 'H3') { const nx = n.nextElementSibling; body.appendChild(n); n = nx; }
+    h.after(body); h.classList.add('sh');
+    const key = h.textContent.replace('⬡', '').trim();
+    const set = o => { body.classList.toggle('closed', !o); h.classList.toggle('open', o); };
+    set(!!open[key]);
+    h.onclick = () => {
+      const o = body.classList.contains('closed'); set(o); open[key] = o;
+      try { localStorage.setItem('Murphy_EditSecs', JSON.stringify(open)); } catch {}
+    };
+  });
+})();
+
+const rnd = (k, v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;   // keeps the file small
+
+$('bExp').onclick = () => { $('jsonOut').value = JSON.stringify({ version: 1, ...data }, rnd, 2); $('exportModal').classList.add('open'); };
+$('mClose').onclick = () => $('exportModal').classList.remove('open');
+$('mCopy').onclick = () => { $('jsonOut').select(); document.execCommand('copy'); dirty = false; $('bExp').textContent = 'Export JSON'; };
+/* ── Floor Health / Needs Attention rails ──────────────────── */
+const collapsed = { L: true, R: true };
+['railL', 'railR'].forEach(id => { $(id).addEventListener('wheel', e => e.stopPropagation(), { passive: true }); });
+
+function flyTo(z) {
+const p = z.sprite ? z.sprite.getWorldPosition(new THREE.Vector3()) : z.poly ? new THREE.Box3().setFromObject(z.poly).getCenter(new THREE.Vector3()) : null; if (!p) return;
+const off = camera.position.clone().sub(controls.target).setLength(R * 0.8);
+  flyCam(p.clone().add(off).toArray(), p.toArray());
+}
+function renderRails() {
+  const list = Object.values(zones).filter(z => (z.sprite || z.poly) && z.t != null && z.sp != null);
+  const bad = list.filter(z => Math.abs(z.t - z.sp) - z.db > 0).sort((a, b) => (Math.abs(b.t - b.sp) - b.db) - (Math.abs(a.t - a.sp) - a.db));
+  const good = list.length - bad.length;
+  const valid = list.filter(z => z.t > 0 && z.t <= 99), avg = valid.length ? valid.reduce((s, z) => s + z.t, 0) / valid.length : null;
+  const hot = bad.filter(z => z.t > z.sp).length;
+  const L = $('railL'), Rr = $('railR');
+  const head = (key, rail, title, sum) => `<h4 data-k="${key}"><span>${title}</span><span>${sum}</span></h4>`;
+  L.classList.toggle('collapsed', collapsed.L); Rr.classList.toggle('collapsed', collapsed.R);
+  L.innerHTML = head('L', L, 'Building Health', `${good}/${list.length}`) +
+    `<div class="body"><div class="stat">ZONES REPORTING<b>${list.length}</b></div><div class="stat">IN BAND<b style="color:hsl(122,100%,44%)">${good}</b></div>` +
+    `<div class="stat">OUT OF BAND<b>${bad.length}</b></div><div class="stat">AVG TEMP<b>${avg === null ? '—' : avg.toFixed(1) + '°F'}</b></div>` +
+    `<div class="stat">TOO HOT / COLD<b>${hot} / ${bad.length - hot}</b></div></div>`;
+  Rr.innerHTML = head('R', Rr, 'Needs Attention', bad.length || '✓') + '<div class="body"></div>';
+  const body = Rr.querySelector('.body');
+  if (!bad.length) body.innerHTML = '<div style="color:var(--green);text-align:center">✓ All zones in band</div>';
+  bad.forEach(z => {
+    const row = document.createElement('div'), badS = z.t <= 0 || z.t > 99, col = badS ? '#ff4444' : zColor(z);
+    row.className = 'row2'; row.style.borderLeftColor = col;
+    row.innerHTML = `<span>${z.name}</span><b style="color:${col}">${badS ? 'Bad Sensor' : (z.t >= z.sp ? '+' : '−') + Math.abs(z.t - z.sp).toFixed(1) + '°F'}</b>`;
+    row.onclick = () => flyTo(z); body.appendChild(row);
+  });
+  document.querySelectorAll('.rail h4').forEach(h => h.onclick = () => { collapsed[h.dataset.k] = !collapsed[h.dataset.k]; localStorage.setItem('Murphy_BasRailCollapsed', JSON.stringify(collapsed)); renderRails(); });
+}
+
+const btnAl = $('btnAlarms'), alPanel = $('alarmPanel');
+btnAl.onclick = () => alPanel.classList.toggle('open');
+function renderAlarms() {
+  const items = [];
+  Object.values(zones).forEach(z => { if ((z.sprite || z.poly) && z.st) items.push({ o: z, name: z.name, st: z.st, v: z.t == null ? '—' : z.t.toFixed(1) + '°F' }); });
+  Object.values(equip).forEach(e => { if (e.poly && e.st) items.push({ o: e, name: data.equip[e.name]?.label || e.name, st: e.st, v: e.v ?? '—' }); });
+  Object.values(cust).forEach(c => { if (c.sprite && c.st) items.push({ o: c, name: c.name, st: c.st, v: c.v ?? '—' }); });
+  data.highlights.forEach(h => { const o = hlObjs[h.id]; if (h.custom && o?.st) items.push({ o: { sprite: o.tag, poly: o.g }, name: h.name, st: o.st, v: o.v ?? '—' }); });
+  items.sort((a, b) => ST_ORDER.indexOf(a.st) - ST_ORDER.indexOf(b.st));
+  const n = items.filter(i => i.st === 'alarm').length;
+  btnAl.textContent = n ? `⚠ ${n} Alarm${n > 1 ? 's' : ''}` : items.length ? `${items.length} Status` : '✓ No Alarms';
+  btnAl.classList.toggle('alarming', n > 0);
+  alPanel.innerHTML = '';
+  if (!items.length) { alPanel.innerHTML = '<div style="color:var(--green);text-align:center;padding:8px">✓ Nothing to report</div>'; return; }
+  items.forEach(i => {
+    const row = document.createElement('div'); row.className = 'row2'; row.style.borderLeftColor = ST[i.st].c;
+    row.innerHTML = '<span></span><b></b>';
+    row.children[0].textContent = i.name;
+    row.children[1].textContent = ST[i.st].label; row.children[1].style.color = ST[i.st].c;
+    row.title = String(i.v);
+    row.onclick = () => { flyTo(i.o); alPanel.classList.remove('open'); };
+    alPanel.appendChild(row);
+  });
+}
+
+function refreshViews() {
+  const s = $('viewSel'), keep = s.value;
+  s.innerHTML = ''; s.add(new Option('Views', ''));
+  data.views.forEach(v => s.add(new Option(v.name, v.id)));
+  if (keep && data.views.some(v => v.id === keep)) s.value = keep;
+  s.style.display = data.views.length ? '' : 'none';
+}
+const camSnap = () => ({ pos: camera.position.toArray(), target: controls.target.toArray() });
+$('viewSel').onchange = e => { const v = data.views.find(x => x.id === e.target.value); if (v) flyCam(v.pos, v.target); };
+$('vSave').onclick = () => {
+  const v = { id: 'v_' + Date.now(), name: $('vName').value.trim() || 'View ' + (data.views.length + 1), ...camSnap() };
+  data.views.push(v); $('vName').value = ''; refreshViews(); $('viewSel').value = v.id; save();
+};
+$('vUpd').onclick = () => {
+  const v = data.views.find(x => x.id === $('viewSel').value); if (!v) return;
+  Object.assign(v, camSnap()); save();
+};
+$('vDel').onclick = () => {
+  const v = data.views.find(x => x.id === $('viewSel').value); if (!v || !confirm(`Delete view "${v.name}"?`)) return;
+  data.views = data.views.filter(x => x !== v); refreshViews(); save();
+};
+
+/* ── init once the model is in ─────────────────────────────── */
+async function initBAS() {
+  try {
+    const j = await prefetch.json;
+    if (j) {
+data.zones = j.zones || {}; data.images = j.images || []; data.highlights = j.highlights || []; data.equip = j.equip || {}; data.custom = j.custom || {}; data.views = j.views || []; data.models = j.models || [];
+Object.values(data.zones).forEach(d => { delete d.db; });
+    }
+  } catch (e) { console.warn('3D.json not available:', e.message); }
+  let cfg = null;
+    cfg = await prefetch.cfg; if (!cfg) console.warn('HomeConfig not available');
+  GLOBAL = await prefetch.glob; if (!GLOBAL) console.warn('Global.json not available');
+  hlFloors = buildFloorOptions(cfg);
+  const add = (arr, mk) => (arr || []).forEach(u => {
+    const raw = u.name, name = decodeBaja(raw), fl = String(u.FLNUM ?? u.floornumber ?? '').split('_')[0];
+    zones[name] = { name, raw, href: mk(raw, fl), db: DEF_DB, t: null, sp: null };
+  });
+  if (cfg) {
+    add(cfg.VAVs, (r, f) => `../VAVs/VAV_${f}/VAV${f}.html?unit=${encodeURIComponent(r)}`);
+    add(cfg.FTU,  (r, f) => `../FTUs/FTU_${f}/FTU${f}.html?unit=${encodeURIComponent(r)}`);
+    add(cfg.FCUs, (r)    => `../FCUs/${r}.html`);
+  }
+  Object.keys(data.zones).forEach(n => { if (!zones[n]) zones[n] = { name: n, raw: n, href: null, db: DEF_DB, t: null, sp: null }; });
+  Object.values(zones).forEach(z => { z.db = readDb(z.name); });
+  [...(cfg?.RTUs || cfg?.RTU || []), ...(cfg?.AHUs || cfg?.AHU || [])].forEach(u => {
+    const n = decodeBaja(u.name); equip[n] = equip[n] || { name: n, raw: u.name, v: null, poly: null };
+  });
+  Object.keys(data.equip).forEach(n => { equip[n] = equip[n] || { name: n, v: null, poly: null }; });
+  refreshEquipList();
+  Object.keys(data.equip).forEach(applyEquip);
+  Object.keys(data.custom).forEach(id => { cust[id] = { id, v: null, sprite: null }; applyCust(id); });
+refreshHlTagList();
+refreshCustList();
+refreshViews();
+   refreshZoneList();
+   Object.keys(data.zones).forEach(n => applyZone(zones[n]));
+  data.images.forEach(i => placeImage(i));
+  Promise.all(data.models.map(m => placeGlb(m))).then(() => { renderer.shadowMap.needsUpdate = true; });
+  data.highlights.forEach(renderHl);
+  refreshOvList();
+  syncDb(); renderRails(); renderAlarms();
+// setInterval(() => { Object.values(zones).forEach(poll); Object.keys(data.equip).forEach(pollEquip); Object.keys(data.custom).forEach(pollCust); }, POLL_MS);
+  
+}
+</script>
+</body>
+</html>
